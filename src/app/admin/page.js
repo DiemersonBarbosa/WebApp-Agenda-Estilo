@@ -149,20 +149,20 @@ const loadDashboardData = useCallback(async (barbeariaId) => {
     const dadosBarbearia = resBarbearia.data;
     setBarbearia(dadosBarbearia);
 
-    // --- TRAVA INTELIGENTE DE ASSINATURA ---
-    const expiraEm = dadosBarbearia?.assinatura_expira_em;
+    // --- VERIFICAÇÃO COM OS NOMES EXATOS DAS COLUNAS DO SUPABASE ---
+    const dataVencimentoStr = dadosBarbearia?.data_vencimento;
     const status = dadosBarbearia?.status_assinatura;
     
     const hoje = new Date();
-    const dataExpiracao = expiraEm ? new Date(expiraEm) : null;
+    const dataExpiracao = dataVencimentoStr ? new Date(dataVencimentoStr) : null;
 
-    // Verifica se a assinatura está vencida ou não ativa
+    // Se não houver data, se a data já passou, ou se o status não for 'ativo', abre o modal
     const estaVencida = !dataExpiracao || dataExpiracao < hoje || status !== 'ativo';
 
     if (estaVencida) {
-      setModalAssinaturaOpen(true); // Abre o Pix apenas se estiver vencido
+      setModalAssinaturaOpen(true);
     } else {
-      setModalAssinaturaOpen(false); // Mantém fechado se o plano estiver pago/ativo!
+      setModalAssinaturaOpen(false); // Mantém fechado porque a data e o status estão corretos!
     }
 
     // ... restante do seu código para definir os estados (setAgendamentos, setClientes, etc.) ...
