@@ -228,6 +228,43 @@ export default function AdminDashboard() {
     checkAuthAndLoad();
   }, [router, loadDashboardData]);
 
+
+  // Efeito para verificar o status do pagamento automaticamente a cada 5 segundos enquanto o Pix estiver na tela
+  useEffect(() => {
+    let intervalId;
+
+    if (modalAssinaturaOpen && metodoPagamento === 'pix' && pixDataMP?.paymentId) {
+      intervalId = setInterval(async () => {
+        try {
+          const res = await fetch('/api/verificar-pagamento', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ paymentId: pixDataMP.paymentId })
+          });
+          
+          const data = await res.json();
+
+          // Se o pagamento for aprovado pelo Mercado Pago
+          if (res.ok && data.status === 'approved') {
+            clearInterval(intervalId);
+            
+            // Aqui você pode atualizar o Supabase para liberar o acesso se ainda não foi feito,
+            // ou redirecionar direto para o painel
+            alert('Pagamento aprovado com sucesso! Redirecionando...');
+            router.push('/admin'); // Altere para a rota correta do seu painel
+          }
+        } catch (err) {
+          console.error('Erro ao verificar status automático:', err);
+        }
+      }, 5000); // Roda a cada 5 segundos
+    }
+
+    // Limpa o temporizador quando o modal fecha ou o componente desmonta
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [modalAssinaturaOpen, metodoPagamento, pixDataMP?.paymentId, router]);
+
   // Sempre que abrir o modal ou alternar para o Pix, gera a cobrança
   useEffect(() => {
     if (modalAssinaturaOpen && metodoPagamento === 'pix') {
