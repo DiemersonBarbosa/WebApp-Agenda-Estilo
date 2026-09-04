@@ -2,8 +2,10 @@ import { NextResponse } from 'next/server';
 
 export async function POST(request) {
   try {
-    const body = await request.json();
-    const { paymentId } = body;
+    const body = await request.json().catch(() => ({}));
+    
+    // Aceita qualquer variação de nome que venha do front-end
+    const paymentId = body.paymentId || body.id || body.transactionId;
 
     if (!paymentId) {
       return NextResponse.json(
