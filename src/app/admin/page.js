@@ -29,125 +29,6 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
-
-import { useState, useEffect } from 'react';
-import { createClient } from '@supabase/supabase-js';
-
-// Certifique-se de usar sua instância existente do supabase
-export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
-  const [fotoUrl, setFotoUrl] = useState(barbearia?.foto_url || '');
-  const [corTema, setCorTema] = useState(barbearia?.cor_tema || '#000000');
-  const [horarioFuncionamento, setHorarioFuncionamento] = useState(barbearia?.horario_funcionamento || 'Seg a Sáb: 09h às 20h');
-  const [statusAberto, setStatusAberto] = useState(barbearia?.status_aberto ?? true);
-  const [salvando, setSalvando] = useState(false);
-
-  const handleSalvarConfiguracoes = async (e) => {
-    e.preventDefault();
-    setSalvando(true);
-
-    try {
-      const { error } = await supabase
-        .from('barbearias')
-        .update({
-          foto_url: fotoUrl,
-          cor_tema: corTema,
-          horario_funcionamento: horarioFuncionamento,
-          status_aberto: statusAberto,
-        })
-        .eq('id', barbearia.id);
-
-      if (error) throw error;
-
-      alert('Configurações atualizadas com sucesso!');
-      if (onUpdate) onUpdate(); // Atualiza os dados no componente pai
-    } catch (err) {
-      alert('Erro ao salvar: ' + err.message);
-    } finally {
-      setSalvando(false);
-    }
-  };
-
-  return (
-    <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 max-w-2xl mx-auto">
-      <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-4">Configurações da Página do Cliente</h2>
-      
-      <form onSubmit={handleSalvarConfiguracoes} className="space-y-5">
-        
-        {/* Status Aberto / Fechado */}
-        <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700">
-          <div>
-            <label className="font-semibold text-slate-700 dark:text-slate-200 block">Status da Barbearia</label>
-            <span className="text-xs text-slate-500 dark:text-slate-400">
-              {statusAberto ? 'Aberto para novos agendamentos de clientes.' : 'Fechado (Agendamentos desativados temporariamente).'}
-            </span>
-          </div>
-          <button
-            type="button"
-            onClick={() => setStatusAberto(!statusAberto)}
-            className={`px-4 py-2 rounded-xl font-bold text-sm transition ${
-              statusAberto 
-                ? 'bg-emerald-600 text-white hover:bg-emerald-700' 
-                : 'bg-rose-600 text-white hover:bg-rose-700'
-            }`}
-          >
-            {statusAberto ? '🟢 Aberto' : '🔴 Fechado'}
-          </button>
-        </div>
-
-        {/* Foto da Barbearia */}
-        <div>
-          <label className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-1">URL da Foto / Logo da Barbearia</label>
-          <input
-            type="text"
-            value={fotoUrl}
-            onChange={(e) => setFotoUrl(e.target.value)}
-            placeholder="https://exemplo.com/sua-foto.jpg"
-            className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-slate-800 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
-          />
-        </div>
-
-        {/* Cor do Tema */}
-        <div className="flex items-center space-x-4">
-          <div>
-            <label className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-1">Cor Principal do Tema</label>
-            <input
-              type="color"
-              value={corTema}
-              onChange={(e) => setCorTema(e.target.value)}
-              className="w-16 h-10 rounded-lg cursor-pointer border border-slate-200 dark:border-slate-700 bg-transparent p-1"
-            />
-          </div>
-          <span className="text-sm font-mono text-slate-500">{corTema}</span>
-        </div>
-
-        {/* Horário de Funcionamento */}
-        <div>
-          <label className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-1">Horário de Funcionamento (Exibido ao cliente)</label>
-          <input
-            type="text"
-            value={horarioFuncionamento}
-            onChange={(e) => setHorarioFuncionamento(e.target.value)}
-            placeholder="Segunda a Sábado, das 09:00 às 19:00"
-            className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-slate-800 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
-          />
-        </div>
-
-        {/* Botão Salvar */}
-        <button
-          type="submit"
-          disabled={salvando}
-          className="w-full bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-white text-white dark:text-slate-900 font-semibold py-3 rounded-xl shadow transition duration-200 disabled:opacity-50"
-        >
-          {salvando ? 'Salvando alterações...' : 'Salvar Configurações'}
-        </button>
-
-      </form>
-    </div>
-  );
-}
-
-
-
 export default function AdminDashboard() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('agendamentos');
@@ -239,64 +120,62 @@ export default function AdminDashboard() {
   };
 
   // Carregar Dados isolados por barbearia_id
-const loadDashboardData = useCallback(async (barbeariaId) => {
-  setLoading(true);
-  setErrorMessage(null);
+  const loadDashboardData = useCallback(async (barbeariaId) => {
+    setLoading(true);
+    setErrorMessage(null);
 
-  try {
-    const [resAgendamentos, resClientes, resBarbeiros, resServicos, resDespesas, resBarbearia] = await Promise.all([
-      supabase
-        .from('agendamentos')
-        .select('*, clientes(*), barbeiros(*), servicos(*)')
-        .eq('barbearia_id', barbeariaId)
-        .order('data_hora', { ascending: true }),
-      supabase.from('clientes').select('*').eq('barbearia_id', barbeariaId).order('created_at', { ascending: false }),
-      supabase.from('barbeiros').select('*').eq('barbearia_id', barbeariaId).order('nome', { ascending: true }),
-      supabase.from('servicos').select('*').eq('barbearia_id', barbeariaId).order('nome', { ascending: true }),
-      supabase.from('despesas').select('*').eq('barbearia_id', barbeariaId).order('data', { ascending: false }),
-      // Adicionado para buscar o status da assinatura da barbearia:
-      supabase.from('barbearias').select('*').eq('id', barbeariaId).single()
-    ]);
+    try {
+      const [resAgendamentos, resClientes, resBarbeiros, resServicos, resDespesas, resBarbearia] = await Promise.all([
+        supabase
+          .from('agendamentos')
+          .select('*, clientes(*), barbeiros(*), servicos(*)')
+          .eq('barbearia_id', barbeariaId)
+          .order('data_hora', { ascending: true }),
+        supabase.from('clientes').select('*').eq('barbearia_id', barbeariaId).order('created_at', { ascending: false }),
+        supabase.from('barbeiros').select('*').eq('barbearia_id', barbeariaId).order('nome', { ascending: true }),
+        supabase.from('servicos').select('*').eq('barbearia_id', barbeariaId).order('nome', { ascending: true }),
+        supabase.from('despesas').select('*').eq('barbearia_id', barbeariaId).order('data', { ascending: false }),
+        supabase.from('barbearias').select('*').eq('id', barbeariaId).single()
+      ]);
 
-    if (resAgendamentos.error) throw resAgendamentos.error;
-    if (resClientes.error) throw resClientes.error;
-    if (resBarbeiros.error) throw resBarbeiros.error;
-    if (resServicos.error) throw resServicos.error;
-    if (resDespesas.error) throw resDespesas.error;
-    if (resBarbearia.error) throw resBarbearia.error;
+      if (resAgendamentos.error) throw resAgendamentos.error;
+      if (resClientes.error) throw resClientes.error;
+      if (resBarbeiros.error) throw resBarbeiros.error;
+      if (resServicos.error) throw resServicos.error;
+      if (resDespesas.error) throw resDespesas.error;
+      if (resBarbearia.error) throw resBarbearia.error;
 
-    const dadosBarbearia = resBarbearia.data;
-    setBarbearia(dadosBarbearia);
+      const dadosBarbearia = resBarbearia.data;
+      setBarbearia(dadosBarbearia);
+      setAgendamentos(resAgendamentos.data || []);
+      setClientes(resClientes.data || []);
+      setBarbeiros(resBarbeiros.data || []);
+      setServicos(resServicos.data || []);
+      setDespesas(resDespesas.data || []);
 
-    // --- VERIFICAÇÃO COM OS NOMES EXATOS DAS COLUNAS DO SUPABASE ---
-    const dataVencimentoStr = dadosBarbearia?.data_vencimento;
-    const status = dadosBarbearia?.status_assinatura;
-    
-    const hoje = new Date();
-    const dataExpiracao = dataVencimentoStr ? new Date(dataVencimentoStr) : null;
+      const dataVencimentoStr = dadosBarbearia?.data_vencimento;
+      const status = dadosBarbearia?.status_assinatura;
+      
+      const hoje = new Date();
+      const dataExpiracao = dataVencimentoStr ? new Date(dataVencimentoStr) : null;
+      const estaVencida = !dataExpiracao || dataExpiracao < hoje || status !== 'ativo';
 
-    // Se não houver data, se a data já passou, ou se o status não for 'ativo', abre o modal
-    const estaVencida = !dataExpiracao || dataExpiracao < hoje || status !== 'ativo';
+      if (estaVencida) {
+        setModalAssinaturaOpen(true);
+      } else {
+        setModalAssinaturaOpen(false);
+      }
 
-    if (estaVencida) {
-      setModalAssinaturaOpen(true);
-    } else {
-      setModalAssinaturaOpen(false); // Mantém fechado porque a data e o status estão corretos!
+    } catch (err) {
+      setErrorMessage(err.message);
+    } finally {
+      setLoading(false);
     }
-
-    // ... restante do seu código para definir os estados (setAgendamentos, setClientes, etc.) ...
-
-  } catch (err) {
-    setErrorMessage(err.message);
-  } finally {
-    setLoading(false);
-  }
-}, [supabase]);
+  }, []);
 
   // Gerar Pix dinâmico Oficial via API do Mercado Pago
   const gerarPixMercadoPago = useCallback(async (paymentData) => {
     try {
-      // Garante que o valor seja enviado no formato correto (ex: 9.90)
       const payload = {
         transaction_amount: Number(paymentData.transaction_amount) || 9.90,
         description: paymentData.description || 'Assinatura Mensal Gestor',
@@ -315,7 +194,6 @@ const loadDashboardData = useCallback(async (barbeariaId) => {
       const data = await response.json();
 
       if (!response.ok) {
-        console.error('Detalhes do erro da API:', data);
         throw new Error(data.error?.message || 'Erro ao gerar PIX');
       }
       
@@ -366,7 +244,6 @@ const loadDashboardData = useCallback(async (barbeariaId) => {
     checkAuthAndLoad();
   }, [router, loadDashboardData]);
 
-
   // Efeito para verificar o status do pagamento automaticamente a cada 5 segundos enquanto o Pix estiver na tela
   useEffect(() => {
     let intervalId;
@@ -382,28 +259,22 @@ const loadDashboardData = useCallback(async (barbeariaId) => {
           
           const data = await res.json();
 
-          // Se o pagamento for aprovado pelo Mercado Pago
           if (res.ok && data.status === 'approved') {
             clearInterval(intervalId);
-            
-            // Aqui você pode atualizar o Supabase para liberar o acesso se ainda não foi feito,
-            // ou redirecionar direto para o painel
             alert('Pagamento aprovado com sucesso! Redirecionando...');
-            router.push('/admin'); // Altere para a rota correta do seu painel
+            router.push('/admin');
           }
         } catch (err) {
           console.error('Erro ao verificar status automático:', err);
         }
-      }, 5000); // Roda a cada 5 segundos
+      }, 5000);
     }
 
-    // Limpa o temporizador quando o modal fecha ou o componente desmonta
     return () => {
       if (intervalId) clearInterval(intervalId);
     };
   }, [modalAssinaturaOpen, metodoPagamento, pixDataMP?.paymentId, router]);
 
-  // Sempre que abrir o modal ou alternar para o Pix, gera a cobrança apenas se já não houver um Pix ativo
   useEffect(() => {
     if (modalAssinaturaOpen && metodoPagamento === 'pix' && !pixDataMP?.paymentId) {
       gerarPixMercadoPago({
@@ -420,7 +291,7 @@ const loadDashboardData = useCallback(async (barbeariaId) => {
     router.push('/admin/login');
   };
 
- const handleProcessarPagamentoMercadoPago = async (e) => {
+  const handleProcessarPagamentoMercadoPago = async (e) => {
     if (e) e.preventDefault();
     setProcessandoPagamento(true);
 
@@ -450,13 +321,12 @@ const loadDashboardData = useCallback(async (barbeariaId) => {
           return;
         }
 
-        // --- PAGAMENTO APROVADO: Atualiza o Supabase e libera o acesso ---
         if (barbearia?.id) {
           const dataExpiracao = new Date();
-          dataExpiracao.setMonth(dataExpiracao.getMonth() + 1); // Adiciona 1 mês de acesso
+          dataExpiracao.setMonth(dataExpiracao.getMonth() + 1);
 
           await supabase
-            .from('barbearias') // Ajuste para o nome da sua tabela de barbearias/assinaturas se necessário
+            .from('barbearias')
             .update({ 
               status_assinatura: 'ativo', 
               assinatura_expira_em: dataExpiracao.toISOString(),
@@ -467,7 +337,7 @@ const loadDashboardData = useCallback(async (barbeariaId) => {
 
         alert('Pagamento aprovado com sucesso! Acesso liberado.');
         setModalAssinaturaOpen(false);
-        router.push('/admin'); // Ou recarrega os dados do painel
+        router.push('/admin');
       }
     } catch (err) {
       console.error('Erro ao processar pagamento:', err);
@@ -476,6 +346,7 @@ const loadDashboardData = useCallback(async (barbeariaId) => {
       setProcessandoPagamento(false);
     }
   };
+
   const copiarChavePix = () => {
     if (!pixDataMP.copiaECola) return;
     navigator.clipboard.writeText(pixDataMP.copiaECola);
@@ -746,8 +617,7 @@ const loadDashboardData = useCallback(async (barbeariaId) => {
 
           <div className="space-y-2 pt-4 border-t border-stone-100">
             <button
-              // Substitua o onClick antigo por este:
-onClick={() => setModalInfoAssinaturaOpen(true)}
+              onClick={() => setModalInfoAssinaturaOpen(true)}
               className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-sky-50 border border-sky-200 text-xs font-bold text-sky-800 hover:bg-sky-100 transition-all cursor-pointer"
             >
               <CreditCard className="w-3.5 h-3.5" /> {barbearia?.status_assinatura === 'ativo' ? 'Assinatura Ativa' : 'Assinar / Renovar'}
@@ -1114,79 +984,72 @@ onClick={() => setModalInfoAssinaturaOpen(true)}
         </main>
       </div>
 
+      {/* Modal de Detalhes da Assinatura */}
+      {modalInfoAssinaturaOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl p-6 shadow-2xl border border-slate-100 dark:border-slate-800 relative space-y-6">
+            
+            <button 
+              onClick={() => setModalInfoAssinaturaOpen(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xl font-bold p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+            >
+              ✕
+            </button>
 
+            <div className="flex items-center space-x-3">
+              <div className="w-12 h-12 rounded-xl bg-emerald-100 dark:bg-emerald-950/50 text-emerald-600 flex items-center justify-center text-2xl font-bold">
+                ✓
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-slate-800 dark:text-white">Minha Assinatura</h3>
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300 mt-1">
+                  • {barbearia?.status_assinatura ? barbearia.status_assinatura.toUpperCase() : 'ATIVO'}
+                </span>
+              </div>
+            </div>
 
-{/* Modal de Detalhes da Assinatura */}
-{modalInfoAssinaturaOpen && (
-  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-    <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl p-6 shadow-2xl border border-slate-100 dark:border-slate-800 relative space-y-6">
-      
-      {/* Botão Fechar */}
-      <button 
-        onClick={() => setModalInfoAssinaturaOpen(false)}
-        className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xl font-bold p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition"
-      >
-        ✕
-      </button>
+            <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 space-y-3 border border-slate-100 dark:border-slate-800 text-sm">
+              <div className="flex justify-between items-center pb-2 border-b border-slate-200/60 dark:border-slate-700/60">
+                <span className="text-slate-500 dark:text-slate-400">Plano Atual:</span>
+                <span className="font-semibold text-slate-700 dark:text-slate-200">Plano Mensal Gestor</span>
+              </div>
 
-      {/* Cabeçalho */}
-      <div className="flex items-center space-x-3">
-        <div className="w-12 h-12 rounded-xl bg-emerald-100 dark:bg-emerald-950/50 text-emerald-600 flex items-center justify-center text-2xl font-bold">
-          ✓
+              <div className="flex justify-between items-center pb-2 border-b border-slate-200/60 dark:border-slate-700/60">
+                <span className="text-slate-500 dark:text-slate-400">Valor:</span>
+                <span className="font-semibold text-slate-700 dark:text-slate-200">R$ 9,90 / mês</span>
+              </div>
+
+              <div className="flex justify-between items-center pb-2 border-b border-slate-200/60 dark:border-slate-700/60">
+                <span className="text-slate-500 dark:text-slate-400">Data de Início:</span>
+                <span className="font-medium text-slate-700 dark:text-slate-300">
+                  {barbearia?.data_inicio_assinatura 
+                    ? new Date(barbearia.data_inicio_assinatura).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) 
+                    : 'N/A'}
+                </span>
+              </div>
+
+              <div className="flex justify-between items-center">
+                <span className="text-slate-500 dark:text-slate-400">Próximo Vencimento:</span>
+                <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                  {barbearia?.data_vencimento 
+                    ? new Date(barbearia.data_vencimento).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) 
+                    : 'N/A'}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-2">
+              <button
+                onClick={() => setModalInfoAssinaturaOpen(false)}
+                className="w-full bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-white text-white dark:text-slate-900 font-semibold py-2.5 rounded-xl shadow transition duration-200"
+              >
+                Entendido
+              </button>
+            </div>
+
+          </div>
         </div>
-        <div>
-          <h3 className="text-lg font-bold text-slate-800 dark:text-white">Minha Assinatura</h3>
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300 mt-1">
-            • {barbearia?.status_assinatura ? barbearia.status_assinatura.toUpperCase() : 'ATIVO'}
-          </span>
-        </div>
-      </div>
-
-      {/* Detalhes do Plano */}
-      <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 space-y-3 border border-slate-100 dark:border-slate-800 text-sm">
-        <div className="flex justify-between items-center pb-2 border-b border-slate-200/60 dark:border-slate-700/60">
-          <span className="text-slate-500 dark:text-slate-400">Plano Atual:</span>
-          <span className="font-semibold text-slate-700 dark:text-slate-200">Plano Mensal Gestor</span>
-        </div>
-
-        <div className="flex justify-between items-center pb-2 border-b border-slate-200/60 dark:border-slate-700/60">
-          <span className="text-slate-500 dark:text-slate-400">Valor:</span>
-          <span className="font-semibold text-slate-700 dark:text-slate-200">R$ 9,90 / mês</span>
-        </div>
-
-        <div className="flex justify-between items-center pb-2 border-b border-slate-200/60 dark:border-slate-700/60">
-          <span className="text-slate-500 dark:text-slate-400">Data de Início:</span>
-          <span className="font-medium text-slate-700 dark:text-slate-300">
-            {barbearia?.data_inicio_assinatura 
-              ? new Date(barbearia.data_inicio_assinatura).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) 
-              : 'N/A'}
-          </span>
-        </div>
-
-        <div className="flex justify-between items-center">
-          <span className="text-slate-500 dark:text-slate-400">Próximo Vencimento:</span>
-          <span className="font-bold text-emerald-600 dark:text-emerald-400">
-            {barbearia?.data_vencimento 
-              ? new Date(barbearia.data_vencimento).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) 
-              : 'N/A'}
-          </span>
-        </div>
-      </div>
-
-      {/* Rodapé com Ações */}
-      <div className="flex justify-end pt-2">
-        <button
-          onClick={() => setModalInfoAssinaturaOpen(false)}
-          className="w-full bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-white text-white dark:text-slate-900 font-semibold py-2.5 rounded-xl shadow transition duration-200"
-        >
-          Entendido
-        </button>
-      </div>
-
-    </div>
-  </div>
-)}
-
+      )}
 
       {/* MODAL DE CHECKOUT DO MERCADO PAGO */}
       {modalAssinaturaOpen && (
@@ -1212,7 +1075,6 @@ onClick={() => setModalInfoAssinaturaOpen(true)}
               <span className="text-xl font-extrabold text-stone-900">R$ {valorAssinatura?.toFixed(2)}</span>
             </div>
 
-            {/* Abas de Método de Pagamento */}
             <div className="grid grid-cols-3 gap-2 bg-stone-100 p-1.5 rounded-2xl">
               <button
                 type="button"
@@ -1237,7 +1099,6 @@ onClick={() => setModalInfoAssinaturaOpen(true)}
               </button>
             </div>
 
-            {/* Conteúdo do Método Pix */}
             {metodoPagamento === 'pix' && (
               <div className="space-y-4 text-center py-2">
                 {pixDataMP.qrCodeBase64 ? (
@@ -1288,7 +1149,6 @@ onClick={() => setModalInfoAssinaturaOpen(true)}
               </div>
             )}
 
-            {/* Conteúdo do Cartão (Crédito / Débito) */}
             {(metodoPagamento === 'credito' || metodoPagamento === 'debito') && (
               <form onSubmit={handleProcessarPagamentoMercadoPago} className="space-y-4">
                 <div className="space-y-1">
@@ -1503,7 +1363,6 @@ onClick={() => setModalInfoAssinaturaOpen(true)}
           </div>
         </div>
       )}
-
     </div>
   );
 }
