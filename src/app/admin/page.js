@@ -625,7 +625,10 @@ const loadDashboardData = useCallback(async (barbeariaId) => {
 
           <div className="space-y-2 pt-4 border-t border-stone-100">
             <button
-              onClick={() => setModalAssinaturaOpen(true)}
+              onClick={() => {
+  // Se a assinatura estiver ativa, em vez de abrir o Pix, você pode mostrar um alerta ou um modal de "Gerenciar Plano"
+  alert(`Sua assinatura está ativa até: ${new Date(barbearia?.data_vencimento).toLocaleDateString('pt-BR')}`);
+}}
               className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-sky-50 border border-sky-200 text-xs font-bold text-sky-800 hover:bg-sky-100 transition-all cursor-pointer"
             >
               <CreditCard className="w-3.5 h-3.5" /> {barbearia?.status_assinatura === 'ativo' ? 'Assinatura Ativa' : 'Assinar / Renovar'}
