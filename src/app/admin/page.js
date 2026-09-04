@@ -23,8 +23,6 @@ import {
   TrendingDown,
   Wallet,
   CreditCard,
-  QrCode,
-  ShieldAlert,
   Lock,
   Copy,
   Check
@@ -52,7 +50,6 @@ export default function AdminDashboard() {
   const [metodoPagamento, setMetodoPagamento] = useState('pix');
 
   // Estados dinâmicos para o Pix do Mercado Pago
-  const [gerandoPixMP, setGerandoPixMP] = useState(false);
   const [pixDataMP, setPixDataMP] = useState({
     qrCodeBase64: '',
     copiaECola: '',
@@ -159,7 +156,7 @@ export default function AdminDashboard() {
   }, []);
 
   // Gerar Pix dinâmico Oficial via API do Mercado Pago
-const gerarPixMercadoPago = useCallback(async (paymentData) => {
+  const gerarPixMercadoPago = useCallback(async (paymentData) => {
     try {
       const response = await fetch('/api/gerar-pix', {
         method: 'POST',
@@ -172,12 +169,9 @@ const gerarPixMercadoPago = useCallback(async (paymentData) => {
       const data = await response.json();
 
       if (!response.ok) {
-        // ADICIONE ESTE CONSOLE.LOG PARA VER O ERRO REAL DO SERVIDOR
         console.error('Detalhes do erro da API:', data);
         throw new Error(data.error?.message || 'Erro ao gerar PIX');
       }
-
-      console.log('PIX gerado com sucesso:', data);
       
       setPixDataMP({
         qrCodeBase64: data.qrCodeBase64 || '',
@@ -225,8 +219,7 @@ const gerarPixMercadoPago = useCallback(async (paymentData) => {
     checkAuthAndLoad();
   }, [router, loadDashboardData]);
 
-  // Sempre que abrir o modal ou alternar para o Pix, gera a cobrança com valor incluso
- // Sempre que abrir o modal ou alternar para o Pix, gera a cobrança
+  // Sempre que abrir o modal ou alternar para o Pix, gera a cobrança
   useEffect(() => {
     if (modalAssinaturaOpen && metodoPagamento === 'pix') {
       gerarPixMercadoPago({
@@ -236,31 +229,45 @@ const gerarPixMercadoPago = useCallback(async (paymentData) => {
         payer_name: barbearia?.nome || 'Gestor'
       });
     }
-  }, [modalAssinaturaOpen, metodoPagamento, gerarPixMercadoPago]);
+  }, [modalAssinaturaOpen, metodoPagamento, gerarPixMercadoPago, user, barbearia]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
     router.push('/admin/login');
   };
 
-  // Processar pagamento concluído via Mercado Pago (Pix ou Cartão)
-  const handleProcessarPagamentoMercadoPago = async (e) => {
+ const handleProcessarPagamentoMercadoPago = async (e) => {
     if (e) e.preventDefault();
     setProcessandoPagamento(true);
 
     try {
-      if ((metodoPagamento === 'credito' || metodoPagamento === 'debito') && (!dadosCartao.numero || !dadosCartao.cvv)) {
-        alert('Por favor, preencha os dados do cartão corretamente.');
-        setProcessandoPagamento(false);
-        return;
+      if (metodoPagamento === 'pix') {
+        if (!pixDataMP.paymentId) {
+          alert('Nenhum pagamento Pix gerado no momento. Aguarde o QR Code carregar.');
+          setProcessandoPagamento(false);
+          return;
+        }
+
+        const res = await fetch('/api/verificar-pagamento', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ paymentId: pixDataMP.paymentId })
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data.message || 'Erro ao comunicar com o servidor de pagamento.');
+        }
+
+        if (data.status !== 'approved') {
+          alert(`Pagamento ainda não aprovado. Status atual: ${data.status}. Por favor, conclua o pagamento via Pix.`);
+          setProcessandoPagamento(false);
+          return;
+        }
       }
 
-      // Se for PIX, podemos opcionalmente consultar o status no Mercado Pago pelo paymentId
-      if (metodoPagamento === 'pix' && pixDataMP.paymentId) {
-        // Exemplo de verificação opcional via API do MP se o pagamento foi aprovado
-        console.log('Verificando pagamento ID:', pixDataMP.paymentId);
-      }
-
+      // Se aprovado, atualiza o status no Supabase
       const { error } = await supabase
         .from('barbearias')
         .update({ status_assinatura: 'ativo' })
@@ -271,9 +278,9 @@ const gerarPixMercadoPago = useCallback(async (paymentData) => {
       setBarbearia((prev) => ({ ...prev, status_assinatura: 'ativo' }));
       setAssinaturaExpirada(false);
       setModalAssinaturaOpen(false);
-      alert(`Pagamento via Mercado Pago (${metodoPagamento.toUpperCase()}) confirmado com sucesso! Assinatura ativada.`);
+      alert('Pagamento confirmado pelo Mercado Pago com sucesso! Assinatura ativada.');
     } catch (err) {
-      alert('Erro ao processar pagamento via Mercado Pago: ' + err.message);
+      alert('Erro ao verificar pagamento: ' + err.message);
     } finally {
       setProcessandoPagamento(false);
     }
@@ -452,13 +459,13 @@ const gerarPixMercadoPago = useCallback(async (paymentData) => {
             <div className="flex flex-col gap-3">
               <button
                 onClick={() => setModalAssinaturaOpen(true)}
-                className="w-full py-3.5 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-xs font-bold transition-all shadow-md flex items-center justify-center gap-2"
+                className="w-full py-3.5 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-xs font-bold transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
               >
                 <CreditCard className="w-4 h-4" /> Pagar com Mercado Pago
               </button>
               <button
                 onClick={handleLogout}
-                className="w-full py-2.5 bg-transparent hover:bg-stone-100 text-stone-500 rounded-xl text-xs font-semibold transition-all"
+                className="w-full py-2.5 bg-transparent hover:bg-stone-100 text-stone-500 rounded-xl text-xs font-semibold transition-all cursor-pointer"
               >
                 Sair do Sistema
               </button>
@@ -500,7 +507,7 @@ const gerarPixMercadoPago = useCallback(async (paymentData) => {
             <nav className="space-y-1.5">
               <button
                 onClick={() => setActiveTab('agendamentos')}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-semibold transition-all ${
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-semibold transition-all cursor-pointer ${
                   activeTab === 'agendamentos' ? 'bg-stone-900 text-white shadow-sm' : 'text-stone-600 hover:bg-stone-100'
                 }`}
               >
@@ -509,7 +516,7 @@ const gerarPixMercadoPago = useCallback(async (paymentData) => {
 
               <button
                 onClick={() => setActiveTab('clientes')}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-semibold transition-all ${
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-semibold transition-all cursor-pointer ${
                   activeTab === 'clientes' ? 'bg-stone-900 text-white shadow-sm' : 'text-stone-600 hover:bg-stone-100'
                 }`}
               >
@@ -518,7 +525,7 @@ const gerarPixMercadoPago = useCallback(async (paymentData) => {
 
               <button
                 onClick={() => setActiveTab('financeiro')}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-semibold transition-all ${
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-semibold transition-all cursor-pointer ${
                   activeTab === 'financeiro' ? 'bg-stone-900 text-white shadow-sm' : 'text-stone-600 hover:bg-stone-100'
                 }`}
               >
@@ -527,7 +534,7 @@ const gerarPixMercadoPago = useCallback(async (paymentData) => {
 
               <button
                 onClick={() => setActiveTab('despesas')}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-semibold transition-all ${
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-semibold transition-all cursor-pointer ${
                   activeTab === 'despesas' ? 'bg-stone-900 text-white shadow-sm' : 'text-stone-600 hover:bg-stone-100'
                 }`}
               >
@@ -536,7 +543,7 @@ const gerarPixMercadoPago = useCallback(async (paymentData) => {
 
               <button
                 onClick={() => setActiveTab('servicos')}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-semibold transition-all ${
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-semibold transition-all cursor-pointer ${
                   activeTab === 'servicos' ? 'bg-stone-900 text-white shadow-sm' : 'text-stone-600 hover:bg-stone-100'
                 }`}
               >
@@ -548,21 +555,21 @@ const gerarPixMercadoPago = useCallback(async (paymentData) => {
           <div className="space-y-2 pt-4 border-t border-stone-100">
             <button
               onClick={() => setModalAssinaturaOpen(true)}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-sky-50 border border-sky-200 text-xs font-bold text-sky-800 hover:bg-sky-100 transition-all"
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-sky-50 border border-sky-200 text-xs font-bold text-sky-800 hover:bg-sky-100 transition-all cursor-pointer"
             >
-              <CreditCard className="w-3.5 h-3.5" /> {barbearia?.status_assinatura === 'ativo' ? 'Gerenciar Assinatura' : 'Assinar com Mercado Pago'}
+              <CreditCard className="w-3.5 h-3.5" /> {barbearia?.status_assinatura === 'ativo' ? 'Assinatura Ativa' : 'Assinar / Renovar'}
             </button>
 
             <button
               onClick={() => loadDashboardData(barbearia.id)}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-stone-200 text-xs font-medium text-stone-600 hover:bg-stone-50 transition-all"
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-stone-200 text-xs font-medium text-stone-600 hover:bg-stone-50 transition-all cursor-pointer"
             >
               <RefreshCw className="w-3.5 h-3.5" /> Atualizar Dados
             </button>
 
             <button
               onClick={handleLogout}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-rose-200 text-xs font-medium text-rose-600 hover:bg-rose-50 transition-all"
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-rose-200 text-xs font-medium text-rose-600 hover:bg-rose-50 transition-all cursor-pointer"
             >
               <LogOut className="w-3.5 h-3.5" /> Sair do Sistema
             </button>
@@ -693,10 +700,10 @@ const gerarPixMercadoPago = useCallback(async (paymentData) => {
                             <div className="flex items-center justify-end gap-1.5">
                               {item.status === 'agendado' && (
                                 <>
-                                  <button onClick={() => handleUpdateStatus(item.id, 'concluido')} title="Marcar como Concluído" className="p-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 rounded-lg transition-colors border border-emerald-200/60">
+                                  <button onClick={() => handleUpdateStatus(item.id, 'concluido')} title="Marcar como Concluído" className="p-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 rounded-lg transition-colors border border-emerald-200/60 cursor-pointer">
                                     <CheckCircle className="w-4 h-4" />
                                   </button>
-                                  <button onClick={() => handleUpdateStatus(item.id, 'cancelado')} title="Cancelar Agendamento" className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg transition-colors border border-rose-200/60">
+                                  <button onClick={() => handleUpdateStatus(item.id, 'cancelado')} title="Cancelar Agendamento" className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg transition-colors border border-rose-200/60 cursor-pointer">
                                     <XCircle className="w-4 h-4" />
                                   </button>
                                 </>
@@ -713,188 +720,200 @@ const gerarPixMercadoPago = useCallback(async (paymentData) => {
           )}
 
           {activeTab === 'clientes' && (
-            <div className="bg-white rounded-3xl border border-stone-200/80 shadow-sm overflow-hidden p-6 space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="bg-white rounded-3xl border border-stone-200/80 shadow-sm overflow-hidden p-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-stone-100 mb-6">
                 <div>
                   <h3 className="text-base font-bold text-stone-900">Clientes Cadastrados</h3>
-                  <p className="text-xs text-stone-400">Consulte os clientes da sua base.</p>
+                  <p className="text-xs text-stone-400">Histórico de pessoas que já agendaram na barbearia.</p>
                 </div>
                 <div className="relative">
-                  <Search className="w-4 h-4 text-stone-400 absolute left-3 top-3" />
+                  <Search className="w-4 h-4 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
-                    placeholder="Buscar por nome ou telefone..."
+                    placeholder="Buscar por nome ou tel..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-9 pr-4 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 focus:outline-none focus:border-stone-900 w-full sm:w-64"
+                    className="pl-9 pr-4 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 focus:outline-none focus:ring-2 focus:ring-stone-900 w-full sm:w-64"
                   />
                 </div>
               </div>
 
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse border-separate border-spacing-y-2">
-                  <thead>
-                    <tr className="text-[11px] font-bold text-stone-400 uppercase tracking-wider">
-                      <th className="p-3 pl-4">Nome</th>
-                      <th className="p-3">Telefone</th>
-                      <th className="p-3 pr-4">E-mail</th>
-                    </tr>
-                  </thead>
-                  <tbody className="text-xs text-stone-700">
-                    {clientesFiltrados.length === 0 ? (
-                      <tr><td colSpan="3" className="p-8 text-center text-stone-400">Nenhum cliente encontrado.</td></tr>
-                    ) : (
-                      clientesFiltrados.map((c) => (
-                        <tr key={c.id} className="bg-stone-50/70 hover:bg-stone-50 border border-stone-200/60 transition-colors rounded-2xl overflow-hidden">
-                          <td className="p-3 pl-4 font-medium text-stone-900 rounded-l-2xl">{c.nome}</td>
-                          <td className="p-3">{c.telefone || '-'}</td>
-                          <td className="p-3 pr-4 rounded-r-2xl">{c.email || '-'}</td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
+              {clientesFiltrados.length === 0 ? (
+                <div className="p-8 text-center text-stone-400 text-xs">Nenhum cliente encontrado.</div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {clientesFiltrados.map((cli) => (
+                    <div key={cli.id} className="bg-stone-50/70 p-4 rounded-2xl border border-stone-200/70 space-y-2">
+                      <div className="font-bold text-stone-900 text-sm">{cli.nome}</div>
+                      <div className="text-xs text-stone-500 flex items-center gap-1.5">
+                        <span className="font-semibold text-stone-700">Tel:</span> {cli.telefone || 'Não informado'}
+                      </div>
+                      <div className="text-[11px] text-stone-400">Cadastrado em: {formatarData(cli)}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
           {activeTab === 'financeiro' && (
-            <div className="bg-white rounded-3xl border border-stone-200/80 shadow-sm p-6 space-y-6">
-              <div>
-                <h3 className="text-base font-bold text-stone-900">Relatório Financeiro</h3>
-                <p className="text-xs text-stone-400">Resumo financeiro detalhado dos ganhos e gastos da unidade.</p>
+            <div className="bg-white rounded-3xl border border-stone-200/80 shadow-sm overflow-hidden p-6 space-y-6">
+              <div className="pb-4 border-b border-stone-100">
+                <h3 className="text-base font-bold text-stone-900">Relatório Financeiro Detalhado</h3>
+                <p className="text-xs text-stone-400">Entradas provenientes de atendimentos concluídos.</p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-2xl">
-                  <span className="text-xs text-emerald-700 font-semibold uppercase">Total Recebido</span>
-                  <p className="text-xl font-bold text-emerald-900 mt-1">R$ {totalFaturamento.toFixed(2)}</p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="bg-emerald-50/50 p-4 rounded-2xl border border-emerald-100">
+                  <span className="text-xs text-emerald-700 font-semibold uppercase block mb-1">Total Entradas</span>
+                  <span className="text-xl font-extrabold text-emerald-900">R$ {totalFaturamento.toFixed(2)}</span>
                 </div>
-                <div className="p-4 bg-rose-50 border border-rose-100 rounded-2xl">
-                  <span className="text-xs text-rose-700 font-semibold uppercase">Total Despesas</span>
-                  <p className="text-xl font-bold text-rose-900 mt-1">R$ {totalDespesas.toFixed(2)}</p>
+                <div className="bg-rose-50/50 p-4 rounded-2xl border border-rose-100">
+                  <span className="text-xs text-rose-700 font-semibold uppercase block mb-1">Total Despesas</span>
+                  <span className="text-xl font-extrabold text-rose-900">R$ {totalDespesas.toFixed(2)}</span>
                 </div>
-                <div className="p-4 bg-indigo-50 border border-indigo-100 rounded-2xl">
-                  <span className="text-xs text-indigo-700 font-semibold uppercase">Lucro Líquido</span>
-                  <p className="text-xl font-bold text-indigo-900 mt-1">R$ {lucroLiquido.toFixed(2)}</p>
-                </div>
-                <div className="p-4 bg-stone-50 border border-stone-200/60 rounded-2xl">
-                  <span className="text-xs text-stone-600 font-semibold uppercase">Ticket Médio</span>
-                  <p className="text-xl font-bold text-stone-900 mt-1">R$ {ticketMedio}</p>
+                <div className="bg-indigo-50/50 p-4 rounded-2xl border border-indigo-100">
+                  <span className="text-xs text-indigo-700 font-semibold uppercase block mb-1">Balanço Líquido</span>
+                  <span className="text-xl font-extrabold text-indigo-900">R$ {lucroLiquido.toFixed(2)}</span>
                 </div>
               </div>
             </div>
           )}
 
           {activeTab === 'despesas' && (
-            <div className="bg-white rounded-3xl border border-stone-200/80 shadow-sm overflow-hidden p-6 space-y-5">
-              <div className="flex justify-between items-center pb-3 border-b border-stone-100">
+            <div className="bg-white rounded-3xl border border-stone-200/80 shadow-sm overflow-hidden p-6 space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-stone-100">
                 <div>
-                  <h3 className="text-base font-bold text-stone-900">Custos e Despesas</h3>
-                  <p className="text-xs text-stone-400">Gerencie contas, produtos de barbearia, aluguel e gastos extras.</p>
+                  <h3 className="text-base font-bold text-stone-900">Controle de Custos e Despesas</h3>
+                  <p className="text-xs text-stone-400">Adicione os gastos operacionais da barbearia.</p>
                 </div>
-                <button onClick={() => handleOpenDespesaModal()} className="flex items-center gap-1.5 bg-stone-900 hover:bg-stone-800 text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition-all shadow-sm">
-                  <Plus className="w-3.5 h-3.5" /> Nova Despesa
+                <button
+                  onClick={() => handleOpenDespesaModal()}
+                  className="bg-stone-900 hover:bg-stone-800 text-white px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer"
+                >
+                  <Plus className="w-4 h-4" /> Nova Despesa
                 </button>
               </div>
 
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse border-separate border-spacing-y-2">
-                  <thead>
-                    <tr className="text-[11px] font-bold text-stone-400 uppercase tracking-wider">
-                      <th className="p-3 pl-4">Descrição</th>
-                      <th className="p-3">Data</th>
-                      <th className="p-3">Valor</th>
-                      <th className="p-3 pr-4 text-right">Ações</th>
-                    </tr>
-                  </thead>
-                  <tbody className="text-xs text-stone-700">
-                    {despesas.length === 0 ? (
-                      <tr><td colSpan="4" className="p-8 text-center text-stone-400">Nenhuma despesa cadastrada.</td></tr>
-                    ) : (
-                      despesas.map((d) => (
-                        <tr key={d.id} className="bg-stone-50/70 hover:bg-stone-50 border border-stone-200/60 transition-colors rounded-2xl overflow-hidden">
-                          <td className="p-3 pl-4 font-medium text-stone-900 rounded-l-2xl">{d.descricao}</td>
-                          <td className="p-3">{d.data ? new Date(d.data + 'T00:00:00').toLocaleDateString('pt-BR') : '-'}</td>
-                          <td className="p-3 font-bold text-rose-600">R$ {Number(d.valor).toFixed(2)}</td>
-                          <td className="p-3 pr-4 text-right rounded-r-2xl">
-                            <div className="flex items-center justify-end gap-1">
-                              <button onClick={() => handleOpenDespesaModal(d)} className="p-1.5 hover:bg-stone-200/60 rounded-lg text-stone-600"><Edit className="w-3.5 h-3.5" /></button>
-                              <button onClick={() => handleDeleteDespesa(d.id)} className="p-1.5 hover:bg-rose-100 rounded-lg text-rose-600"><Trash2 className="w-3.5 h-3.5" /></button>
+              {despesas.length === 0 ? (
+                <div className="p-8 text-center text-stone-400 text-xs">Nenhuma despesa cadastrada.</div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse border-separate border-spacing-y-3">
+                    <thead>
+                      <tr className="text-[11px] font-bold text-stone-400 uppercase tracking-wider">
+                        <th className="p-3 pl-4">Descrição</th>
+                        <th className="p-3">Data</th>
+                        <th className="p-3">Valor</th>
+                        <th className="p-3 pr-4 text-right">Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody className="text-xs text-stone-700">
+                      {despesas.map((d) => (
+                        <tr key={d.id} className="bg-stone-50/70 hover:bg-stone-50 border border-stone-200/60 rounded-2xl overflow-hidden">
+                          <td className="p-4 pl-5 font-medium text-stone-900 rounded-l-2xl">{d.descricao}</td>
+                          <td className="p-4 text-stone-600">{formatarData(d)}</td>
+                          <td className="p-4 font-bold text-rose-600">R$ {Number(d.valor).toFixed(2)}</td>
+                          <td className="p-4 pr-5 text-right rounded-r-2xl">
+                            <div className="flex items-center justify-end gap-1.5">
+                              <button onClick={() => handleOpenDespesaModal(d)} className="p-1.5 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-lg cursor-pointer">
+                                <Edit className="w-3.5 h-3.5" />
+                              </button>
+                              <button onClick={() => handleDeleteDespesa(d.id)} className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg cursor-pointer">
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
                             </div>
                           </td>
                         </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           )}
 
           {activeTab === 'servicos' && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <div className="bg-white p-6 rounded-3xl border border-stone-200/80 shadow-sm space-y-5">
-                <div className="flex justify-between items-center pb-3 border-b border-stone-100">
+            <div className="space-y-8">
+              {/* Seção de Serviços */}
+              <div className="bg-white rounded-3xl border border-stone-200/80 shadow-sm overflow-hidden p-6 space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-stone-100">
                   <div>
-                    <h3 className="text-base font-bold text-stone-900">Equipe de Barbeiros</h3>
-                    <p className="text-xs text-stone-400">Cadastre ou edite profissionais da unidade.</p>
+                    <h3 className="text-base font-bold text-stone-900">Serviços Oferecidos</h3>
+                    <p className="text-xs text-stone-400">Configure cortes, barbas e valores.</p>
                   </div>
-                  <button onClick={() => handleOpenBarbeiroModal()} className="flex items-center gap-1.5 bg-stone-900 hover:bg-stone-800 text-white text-xs font-semibold px-3 py-2 rounded-xl transition-all shadow-sm">
-                    <Plus className="w-3.5 h-3.5" /> Adicionar
+                  <button
+                    onClick={() => handleOpenServicoModal()}
+                    className="bg-stone-900 hover:bg-stone-800 text-white px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4" /> Novo Serviço
                   </button>
                 </div>
-                <div className="space-y-3">
-                  {barbeiros.length === 0 ? (
-                    <p className="text-xs text-stone-400 text-center py-4">Nenhum barbeiro cadastrado.</p>
-                  ) : (
-                    barbeiros.map((b) => (
-                      <div key={b.id} className="flex items-center justify-between p-3.5 bg-stone-50 rounded-2xl border border-stone-200/60">
-                        <div>
-                          <h4 className="text-xs font-semibold text-stone-900">{b.nome}</h4>
-                          <p className="text-[11px] text-stone-400">{b.especialidade || 'Profissional'}</p>
+
+                {servicos.length === 0 ? (
+                  <div className="p-8 text-center text-stone-400 text-xs">Nenhum serviço cadastrado.</div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {servicos.map((s) => (
+                      <div key={s.id} className="bg-stone-50/70 p-4 rounded-2xl border border-stone-200/70 flex justify-between items-start">
+                        <div className="space-y-1">
+                          <h4 className="font-bold text-stone-900 text-sm">{s.nome}</h4>
+                          <span className="text-xs text-stone-500 block font-medium">R$ {Number(s.preco).toFixed(2)}</span>
+                          <span className="text-[11px] text-stone-400 flex items-center gap-1">
+                            <Clock className="w-3 h-3" /> {s.duracao_minutos} min
+                          </span>
                         </div>
                         <div className="flex items-center gap-1">
-                          <button onClick={() => handleOpenBarbeiroModal(b)} className="p-2 hover:bg-stone-200/60 rounded-xl text-stone-600"><Edit className="w-3.5 h-3.5" /></button>
-                          <button onClick={() => handleDeleteBarbeiro(b.id)} className="p-2 hover:bg-rose-100 rounded-xl text-rose-600"><Trash2 className="w-3.5 h-3.5" /></button>
+                          <button onClick={() => handleOpenServicoModal(s)} className="p-1.5 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-lg cursor-pointer">
+                            <Edit className="w-3.5 h-3.5" />
+                          </button>
+                          <button onClick={() => handleDeleteServico(s.id)} className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg cursor-pointer">
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
                         </div>
                       </div>
-                    ))
-                  )}
-                </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
-              <div className="bg-white p-6 rounded-3xl border border-stone-200/80 shadow-sm space-y-5">
-                <div className="flex justify-between items-center pb-3 border-b border-stone-100">
+              {/* Seção de Barbeiros / Equipe */}
+              <div className="bg-white rounded-3xl border border-stone-200/80 shadow-sm overflow-hidden p-6 space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-stone-100">
                   <div>
-                    <h3 className="text-base font-bold text-stone-900">Serviços da Barbearia</h3>
-                    <p className="text-xs text-stone-400">Gerencie valores e durações.</p>
+                    <h3 className="text-base font-bold text-stone-900">Equipe de Barbeiros</h3>
+                    <p className="text-xs text-stone-400">Profissionais disponíveis para agendamento.</p>
                   </div>
-                  <button onClick={() => handleOpenServicoModal()} className="flex items-center gap-1.5 bg-stone-900 hover:bg-stone-800 text-white text-xs font-semibold px-3 py-2 rounded-xl transition-all shadow-sm">
-                    <Plus className="w-3.5 h-3.5" /> Adicionar
+                  <button
+                    onClick={() => handleOpenBarbeiroModal()}
+                    className="bg-stone-900 hover:bg-stone-800 text-white px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4" /> Novo Barbeiro
                   </button>
                 </div>
-                <div className="space-y-3">
-                  {servicos.length === 0 ? (
-                    <p className="text-xs text-stone-400 text-center py-4">Nenhum serviço cadastrado.</p>
-                  ) : (
-                    servicos.map((s) => (
-                      <div key={s.id} className="flex justify-between items-center p-3.5 bg-stone-50 rounded-2xl border border-stone-200/60 text-xs">
-                        <div>
-                          <span className="font-semibold text-stone-800 block">{s.nome}</span>
-                          <span className="text-stone-400 text-[11px]">{s.duracao_minutos} min</span>
+
+                {barbeiros.length === 0 ? (
+                  <div className="p-8 text-center text-stone-400 text-xs">Nenhum barbeiro cadastrado.</div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {barbeiros.map((b) => (
+                      <div key={b.id} className="bg-stone-50/70 p-4 rounded-2xl border border-stone-200/70 flex justify-between items-start">
+                        <div className="space-y-1">
+                          <h4 className="font-bold text-stone-900 text-sm">{b.nome}</h4>
+                          <span className="text-xs text-stone-500 block">{b.especialidade || 'Especialista em cortes'}</span>
                         </div>
-                        <div className="flex items-center gap-3">
-                          <span className="font-bold text-stone-900 text-sm">R$ {s.preco}</span>
-                          <div className="flex items-center gap-1 border-l border-stone-200 pl-2">
-                            <button onClick={() => handleOpenServicoModal(s)} className="p-1.5 hover:bg-stone-200/60 rounded-lg text-stone-600"><Edit className="w-3.5 h-3.5" /></button>
-                            <button onClick={() => handleDeleteServico(s.id)} className="p-1.5 hover:bg-rose-100 rounded-lg text-rose-600"><Trash2 className="w-3.5 h-3.5" /></button>
-                          </div>
+                        <div className="flex items-center gap-1">
+                          <button onClick={() => handleOpenBarbeiroModal(b)} className="p-1.5 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-lg cursor-pointer">
+                            <Edit className="w-3.5 h-3.5" />
+                          </button>
+                          <button onClick={() => handleDeleteBarbeiro(b.id)} className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg cursor-pointer">
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
                         </div>
                       </div>
-                    ))
-                  )}
-                </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -902,7 +921,7 @@ const gerarPixMercadoPago = useCallback(async (paymentData) => {
         </main>
       </div>
 
-      {/* MODAL DE ASSINATURA / CHECKOUT DO MERCADO PAGO (PIX DINÂMICO E CARTÕES) */}
+      {/* MODAL DE CHECKOUT DO MERCADO PAGO */}
       {modalAssinaturaOpen && (
         <div className="fixed inset-0 bg-stone-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl border border-stone-200 space-y-6">
@@ -913,285 +932,306 @@ const gerarPixMercadoPago = useCallback(async (paymentData) => {
                 </h3>
                 <p className="text-xs text-stone-400">Escolha a forma de pagamento para regularizar sua assinatura.</p>
               </div>
-              <button onClick={() => setModalAssinaturaOpen(false)} className="p-1 text-stone-400 hover:text-stone-600 rounded-lg">
+              <button onClick={() => setModalAssinaturaOpen(false)} className="p-1 text-stone-400 hover:text-stone-600 rounded-lg cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
-
+            
             <div className="bg-stone-50 p-4 rounded-2xl border border-stone-200 flex justify-between items-center">
               <div>
                 <span className="text-[11px] font-semibold text-stone-400 uppercase block">Plano Mensal Gestor</span>
                 <span className="text-base font-bold text-stone-900">Acesso Completo</span>
               </div>
-              <span className="text-xl font-extrabold text-stone-900">R$ {valorAssinatura.toFixed(2)}</span>
+              <span className="text-xl font-extrabold text-stone-900">R$ {valorAssinatura?.toFixed(2)}</span>
             </div>
 
-            {/* ABAS DE SELEÇÃO DE MÉTODO DE PAGAMENTO */}
+            {/* Abas de Método de Pagamento */}
             <div className="grid grid-cols-3 gap-2 bg-stone-100 p-1.5 rounded-2xl">
               <button
                 type="button"
                 onClick={() => setMetodoPagamento('pix')}
-                className={`py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
-                  metodoPagamento === 'pix' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-500 hover:text-stone-800'
-                }`}
+                className={`py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${metodoPagamento === 'pix' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-500 hover:text-stone-800'}`}
               >
-                <QrCode className="w-3.5 h-3.5 text-emerald-600" /> Pix
+                Pix Instantâneo
               </button>
               <button
                 type="button"
                 onClick={() => setMetodoPagamento('credito')}
-                className={`py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
-                  metodoPagamento === 'credito' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-500 hover:text-stone-800'
-                }`}
+                className={`py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${metodoPagamento === 'credito' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-500 hover:text-stone-800'}`}
               >
-                <CreditCard className="w-3.5 h-3.5 text-sky-600" /> Crédito
+                Cartão Crédito
               </button>
               <button
                 type="button"
                 onClick={() => setMetodoPagamento('debito')}
-                className={`py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
-                  metodoPagamento === 'debito' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-500 hover:text-stone-800'
-                }`}
+                className={`py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${metodoPagamento === 'debito' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-500 hover:text-stone-800'}`}
               >
-                <Wallet className="w-3.5 h-3.5 text-indigo-600" /> Débito
+                Cartão Débito
               </button>
             </div>
 
-            {/* CONTEÚDO PIX COM QR CODE E COPIA E COLA OFICIAL DO MERCADO PAGO */}
+            {/* Conteúdo do Método Pix */}
             {metodoPagamento === 'pix' && (
-              <div className="bg-stone-50 p-4 rounded-2xl border border-stone-200 text-center space-y-3">
-                {gerandoPixMP ? (
-                  <div className="py-12 flex flex-col items-center justify-center gap-2">
-                    <div className="w-6 h-6 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" />
-                    <span className="text-xs text-stone-500 font-medium">Gerando Pix no Mercado Pago com valor incluso...</span>
+              <div className="space-y-4 text-center py-2">
+                {pixDataMP.qrCodeBase64 ? (
+                  <div className="space-y-3">
+                    <div className="bg-white p-3 inline-block rounded-2xl border border-stone-200 shadow-inner">
+                      <img
+                        src={`data:image/png;base64,${pixDataMP.qrCodeBase64}`}
+                        alt="QR Code Pix Mercado Pago"
+                        className="w-48 h-48 mx-auto object-contain"
+                      />
+                    </div>
+                    <p className="text-xs text-stone-500">Escaneie o QR Code acima com o aplicativo do seu banco</p>
                   </div>
                 ) : (
-                  <>
-                    <div className="w-36 h-36 bg-white border border-stone-300 mx-auto rounded-xl flex items-center justify-center p-2 shadow-sm">
-                      {pixDataMP.qrCodeBase64 ? (
-                        <img 
-                          src={`data:image/png;base64,${pixDataMP.qrCodeBase64}`} 
-                          alt="QR Code Pix Mercado Pago" 
-                          className="w-full h-full object-contain"
-                        />
-                      ) : (
-                        <span className="text-[10px] text-stone-400">QR Code indisponível</span>
-                      )}
-                    </div>
-
-                    <div className="space-y-1">
-                      <div className="flex justify-between items-center px-1">
-                        <span className="text-[11px] font-bold text-stone-500 uppercase tracking-wider">Pix Copia e Cola (Valor: R$ {valorAssinatura.toFixed(2)})</span>
-                        <button onClick={gerarPixMercadoPago} className="text-[10px] text-sky-600 hover:underline flex items-center gap-1">
-                          <RefreshCw className="w-3 h-3" /> Atualizar
-                        </button>
-                      </div>
-                      <div className="bg-white p-2.5 rounded-xl border border-stone-200 text-xs font-mono text-stone-800 break-all select-all font-semibold max-h-20 overflow-y-auto">
-                        {pixDataMP.copiaECola || 'Aguardando código...'}
-                      </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={copiarChavePix}
-                      className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-sm"
-                    >
-                      {copiado ? <Check className="w-4 h-4 text-white" /> : <Copy className="w-4 h-4" />}
-                      {copiado ? 'Código Pix Copiado com Sucesso!' : 'Copiar Código Pix Copia e Cola'}
-                    </button>
-                  </>
+                  <div className="py-8 flex flex-col items-center justify-center gap-2 text-stone-400">
+                    <div className="w-6 h-6 border-2 border-sky-500 border-t-transparent rounded-full animate-spin" />
+                    <span className="text-xs">Gerando Pix seguro via Mercado Pago...</span>
+                  </div>
                 )}
+
+                {pixDataMP.copiaECola && (
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        readOnly
+                        value={pixDataMP.copiaECola}
+                        className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-xs text-stone-600 focus:outline-none"
+                      />
+                      <button
+                        onClick={copiarChavePix}
+                        className="bg-stone-900 hover:bg-stone-800 text-white px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 shrink-0 transition-all cursor-pointer"
+                      >
+                        {copiado ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                        {copiado ? 'Copiado!' : 'Copiar'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                <button
+                  onClick={handleProcessarPagamentoMercadoPago}
+                  disabled={processandoPagamento}
+                  className="w-full bg-sky-600 hover:bg-sky-700 text-white font-bold py-3 rounded-xl transition duration-200 text-xs shadow-md cursor-pointer disabled:opacity-50"
+                >
+                  {processandoPagamento ? 'Verificando Pagamento...' : 'Já fiz o pagamento / Ativar Assinatura'}
+                </button>
               </div>
             )}
 
-            {/* CONTEÚDO CARTÃO DE CRÉDITO OU DÉBITO */}
+            {/* Conteúdo do Cartão (Crédito / Débito) */}
             {(metodoPagamento === 'credito' || metodoPagamento === 'debito') && (
-              <form onSubmit={handleProcessarPagamentoMercadoPago} id="form-pagamento-cartao" className="space-y-3 bg-stone-50 p-4 rounded-2xl border border-stone-200">
-                <div>
-                  <label className="block text-[11px] font-semibold text-stone-600 mb-1">Número do Cartão</label>
+              <form onSubmit={handleProcessarPagamentoMercadoPago} className="space-y-4">
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-stone-600">Número do Cartão</label>
                   <input
                     type="text"
-                    required
-                    placeholder="4000 0000 0000 0000"
+                    placeholder="0000 0000 0000 0000"
                     value={dadosCartao.numero}
                     onChange={(e) => setDadosCartao({ ...dadosCartao, numero: e.target.value })}
-                    className="w-full p-2.5 rounded-xl bg-white border border-stone-200 text-xs text-stone-800 focus:outline-none focus:border-sky-600"
+                    className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2.5 text-xs text-stone-800 focus:outline-none focus:ring-2 focus:ring-stone-900"
+                    required
                   />
                 </div>
 
-                <div>
-                  <label className="block text-[11px] font-semibold text-stone-600 mb-1">Nome no Cartão</label>
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-stone-600">Nome impresso no Cartão</label>
                   <input
                     type="text"
-                    required
-                    placeholder="Como está impresso no cartão"
+                    placeholder="NOME COMO NO CARTÃO"
                     value={dadosCartao.nome}
                     onChange={(e) => setDadosCartao({ ...dadosCartao, nome: e.target.value })}
-                    className="w-full p-2.5 rounded-xl bg-white border border-stone-200 text-xs text-stone-800 focus:outline-none focus:border-sky-600"
+                    className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2.5 text-xs text-stone-800 focus:outline-none focus:ring-2 focus:ring-stone-900"
+                    required
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="block text-[11px] font-semibold text-stone-600 mb-1">Validade</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-stone-600">Validade</label>
                     <input
                       type="text"
-                      required
                       placeholder="MM/AA"
                       value={dadosCartao.validade}
                       onChange={(e) => setDadosCartao({ ...dadosCartao, validade: e.target.value })}
-                      className="w-full p-2.5 rounded-xl bg-white border border-stone-200 text-xs text-stone-800 focus:outline-none focus:border-sky-600"
+                      className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2.5 text-xs text-stone-800 focus:outline-none focus:ring-2 focus:ring-stone-900"
+                      required
                     />
                   </div>
-                  <div>
-                    <label className="block text-[11px] font-semibold text-stone-600 mb-1">CVV</label>
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold text-stone-600">CVV</label>
                     <input
                       type="password"
-                      maxLength="4"
-                      required
                       placeholder="123"
+                      maxLength={4}
                       value={dadosCartao.cvv}
                       onChange={(e) => setDadosCartao({ ...dadosCartao, cvv: e.target.value })}
-                      className="w-full p-2.5 rounded-xl bg-white border border-stone-200 text-xs text-stone-800 focus:outline-none focus:border-sky-600"
+                      className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2.5 text-xs text-stone-800 focus:outline-none focus:ring-2 focus:ring-stone-900"
+                      required
                     />
                   </div>
                 </div>
 
-                {metodoPagamento === 'credito' && (
-                  <div>
-                    <label className="block text-[11px] font-semibold text-stone-600 mb-1">Parcelamento</label>
-                    <select
-                      value={dadosCartao.parcelas}
-                      onChange={(e) => setDadosCartao({ ...dadosCartao, parcelas: e.target.value })}
-                      className="w-full p-2.5 rounded-xl bg-white border border-stone-200 text-xs text-stone-800 focus:outline-none focus:border-sky-600"
-                    >
-                      <option value="1">1x de R$ {valorAssinatura.toFixed(2)} sem juros</option>
-                      <option value="2">2x de R$ {(valorAssinatura / 2).toFixed(2)} sem juros</option>
-                      <option value="3">3x de R$ {(valorAssinatura / 3).toFixed(2)} sem juros</option>
-                    </select>
-                  </div>
-                )}
+                <button
+                  type="submit"
+                  disabled={processandoPagamento}
+                  className="w-full bg-stone-900 hover:bg-stone-800 text-white font-bold py-3 rounded-xl transition duration-200 text-xs shadow-md cursor-pointer disabled:opacity-50 mt-2"
+                >
+                  {processandoPagamento ? 'Processando Pagamento...' : `Pagar R$ ${valorAssinatura.toFixed(2)}`}
+                </button>
               </form>
             )}
 
-            <div className="flex gap-2 pt-2">
-              <button
-                type="button"
-                onClick={() => setModalAssinaturaOpen(false)}
-                className="w-1/2 py-3 rounded-xl border border-stone-200 text-xs font-semibold text-stone-600 hover:bg-stone-50"
-              >
-                Cancelar
-              </button>
-              
-              {metodoPagamento === 'pix' ? (
-                <button
-                  type="button"
-                  disabled={processandoPagamento}
-                  onClick={handleProcessarPagamentoMercadoPago}
-                  className="w-1/2 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-md flex items-center justify-center gap-2"
-                >
-                  {processandoPagamento ? 'Confirmando...' : 'Já Fiz o Pagamento'}
-                </button>
-              ) : (
-                <button
-                  type="submit"
-                  form="form-pagamento-cartao"
-                  disabled={processandoPagamento}
-                  className="w-1/2 py-3 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold transition-all shadow-md flex items-center justify-center gap-2"
-                >
-                  {processandoPagamento ? 'Processando...' : 'Pagar com Cartão'}
-                </button>
-              )}
-            </div>
           </div>
         </div>
       )}
 
-      {/* MODAL SERVIÇO */}
+      {/* MODAL DE SERVIÇOS */}
       {modalServicoOpen && (
-        <div className="fixed inset-0 bg-stone-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl border border-stone-200 space-y-5">
+        <div className="fixed inset-0 bg-stone-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-stone-200 space-y-6">
             <div className="flex justify-between items-center">
-              <h3 className="font-bold text-stone-900 text-base">{editingServico ? 'Editar Serviço' : 'Novo Serviço'}</h3>
-              <button onClick={() => setModalServicoOpen(false)} className="p-1 text-stone-400 hover:text-stone-600 rounded-lg"><X className="w-5 h-5" /></button>
+              <h3 className="font-bold text-stone-900 text-lg">{editingServico ? 'Editar Serviço' : 'Novo Serviço'}</h3>
+              <button onClick={() => setModalServicoOpen(false)} className="p-1 text-stone-400 hover:text-stone-600 rounded-lg cursor-pointer">
+                <X className="w-5 h-5" />
+              </button>
             </div>
             <form onSubmit={handleSaveServico} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-stone-600 mb-1">Nome do Serviço</label>
-                <input type="text" required placeholder="Ex: Corte Degrade" value={formServico.nome} onChange={(e) => setFormServico({ ...formServico, nome: e.target.value })} className="w-full p-3 rounded-xl bg-stone-50 border border-stone-200 text-xs text-stone-800 focus:outline-none focus:border-stone-900" />
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-stone-600">Nome do Serviço</label>
+                <input
+                  type="text"
+                  placeholder="Ex: Corte Degradê"
+                  value={formServico.nome}
+                  onChange={(e) => setFormServico({ ...formServico, nome: e.target.value })}
+                  className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2.5 text-xs text-stone-800 focus:outline-none focus:ring-2 focus:ring-stone-900"
+                  required
+                />
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-stone-600 mb-1">Preço (R$)</label>
-                  <input type="number" step="0.01" required placeholder="45.00" value={formServico.preco} onChange={(e) => setFormServico({ ...formServico, preco: e.target.value })} className="w-full p-3 rounded-xl bg-stone-50 border border-stone-200 text-xs text-stone-800 focus:outline-none focus:border-stone-900" />
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-stone-600">Preço (R$)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    placeholder="35.00"
+                    value={formServico.preco}
+                    onChange={(e) => setFormServico({ ...formServico, preco: e.target.value })}
+                    className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2.5 text-xs text-stone-800 focus:outline-none focus:ring-2 focus:ring-stone-900"
+                    required
+                  />
                 </div>
-                <div>
-                  <label className="block text-xs font-semibold text-stone-600 mb-1">Duração (Minutos)</label>
-                  <input type="number" required placeholder="30" value={formServico.duracao_minutos} onChange={(e) => setFormServico({ ...formServico, duracao_minutos: e.target.value })} className="w-full p-3 rounded-xl bg-stone-50 border border-stone-200 text-xs text-stone-800 focus:outline-none focus:border-stone-900" />
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-stone-600">Duração (minutos)</label>
+                  <input
+                    type="number"
+                    placeholder="30"
+                    value={formServico.duracao_minutos}
+                    onChange={(e) => setFormServico({ ...formServico, duracao_minutos: e.target.value })}
+                    className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2.5 text-xs text-stone-800 focus:outline-none focus:ring-2 focus:ring-stone-900"
+                    required
+                  />
                 </div>
               </div>
-              <div className="flex justify-end gap-2 pt-2">
-                <button type="button" onClick={() => setModalServicoOpen(false)} className="px-4 py-2.5 rounded-xl border border-stone-200 text-xs font-semibold text-stone-600 hover:bg-stone-50">Cancelar</button>
-                <button type="submit" className="px-4 py-2.5 rounded-xl bg-stone-900 text-white text-xs font-semibold hover:bg-stone-800">Salvar</button>
-              </div>
+              <button type="submit" className="w-full bg-stone-900 hover:bg-stone-800 text-white font-bold py-3 rounded-xl transition duration-200 text-xs shadow-md cursor-pointer mt-2">
+                Salvar Serviço
+              </button>
             </form>
           </div>
         </div>
       )}
 
-      {/* MODAL BARBEIRO */}
+      {/* MODAL DE BARBEIROS */}
       {modalBarbeiroOpen && (
-        <div className="fixed inset-0 bg-stone-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl border border-stone-200 space-y-5">
+        <div className="fixed inset-0 bg-stone-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-stone-200 space-y-6">
             <div className="flex justify-between items-center">
-              <h3 className="font-bold text-stone-900 text-base">{editingBarbeiro ? 'Editar Barbeiro' : 'Novo Barbeiro'}</h3>
-              <button onClick={() => setModalBarbeiroOpen(false)} className="p-1 text-stone-400 hover:text-stone-600 rounded-lg"><X className="w-5 h-5" /></button>
+              <h3 className="font-bold text-stone-900 text-lg">{editingBarbeiro ? 'Editar Barbeiro' : 'Novo Barbeiro'}</h3>
+              <button onClick={() => setModalBarbeiroOpen(false)} className="p-1 text-stone-400 hover:text-stone-600 rounded-lg cursor-pointer">
+                <X className="w-5 h-5" />
+              </button>
             </div>
             <form onSubmit={handleSaveBarbeiro} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-stone-600 mb-1">Nome do Profissional</label>
-                <input type="text" required placeholder="Ex: Carlos Oliveira" value={formBarbeiro.nome} onChange={(e) => setFormBarbeiro({ ...formBarbeiro, nome: e.target.value })} className="w-full p-3 rounded-xl bg-stone-50 border border-stone-200 text-xs text-stone-800 focus:outline-none focus:border-stone-900" />
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-stone-600">Nome do Profissional</label>
+                <input
+                  type="text"
+                  placeholder="Ex: Carlos Silva"
+                  value={formBarbeiro.nome}
+                  onChange={(e) => setFormBarbeiro({ ...formBarbeiro, nome: e.target.value })}
+                  className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2.5 text-xs text-stone-800 focus:outline-none focus:ring-2 focus:ring-stone-900"
+                  required
+                />
               </div>
-              <div>
-                <label className="block text-xs font-semibold text-stone-600 mb-1">Especialidade / Cargo</label>
-                <input type="text" placeholder="Ex: Especialista em Degradê e Barba" value={formBarbeiro.especialidade} onChange={(e) => setFormBarbeiro({ ...formBarbeiro, especialidade: e.target.value })} className="w-full p-3 rounded-xl bg-stone-50 border border-stone-200 text-xs text-stone-800 focus:outline-none focus:border-stone-900" />
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-stone-600">Especialidade</label>
+                <input
+                  type="text"
+                  placeholder="Ex: Barba e Corte Clássico"
+                  value={formBarbeiro.especialidade}
+                  onChange={(e) => setFormBarbeiro({ ...formBarbeiro, especialidade: e.target.value })}
+                  className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2.5 text-xs text-stone-800 focus:outline-none focus:ring-2 focus:ring-stone-900"
+                />
               </div>
-              <div className="flex justify-end gap-2 pt-2">
-                <button type="button" onClick={() => setModalBarbeiroOpen(false)} className="px-4 py-2.5 rounded-xl border border-stone-200 text-xs font-semibold text-stone-600 hover:bg-stone-50">Cancelar</button>
-                <button type="submit" className="px-4 py-2.5 rounded-xl bg-stone-900 text-white text-xs font-semibold hover:bg-stone-800">Salvar</button>
-              </div>
+              <button type="submit" className="w-full bg-stone-900 hover:bg-stone-800 text-white font-bold py-3 rounded-xl transition duration-200 text-xs shadow-md cursor-pointer mt-2">
+                Salvar Barbeiro
+              </button>
             </form>
           </div>
         </div>
       )}
 
-      {/* MODAL DESPESA */}
+      {/* MODAL DE DESPESAS */}
       {modalDespesaOpen && (
-        <div className="fixed inset-0 bg-stone-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl border border-stone-200 space-y-5">
+        <div className="fixed inset-0 bg-stone-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-stone-200 space-y-6">
             <div className="flex justify-between items-center">
-              <h3 className="font-bold text-stone-900 text-base">{editingDespesa ? 'Editar Despesa' : 'Nova Despesa'}</h3>
-              <button onClick={() => setModalDespesaOpen(false)} className="p-1 text-stone-400 hover:text-stone-600 rounded-lg"><X className="w-5 h-5" /></button>
+              <h3 className="font-bold text-stone-900 text-lg">{editingDespesa ? 'Editar Despesa' : 'Nova Despesa'}</h3>
+              <button onClick={() => setModalDespesaOpen(false)} className="p-1 text-stone-400 hover:text-stone-600 rounded-lg cursor-pointer">
+                <X className="w-5 h-5" />
+              </button>
             </div>
             <form onSubmit={handleSaveDespesa} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-stone-600 mb-1">Descrição do Gasto</label>
-                <input type="text" required placeholder="Ex: Aluguel, Compra de Gilette, Conta de Luz" value={formDespesa.descricao} onChange={(e) => setFormDespesa({ ...formDespesa, descricao: e.target.value })} className="w-full p-3 rounded-xl bg-stone-50 border border-stone-200 text-xs text-stone-800 focus:outline-none focus:border-stone-900" />
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-stone-600">Descrição do Gasto</label>
+                <input
+                  type="text"
+                  placeholder="Ex: Compra de Lâminas / Energia"
+                  value={formDespesa.descricao}
+                  onChange={(e) => setFormDespesa({ ...formDespesa, descricao: e.target.value })}
+                  className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2.5 text-xs text-stone-800 focus:outline-none focus:ring-2 focus:ring-stone-900"
+                  required
+                />
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-stone-600 mb-1">Valor (R$)</label>
-                  <input type="number" step="0.01" required placeholder="150.00" value={formDespesa.valor} onChange={(e) => setFormDespesa({ ...formDespesa, valor: e.target.value })} className="w-full p-3 rounded-xl bg-stone-50 border border-stone-200 text-xs text-stone-800 focus:outline-none focus:border-stone-900" />
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-stone-600">Valor (R$)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    placeholder="150.00"
+                    value={formDespesa.valor}
+                    onChange={(e) => setFormDespesa({ ...formDespesa, valor: e.target.value })}
+                    className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2.5 text-xs text-stone-800 focus:outline-none focus:ring-2 focus:ring-stone-900"
+                    required
+                  />
                 </div>
-                <div>
-                  <label className="block text-xs font-semibold text-stone-600 mb-1">Data</label>
-                  <input type="date" required value={formDespesa.data} onChange={(e) => setFormDespesa({ ...formDespesa, data: e.target.value })} className="w-full p-3 rounded-xl bg-stone-50 border border-stone-200 text-xs text-stone-800 focus:outline-none focus:border-stone-900" />
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-stone-600">Data</label>
+                  <input
+                    type="date"
+                    value={formDespesa.data}
+                    onChange={(e) => setFormDespesa({ ...formDespesa, data: e.target.value })}
+                    className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2.5 text-xs text-stone-800 focus:outline-none focus:ring-2 focus:ring-stone-900"
+                    required
+                  />
                 </div>
               </div>
-              <div className="flex justify-end gap-2 pt-2">
-                <button type="button" onClick={() => setModalDespesaOpen(false)} className="px-4 py-2.5 rounded-xl border border-stone-200 text-xs font-semibold text-stone-600 hover:bg-stone-50">Cancelar</button>
-                <button type="submit" className="px-4 py-2.5 rounded-xl bg-stone-900 text-white text-xs font-semibold hover:bg-stone-800">Salvar</button>
-              </div>
+              <button type="submit" className="w-full bg-stone-900 hover:bg-stone-800 text-white font-bold py-3 rounded-xl transition duration-200 text-xs shadow-md cursor-pointer mt-2">
+                Salvar Despesa
+              </button>
             </form>
           </div>
         </div>
