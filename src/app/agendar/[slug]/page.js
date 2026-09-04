@@ -32,6 +32,29 @@ export default function AgendamentoPublico() {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState(null);
 
+
+// Na página de agendamento do cliente:
+if (barbearia && barbearia.status_aberto === false) {
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center bg-slate-50 dark:bg-slate-950">
+      <div className="bg-white dark:bg-slate-900 p-8 rounded-2xl shadow-xl max-w-md border border-slate-100 dark:border-slate-800 space-y-4">
+        <div className="w-16 h-16 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center mx-auto text-3xl font-bold">
+          🔒
+        </div>
+        <h1 className="text-2xl font-bold text-slate-800 dark:text-white">Estamos Fechados!</h1>
+        <p className="text-slate-500 dark:text-slate-400 text-sm">
+          No momento, a barbearia não está aceitando novos agendamentos. Por favor, tente novamente mais tarde ou confira nossos horários de atendimento:
+        </p>
+        <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl font-medium text-slate-700 dark:text-slate-300 text-sm">
+          {barbearia.horario_funcionamento || 'Horário não informado'}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+
   useEffect(() => {
     async function loadBarbeariaData() {
       try {

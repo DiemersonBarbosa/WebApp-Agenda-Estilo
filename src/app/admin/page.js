@@ -29,6 +29,125 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
+
+import { useState, useEffect } from 'react';
+import { createClient } from '@supabase/supabase-js';
+
+// Certifique-se de usar sua instância existente do supabase
+export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
+  const [fotoUrl, setFotoUrl] = useState(barbearia?.foto_url || '');
+  const [corTema, setCorTema] = useState(barbearia?.cor_tema || '#000000');
+  const [horarioFuncionamento, setHorarioFuncionamento] = useState(barbearia?.horario_funcionamento || 'Seg a Sáb: 09h às 20h');
+  const [statusAberto, setStatusAberto] = useState(barbearia?.status_aberto ?? true);
+  const [salvando, setSalvando] = useState(false);
+
+  const handleSalvarConfiguracoes = async (e) => {
+    e.preventDefault();
+    setSalvando(true);
+
+    try {
+      const { error } = await supabase
+        .from('barbearias')
+        .update({
+          foto_url: fotoUrl,
+          cor_tema: corTema,
+          horario_funcionamento: horarioFuncionamento,
+          status_aberto: statusAberto,
+        })
+        .eq('id', barbearia.id);
+
+      if (error) throw error;
+
+      alert('Configurações atualizadas com sucesso!');
+      if (onUpdate) onUpdate(); // Atualiza os dados no componente pai
+    } catch (err) {
+      alert('Erro ao salvar: ' + err.message);
+    } finally {
+      setSalvando(false);
+    }
+  };
+
+  return (
+    <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 max-w-2xl mx-auto">
+      <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-4">Configurações da Página do Cliente</h2>
+      
+      <form onSubmit={handleSalvarConfiguracoes} className="space-y-5">
+        
+        {/* Status Aberto / Fechado */}
+        <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700">
+          <div>
+            <label className="font-semibold text-slate-700 dark:text-slate-200 block">Status da Barbearia</label>
+            <span className="text-xs text-slate-500 dark:text-slate-400">
+              {statusAberto ? 'Aberto para novos agendamentos de clientes.' : 'Fechado (Agendamentos desativados temporariamente).'}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setStatusAberto(!statusAberto)}
+            className={`px-4 py-2 rounded-xl font-bold text-sm transition ${
+              statusAberto 
+                ? 'bg-emerald-600 text-white hover:bg-emerald-700' 
+                : 'bg-rose-600 text-white hover:bg-rose-700'
+            }`}
+          >
+            {statusAberto ? '🟢 Aberto' : '🔴 Fechado'}
+          </button>
+        </div>
+
+        {/* Foto da Barbearia */}
+        <div>
+          <label className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-1">URL da Foto / Logo da Barbearia</label>
+          <input
+            type="text"
+            value={fotoUrl}
+            onChange={(e) => setFotoUrl(e.target.value)}
+            placeholder="https://exemplo.com/sua-foto.jpg"
+            className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-slate-800 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
+          />
+        </div>
+
+        {/* Cor do Tema */}
+        <div className="flex items-center space-x-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-1">Cor Principal do Tema</label>
+            <input
+              type="color"
+              value={corTema}
+              onChange={(e) => setCorTema(e.target.value)}
+              className="w-16 h-10 rounded-lg cursor-pointer border border-slate-200 dark:border-slate-700 bg-transparent p-1"
+            />
+          </div>
+          <span className="text-sm font-mono text-slate-500">{corTema}</span>
+        </div>
+
+        {/* Horário de Funcionamento */}
+        <div>
+          <label className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-1">Horário de Funcionamento (Exibido ao cliente)</label>
+          <input
+            type="text"
+            value={horarioFuncionamento}
+            onChange={(e) => setHorarioFuncionamento(e.target.value)}
+            placeholder="Segunda a Sábado, das 09:00 às 19:00"
+            className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-slate-800 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
+          />
+        </div>
+
+        {/* Botão Salvar */}
+        <button
+          type="submit"
+          disabled={salvando}
+          className="w-full bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-white text-white dark:text-slate-900 font-semibold py-3 rounded-xl shadow transition duration-200 disabled:opacity-50"
+        >
+          {salvando ? 'Salvando alterações...' : 'Salvar Configurações'}
+        </button>
+
+      </form>
+    </div>
+  );
+}
+
+
+
 export default function AdminDashboard() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('agendamentos');
