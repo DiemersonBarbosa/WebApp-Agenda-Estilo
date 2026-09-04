@@ -394,6 +394,8 @@ const loadDashboardData = useCallback(async (barbeariaId) => {
   const [editingDespesa, setEditingDespesa] = useState(null);
   const [formDespesa, setFormDespesa] = useState({ descricao: '', valor: '', data: new Date().toISOString().split('T')[0] });
 
+  const [modalInfoAssinaturaOpen, setModalInfoAssinaturaOpen] = useState(false);
+
   const handleOpenServicoModal = (servico = null) => {
     if (servico) {
       setEditingServico(servico);
@@ -625,10 +627,8 @@ const loadDashboardData = useCallback(async (barbeariaId) => {
 
           <div className="space-y-2 pt-4 border-t border-stone-100">
             <button
-              onClick={() => {
-  // Se a assinatura estiver ativa, em vez de abrir o Pix, você pode mostrar um alerta ou um modal de "Gerenciar Plano"
-  alert(`Sua assinatura está ativa até: ${new Date(barbearia?.data_vencimento).toLocaleDateString('pt-BR')}`);
-}}
+              // Substitua o onClick antigo por este:
+onClick={() => setModalInfoAssinaturaOpen(true)}
               className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-sky-50 border border-sky-200 text-xs font-bold text-sky-800 hover:bg-sky-100 transition-all cursor-pointer"
             >
               <CreditCard className="w-3.5 h-3.5" /> {barbearia?.status_assinatura === 'ativo' ? 'Assinatura Ativa' : 'Assinar / Renovar'}
@@ -994,6 +994,80 @@ const loadDashboardData = useCallback(async (barbeariaId) => {
 
         </main>
       </div>
+
+
+
+{/* Modal de Detalhes da Assinatura */}
+{modalInfoAssinaturaOpen && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+    <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl p-6 shadow-2xl border border-slate-100 dark:border-slate-800 relative space-y-6">
+      
+      {/* Botão Fechar */}
+      <button 
+        onClick={() => setModalInfoAssinaturaOpen(false)}
+        className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xl font-bold p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+      >
+        ✕
+      </button>
+
+      {/* Cabeçalho */}
+      <div className="flex items-center space-x-3">
+        <div className="w-12 h-12 rounded-xl bg-emerald-100 dark:bg-emerald-950/50 text-emerald-600 flex items-center justify-center text-2xl font-bold">
+          ✓
+        </div>
+        <div>
+          <h3 className="text-lg font-bold text-slate-800 dark:text-white">Minha Assinatura</h3>
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300 mt-1">
+            • {barbearia?.status_assinatura ? barbearia.status_assinatura.toUpperCase() : 'ATIVO'}
+          </span>
+        </div>
+      </div>
+
+      {/* Detalhes do Plano */}
+      <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 space-y-3 border border-slate-100 dark:border-slate-800 text-sm">
+        <div className="flex justify-between items-center pb-2 border-b border-slate-200/60 dark:border-slate-700/60">
+          <span className="text-slate-500 dark:text-slate-400">Plano Atual:</span>
+          <span className="font-semibold text-slate-700 dark:text-slate-200">Plano Mensal Gestor</span>
+        </div>
+
+        <div className="flex justify-between items-center pb-2 border-b border-slate-200/60 dark:border-slate-700/60">
+          <span className="text-slate-500 dark:text-slate-400">Valor:</span>
+          <span className="font-semibold text-slate-700 dark:text-slate-200">R$ 9,90 / mês</span>
+        </div>
+
+        <div className="flex justify-between items-center pb-2 border-b border-slate-200/60 dark:border-slate-700/60">
+          <span className="text-slate-500 dark:text-slate-400">Data de Início:</span>
+          <span className="font-medium text-slate-700 dark:text-slate-300">
+            {barbearia?.data_inicio_assinatura 
+              ? new Date(barbearia.data_inicio_assinatura).toLocaleDateString('pt-BR') 
+              : 'N/A'}
+          </span>
+        </div>
+
+        <div className="flex justify-between items-center">
+          <span className="text-slate-500 dark:text-slate-400">Próximo Vencimento:</span>
+          <span className="font-bold text-emerald-600 dark:text-emerald-400">
+            {barbearia?.data_vencimento 
+              ? new Date(barbearia.data_vencimento).toLocaleDateString('pt-BR') 
+              : 'N/A'}
+          </span>
+        </div>
+      </div>
+
+      {/* Rodapé com Ações */}
+      <div className="flex justify-end pt-2">
+        <button
+          onClick={() => setModalInfoAssinaturaOpen(false)}
+          className="w-full bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-white text-white dark:text-slate-900 font-semibold py-2.5 rounded-xl shadow transition duration-200"
+        >
+          Entendido
+        </button>
+      </div>
+
+    </div>
+  </div>
+)}
+
 
       {/* MODAL DE CHECKOUT DO MERCADO PAGO */}
       {modalAssinaturaOpen && (
