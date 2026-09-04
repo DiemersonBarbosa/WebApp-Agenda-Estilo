@@ -1,13 +1,14 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Store, Save, Check, Image as ImageIcon, Palette } from 'lucide-react';
+import { Store, Save, Check, Image as ImageIcon, Palette, Layout } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
   const [nome, setNome] = useState(barbearia?.nome || '');
   const [slug, setSlug] = useState(barbearia?.slug || '');
   const [logoUrl, setLogoUrl] = useState(barbearia?.logo_url || '');
+  const [capaUrl, setCapaUrl] = useState(barbearia?.capa_url || '');
   const [corTema, setCorTema] = useState(barbearia?.cor_tema || '#000000');
   const [salvando, setSalvando] = useState(false);
   const [sucesso, setSucesso] = useState(false);
@@ -24,6 +25,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
           nome, 
           slug, 
           logo_url: logoUrl, 
+          capa_url: capaUrl,
           cor_tema: corTema 
         })
         .eq('id', barbearia.id);
@@ -48,7 +50,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
         </div>
         <div>
           <h3 className="text-base font-bold text-stone-900">Configurações da Barbearia</h3>
-          <p className="text-xs text-stone-400">Personalize as informações, cores e logo do link do cliente.</p>
+          <p className="text-xs text-stone-400">Personalize capa, logo, cores e dados do agendamento.</p>
         </div>
       </div>
 
@@ -73,13 +75,13 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
             className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2.5 text-xs text-stone-800 focus:outline-none focus:ring-2 focus:ring-stone-900"
             required
           />
-          <span className="text-[11px] text-stone-400">Exemplo de URL: seuapp.com/agendar/{slug}</span>
+          <span className="text-[11px] text-stone-400">URL: seuapp.com/agendar/{slug}</span>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-1">
             <label className="text-xs font-semibold text-stone-600 flex items-center gap-1.5">
-              <ImageIcon className="w-3.5 h-3.5" /> URL da Logo / Imagem
+              <ImageIcon className="w-3.5 h-3.5" /> URL da Logo / Perfil
             </label>
             <input
               type="url"
@@ -92,22 +94,35 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
 
           <div className="space-y-1">
             <label className="text-xs font-semibold text-stone-600 flex items-center gap-1.5">
-              <Palette className="w-3.5 h-3.5" /> Cor Principal do Tema
+              <Layout className="w-3.5 h-3.5" /> URL da Imagem de Capa
             </label>
-            <div className="flex items-center gap-2">
-              <input
-                type="color"
-                value={corTema}
-                onChange={(e) => setCorTema(e.target.value)}
-                className="w-10 h-10 rounded-xl border border-stone-200 cursor-pointer bg-stone-50 p-1"
-              />
-              <input
-                type="text"
-                value={corTema}
-                onChange={(e) => setCorTema(e.target.value)}
-                className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2.5 text-xs text-stone-800 focus:outline-none focus:ring-2 focus:ring-stone-900 uppercase"
-              />
-            </div>
+            <input
+              type="url"
+              value={capaUrl}
+              onChange={(e) => setCapaUrl(e.target.value)}
+              placeholder="https://exemplo.com/capa.png"
+              className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2.5 text-xs text-stone-800 focus:outline-none focus:ring-2 focus:ring-stone-900"
+            />
+          </div>
+        </div>
+
+        <div className="space-y-1">
+          <label className="text-xs font-semibold text-stone-600 flex items-center gap-1.5">
+            <Palette className="w-3.5 h-3.5" /> Cor Principal do Tema
+          </label>
+          <div className="flex items-center gap-2">
+            <input
+              type="color"
+              value={corTema}
+              onChange={(e) => setCorTema(e.target.value)}
+              className="w-10 h-10 rounded-xl border border-stone-200 cursor-pointer bg-stone-50 p-1"
+            />
+            <input
+              type="text"
+              value={corTema}
+              onChange={(e) => setCorTema(e.target.value)}
+              className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2.5 text-xs text-stone-800 focus:outline-none focus:ring-2 focus:ring-stone-900 uppercase"
+            />
           </div>
         </div>
 
