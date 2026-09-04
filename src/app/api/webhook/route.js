@@ -19,10 +19,10 @@ export async function POST(request) {
       const paymentId = data?.id;
 
       if (paymentId) {
-        // Consulta os detalhes do pagamento diretamente na API do Mercado Pago
+        // Consulta os detalhes do pagamento diretamente na API do Mercado Pago usando a variável de produção correta
         const response = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
           headers: {
-            Authorization: `Bearer ${process.env.MP_ACCESS_TOKEN}`,
+            Authorization: `Bearer ${process.env.MERCADO_PAGO_ACCESS_TOKEN}`,
           },
         });
 
@@ -30,24 +30,32 @@ export async function POST(request) {
           const paymentData = await response.json();
           
           const status = paymentData.status; // Ex: 'approved', 'pending', 'rejected'
-          const externalReference = paymentData.external_reference; // Aqui você pode passar o ID da barbearia ou do usuário, se configurado
+          const externalReference = paymentData.external_reference; // ID da barbearia ou usuário passado na hora de gerar o Pix
 
           console.log(`Pagamento ${paymentId} recebido com status: ${status}`);
 
-          // Se o pagamento foi aprovado, atualizamos o status no Supabase
+          // Se o pagamento foi aprovado, atualizamos o status e projetamos a validade para 30 dias
           if (status === 'approved') {
-            // Exemplo de atualização na sua tabela de barbearias ou assinaturas
-            // Ajuste o nome da tabela e das colunas de acordo com o seu banco de dados atual
-            /*
+            const dataInicio = new Date();
+            const dataVencimento = new Date();
+            dataVencimento.setDate(dataVencimento.getDate() + 30);
+
+            // Substitua 'barbearias' pelo nome exato da sua tabela no Supabase se for diferente
             const { error } = await supabaseAdmin
-              .from('barbearias') // ou 'assinaturas'
-              .update({ status_assinatura: 'ativo', updated_at: new Date() })
-              .eq('id', externalReference); // ou por e-mail: .eq('email', paymentData.payer.email)
+              .from('barbearias') 
+              .update({ 
+                status_assinatura: 'ativo', 
+                data_inicio_assinatura: dataInicio.toISOString(),
+                data_vencimento: dataVencimento.toISOString(),
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', externalReference); 
 
             if (error) {
               console.error('Erro ao atualizar banco de dados:', error);
+            } else {
+              console.log(`Assinatura atualizada com sucesso para a barbearia ID: ${externalReference}`);
             }
-            */
           }
         }
       }
