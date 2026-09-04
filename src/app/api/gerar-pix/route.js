@@ -13,7 +13,7 @@ export async function POST(request) {
     const valorFinal = Number(transaction_amount);
 
     // SUA ACCESS TOKEN DO MERCADO PAGO (Certifique-se de colar a chave inteira de teste ou produção)
-    const accessTokenMP = 'TEST-7946743295399313-090408-f12f31076138beae651c9501b85529ac-227220066'; 
+    const accessTokenMP = process.env.MERCADO_PAGO_ACCESS_TOKEN;
 
     const mpResponse = await fetch('https://api.mercadopago.com/v1/payments', {
       method: 'POST',
