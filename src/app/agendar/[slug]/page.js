@@ -20,6 +20,7 @@ export default function AgendamentoPublico() {
   const [barbearia, setBarbearia] = useState(null);
   const [servicos, setServicos] = useState([]);
   const [barbeiros, setBarbeiros] = useState([]);
+  const [horariosOcupados, setHorariosOcupados] = useState([]);
 
   const [selectedServico, setSelectedServico] = useState(null);
   const [selectedBarbeiro, setSelectedBarbeiro] = useState(null);
@@ -61,6 +62,47 @@ export default function AgendamentoPublico() {
     if (slug) loadBarbeariaData();
   }, [slug]);
 
+  // Sempre que mudar o barbeiro ou a data, busca os horários já ocupados daquele barbeiro
+  useEffect(() => {
+    async function buscarHorariosOcupados() {
+      if (!selectedBarbeiro || !data) {
+        setHorariosOcupados([]);
+        return;
+      }
+
+      try {
+        // Define o intervalo do dia selecionado (Início e Fim do dia)
+        const inicioDia = `${data}T00:00:00`;
+        const fimDia = `${data}T23:59:59`;
+
+        const { data: agendamentos, error } = await supabase
+          .from('agendamentos')
+          .select('data_hora')
+          .eq('barbeiro_id', selectedBarbeiro)
+          .neq('status', 'cancelado') // Se tiver status cancelado, não bloqueia
+          .gte('data_hora', new Date(inicioDia).toISOString())
+          .lte('data_hora', new Date(fimDia).toISOString());
+
+        if (error) throw error;
+
+        // Extrai apenas os horários no formato "HH:MM"
+        const ocupados = (agendamentos || []).map((ag) => {
+          const d = new Date(ag.data_hora);
+          // Ajuste para hora local se necessário, ou pega direto o formato UTC/Local
+          const horas = String(d.getHours()).padStart(2, '0');
+          const minutos = String(d.getMinutes()).padStart(2, '0');
+          return `${horas}:${minutos}`;
+        });
+
+        setHorariosOcupados(ocupados);
+      } catch (err) {
+        console.error('Erro ao buscar horários ocupados:', err);
+      }
+    }
+
+    buscarHorariosOcupados();
+  }, [selectedBarbeiro, data]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
@@ -75,6 +117,22 @@ export default function AgendamentoPublico() {
         throw new Error('Selecione a data e o horário do agendamento.');
       }
 
+      const dataHoraIso = new Date(`${data}T${hora}:00`).toISOString();
+
+      // DUPLA VERIFICAÇÃO DE SEGURANÇA: Checa no banco se já existe agendamento ativo para este barbeiro exato neste horário
+      const { data: conflito } = await supabase
+        .from('agendamentos')
+        .select('id')
+        .eq('barbeiro_id', selectedBarbeiro)
+        .eq('data_hora', dataHoraIso)
+        .neq('status', 'cancelado')
+        .maybeSingle();
+
+      if (conflito) {
+        throw new Error('Este horário acabou de ser ocupado para este barbeiro. Por favor, escolha outro horário.');
+      }
+
+      // 1. Criar ou buscar cliente
       let clienteId;
       const { data: existingClient } = await supabase
         .from('clientes')
@@ -96,8 +154,7 @@ export default function AgendamentoPublico() {
         clienteId = newClient.id;
       }
 
-      const dataHoraIso = new Date(`${data}T${hora}:00`).toISOString();
-
+      // 2. Registrar Agendamento
       const { error: agendamentoErr } = await supabase.from('agendamentos').insert([
         {
           barbearia_id: barbearia.id,
@@ -307,24 +364,31 @@ export default function AgendamentoPublico() {
               />
             </div>
 
-            {/* Seleção de Horário */}
+            {/* Seleção de Horário com bloqueio automático se ocupado */}
             <div>
-              <label className="block text-xs font-semibold text-stone-600 mb-2 flex items-center gap-1">
-                <Clock className="w-3.5 h-3.5" /> Escolha o Horário
+              <label className="block text-xs font-semibold text-stone-600 mb-2 flex items-center justify-between">
+                <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> Escolha o Horário</span>
+                {!selectedBarbeiro && <span className="text-[10px] text-amber-600 font-normal">Selecione o barbeiro primeiro</span>}
               </label>
+
               <div className="grid grid-cols-4 gap-2">
                 {HORARIOS_DISPONIVEIS.map((h) => {
+                  const isOcupado = horariosOcupados.includes(h);
                   const isSelected = hora === h;
+
                   return (
                     <button
                       type="button"
                       key={h}
+                      disabled={isOcupado || !selectedBarbeiro}
                       onClick={() => setHora(h)}
                       style={isSelected ? { backgroundColor: corTema, borderColor: corTema } : {}}
-                      className={`py-2 text-xs font-semibold rounded-xl border transition-all cursor-pointer ${
-                        isSelected
-                          ? 'text-white shadow-sm'
-                          : 'bg-stone-50 text-stone-700 border-stone-200 hover:border-stone-400'
+                      className={`py-2 text-xs font-semibold rounded-xl border transition-all ${
+                        isOcupado
+                          ? 'bg-stone-200 text-stone-400 border-stone-200 cursor-not-allowed line-through opacity-60'
+                          : isSelected
+                          ? 'text-white shadow-sm cursor-pointer'
+                          : 'bg-stone-50 text-stone-700 border-stone-200 hover:border-stone-400 cursor-pointer'
                       }`}
                     >
                       {h}
