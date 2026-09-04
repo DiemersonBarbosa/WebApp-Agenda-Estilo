@@ -32,29 +32,6 @@ export default function AgendamentoPublico() {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState(null);
 
-
-// Na página de agendamento do cliente:
-if (barbearia && barbearia.status_aberto === false) {
-  return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center bg-slate-50 dark:bg-slate-950">
-      <div className="bg-white dark:bg-slate-900 p-8 rounded-2xl shadow-xl max-w-md border border-slate-100 dark:border-slate-800 space-y-4">
-        <div className="w-16 h-16 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center mx-auto text-3xl font-bold">
-          🔒
-        </div>
-        <h1 className="text-2xl font-bold text-slate-800 dark:text-white">Estamos Fechados!</h1>
-        <p className="text-slate-500 dark:text-slate-400 text-sm">
-          No momento, a barbearia não está aceitando novos agendamentos. Por favor, tente novamente mais tarde ou confira nossos horários de atendimento:
-        </p>
-        <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl font-medium text-slate-700 dark:text-slate-300 text-sm">
-          {barbearia.horario_funcionamento || 'Horário não informado'}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-
-
   useEffect(() => {
     async function loadBarbeariaData() {
       try {
@@ -167,6 +144,25 @@ if (barbearia && barbearia.status_aberto === false) {
     );
   }
 
+  if (barbearia && barbearia.status_aberto === false) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center bg-slate-50 dark:bg-slate-950">
+        <div className="bg-white dark:bg-slate-900 p-8 rounded-2xl shadow-xl max-w-md border border-slate-100 dark:border-slate-800 space-y-4">
+          <div className="w-16 h-16 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center mx-auto text-3xl font-bold">
+            🔒
+          </div>
+          <h1 className="text-2xl font-bold text-slate-800 dark:text-white">Estamos Fechados!</h1>
+          <p className="text-slate-500 dark:text-slate-400 text-sm">
+            No momento, a barbearia não está aceitando novos agendamentos. Por favor, tente novamente mais tarde ou confira nossos horários de atendimento:
+          </p>
+          <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl font-medium text-slate-700 dark:text-slate-300 text-sm">
+            {barbearia.horario_funcionamento || 'Horário não informado'}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (success) {
     return (
       <div className="min-h-screen bg-stone-100 flex items-center justify-center p-4">
@@ -176,7 +172,8 @@ if (barbearia && barbearia.status_aberto === false) {
           <p className="text-xs text-stone-500">Seu agendamento na {barbearia.nome} foi realizado com sucesso.</p>
           <button
             onClick={() => window.location.reload()}
-            className="w-full bg-stone-900 text-white text-xs font-semibold py-3 rounded-2xl"
+            style={{ backgroundColor: barbearia.cor_tema || '#1c1917' }}
+            className="w-full text-white text-xs font-semibold py-3 rounded-2xl shadow-md cursor-pointer"
           >
             Fazer Novo Agendamento
           </button>
@@ -185,13 +182,28 @@ if (barbearia && barbearia.status_aberto === false) {
     );
   }
 
+  const corTema = barbearia.cor_tema || '#1c1917';
+
   return (
     <div className="min-h-screen bg-stone-100 flex items-center justify-center p-4 font-sans">
       <div className="bg-white p-8 rounded-3xl shadow-xl border border-stone-200/80 max-w-md w-full space-y-6">
-        <div className="text-center space-y-1">
-          <div className="w-12 h-12 rounded-2xl bg-stone-900 text-white flex items-center justify-center mx-auto shadow-md mb-2">
-            <Scissors className="w-6 h-6" />
-          </div>
+        
+        {/* Cabeçalho com Logo Dinâmica e Cor */}
+        <div className="text-center space-y-2">
+          {barbearia.logo_url ? (
+            <img 
+              src={barbearia.logo_url} 
+              alt={barbearia.nome} 
+              className="w-16 h-16 rounded-2xl object-cover mx-auto shadow-md border border-stone-100"
+            />
+          ) : (
+            <div 
+              style={{ backgroundColor: corTema }}
+              className="w-12 h-12 rounded-2xl text-white flex items-center justify-center mx-auto shadow-md mb-2 font-bold text-lg"
+            >
+              {barbearia.nome?.charAt(0)}
+            </div>
+          )}
           <h1 className="text-xl font-bold text-stone-900">{barbearia.nome}</h1>
           <p className="text-xs text-stone-400">Escolha o serviço e o profissional de sua preferência.</p>
         </div>
@@ -203,24 +215,28 @@ if (barbearia && barbearia.status_aberto === false) {
           <div>
             <label className="block text-xs font-semibold text-stone-600 mb-1">Selecione o Serviço</label>
             <div className="space-y-2">
-              {servicos.map((s) => (
-                <button
-                  type="button"
-                  key={s.id}
-                  onClick={() => setSelectedServico(s)}
-                  className={`w-full p-3 rounded-2xl border text-left flex justify-between items-center transition-all ${
-                    selectedServico?.id === s.id
-                      ? 'border-stone-900 bg-stone-900 text-white'
-                      : 'border-stone-200 bg-stone-50 text-stone-800'
-                  }`}
-                >
-                  <div>
-                    <p className="text-xs font-bold">{s.nome}</p>
-                    <p className="text-[10px] opacity-70">{s.duracao_minutos} minutos</p>
-                  </div>
-                  <span className="text-xs font-extrabold">R$ {s.preco}</span>
-                </button>
-              ))}
+              {servicos.map((s) => {
+                const isSelected = selectedServico?.id === s.id;
+                return (
+                  <button
+                    type="button"
+                    key={s.id}
+                    onClick={() => setSelectedServico(s)}
+                    style={isSelected ? { backgroundColor: corTema, borderColor: corTema } : {}}
+                    className={`w-full p-3 rounded-2xl border text-left flex justify-between items-center transition-all cursor-pointer ${
+                      isSelected
+                        ? 'text-white shadow-md'
+                        : 'border-stone-200 bg-stone-50 text-stone-800 hover:border-stone-300'
+                    }`}
+                  >
+                    <div>
+                      <p className="text-xs font-bold">{s.nome}</p>
+                      <p className="text-[10px] opacity-75">{s.duracao_minutos} minutos</p>
+                    </div>
+                    <span className="text-xs font-extrabold">R$ {s.preco}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -284,27 +300,32 @@ if (barbearia && barbearia.status_aberto === false) {
               <Clock className="w-3.5 h-3.5" /> Escolha o Horário
             </label>
             <div className="grid grid-cols-4 gap-2">
-              {HORARIOS_DISPONIVEIS.map((h) => (
-                <button
-                  type="button"
-                  key={h}
-                  onClick={() => setHora (h)}
-                  className={`py-2 text-xs font-semibold rounded-xl border transition-all ${
-                    hora === h
-                      ? 'bg-stone-900 text-white border-stone-900 shadow-sm'
-                      : 'bg-stone-50 text-stone-700 border-stone-200 hover:border-stone-400'
-                  }`}
-                >
-                  {h}
-                </button>
-              ))}
+              {HORARIOS_DISPONIVEIS.map((h) => {
+                const isSelected = hora === h;
+                return (
+                  <button
+                    type="button"
+                    key={h}
+                    onClick={() => setHora(h)}
+                    style={isSelected ? { backgroundColor: corTema, borderColor: corTema } : {}}
+                    className={`py-2 text-xs font-semibold rounded-xl border transition-all cursor-pointer ${
+                      isSelected
+                        ? 'text-white shadow-sm'
+                        : 'bg-stone-50 text-stone-700 border-stone-200 hover:border-stone-400'
+                    }`}
+                  >
+                    {h}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
           <button
             type="submit"
             disabled={submitting}
-            className="w-full bg-stone-900 hover:bg-stone-800 text-white font-semibold py-3.5 rounded-2xl text-xs uppercase tracking-wider transition-all shadow-md disabled:opacity-50 mt-2"
+            style={{ backgroundColor: corTema }}
+            className="w-full hover:opacity-90 text-white font-semibold py-3.5 rounded-2xl text-xs uppercase tracking-wider transition-all shadow-md disabled:opacity-50 mt-2 cursor-pointer"
           >
             {submitting ? 'Confirmando...' : 'Confirmar Agendamento'}
           </button>
