@@ -289,7 +289,7 @@ export default function AgendamentoPublico() {
                   required
                   placeholder="(00) 00000-0000"
                   value={telefoneCliente}
-                  onChange={(e) => setTelefoneClient(e.target.value)}
+                  onChange={(e) => setTelefoneCliente(e.target.value)}
                   className="w-full p-3 rounded-xl bg-stone-50 border border-stone-200 text-xs text-stone-800 focus:outline-none focus:border-stone-900"
                 />
               </div>
