@@ -265,9 +265,9 @@ export default function AdminDashboard() {
     };
   }, [modalAssinaturaOpen, metodoPagamento, pixDataMP?.paymentId, router]);
 
-  // Sempre que abrir o modal ou alternar para o Pix, gera a cobrança
+  // Sempre que abrir o modal ou alternar para o Pix, gera a cobrança apenas se já não houver um Pix ativo
   useEffect(() => {
-    if (modalAssinaturaOpen && metodoPagamento === 'pix') {
+    if (modalAssinaturaOpen && metodoPagamento === 'pix' && !pixDataMP?.paymentId) {
       gerarPixMercadoPago({
         transaction_amount: 9.90,
         description: 'Plano Mensal Gestor - Acesso Completo',
@@ -275,7 +275,7 @@ export default function AdminDashboard() {
         payer_name: barbearia?.nome || 'Gestor'
       });
     }
-  }, [modalAssinaturaOpen, metodoPagamento, gerarPixMercadoPago, user, barbearia]);
+  }, [modalAssinaturaOpen, metodoPagamento, pixDataMP?.paymentId, gerarPixMercadoPago, user, barbearia]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -311,27 +311,33 @@ export default function AdminDashboard() {
           setProcessandoPagamento(false);
           return;
         }
+
+        // --- PAGAMENTO APROVADO: Atualiza o Supabase e libera o acesso ---
+        if (barbearia?.id) {
+          const dataExpiracao = new Date();
+          dataExpiracao.setMonth(dataExpiracao.getMonth() + 1); // Adiciona 1 mês de acesso
+
+          await supabase
+            .from('barbearias') // Ajuste para o nome da sua tabela de barbearias/assinaturas se necessário
+            .update({ 
+              status_assinatura: 'ativo', 
+              assinatura_expira_em: dataExpiracao.toISOString(),
+              ultimo_payment_id: pixDataMP.paymentId 
+            })
+            .eq('id', barbearia.id);
+        }
+
+        alert('Pagamento aprovado com sucesso! Acesso liberado.');
+        setModalAssinaturaOpen(false);
+        router.push('/admin'); // Ou recarrega os dados do painel
       }
-
-      // Se aprovado, atualiza o status no Supabase
-      const { error } = await supabase
-        .from('barbearias')
-        .update({ status_assinatura: 'ativo' })
-        .eq('id', barbearia.id);
-
-      if (error) throw error;
-
-      setBarbearia((prev) => ({ ...prev, status_assinatura: 'ativo' }));
-      setAssinaturaExpirada(false);
-      setModalAssinaturaOpen(false);
-      alert('Pagamento confirmado pelo Mercado Pago com sucesso! Assinatura ativada.');
     } catch (err) {
-      alert('Erro ao verificar pagamento: ' + err.message);
+      console.error('Erro ao processar pagamento:', err);
+      alert(err.message);
     } finally {
       setProcessandoPagamento(false);
     }
   };
-
   const copiarChavePix = () => {
     if (!pixDataMP.copiaECola) return;
     navigator.clipboard.writeText(pixDataMP.copiaECola);
