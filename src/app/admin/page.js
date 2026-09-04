@@ -25,9 +25,12 @@ import {
   CreditCard,
   Lock,
   Copy,
-  Check
+  Check,
+  Settings,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+
+import ConfiguracoesBarbearia from '@/components/ConfiguracoesBarbearia';
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -612,6 +615,17 @@ export default function AdminDashboard() {
               >
                 <Scissors className="w-4 h-4" /> Serviços & Equipe
               </button>
+
+<button
+  onClick={() => setActiveTab('configuracoes')}
+  className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-semibold transition-all cursor-pointer ${
+    activeTab === 'configuracoes' ? 'bg-stone-900 text-white shadow-sm' : 'text-stone-600 hover:bg-stone-100'
+  }`}
+>
+  <Store className="w-4 h-4" /> Configurações
+</button>
+
+
             </nav>
           </div>
 
@@ -771,6 +785,15 @@ export default function AdminDashboard() {
                                   </button>
                                 </>
                               )}
+
+{activeTab === 'configuracoes' && (
+  <ConfiguracoesBarbearia 
+    barbearia={barbearia} 
+    onUpdate={() => loadDashboardData(barbearia.id)} 
+  />
+)}
+
+
                             </div>
                           </td>
                         </tr>
