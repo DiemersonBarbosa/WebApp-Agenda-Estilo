@@ -3,9 +3,7 @@ import { NextResponse } from 'next/server';
 export async function POST(request) {
   try {
     const body = await request.json().catch(() => ({}));
-    
-    // Aceita qualquer variação de nome que venha do front-end
-    const paymentId = body.paymentId || body.id || body.transactionId;
+    const paymentId = body.paymentId || body.id;
 
     if (!paymentId) {
       return NextResponse.json(
@@ -14,7 +12,9 @@ export async function POST(request) {
       );
     }
 
-    if (!process.env.MP_ACCESS_TOKEN) {
+    const accessTokenMP = process.env.MERCADO_PAGO_ACCESS_TOKEN;
+
+    if (!accessTokenMP) {
       return NextResponse.json(
         { status: 'error', message: 'Token do Mercado Pago não configurado no servidor' }, 
         { status: 500 }
@@ -24,7 +24,7 @@ export async function POST(request) {
     const response = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${process.env.MP_ACCESS_TOKEN}`
+        'Authorization': `Bearer ${accessTokenMP}`
       }
     });
 
@@ -32,7 +32,7 @@ export async function POST(request) {
 
     if (!response.ok) {
       return NextResponse.json(
-        { status: 'error', message: data.message || 'Erro ao consultar pagamento no Mercado Pago' }, 
+        { status: 'error', message: data.message || 'Erro ao consultar pagamento' }, 
         { status: response.status }
       );
     }
@@ -44,7 +44,7 @@ export async function POST(request) {
 
   } catch (error) {
     return NextResponse.json(
-      { status: 'error', message: error.message || 'Erro interno no servidor' }, 
+      { status: 'error', message: error.message || 'Erro interno' }, 
       { status: 500 }
     );
   }

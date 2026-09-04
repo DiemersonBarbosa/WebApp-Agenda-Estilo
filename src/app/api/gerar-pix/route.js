@@ -2,50 +2,72 @@ import { NextResponse } from 'next/server';
 
 export async function POST(request) {
   try {
-    const body = await request.json();
-    const { paymentId } = body;
-
-    if (!paymentId) {
-      return NextResponse.json(
-        { status: 'error', message: 'ID do pagamento não fornecido' }, 
-        { status: 400 }
-      );
+    let body = {};
+    try {
+      body = await request.json();
+    } catch (e) {
+      body = {};
     }
 
-    // Usando o mesmo nome de variável que já funciona no seu gerador de Pix
+    const { transaction_amount, description, payer_email, payer_name } = body;
+    const valorFinal = Number(transaction_amount) || 9.90;
+
     const accessTokenMP = process.env.MERCADO_PAGO_ACCESS_TOKEN;
 
     if (!accessTokenMP) {
       return NextResponse.json(
-        { status: 'error', message: 'Token do Mercado Pago não configurado no servidor' }, 
+        { error: { message: 'Token do Mercado Pago não configurado no servidor' } }, 
         { status: 500 }
       );
     }
 
-    const response = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
-      method: 'GET',
+    const mpResponse = await fetch('https://api.mercadopago.com/v1/payments', {
+      method: 'POST',
       headers: {
-        'Authorization': `Bearer ${accessTokenMP}`
-      }
+        'Authorization': `Bearer ${accessTokenMP}`,
+        'Content-Type': 'application/json',
+        'X-Idempotency-Key': `${Date.now()}`
+      },
+      body: JSON.stringify({
+        transaction_amount: valorFinal,
+        description: description || 'Assinatura Mensal Gestor',
+        payment_method_id: 'pix',
+        payer: {
+          email: payer_email || 'diemersonlimabarbosa@gmail.com',
+          first_name: payer_name || 'Gestor'
+        }
+      })
     });
 
-    const data = await response.json();
-
-    if (!response.ok) {
+    const responseText = await mpResponse.text();
+    let data;
+    try {
+      data = JSON.parse(responseText);
+    } catch (e) {
       return NextResponse.json(
-        { status: 'error', message: data.message || 'Erro ao consultar pagamento no Mercado Pago' }, 
-        { status: response.status }
+        { error: { message: `Erro no formato de resposta do Mercado Pago` } }, 
+        { status: 500 }
       );
     }
 
-    return NextResponse.json({ 
-      status: data.status, 
-      status_detail: data.status_detail 
+    if (!mpResponse.ok) {
+      return NextResponse.json(
+        { error: { message: data.message || 'Erro ao processar pagamento no Mercado Pago' } }, 
+        { status: 400 }
+      );
+    }
+
+    const pointOfInteraction = data.point_of_interaction?.transaction_data;
+
+    return NextResponse.json({
+      qrCodeBase64: pointOfInteraction?.qr_code_base64 || '',
+      copiaECola: pointOfInteraction?.qr_code || '',
+      paymentId: data.id
     });
 
   } catch (error) {
     return NextResponse.json(
-      { status: 'error', message: error.message || 'Erro interno no servidor' }, 
+      { error: { message: error.message || 'Erro interno no servidor' } }, 
       { status: 500 }
     );
   }
