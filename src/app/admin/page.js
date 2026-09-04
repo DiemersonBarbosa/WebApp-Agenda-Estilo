@@ -1038,9 +1038,15 @@ onClick={() => setModalInfoAssinaturaOpen(true)}
         <div className="flex justify-between items-center pb-2 border-b border-slate-200/60 dark:border-slate-700/60">
           <span className="text-slate-500 dark:text-slate-400">Data de Início:</span>
           <span className="font-medium text-slate-700 dark:text-slate-300">
-            {barbearia?.data_inicio_assinatura 
-              ? new Date(barbearia.data_inicio_assinatura).toLocaleDateString('pt-BR') 
-              : 'N/A'}
+            {/* Data de Início */}
+{barbearia?.data_inicio_assinatura 
+  ? new Date(barbearia.data_inicio_assinatura).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) 
+  : 'N/A'}
+
+{/* Próximo Vencimento */}
+{barbearia?.data_vencimento 
+  ? new Date(barbearia.data_vencimento).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) 
+  : 'N/A'}
           </span>
         </div>
 
