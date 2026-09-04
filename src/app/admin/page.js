@@ -158,12 +158,20 @@ export default function AdminDashboard() {
   // Gerar Pix dinâmico Oficial via API do Mercado Pago
   const gerarPixMercadoPago = useCallback(async (paymentData) => {
     try {
+      // Garante que o valor seja enviado no formato correto (ex: 9.90)
+      const payload = {
+        transaction_amount: Number(paymentData.transaction_amount) || 9.90,
+        description: paymentData.description || 'Assinatura Mensal Gestor',
+        payer_email: paymentData.payer_email || 'diemersonlimabarbosa@gmail.com',
+        payer_name: paymentData.payer_name || 'Gestor'
+      };
+
       const response = await fetch('/api/gerar-pix', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(paymentData),
+        body: JSON.stringify(payload),
       });
 
       const data = await response.json();
@@ -182,6 +190,7 @@ export default function AdminDashboard() {
       return data; 
     } catch (error) {
       console.error('Falha ao gerar PIX:', error);
+      alert(`Erro ao gerar Pix: ${error.message}`);
     }
   }, []);
 
