@@ -786,12 +786,7 @@ export default function AdminDashboard() {
                                 </>
                               )}
 
-{activeTab === 'configuracoes' && (
-  <ConfiguracoesBarbearia 
-    barbearia={barbearia} 
-    onUpdate={() => loadDashboardData(barbearia.id)} 
-  />
-)}
+
 
 
                             </div>
@@ -802,8 +797,23 @@ export default function AdminDashboard() {
                   </table>
                 </div>
               )}
+
+
+              
             </div>
+
+
+
           )}
+
+
+{activeTab === 'configuracoes' && (
+  <ConfiguracoesBarbearia 
+    barbearia={barbearia} 
+    onUpdate={() => loadDashboardData(barbearia.id)} 
+  />
+)}
+
 
           {activeTab === 'clientes' && (
             <div className="bg-white rounded-3xl border border-stone-200/80 shadow-sm overflow-hidden p-6">
