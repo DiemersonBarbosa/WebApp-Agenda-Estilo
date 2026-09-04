@@ -120,40 +120,59 @@ export default function AdminDashboard() {
   };
 
   // Carregar Dados isolados por barbearia_id
-  const loadDashboardData = useCallback(async (barbeariaId) => {
-    setLoading(true);
-    setErrorMessage(null);
+const loadDashboardData = useCallback(async (barbeariaId) => {
+  setLoading(true);
+  setErrorMessage(null);
 
-    try {
-      const [resAgendamentos, resClientes, resBarbeiros, resServicos, resDespesas] = await Promise.all([
-        supabase
-          .from('agendamentos')
-          .select('*, clientes(*), barbeiros(*), servicos(*)')
-          .eq('barbearia_id', barbeariaId)
-          .order('data_hora', { ascending: true }),
-        supabase.from('clientes').select('*').eq('barbearia_id', barbeariaId).order('created_at', { ascending: false }),
-        supabase.from('barbeiros').select('*').eq('barbearia_id', barbeariaId).order('nome', { ascending: true }),
-        supabase.from('servicos').select('*').eq('barbearia_id', barbeariaId).order('nome', { ascending: true }),
-        supabase.from('despesas').select('*').eq('barbearia_id', barbeariaId).order('data', { ascending: false })
-      ]);
+  try {
+    const [resAgendamentos, resClientes, resBarbeiros, resServicos, resDespesas, resBarbearia] = await Promise.all([
+      supabase
+        .from('agendamentos')
+        .select('*, clientes(*), barbeiros(*), servicos(*)')
+        .eq('barbearia_id', barbeariaId)
+        .order('data_hora', { ascending: true }),
+      supabase.from('clientes').select('*').eq('barbearia_id', barbeariaId).order('created_at', { ascending: false }),
+      supabase.from('barbeiros').select('*').eq('barbearia_id', barbeariaId).order('nome', { ascending: true }),
+      supabase.from('servicos').select('*').eq('barbearia_id', barbeariaId).order('nome', { ascending: true }),
+      supabase.from('despesas').select('*').eq('barbearia_id', barbeariaId).order('data', { ascending: false }),
+      // Adicionado para buscar o status da assinatura da barbearia:
+      supabase.from('barbearias').select('*').eq('id', barbeariaId).single()
+    ]);
 
-      if (resAgendamentos.error) throw resAgendamentos.error;
-      if (resClientes.error) throw resClientes.error;
-      if (resBarbeiros.error) throw resBarbeiros.error;
-      if (resServicos.error) throw resServicos.error;
-      if (resDespesas.error) throw resDespesas.error;
+    if (resAgendamentos.error) throw resAgendamentos.error;
+    if (resClientes.error) throw resClientes.error;
+    if (resBarbeiros.error) throw resBarbeiros.error;
+    if (resServicos.error) throw resServicos.error;
+    if (resDespesas.error) throw resDespesas.error;
+    if (resBarbearia.error) throw resBarbearia.error;
 
-      setAgendamentos(resAgendamentos.data || []);
-      setClientes(resClientes.data || []);
-      setBarbeiros(resBarbeiros.data || []);
-      setServicos(resServicos.data || []);
-      setDespesas(resDespesas.data || []);
-    } catch (err) {
-      setErrorMessage(err.message || 'Erro ao carregar dados do painel.');
-    } finally {
-      setLoading(false);
+    const dadosBarbearia = resBarbearia.data;
+    setBarbearia(dadosBarbearia);
+
+    // --- TRAVA INTELIGENTE DE ASSINATURA ---
+    const expiraEm = dadosBarbearia?.assinatura_expira_em;
+    const status = dadosBarbearia?.status_assinatura;
+    
+    const hoje = new Date();
+    const dataExpiracao = expiraEm ? new Date(expiraEm) : null;
+
+    // Verifica se a assinatura está vencida ou não ativa
+    const estaVencida = !dataExpiracao || dataExpiracao < hoje || status !== 'ativo';
+
+    if (estaVencida) {
+      setModalAssinaturaOpen(true); // Abre o Pix apenas se estiver vencido
+    } else {
+      setModalAssinaturaOpen(false); // Mantém fechado se o plano estiver pago/ativo!
     }
-  }, []);
+
+    // ... restante do seu código para definir os estados (setAgendamentos, setClientes, etc.) ...
+
+  } catch (err) {
+    setErrorMessage(err.message);
+  } finally {
+    setLoading(false);
+  }
+}, [supabase]);
 
   // Gerar Pix dinâmico Oficial via API do Mercado Pago
   const gerarPixMercadoPago = useCallback(async (paymentData) => {
