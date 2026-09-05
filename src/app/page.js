@@ -1,206 +1,287 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { 
-  Scissors, 
-  CalendarCheck, 
-  DollarSign, 
-  Store, 
-  ShieldCheck, 
-  Smartphone, 
-  ArrowRight, 
-  CheckCircle, 
-  Sparkles, 
-  TrendingUp,
-  Clock,
-  UserCheck
+  Scissors, ArrowRight, Calendar, TrendingUp, Clock, 
+  ShieldCheck, Sparkles, Check, ChevronDown, Zap, Users, BarChart3, Star 
 } from 'lucide-react';
 
-export default function LandingPage() {
+export default function ModernLandingPage() {
+  const [openFaq, setOpenFaq] = useState(null);
+
+  const toggleFaq = (index) => {
+    setOpenFaq(openFaq === index ? null : index);
+  };
+
   return (
-    <div className="min-h-screen bg-stone-50 text-stone-900 font-sans selection:bg-stone-900 selection:text-white">
+    <div className="min-h-screen bg-stone-900 text-stone-100 font-sans selection:bg-white selection:text-stone-900">
       
-      {/* 1. HEADER / NAVBAR */}
-      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-stone-200/80">
-        <div className="max-w-6xl mx-auto px-6 h-20 flex items-center justify-between">
+      {/* HEADER FLUTUANTE DARK */}
+      <header className="sticky top-0 z-50 bg-stone-900/80 backdrop-blur-md border-b border-stone-800">
+        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+          
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-stone-900 text-white flex items-center justify-center shadow-md">
+            <div className="w-10 h-10 rounded-2xl bg-white text-stone-900 flex items-center justify-center font-bold shadow-lg">
               <Scissors className="w-5 h-5" />
             </div>
-            <span className="font-extrabold text-lg tracking-tight text-stone-900">BarberManager</span>
+            <div>
+              <span className="text-sm font-black tracking-tight text-white block leading-none">BarberFlow</span>
+              <span className="text-[10px] uppercase tracking-wider font-semibold text-stone-400">Elite System</span>
+            </div>
           </div>
+
+          <nav className="hidden md:flex items-center gap-8 text-xs font-semibold text-stone-300">
+            <a href="#vantagens" className="hover:text-white transition">Vantagens</a>
+            <a href="#como-funciona" className="hover:text-white transition">Como Funciona</a>
+            <a href="#precos" className="hover:text-white transition">Investimento</a>
+            <a href="#duvidas" className="hover:text-white transition">FAQ</a>
+          </nav>
 
           <div className="flex items-center gap-3">
             <Link 
-              href="/login" 
-              className="text-xs font-semibold text-stone-600 hover:text-stone-900 px-4 py-2.5 rounded-xl transition"
+              href="/admin/login" 
+              className="text-xs font-semibold text-stone-300 hover:text-white px-4 py-2.5 transition"
             >
               Entrar
             </Link>
             <Link 
-              href="/login" 
-              className="bg-stone-900 hover:bg-stone-800 text-white text-xs font-semibold px-5 py-3 rounded-2xl shadow-md transition flex items-center gap-2"
+              href="/admin/login?mode=register" 
+              className="bg-white hover:bg-stone-200 text-stone-900 text-xs font-bold px-5 py-3 rounded-2xl shadow-md transition flex items-center gap-2 group"
             >
-              Criar Conta Grátis <ArrowRight className="w-3.5 h-3.5" />
+              Testar 7 Dias Grátis 
+              <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
             </Link>
           </div>
+
         </div>
       </header>
 
-      {/* 2. HERO SECTION */}
-      <section className="relative pt-20 pb-24 px-6 overflow-hidden">
-        <div className="max-w-4xl mx-auto text-center space-y-6">
+      {/* HERO SECTION DARK COM CARD DE PRÉ-VISUALIZAÇÃO */}
+      <section className="relative pt-20 pb-32 px-6 overflow-hidden">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
           
-          <div className="inline-flex items-center gap-2 bg-stone-200/70 border border-stone-300/60 px-4 py-1.5 rounded-full text-xs font-semibold text-stone-700 shadow-sm animate-pulse">
-            <Sparkles className="w-3.5 h-3.5 text-amber-600" /> A plataforma definitiva para barbearias modernas
-          </div>
-
-          <h1 className="text-4xl sm:text-6xl font-extrabold text-stone-900 tracking-tight leading-tight">
-            Modernize a gestão da sua <span className="underline decoration-stone-400">Barbearia</span>
-          </h1>
-
-          <p className="text-stone-500 text-sm sm:text-base max-w-2xl mx-auto leading-relaxed">
-            Elimine o WhatsApp lotado e planilhas confusas. Ofereça um link de agendamento profissional para seus clientes e controle financeiro completo na palma da sua mão.
-          </p>
-
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4">
-            <Link 
-              href="/login" 
-              className="w-full sm:w-auto bg-stone-900 hover:bg-stone-800 text-white text-xs font-bold uppercase tracking-wider px-8 py-4 rounded-2xl shadow-lg transition flex items-center justify-center gap-2"
-            >
-              Começar Agora Gratuitamente <ArrowRight className="w-4 h-4" />
-            </Link>
-            <a 
-              href="#planos" 
-              className="w-full sm:w-auto bg-white border border-stone-200 text-stone-700 hover:bg-stone-100 text-xs font-bold uppercase tracking-wider px-8 py-4 rounded-2xl transition text-center"
-            >
-              Ver Planos e Preços
-            </a>
-          </div>
-
-          <div className="pt-8 flex flex-wrap items-center justify-center gap-6 text-xs text-stone-500 font-medium">
-            <span className="flex items-center gap-1.5"><CheckCircle className="w-4 h-4 text-emerald-600" /> Sem cartão de crédito</span>
-            <span className="flex items-center gap-1.5"><CheckCircle className="w-4 h-4 text-emerald-600" /> Configuração em 2 minutos</span>
-            <span className="flex items-center gap-1.5"><CheckCircle className="w-4 h-4 text-emerald-600" /> Suporte dedicado</span>
-          </div>
-
-        </div>
-      </section>
-
-      {/* 3. FUNCIONALIDADES (GRID) */}
-      <section className="py-20 bg-white border-t border-stone-200/80 px-6">
-        <div className="max-w-6xl mx-auto space-y-16">
-          
-          <div className="text-center space-y-3 max-w-xl mx-auto">
-            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">Tudo o que sua barbearia precisa</h2>
-            <p className="text-xs sm:text-sm text-stone-500">Recursos poderosos e fáceis de usar desenvolvidos especificamente para o mercado da barbearia.</p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            
-            {/* Card 1 */}
-            <div className="bg-stone-50 p-8 rounded-3xl border border-stone-200/80 space-y-4 hover:shadow-md transition">
-              <div className="w-12 h-12 rounded-2xl bg-stone-900 text-white flex items-center justify-center shadow-md">
-                <CalendarCheck className="w-6 h-6" />
-              </div>
-              <h3 className="text-base font-bold text-stone-900">Agendamento Online 24/7</h3>
-              <p className="text-xs text-stone-500 leading-relaxed">
-                Seus clientes agendam horários sozinhos pelo celular a qualquer hora, com bloqueio automático para evitar conflitos na agenda do barbeiro.
-              </p>
+          {/* Lado Esquerdo: Chamadas */}
+          <div className="lg:col-span-7 space-y-8">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-stone-800 border border-stone-700 text-stone-300 text-xs font-bold shadow-inner">
+              <Zap className="w-3.5 h-3.5 text-amber-400 fill-amber-400" /> 
+              Teste completo por 7 dias totalmente grátis.
             </div>
 
-            {/* Card 2 */}
-            <div className="bg-stone-50 p-8 rounded-3xl border border-stone-200/80 space-y-4 hover:shadow-md transition">
-              <div className="w-12 h-12 rounded-2xl bg-stone-900 text-white flex items-center justify-center shadow-md">
-                <Store className="w-6 h-6" />
-              </div>
-              <h3 className="text-base font-bold text-stone-900">Página Personalizada</h3>
-              <p className="text-xs text-stone-500 leading-relaxed">
-                Tenha sua própria página com sua logo, imagem de capa personalizada e cores do seu tema para transmitir total profissionalismo.
-              </p>
-            </div>
+            <h1 className="text-4xl sm:text-6xl font-black tracking-tight text-white leading-[1.08]">
+              A infraestrutura definitiva para barbearias de <span className="underline decoration-stone-600 text-amber-400">alto padrão</span>.
+            </h1>
 
-            {/* Card 3 */}
-            <div className="bg-stone-50 p-8 rounded-3xl border border-stone-200/80 space-y-4 hover:shadow-md transition">
-              <div className="w-12 h-12 rounded-2xl bg-stone-900 text-white flex items-center justify-center shadow-md">
-                <DollarSign className="w-6 h-6" />
-              </div>
-              <h3 className="text-base font-bold text-stone-900">Controle Financeiro</h3>
-              <p className="text-xs text-stone-500 leading-relaxed">
-                Acompanhe o faturamento em tempo real, gerencie custos e despesas, e visualize o lucro líquido do seu negócio com relatórios claros.
-              </p>
-            </div>
+            <p className="text-base text-stone-300 max-w-xl leading-relaxed font-normal">
+              Substitua o caos do WhatsApp e cadernos de papel por um ecossistema inteligente de agendamento online, comissões e controle financeiro.
+            </p>
 
-          </div>
-
-        </div>
-      </section>
-
-      {/* 4. PLANOS E PREÇOS */}
-      <section id="planos" className="py-20 bg-stone-100/70 border-t border-stone-200/80 px-6">
-        <div className="max-w-5xl mx-auto space-y-16">
-          
-          <div className="text-center space-y-3 max-w-xl mx-auto">
-            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">Planos simples e transparentes</h2>
-            <p className="text-xs sm:text-sm text-stone-500">Escolha o plano ideal para o tamanho da sua operação e comece a escalar hoje mesmo.</p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-3xl mx-auto">
-            
-            {/* Plano Mensal */}
-            <div className="bg-white p-8 rounded-3xl border border-stone-200 shadow-sm space-y-6 flex flex-col justify-between">
-              <div className="space-y-4">
-                <span className="text-xs font-bold uppercase tracking-wider text-stone-500 bg-stone-100 px-3 py-1 rounded-full">Mensal</span>
-                <h3 className="text-xl font-bold text-stone-900">Profissional Flexível</h3>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-3xl font-extrabold text-stone-900">R$ 49,90</span>
-                  <span className="text-xs text-stone-400">/mês</span>
-                </div>
-                <p className="text-xs text-stone-500">Perfeito para barbearias que buscam autonomia e controle total sem compromisso de longo prazo.</p>
-                
-                <div className="space-y-2 pt-2 border-t border-stone-100 text-xs text-stone-600">
-                  <p className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-emerald-600" /> Agendamentos ilimitados</p>
-                  <p className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-emerald-600" /> Página personalizada com logo e capa</p>
-                  <p className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-emerald-600" /> Gestão de equipe e barbeiros</p>
-                  <p className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-emerald-600" /> Relatórios financeiros</p>
-                </div>
-              </div>
-
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
               <Link 
-                href="/login" 
-                className="w-full bg-stone-900 hover:bg-stone-800 text-white text-xs font-bold py-3.5 rounded-2xl shadow transition text-center block"
+                href="/admin/login?mode=register" 
+                className="bg-white hover:bg-stone-200 text-stone-900 text-xs font-bold uppercase tracking-wider px-8 py-4 rounded-2xl shadow-xl transition flex items-center justify-center gap-2 group"
               >
-                Assinar Mensal
+                Começar Teste de 7 Dias Grátis 
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+              </Link>
+              <Link 
+                href="/admin/login" 
+                className="bg-stone-800 hover:bg-stone-700 border border-stone-700 text-white text-xs font-bold uppercase tracking-wider px-6 py-4 rounded-2xl transition text-center"
+              >
+                Acessar Painel
               </Link>
             </div>
 
-            {/* Plano Anual / Destaque */}
-            <div className="bg-stone-900 text-white p-8 rounded-3xl border border-stone-900 shadow-xl space-y-6 flex flex-col justify-between relative overflow-hidden">
-              <div className="absolute top-4 right-4 bg-amber-400 text-stone-900 text-[10px] font-extrabold uppercase px-2.5 py-1 rounded-full">
-                Mais Popular
+            <div className="flex flex-wrap items-center gap-6 text-xs text-stone-400 pt-2">
+              <span className="flex items-center gap-1.5"><Check className="w-4 h-4 text-emerald-400 font-bold" /> Sem cartão de crédito</span>
+              <span className="flex items-center gap-1.5"><Check className="w-4 h-4 text-emerald-400 font-bold" /> Ativação instantânea</span>
+            </div>
+          </div>
+
+          {/* Lado Direito: Card Flutuante Estilizado */}
+          <div className="lg:col-span-5">
+            <div className="p-8 rounded-3xl bg-stone-800/80 border border-stone-700 shadow-2xl space-y-6 backdrop-blur-xl relative">
+              <div className="absolute -top-3 -right-3 bg-amber-500 text-stone-950 text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-full shadow-lg">
+                7 Dias Grátis
+              </div>
+
+              <div className="space-y-1">
+                <span className="text-[10px] font-bold tracking-widest uppercase text-stone-400">Visão Geral do Sistema</span>
+                <h3 className="text-xl font-bold text-white">Tudo sob controle</h3>
+              </div>
+
+              <div className="space-y-4 pt-2">
+                <div className="flex items-start gap-3 text-xs text-stone-300">
+                  <div className="w-6 h-6 rounded-lg bg-stone-900 flex items-center justify-center text-amber-400 shrink-0 font-bold">✓</div>
+                  <div>
+                    <strong className="text-white block">Link Próprio de Agendamento</strong>
+                    <span className="text-stone-400">Seus clientes marcam sozinhos 24h por dia.</span>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3 text-xs text-stone-300">
+                  <div className="w-6 h-6 rounded-lg bg-stone-900 flex items-center justify-center text-amber-400 shrink-0 font-bold">✓</div>
+                  <div>
+                    <strong className="text-white block">Cálculo de Comissões</strong>
+                    <span className="text-stone-400">Repasses calculados automaticamente para cada barbeiro.</span>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3 text-xs text-stone-300">
+                  <div className="w-6 h-6 rounded-lg bg-stone-900 flex items-center justify-center text-amber-400 shrink-0 font-bold">✓</div>
+                  <div>
+                    <strong className="text-white block">Painel do Gestor Leve e Rápido</strong>
+                    <span className="text-stone-400">Acesse de qualquer celular ou computador.</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-stone-700">
+                <Link 
+                  href="/admin/login?mode=register" 
+                  className="w-full bg-amber-500 hover:bg-amber-400 text-stone-950 font-extrabold py-3.5 rounded-xl text-xs uppercase tracking-wider transition flex items-center justify-center gap-2 shadow-lg"
+                >
+                  Criar Minha Barbearia <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      {/* SEÇÃO DE VANTAGENS EM GRID MODERNO */}
+      <section id="vantagens" className="py-24 px-6 bg-stone-950 border-t border-stone-800">
+        <div className="max-w-7xl mx-auto space-y-16">
+          
+          <div className="text-center space-y-3 max-w-2xl mx-auto">
+            <span className="text-xs font-bold tracking-widest uppercase text-stone-500">Engenharia de Alta Performance</span>
+            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white">Projetado para eliminar gargalos</h2>
+            <p className="text-sm text-stone-400">Cada ferramenta foi desenvolvida para poupar horas do seu dia e aumentar o faturamento.</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            
+            <div className="p-8 rounded-3xl bg-stone-900 border border-stone-800 space-y-4 hover:border-stone-700 transition">
+              <div className="w-12 h-12 rounded-2xl bg-stone-800 border border-stone-700 flex items-center justify-center text-amber-400">
+                <Calendar className="w-6 h-6" />
+              </div>
+              <h3 className="text-lg font-bold text-white">Agenda Inteligente</h3>
+              <p className="text-xs sm:text-sm text-stone-400 leading-relaxed">
+                Controle horários individuais de cada profissional, intervalos de almoço e serviços com duração personalizada sem risco de choque de marcações.
+              </p>
+            </div>
+
+            <div className="p-8 rounded-3xl bg-stone-900 border border-stone-800 space-y-4 hover:border-stone-700 transition">
+              <div className="w-12 h-12 rounded-2xl bg-stone-800 border border-stone-700 flex items-center justify-center text-amber-400">
+                <BarChart3 className="w-6 h-6" />
+              </div>
+              <h3 className="text-lg font-bold text-white">Caixa & Repasses</h3>
+              <p className="text-xs sm:text-sm text-stone-400 leading-relaxed">
+                Tenha relatórios claros de faturamento diário, semanal e mensal. Saiba com precisão cirúrgica quanto cada barbeiro tem a receber.
+              </p>
+            </div>
+
+            <div className="p-8 rounded-3xl bg-stone-900 border border-stone-800 space-y-4 hover:border-stone-700 transition">
+              <div className="w-12 h-12 rounded-2xl bg-stone-800 border border-stone-700 flex items-center justify-center text-amber-400">
+                <Users className="w-6 h-6" />
+              </div>
+              <h3 className="text-lg font-bold text-white">CRM de Clientes</h3>
+              <p className="text-xs sm:text-sm text-stone-400 leading-relaxed">
+                Histórico completo de atendimentos, preferências de corte e dados de contato para fidelizar e trazer seus clientes de volta com frequência.
+              </p>
+            </div>
+
+          </div>
+
+        </div>
+      </section>
+
+      {/* SEÇÃO COMO FUNCIONA */}
+      <section id="como-funciona" className="py-24 px-6 bg-stone-900 border-t border-stone-800">
+        <div className="max-w-6xl mx-auto space-y-16">
+          <div className="text-center space-y-3 max-w-xl mx-auto">
+            <span className="text-xs font-bold tracking-widest uppercase text-stone-500">Simples e Rápido</span>
+            <h2 className="text-3xl font-extrabold tracking-tight text-white">Comece a usar em 3 passos</h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="p-8 rounded-3xl bg-stone-800/50 border border-stone-700/80 space-y-4">
+              <div className="w-8 h-8 rounded-full bg-amber-500 text-stone-950 font-black text-xs flex items-center justify-center">1</div>
+              <h4 className="font-bold text-white text-base">Cadastre sua barbearia</h4>
+              <p className="text-xs text-stone-400 leading-relaxed">Insira o nome e crie seu acesso administrativo em segundos.</p>
+            </div>
+            <div className="p-8 rounded-3xl bg-stone-800/50 border border-stone-700/80 space-y-4">
+              <div className="w-8 h-8 rounded-full bg-amber-500 text-stone-950 font-black text-xs flex items-center justify-center">2</div>
+              <h4 className="font-bold text-white text-base">Configure sua equipe</h4>
+              <p className="text-xs text-stone-400 leading-relaxed">Adicione seus barbeiros, serviços prestados e horários de atendimento.</p>
+            </div>
+            <div className="p-8 rounded-3xl bg-stone-800/50 border border-stone-700/80 space-y-4">
+              <div className="w-8 h-8 rounded-full bg-amber-500 text-stone-950 font-black text-xs flex items-center justify-center">3</div>
+              <h4 className="font-bold text-white text-base">Divulgue o link</h4>
+              <p className="text-xs text-stone-400 leading-relaxed">Coloque o link no Instagram e deixe os clientes marcarem sozinhos.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* PLANOS E PREÇOS */}
+      <section id="precos" className="py-24 px-6 bg-stone-950 border-t border-stone-800">
+        <div className="max-w-5xl mx-auto space-y-16">
+          
+          <div className="text-center space-y-3 max-w-xl mx-auto">
+            <span className="text-xs font-bold tracking-widest uppercase text-stone-500">Planos Transparentes</span>
+            <h2 className="text-3xl font-extrabold tracking-tight text-white">Escolha o seu plano com 7 dias grátis</h2>
+            <p className="text-xs sm:text-sm text-stone-400">Teste todas as funcionalidades sem compromisso. Cancele quando quiser.</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+            
+            {/* Plano Mensal */}
+            <div className="p-8 sm:p-10 rounded-3xl bg-stone-900 border border-stone-800 flex flex-col justify-between space-y-8">
+              <div className="space-y-4">
+                <span className="text-xs font-bold uppercase tracking-wider text-stone-400">Plano Profissional</span>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-4xl font-black text-white">R$ 67</span>
+                  <span className="text-xs text-stone-400">/ mês após o teste</span>
+                </div>
+                <p className="text-xs text-stone-400">Perfeito para barbearias focadas em organização e crescimento.</p>
+                <div className="pt-4 border-t border-stone-800 space-y-3 text-xs text-stone-300">
+                  <div className="flex items-center gap-2"><Check className="w-4 h-4 text-amber-400 font-bold" /> <strong>7 Dias Grátis</strong> para testar</div>
+                  <div className="flex items-center gap-2"><Check className="w-4 h-4 text-white" /> Agendamentos online ilimitados</div>
+                  <div className="flex items-center gap-2"><Check className="w-4 h-4 text-white" /> Gestão de comissões e caixa</div>
+                </div>
+              </div>
+              <Link 
+                href="/admin/login?mode=register" 
+                className="w-full bg-stone-800 hover:bg-stone-700 text-white font-bold py-3.5 rounded-xl text-xs uppercase tracking-wider transition text-center border border-stone-700"
+              >
+                Iniciar 7 Dias Grátis
+              </Link>
+            </div>
+
+            {/* Plano Anual Destaque */}
+            <div className="p-8 sm:p-10 rounded-3xl bg-gradient-to-b from-stone-800 to-stone-900 border border-amber-500/40 flex flex-col justify-between space-y-8 relative shadow-2xl">
+              <div className="absolute -top-3 right-6 bg-amber-500 text-stone-950 text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-full shadow-lg">
+                Mais Vantajoso
               </div>
 
               <div className="space-y-4">
-                <span className="text-xs font-bold uppercase tracking-wider text-stone-300 bg-stone-800 px-3 py-1 rounded-full">Anual (Economize 20%)</span>
-                <h3 className="text-xl font-bold text-white">Parceiro VIP</h3>
+                <span className="text-xs font-bold uppercase tracking-wider text-amber-400">Plano Anual</span>
                 <div className="flex items-baseline gap-1">
-                  <span className="text-3xl font-extrabold text-white">R$ 39,90</span>
-                  <span className="text-xs text-stone-400">/mês</span>
+                  <span className="text-4xl font-black text-white">R$ 47</span>
+                  <span className="text-xs text-stone-400">/ mês (cobrado anualmente)</span>
                 </div>
-                <p className="text-xs text-stone-300">Para donos de barbearia visionários que desejam maximizar a economia ao longo do ano.</p>
-                
-                <div className="space-y-2 pt-2 border-t border-stone-800 text-xs text-stone-300">
-                  <p className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-amber-400" /> Todos os recursos do plano mensal</p>
-                  <p className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-amber-400" /> Suporte prioritário via WhatsApp</p>
-                  <p className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-amber-400" /> Acesso antecipado a novos recursos</p>
-                  <p className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-amber-400" /> Domínio customizado (em breve)</p>
+                <p className="text-xs text-stone-300">Máxima economia para gestores que pensam a longo prazo.</p>
+                <div className="pt-4 border-t border-stone-700 space-y-3 text-xs text-stone-200">
+                  <div className="flex items-center gap-2"><Check className="w-4 h-4 text-amber-400 font-bold" /> <strong>7 Dias Grátis</strong> inclusos</div>
+                  <div className="flex items-center gap-2"><Check className="w-4 h-4 text-white" /> Todos os recursos avançados</div>
+                  <div className="flex items-center gap-2"><Check className="w-4 h-4 text-white" /> Suporte prioritário dedicado</div>
                 </div>
               </div>
-
               <Link 
-                href="/login" 
-                className="w-full bg-white hover:bg-stone-100 text-stone-900 text-xs font-bold py-3.5 rounded-2xl shadow transition text-center block"
+                href="/admin/login?mode=register" 
+                className="w-full bg-amber-500 hover:bg-amber-400 text-stone-950 font-black py-3.5 rounded-xl text-xs uppercase tracking-wider transition text-center shadow-lg"
               >
                 Garantir Desconto Anual
               </Link>
@@ -211,15 +292,63 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* 5. FOOTER */}
-      <footer className="bg-white border-t border-stone-200/80 py-12 px-6 text-center text-xs text-stone-400 space-y-4">
-        <div className="flex items-center justify-center gap-2">
-          <div className="w-6 h-6 rounded-lg bg-stone-900 text-white flex items-center justify-center">
-            <Scissors className="w-3 h-3" />
+      {/* FAQ */}
+      <section id="duvidas" className="py-24 px-6 bg-stone-900 border-t border-stone-800">
+        <div className="max-w-4xl mx-auto space-y-12">
+          
+          <div className="text-center space-y-3 max-w-xl mx-auto">
+            <span className="text-xs font-bold tracking-widest uppercase text-stone-500">Dúvidas Frequentes</span>
+            <h2 className="text-3xl font-extrabold tracking-tight text-white">Tudo o que você precisa saber</h2>
           </div>
-          <span className="font-bold text-stone-800">BarberManager</span>
+
+          <div className="space-y-4">
+            <div className="bg-stone-800/60 border border-stone-700/80 rounded-2xl overflow-hidden">
+              <button 
+                onClick={() => toggleFaq(1)}
+                className="w-full p-6 text-left flex items-center justify-between font-bold text-white text-sm"
+              >
+                <span>Como funcionam os 7 dias grátis?</span>
+                <ChevronDown className={`w-4 h-4 text-stone-400 transition-transform ${openFaq === 1 ? 'rotate-180' : ''}`} />
+              </button>
+              {openFaq === 1 && (
+                <div className="px-6 pb-6 text-xs text-stone-300 leading-relaxed border-t border-stone-700 pt-4">
+                  Você cria sua conta e ganha acesso imediato a todas as ferramentas do sistema. Não é cobrado nada durante os primeiros 7 dias.
+                </div>
+              )}
+            </div>
+
+            <div className="bg-stone-800/60 border border-stone-700/80 rounded-2xl overflow-hidden">
+              <button 
+                onClick={() => toggleFaq(2)}
+                className="w-full p-6 text-left flex items-center justify-between font-bold text-white text-sm"
+              >
+                <span>Preciso cadastrar cartão para testar?</span>
+                <ChevronDown className={`w-4 h-4 text-stone-400 transition-transform ${openFaq === 2 ? 'rotate-180' : ''}`} />
+              </button>
+              {openFaq === 2 && (
+                <div className="px-6 pb-6 text-xs text-stone-300 leading-relaxed border-t border-stone-700 pt-4">
+                  Não! O cadastro é totalmente livre de cartão de crédito. Você testa sem nenhum compromisso financeiro.
+                </div>
+              )}
+            </div>
+          </div>
+
         </div>
-        <p>© {new Date().getFullYear()} BarberManager. Todos os direitos reservados.</p>
+      </section>
+
+      {/* FOOTER */}
+      <footer className="border-t border-stone-800 py-16 px-6 bg-stone-950">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 text-xs text-stone-500">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-stone-800 text-white flex items-center justify-center font-bold">
+              <Scissors className="w-4 h-4" />
+            </div>
+            <span>© 2026 BarberFlow Elite. Todos os direitos reservados.</span>
+          </div>
+          <div className="flex items-center gap-6 font-medium text-stone-400">
+            <Link href="/admin/login" className="hover:text-white transition">Painel Administrativo</Link>
+          </div>
+        </div>
       </footer>
 
     </div>

@@ -27,6 +27,7 @@ import {
   Copy,
   Check,
   Settings,
+  Menu
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
@@ -37,6 +38,11 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('agendamentos');
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState(null);
+
+  // NOVO: Estado para controlar a gaveta do menu no mobile
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  
+  // ... (o restante dos seus estados continuam iguais)
 
   // Sessão e Barbearia
   const [user, setUser] = useState(null);
@@ -101,26 +107,57 @@ export default function AdminDashboard() {
   };
 
   // Cálculo do período de teste de 7 dias
-  const verificarStatusAssinatura = (barbData) => {
-    if (!barbData.created_at) return;
+  const verificarStatusAssinatura = (dadosBarbearia) => {
+  console.log("DADOS VINDO DO BANCO:", dadosBarbearia);
+  
+  if (!dadosBarbearia) return;
 
-    const dataCriacao = new Date(barbData.created_at);
+  const status = dadosBarbearia?.status_assinatura;
+  const dataCriacaoStr = dadosBarbearia?.created_at;
+
+  // 1. Se estiver explicitamente ativo, libera tudo
+  if (status === 'ativo') {
+    setModalAssinaturaOpen(false);
+    setAssinaturaExpirada(false);
+    return;
+  }
+
+  // 2. Se estiver explicitamente vencido, bloqueia
+  if (status === 'vencido') {
+    setModalAssinaturaOpen(true);
+    setAssinaturaExpirada(true);
+    return;
+  }
+
+  // 3. Se estiver em 'teste' ou sem status definido, calcula os 7 dias pela data de criação
+  if (dataCriacaoStr) {
+    const dataCriacao = new Date(dataCriacaoStr);
     const hoje = new Date();
+    
+    dataCriacao.setHours(0, 0, 0, 0);
+    hoje.setHours(0, 0, 0, 0);
+
     const diferencaEmMilissegundos = hoje - dataCriacao;
     const diasPassados = Math.floor(diferencaEmMilissegundos / (1000 * 60 * 60 * 24));
     const restante = 7 - diasPassados;
 
-    if (barbData.status_assinatura === 'ativo') {
-      setAssinaturaExpirada(false);
-      setDiasRestantes(999);
-    } else if (restante <= 0 || barbData.status_assinatura === 'vencido') {
-      setDiasRestantes(0);
+    console.log("Dias passados desde a criação:", diasPassados);
+    console.log("Dias restantes de teste:", restante);
+
+    if (restante <= 0) {
+      // Passaram 7 dias -> Bloqueia
+      setModalAssinaturaOpen(true);
       setAssinaturaExpirada(true);
     } else {
-      setDiasRestantes(restante);
+      // Ainda está dentro dos 7 dias de teste -> LIBERA O PAINEL FORÇADAMENTE
+      setModalAssinaturaOpen(false);
       setAssinaturaExpirada(false);
     }
-  };
+  } else {
+    setModalAssinaturaOpen(true);
+    setAssinaturaExpirada(true);
+  }
+};
 
   // Carregar Dados isolados por barbearia_id
   const loadDashboardData = useCallback(async (barbeariaId) => {
@@ -155,6 +192,13 @@ export default function AdminDashboard() {
       setBarbeiros(resBarbeiros.data || []);
       setServicos(resServicos.data || []);
       setDespesas(resDespesas.data || []);
+
+
+// ADICIONE ESTA LINHA AQUI PARA EXECUTAR A VALIDAÇÃO:
+    if (dadosBarbearia) {
+      verificarStatusAssinatura(dadosBarbearia);
+    }
+
 
       const dataVencimentoStr = dadosBarbearia?.data_vencimento;
       const status = dadosBarbearia?.status_assinatura;
@@ -278,17 +322,37 @@ export default function AdminDashboard() {
     };
   }, [modalAssinaturaOpen, metodoPagamento, pixDataMP?.paymentId, router]);
 
-  useEffect(() => {
-    if (modalAssinaturaOpen && metodoPagamento === 'pix' && !pixDataMP?.paymentId) {
-      gerarPixMercadoPago({
-        transaction_amount: 9.90,
-        description: 'Plano Mensal Gestor - Acesso Completo',
-        payer_email: user?.email || 'diemersonlimabarbosa@gmail.com',
-        payer_name: barbearia?.nome || 'Gestor'
-      });
-    }
-  }, [modalAssinaturaOpen, metodoPagamento, pixDataMP?.paymentId, gerarPixMercadoPago, user, barbearia]);
+ useEffect(() => {
+  // Se ainda estiver no período de teste ou ativo, sai imediatamente sem fazer nada
+  const dataCriacaoStr = barbearia?.created_at;
+  const status = barbearia?.status_assinatura;
 
+  if (status === 'ativo' || status === 'teste') {
+    if (dataCriacaoStr) {
+      const dataCriacao = new Date(dataCriacaoStr);
+      const hoje = new Date();
+      dataCriacao.setHours(0, 0, 0, 0);
+      hoje.setHours(0, 0, 0, 0);
+      const diasPassados = Math.floor((hoje - dataCriacao) / (1000 * 60 * 60 * 24));
+      const restante = 7 - diasPassados;
+
+      if (restante > 0) {
+        setModalAssinaturaOpen(false);
+        return; // Retorna antes de validar o modalOpen, impedindo qualquer "piscar"
+      }
+    }
+  }
+
+  // Só prossegue para gerar o Pix se realmente passou do prazo ou não está em teste
+  if (modalAssinaturaOpen && metodoPagamento === 'pix' && !pixDataMP?.paymentId) {
+    gerarPixMercadoPago({
+      transaction_amount: 9.90,
+      description: 'Plano Mensal Gestor - Acesso Completo',
+      payer_email: user?.email || 'diemersonlimabarbosa@gmail.com',
+      payer_name: barbearia?.nome || 'Gestor'
+    });
+  }
+}, [modalAssinaturaOpen, metodoPagamento, pixDataMP?.paymentId, gerarPixMercadoPago, user, barbearia]);
   const handleLogout = async () => {
     await supabase.auth.signOut();
     router.push('/admin/login');
@@ -497,49 +561,200 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-stone-100 text-stone-800 flex flex-col font-sans relative">
+   <div className={`min-h-screen bg-stone-100 text-stone-800 flex flex-col font-sans relative ${assinaturaExpirada ? 'pointer-events-none select-none' : ''}`}>
+    {/* TRAVA DE CARREGAMENTO PARA EVITAR O PISCAR DO MODAL */}
+    {loading && (
+      <div className="fixed inset-0 bg-stone-900 z-50 flex items-center justify-center text-white">
+        <p>Carregando painel...</p>
+      </div>
+    )}
 
-      {/* TELA DE BLOQUEIO / PAYWALL CASO O TESTE TENHA EXPIRADO */}
-      {assinaturaExpirada && (
-        <div className="fixed inset-0 bg-stone-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-8 max-w-lg w-full shadow-2xl border border-stone-200 text-center space-y-6">
-            <div className="w-16 h-16 bg-rose-100 text-rose-600 rounded-2xl flex items-center justify-center mx-auto shadow-inner">
-              <Lock className="w-8 h-8" />
-            </div>
 
-            <div className="space-y-2">
-              <h2 className="text-2xl font-extrabold text-stone-900">Período de Teste Finalizado</h2>
-              <p className="text-xs text-stone-500 leading-relaxed">
-                Seus 7 dias gratuitos de testes expiraram. Para continuar aproveitando todas as ferramentas de agendamento e controle financeiro, regularize sua assinatura mensal via Mercado Pago.
-              </p>
-            </div>
 
-            <div className="bg-stone-50 p-4 rounded-2xl border border-stone-200 text-left space-y-2">
-              <span className="text-[11px] font-bold text-stone-400 uppercase tracking-wider block">Plano Mensal Gestor (Mercado Pago)</span>
-              <div className="flex justify-between items-center">
-                <span className="text-stone-700 text-xs font-medium">Acesso Completo ao Sistema</span>
-                <span className="text-lg font-extrabold text-stone-900">R$ {valorAssinatura.toFixed(2)} / mês</span>
-              </div>
-            </div>
 
-            <div className="flex flex-col gap-3">
-              <button
-                onClick={() => setModalAssinaturaOpen(true)}
-                className="w-full py-3.5 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-xs font-bold transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <CreditCard className="w-4 h-4" /> Pagar com Mercado Pago
-              </button>
-              <button
-                onClick={handleLogout}
-                className="w-full py-2.5 bg-transparent hover:bg-stone-100 text-stone-500 rounded-xl text-xs font-semibold transition-all cursor-pointer"
-              >
-                Sair do Sistema
-              </button>
-            </div>
+    
+
+
+
+{/* =========================================================
+       NOVO CABEÇALHO MOBILE CLEAN COM BOTÃO HAMBURGUER
+       ========================================================= */}
+    <header className="md:hidden bg-white border-b border-stone-200 sticky top-0 z-40 px-4 py-3 flex items-center justify-between shadow-xs">
+      <div className="flex items-center space-x-3">
+        <button 
+          onClick={() => setMobileMenuOpen(true)}
+          className="p-2 rounded-xl bg-stone-50 text-stone-700 hover:bg-stone-100 transition-colors border border-stone-200 cursor-pointer"
+          aria-label="Abrir Menu"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+        <div className="flex items-center space-x-2">
+          <div className="w-8 h-8 bg-stone-900 text-white rounded-xl flex items-center justify-center font-bold text-xs">
+            {barbearia?.nome?.charAt(0) || 'B'}
+          </div>
+          <span className="text-xs font-bold text-stone-900 truncate max-w-[150px]">
+            {barbearia?.nome || 'Painel Gestor'}
+          </span>
+        </div>
+      </div>
+
+      <button 
+        onClick={() => setActiveTab('configuracoes')}
+        className="flex items-center space-x-1.5 p-1.5 pr-3 rounded-xl bg-stone-50 hover:bg-stone-100 border border-stone-200 text-xs font-bold text-stone-700 cursor-pointer"
+      >
+        <Settings className="w-4 h-4 text-stone-500" />
+        <span>Perfil</span>
+      </button>
+    </header>
+
+    {/* =========================================================
+       GAVETA LATERAL MOBILE (SIDEBAR DRAWER)
+       ========================================================= */}
+    {mobileMenuOpen && (
+      <div className="fixed inset-0 z-50 flex md:hidden">
+        <div 
+          className="fixed inset-0 bg-stone-950/60 backdrop-blur-xs transition-opacity"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+        <div className="relative w-72 bg-white h-full shadow-2xl flex flex-col z-10 p-5 transform transition-transform">
+          
+          <div className="flex items-center justify-between pb-4 border-b border-stone-100">
+            <span className="text-xs font-extrabold uppercase tracking-wider text-stone-400">Menu Principal</span>
+            <button 
+              onClick={() => setMobileMenuOpen(false)}
+              className="p-1.5 rounded-xl bg-stone-50 text-stone-500 hover:bg-stone-100 cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          <nav className="flex-1 py-4 space-y-1.5">
+
+
+ 
+
+
+
+            <button 
+              onClick={() => { setActiveTab('agendamentos'); setMobileMenuOpen(false); }} 
+              className={`w-full flex items-center space-x-3 p-3 rounded-xl text-xs font-bold transition-colors ${activeTab === 'agendamentos' ? 'bg-stone-900 text-white' : 'hover:bg-stone-50 text-stone-600'}`}
+            >
+              <CalendarCheck className="w-4 h-4" />
+              <span>Agendamentos</span>
+            </button>
+
+            <button 
+              onClick={() => { setActiveTab('clientes'); setMobileMenuOpen(false); }} 
+              className={`w-full flex items-center space-x-3 p-3 rounded-xl text-xs font-bold transition-colors ${activeTab === 'clientes' ? 'bg-stone-900 text-white' : 'hover:bg-stone-50 text-stone-600'}`}
+            >
+              <Users className="w-4 h-4" />
+              <span>Clientes Cadastrados</span>
+            </button>
+
+            <button 
+              onClick={() => { setActiveTab('financeiro'); setMobileMenuOpen(false); }} 
+              className={`w-full flex items-center space-x-3 p-3 rounded-xl text-xs font-bold transition-colors ${activeTab === 'financeiro' ? 'bg-stone-900 text-white' : 'hover:bg-stone-50 text-stone-600'}`}
+            >
+              <DollarSign className="w-4 h-4" />
+              <span>Relatório Financeiro</span>
+            </button>
+
+            <button 
+              onClick={() => { setActiveTab('despesas'); setMobileMenuOpen(false); }} 
+              className={`w-full flex items-center space-x-3 p-3 rounded-xl text-xs font-bold transition-colors ${activeTab === 'despesas' ? 'bg-stone-900 text-white' : 'hover:bg-stone-50 text-stone-600'}`}
+            >
+              <TrendingDown className="w-4 h-4" />
+              <span>Custos & Despesas</span>
+            </button>
+
+            <button 
+              onClick={() => { setActiveTab('servicos'); setMobileMenuOpen(false); }} 
+              className={`w-full flex items-center space-x-3 p-3 rounded-xl text-xs font-bold transition-colors ${activeTab === 'servicos' ? 'bg-stone-900 text-white' : 'hover:bg-stone-50 text-stone-600'}`}
+            >
+              <Scissors className="w-4 h-4" />
+              <span>Serviços & Equipe</span>
+            </button>
+
+            <button 
+              onClick={() => { setActiveTab('configuracoes'); setMobileMenuOpen(false); }} 
+              className={`w-full flex items-center space-x-3 p-3 rounded-xl text-xs font-bold transition-colors ${activeTab === 'configuracoes' ? 'bg-stone-900 text-white' : 'hover:bg-stone-50 text-stone-600'}`}
+            >
+              <Settings className="w-4 h-4" />
+              <span>Configurações & Perfil</span>
+            </button>
+          </nav>
+
+          <div className="pt-4 border-t border-stone-100">
+            <button 
+              onClick={handleLogout}
+              className="w-full flex items-center space-x-3 p-3 rounded-xl hover:bg-rose-50 text-rose-600 text-xs font-bold transition-colors cursor-pointer"
+            >
+              <LogOut className="w-4 h-4" />
+              <span>Sair da Conta</span>
+            </button>
+          </div>
+
+        </div>
+      </div>
+    )}
+
+
+{/* TELA DE BLOQUEIO / PAYWALL CASO O TESTE TENHA EXPIRADO */}
+{assinaturaExpirada && !loading && modalAssinaturaOpen && (
+  <div className="fixed inset-0 bg-stone-950/95 backdrop-blur-md z-50 overflow-y-auto pointer-events-auto">
+    <div className="min-h-full flex items-center justify-center p-4 py-8">
+      
+      <div className="bg-white rounded-3xl p-5 sm:p-6 w-full max-w-md shadow-2xl border border-stone-200 flex flex-col items-center text-center space-y-3 my-auto">
+        
+        {/* CABEÇALHO COM O CADEADO */}
+        <div className="w-full flex flex-col items-center text-center space-y-2 pb-3 border-b border-stone-100">
+          <div className="w-10 h-10 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center shadow-inner mx-auto">
+            <Lock className="w-5 h-5" />
+          </div>
+          <div className="w-full space-y-0.5 text-center">
+            <h2 className="text-lg  font-extrabold text-stone-900 w-full text-center">Período de Teste Finalizado</h2>
+            <p className="text-[11px] sm:text-xs text-stone-500 leading-relaxed w-full text-center px-2">
+              Seus 7 dias gratuitos expiraram. Para liberar o acesso completo ao painel, efetue o pagamento abaixo.
+            </p>
           </div>
         </div>
-      )}
 
+        {/* CARD DO PLANO */}
+        <div className="bg-stone-50 p-3 rounded-2xl border border-stone-200 w-full text-center space-y-1">
+          <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider block">Plano Mensal Gestor</span>
+          <div className="flex justify-between items-center px-1">
+            <span className="text-stone-700 text-xs font-medium">Acesso Completo</span>
+            <span className="text-sm sm:text-base font-extrabold text-stone-900">R$ {valorAssinatura?.toFixed(2)} / mês</span>
+          </div>
+        </div>
+
+        {/* ÁREA DOS BOTÕES E QR CODE */}
+        <div className="w-full space-y-2.5 text-center">
+          {pixDataMP ? (
+            <div className="flex flex-col items-center justify-center space-y-1.5 w-full">
+              <img src={`data:image/png;base64,${pixDataMP.qrCodeBase64}`} alt="QR Code Pix" className="w-32 h-32 sm:w-36 sm:h-36 border rounded-xl shadow-sm mx-auto" />
+              <p className="text-[10px] sm:text-[11px] text-emerald-600 font-bold w-full text-center">Escaneie o QR Code para liberar o sistema instantaneamente!</p>
+            </div>
+          ) : (
+            <button 
+              onClick={() => gerarPixMercadoPago({
+                transaction_amount: 9.90,
+                description: 'Plano Mensal Gestor - Acesso Completo',
+                payer_email: user?.email || 'diemersonlimabarbosa@gmail.com',
+                payer_name: barbearia?.nome || 'Gestor'
+              })}
+              className="w-full py-2.5 bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold rounded-xl shadow-md transition-all cursor-pointer"
+            >
+              Gerar Pix de Pagamento
+            </button>
+          )}
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+)}
       {/* NOTIFICAÇÃO NO TOPO (TESTE OU ALERTA) */}
       {!assinaturaExpirada && barbearia?.status_assinatura !== 'ativo' && (
         <div className="bg-sky-600 text-white px-4 py-2 text-center text-xs font-bold flex items-center justify-center gap-2 shadow-sm z-40">
@@ -656,14 +871,7 @@ export default function AdminDashboard() {
         {/* CONTEÚDO PRINCIPAL */}
         <main className="flex-1 p-4 sm:p-6 md:p-10 overflow-y-auto max-w-full">
           
-          {/* NAVEGAÇÃO MOBILE */}
-          <div className="flex md:hidden overflow-x-auto gap-2 pb-3 mb-6 no-scrollbar border-b border-stone-200">
-            <button onClick={() => setActiveTab('agendamentos')} className={`px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap ${activeTab === 'agendamentos' ? 'bg-stone-900 text-white' : 'bg-white text-stone-600 border border-stone-200'}`}>Agendamentos</button>
-            <button onClick={() => setActiveTab('clientes')} className={`px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap ${activeTab === 'clientes' ? 'bg-stone-900 text-white' : 'bg-white text-stone-600 border border-stone-200'}`}>Clientes</button>
-            <button onClick={() => setActiveTab('financeiro')} className={`px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap ${activeTab === 'financeiro' ? 'bg-stone-900 text-white' : 'bg-white text-stone-600 border border-stone-200'}`}>Financeiro</button>
-            <button onClick={() => setActiveTab('despesas')} className={`px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap ${activeTab === 'despesas' ? 'bg-stone-900 text-white' : 'bg-white text-stone-600 border border-stone-200'}`}>Despesas</button>
-            <button onClick={() => setActiveTab('servicos')} className={`px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap ${activeTab === 'servicos' ? 'bg-stone-900 text-white' : 'bg-white text-stone-600 border border-stone-200'}`}>Serviços & Equipe</button>
-          </div>
+          
 
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
             <div>
@@ -690,6 +898,7 @@ export default function AdminDashboard() {
           )}
 
           {/* CARDS DE INDICADORES */}
+          {activeTab === 'agendamentos' && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
             <div className="bg-white p-5 rounded-2xl border border-stone-200/80 shadow-sm">
               <div className="flex items-center justify-between text-stone-400 mb-3">
@@ -727,6 +936,8 @@ export default function AdminDashboard() {
               <span className="text-[11px] text-stone-400 font-medium">Média por atendimento</span>
             </div>
           </div>
+
+          )}
 
           {/* CONTEÚDO DAS ABAS */}
           {activeTab === 'agendamentos' && (
@@ -813,6 +1024,11 @@ export default function AdminDashboard() {
     onUpdate={() => loadDashboardData(barbearia.id)} 
   />
 )}
+
+
+
+
+
 
 
           {activeTab === 'clientes' && (
@@ -1018,7 +1234,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Modal de Detalhes da Assinatura */}
-      {modalInfoAssinaturaOpen && (
+      {!loading &&modalInfoAssinaturaOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
           <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl p-6 shadow-2xl border border-slate-100 dark:border-slate-800 relative space-y-6">
             
@@ -1085,19 +1301,20 @@ export default function AdminDashboard() {
       )}
 
       {/* MODAL DE CHECKOUT DO MERCADO PAGO */}
-      {modalAssinaturaOpen && (
-        <div className="fixed inset-0 bg-stone-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      {assinaturaExpirada && !loading && (
+        <div className="fixed inset-0 bg-white backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl border border-stone-200 space-y-6">
             <div className="flex justify-between items-center">
-              <div>
-                <h3 className="font-bold text-stone-900 text-lg flex items-center gap-2">
-                  <span className="w-3 h-3 rounded-full bg-sky-500 inline-block"></span> Mercado Pago Checkout
-                </h3>
-                <p className="text-xs text-stone-400">Escolha a forma de pagamento para regularizar sua assinatura.</p>
-              </div>
-              <button onClick={() => setModalAssinaturaOpen(false)} className="p-1 text-stone-400 hover:text-stone-600 rounded-lg cursor-pointer">
-                <X className="w-5 h-5" />
-              </button>
+              {/* TOPO DO MODAL COM O AVISO DE TESTE EXPIRADO */}
+<div className="text-center space-y-2 border-b border-stone-100 pb-4">
+  <div className="w-12 h-12 bg-rose-100 text-rose-600 rounded-2xl flex items-center justify-center mx-auto shadow-inner mb-2">
+    <Lock className="w-6 h-6" />
+  </div>
+  <h2 className="text-xl font-extrabold text-stone-900">Período de Teste Finalizado</h2>
+  <p className="text-xs text-stone-500 leading-relaxed max-w-sm mx-auto">
+    Seus 7 dias gratuitos expiraram. Para liberar o acesso completo ao painel e continuar utilizando os serviços, efetue o pagamento abaixo.
+  </p>
+</div>
             </div>
             
             <div className="bg-stone-50 p-4 rounded-2xl border border-stone-200 flex justify-between items-center">

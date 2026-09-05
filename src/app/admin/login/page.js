@@ -1,12 +1,15 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Scissors, Lock, Mail, Store, Phone } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
 
-export default function AdminLogin() {
+function AdminLoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const mode = searchParams.get('mode');
+
   const [isRegistering, setIsRegistering] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState(null);
@@ -15,6 +18,13 @@ export default function AdminLogin() {
   const [password, setPassword] = useState('');
   const [nomeBarbearia, setNomeBarbearia] = useState('');
   const [telefone, setTelefone] = useState('');
+
+  useEffect(() => {
+    // Se a URL veio com ?mode=register, ativa a aba de cadastro automaticamente
+    if (mode === 'register') {
+      setIsRegistering(true);
+    }
+  }, [mode]);
 
   // Login
   const handleLogin = async (e) => {
@@ -39,39 +49,39 @@ export default function AdminLogin() {
   };
 
   // Cadastro de nova barbearia
- const handleRegister = async (e) => {
-  e.preventDefault();
-  setLoading(true);
-  setErrorMessage(null);
+  const handleRegister = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setErrorMessage(null);
 
-  // Gerar slug
-  const slug = nomeBarbearia
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9]/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '');
+    // Gerar slug
+    const slug = nomeBarbearia
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '');
 
-  try {
-    const res = await fetch('/api/admin/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password, nomeBarbearia, telefone, slug }),
-    });
+    try {
+      const res = await fetch('/api/admin/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, nomeBarbearia, telefone, slug }),
+      });
 
-    const data = await res.json();
+      const data = await res.json();
 
-    if (!res.ok) throw new Error(data.error);
+      if (!res.ok) throw new Error(data.error);
 
-    // Cadastro feito com sucesso! Faça login ou redirecione
-    alert('Barbearia cadastrada com sucesso!');
-  } catch (err) {
-    setErrorMessage(err.message);
-  } finally {
-    setLoading(false);
-  }
-};
+      // Cadastro feito com sucesso! Faça login ou redirecione
+      alert('Barbearia cadastrada com sucesso!');
+    } catch (err) {
+      setErrorMessage(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-stone-100 flex items-center justify-center p-4 font-sans">
@@ -184,5 +194,13 @@ export default function AdminLogin() {
 
       </div>
     </div>
+  );
+}
+
+export default function AdminLogin() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-stone-100 flex items-center justify-center text-xs text-stone-500">Carregando...</div>}>
+      <AdminLoginForm />
+    </Suspense>
   );
 }

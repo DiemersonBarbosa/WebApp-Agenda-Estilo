@@ -31,6 +31,8 @@ export async function POST(req) {
           nome: nomeBarbearia,
           slug: slug,
           telefone: telefone,
+          status_assinatura: 'teste', // <-- ADICIONE ESTA LINHA
+      created_at: new Date().toISOString(), // <-- ADICIONE ESTA LINHA
         },
       ])
       .select()
