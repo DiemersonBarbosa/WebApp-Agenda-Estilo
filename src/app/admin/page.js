@@ -27,7 +27,8 @@ import {
   Copy,
   Check,
   Settings,
-  Menu
+  Menu,
+  Calendar
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
@@ -581,13 +582,7 @@ export default function AdminDashboard() {
        ========================================================= */}
     <header className="md:hidden bg-white border-b border-stone-200 sticky top-0 z-40 px-4 py-3 flex items-center justify-between shadow-xs">
       <div className="flex items-center space-x-3">
-        <button 
-          onClick={() => setMobileMenuOpen(true)}
-          className="p-2 rounded-xl bg-stone-50 text-stone-700 hover:bg-stone-100 transition-colors border border-stone-200 cursor-pointer"
-          aria-label="Abrir Menu"
-        >
-          <Menu className="w-5 h-5" />
-        </button>
+       
         <div className="flex items-center space-x-2">
           <div className="w-8 h-8 bg-stone-900 text-white rounded-xl flex items-center justify-center font-bold text-xs">
             {barbearia?.nome?.charAt(0) || 'B'}
@@ -607,96 +602,312 @@ export default function AdminDashboard() {
       </button>
     </header>
 
+
+{/* CABEÇALHO MOBILE CLEAN */}
+    <header className="md:hidden bg-white border-b border-stone-200 sticky top-0 z-40 px-4 py-3 flex items-center justify-between shadow-xs">
+      {/* ... conteúdo do header ... */}
+    </header>
+
+
+
+
     {/* =========================================================
-       GAVETA LATERAL MOBILE (SIDEBAR DRAWER)
-       ========================================================= */}
-    {mobileMenuOpen && (
-      <div className="fixed inset-0 z-50 flex md:hidden">
-        <div 
-          className="fixed inset-0 bg-stone-950/60 backdrop-blur-xs transition-opacity"
-          onClick={() => setMobileMenuOpen(false)}
-        />
-        <div className="relative w-72 bg-white h-full shadow-2xl flex flex-col z-10 p-5 transform transition-transform">
-          
-          <div className="flex items-center justify-between pb-4 border-b border-stone-100">
-            <span className="text-xs font-extrabold uppercase tracking-wider text-stone-400">Menu Principal</span>
-            <button 
-              onClick={() => setMobileMenuOpen(false)}
-              className="p-1.5 rounded-xl bg-stone-50 text-stone-500 hover:bg-stone-100 cursor-pointer"
-            >
-              <X className="w-5 h-5" />
-            </button>
+   ABA: VISÃO GERAL & DASHBOARD COMPLETO (MOBILE & DESKTOP)
+   ========================================================= */}
+{activeTab === 'visao-geral' && (
+  <div className="space-y-4 pb-24">
+    
+    {/* Cabeçalho da Seção */}
+    <div className="bg-white p-5 rounded-2xl border border-stone-200/80 shadow-xs flex flex-col gap-3">
+      <div>
+        <h1 className="text-base font-extrabold text-stone-900">Visão Geral — {barbearia?.nome || 'Barbearia'}</h1>
+        <p className="text-[11px] text-stone-500 mt-0.5">Acompanhe o desempenho, faturamento e fluxo de clientes no mês.</p>
+      </div>
+      <div className="flex items-center justify-between pt-2 border-t border-stone-100">
+        <span className="inline-flex items-center px-2.5 py-1 rounded-xl text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+          ● Mês Atual Ativo
+        </span>
+        {/* Link do Cliente opcional */}
+        <a 
+          href="/cliente" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="text-[11px] font-bold text-stone-900 hover:underline flex items-center gap-1"
+        >
+          Link do Cliente ↗
+        </a>
+      </div>
+    </div>
+
+    {/* 4 CARDS DE INDICADORES PRINCIPAIS (KPIs) */}
+    <div className="grid grid-cols-2 gap-3">
+      
+      {/* 1. Faturamento */}
+      <div className="bg-white p-4 rounded-2xl border border-stone-200/80 shadow-xs flex flex-col justify-between">
+        <div className="flex items-center justify-between text-stone-400 mb-2">
+          <span className="text-[10px] font-bold uppercase tracking-wider">Faturamento</span>
+          <div className="p-1.5 bg-emerald-50 text-emerald-600 rounded-lg">
+            <DollarSign className="w-3.5 h-3.5" />
           </div>
-
-          <nav className="flex-1 py-4 space-y-1.5">
-
-
- 
-
-
-
-            <button 
-              onClick={() => { setActiveTab('agendamentos'); setMobileMenuOpen(false); }} 
-              className={`w-full flex items-center space-x-3 p-3 rounded-xl text-xs font-bold transition-colors ${activeTab === 'agendamentos' ? 'bg-stone-900 text-white' : 'hover:bg-stone-50 text-stone-600'}`}
-            >
-              <CalendarCheck className="w-4 h-4" />
-              <span>Agendamentos</span>
-            </button>
-
-            <button 
-              onClick={() => { setActiveTab('clientes'); setMobileMenuOpen(false); }} 
-              className={`w-full flex items-center space-x-3 p-3 rounded-xl text-xs font-bold transition-colors ${activeTab === 'clientes' ? 'bg-stone-900 text-white' : 'hover:bg-stone-50 text-stone-600'}`}
-            >
-              <Users className="w-4 h-4" />
-              <span>Clientes Cadastrados</span>
-            </button>
-
-            <button 
-              onClick={() => { setActiveTab('financeiro'); setMobileMenuOpen(false); }} 
-              className={`w-full flex items-center space-x-3 p-3 rounded-xl text-xs font-bold transition-colors ${activeTab === 'financeiro' ? 'bg-stone-900 text-white' : 'hover:bg-stone-50 text-stone-600'}`}
-            >
-              <DollarSign className="w-4 h-4" />
-              <span>Relatório Financeiro</span>
-            </button>
-
-            <button 
-              onClick={() => { setActiveTab('despesas'); setMobileMenuOpen(false); }} 
-              className={`w-full flex items-center space-x-3 p-3 rounded-xl text-xs font-bold transition-colors ${activeTab === 'despesas' ? 'bg-stone-900 text-white' : 'hover:bg-stone-50 text-stone-600'}`}
-            >
-              <TrendingDown className="w-4 h-4" />
-              <span>Custos & Despesas</span>
-            </button>
-
-            <button 
-              onClick={() => { setActiveTab('servicos'); setMobileMenuOpen(false); }} 
-              className={`w-full flex items-center space-x-3 p-3 rounded-xl text-xs font-bold transition-colors ${activeTab === 'servicos' ? 'bg-stone-900 text-white' : 'hover:bg-stone-50 text-stone-600'}`}
-            >
-              <Scissors className="w-4 h-4" />
-              <span>Serviços & Equipe</span>
-            </button>
-
-            <button 
-              onClick={() => { setActiveTab('configuracoes'); setMobileMenuOpen(false); }} 
-              className={`w-full flex items-center space-x-3 p-3 rounded-xl text-xs font-bold transition-colors ${activeTab === 'configuracoes' ? 'bg-stone-900 text-white' : 'hover:bg-stone-50 text-stone-600'}`}
-            >
-              <Settings className="w-4 h-4" />
-              <span>Configurações & Perfil</span>
-            </button>
-          </nav>
-
-          <div className="pt-4 border-t border-stone-100">
-            <button 
-              onClick={handleLogout}
-              className="w-full flex items-center space-x-3 p-3 rounded-xl hover:bg-rose-50 text-rose-600 text-xs font-bold transition-colors cursor-pointer"
-            >
-              <LogOut className="w-4 h-4" />
-              <span>Sair da Conta</span>
-            </button>
-          </div>
-
+        </div>
+        <div>
+          <p className="text-lg font-extrabold text-stone-900">R$ {totalFaturamento ? totalFaturamento.toFixed(2) : '0,00'}</p>
+          <span className="text-[10px] text-emerald-600 font-semibold mt-0.5 inline-block">Serviços finalizados</span>
         </div>
       </div>
-    )}
+
+      {/* 2. Clientes Atendidos */}
+      <div className="bg-white p-4 rounded-2xl border border-stone-200/80 shadow-xs flex flex-col justify-between">
+        <div className="flex items-center justify-between text-stone-400 mb-2">
+          <span className="text-[10px] font-bold uppercase tracking-wider">Atendimentos</span>
+          <div className="p-1.5 bg-blue-50 text-blue-600 rounded-lg">
+            <Users className="w-3.5 h-3.5" />
+          </div>
+        </div>
+        <div>
+          <p className="text-lg font-extrabold text-stone-900">{clientes?.length || 0}</p>
+          <span className="text-[10px] text-blue-600 font-semibold mt-0.5 inline-block">Total no mês</span>
+        </div>
+      </div>
+
+      {/* 3. Lucro Líquido */}
+      <div className="bg-white p-4 rounded-2xl border border-stone-200/80 shadow-xs flex flex-col justify-between">
+        <div className="flex items-center justify-between text-stone-400 mb-2">
+          <span className="text-[10px] font-bold uppercase tracking-wider">Lucro Líquido</span>
+          <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg">
+            <Wallet className="w-3.5 h-3.5" />
+          </div>
+        </div>
+        <div>
+          <p className="text-lg font-extrabold text-stone-900">R$ {lucroLiquido ? lucroLiquido.toFixed(2) : '0,00'}</p>
+          <span className="text-[10px] text-indigo-600 font-semibold mt-0.5 inline-block">Receita - Despesas</span>
+        </div>
+      </div>
+
+      {/* 4. Ticket Médio */}
+      <div className="bg-white p-4 rounded-2xl border border-stone-200/80 shadow-xs flex flex-col justify-between">
+        <div className="flex items-center justify-between text-stone-400 mb-2">
+          <span className="text-[10px] font-bold uppercase tracking-wider">Ticket Médio</span>
+          <div className="p-1.5 bg-amber-50 text-amber-600 rounded-lg">
+            <TrendingUp className="w-3.5 h-3.5" />
+          </div>
+        </div>
+        <div>
+          <p className="text-lg font-extrabold text-stone-900">R$ {ticketMedio || '0,00'}</p>
+          <span className="text-[10px] text-amber-600 font-semibold mt-0.5 inline-block">Média por cliente</span>
+        </div>
+      </div>
+
+    </div>
+
+    {/* RESUMO FINANCEIRO E ATALHOS */}
+    <div className="bg-white p-5 rounded-2xl border border-stone-200/80 shadow-xs space-y-4">
+      <h2 className="text-xs font-bold text-stone-900">Balanço de Entradas e Saídas</h2>
+      
+      <div className="space-y-2">
+        <div className="flex items-center justify-between p-3 bg-stone-50 rounded-xl">
+          <span className="text-xs font-medium text-stone-600">Total de Entradas</span>
+          <span className="text-xs font-extrabold text-emerald-600">R$ {totalFaturamento ? totalFaturamento.toFixed(2) : '0,00'}</span>
+        </div>
+        <div className="flex items-center justify-between p-3 bg-stone-50 rounded-xl">
+          <span className="text-xs font-medium text-stone-600">Total de Despesas</span>
+          <span className="text-xs font-extrabold text-rose-600">R$ {totalDespesas ? totalDespesas.toFixed(2) : '0,00'}</span>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2 pt-2">
+        <button 
+          onClick={() => setActiveTab('agendamentos')}
+          className="p-3 bg-stone-900 text-white rounded-xl text-center text-xs font-bold active:scale-95 transition-transform"
+        >
+          Ver Agenda
+        </button>
+        <button 
+          onClick={() => setActiveTab('clientes')}
+          className="p-3 bg-stone-100 text-stone-800 rounded-xl text-center text-xs font-bold active:scale-95 transition-transform"
+        >
+          Ver Clientes
+        </button>
+      </div>
+    </div>
+
+  </div>
+)}
+
+
+
+
+
+
+
+    
+   
+
+    {/* ÁREA PRINCIPAL DA PÁGINA */}
+    <main className="...">
+
+{/* BARRA DE NAVEGAÇÃO INFERIOR FIXA COM BOTÃO CENTRAL DE MENU RÁPIDO */}
+<nav aria-label="Navegação inferior mobile" className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-stone-200 px-4 py-2 z-40 flex items-center justify-between shadow-lg">
+  
+  {/* 1. Início / Visão Geral */}
+  <button 
+    onClick={() => setActiveTab('visao-geral')}
+    className={`flex flex-col items-center space-y-1 transition-colors ${activeTab === 'visao-geral' ? 'text-stone-900 font-bold' : 'text-stone-400 font-medium'}`}
+  >
+    <TrendingUp className="w-5 h-5" />
+    <span className="text-[10px]">Início</span>
+  </button>
+
+  {/* 2. Agenda */}
+  <button 
+    onClick={() => setActiveTab('agendamentos')}
+    className={`flex flex-col items-center space-y-1 transition-colors ${activeTab === 'agendamentos' ? 'text-stone-900 font-bold' : 'text-stone-400 font-medium'}`}
+  >
+    <Calendar className="w-5 h-5" />
+    <span className="text-[10px]">Agenda</span>
+  </button>
+
+  {/* 3. BOTÃO CENTRAL DESTAQUE (Abre o Menu / Substitui o Drawer do topo) */}
+  <div className="relative -top-3">
+    <button 
+      onClick={() => setMobileMenuOpen(true)}
+      className="w-12 h-12 bg-stone-900 text-white rounded-full flex items-center justify-center shadow-md active:scale-95 transition-transform border-4 border-white cursor-pointer"
+      aria-label="Abrir Menu de Acesso Rápido"
+    >
+      <Menu className="w-5 h-5" />
+    </button>
+  </div>
+
+  {/* 4. Clientes */}
+  <button 
+    onClick={() => setActiveTab('clientes')}
+    className={`flex flex-col items-center space-y-1 transition-colors ${activeTab === 'clientes' ? 'text-stone-900 font-bold' : 'text-stone-400 font-medium'}`}
+  >
+    <Users className="w-5 h-5" />
+    <span className="text-[10px]">Clientes</span>
+  </button>
+
+  {/* 5. Ajustes / Configurações */}
+  <button 
+    onClick={() => setActiveTab('configuracoes')}
+    className={`flex flex-col items-center space-y-1 transition-colors ${activeTab === 'configuracoes' ? 'text-stone-900 font-bold' : 'text-stone-400 font-medium'}`}
+  >
+    <Settings className="w-5 h-5" />
+    <span className="text-[10px]">Ajustes</span>
+  </button>
+
+</nav>
+
+    </main>
+
+
+    {/* =========================================================
+   MODAL MOBILE DE BAIXO PARA CIMA (FLUIDO E COMPACTO)
+   ========================================================= */}
+{mobileMenuOpen && (
+  <div className="fixed inset-0 z-50 flex md:hidden items-end">
+    
+    {/* Backdrop com fade-in */}
+    <div 
+      onClick={() => setMobileMenuOpen(false)}
+      className="fixed inset-0 bg-stone-900/60 backdrop-blur-xs transition-opacity duration-300 ease-out"
+    />
+
+    {/* Conteúdo do Modal (Com animação de subida e botões mais compactos) */}
+    <div className="relative w-full bg-white rounded-t-3xl p-4 shadow-2xl z-10 max-h-[70vh] overflow-y-auto space-y-3 border-t border-stone-200 transform transition-all duration-300 ease-out animate-in slide-in-from-bottom">
+      
+      {/* Puxador visual superior */}
+      <div className="w-10 h-1 bg-stone-300 rounded-full mx-auto mb-1" />
+
+      {/* Cabeçalho compacto */}
+      <div className="flex items-center justify-between pb-2 border-b border-stone-100">
+        <div>
+          <h3 className="text-xs font-extrabold text-stone-900">Menu de Acesso Rápido</h3>
+          <p className="text-[10px] text-stone-500">Selecione uma opção</p>
+        </div>
+        <button 
+          onClick={() => setMobileMenuOpen(false)}
+          className="w-7 h-7 rounded-full bg-stone-100 text-stone-500 flex items-center justify-center font-bold text-xs hover:bg-stone-200 transition-colors"
+        >
+          ✕
+        </button>
+      </div>
+
+      {/* Grade de Botões Mais Compactos (Menores) */}
+      <div className="grid grid-cols-2 gap-2 pt-0.5">
+        
+        {/* 1. Visão Geral */}
+        <button 
+          onClick={() => { setActiveTab('visao-geral'); setMobileMenuOpen(false); }}
+          className="flex items-center space-x-3 p-3 bg-stone-50 hover:bg-stone-900 hover:text-white text-stone-800 rounded-xl border border-stone-200/80 transition-all group active:scale-95"
+        >
+          <div className="p-2 bg-white group-hover:bg-stone-800 rounded-lg shadow-xs text-stone-900 group-hover:text-white transition-colors shrink-0">
+            <TrendingUp className="w-4 h-4" />
+          </div>
+          <span className="text-xs font-bold text-left leading-tight">Visão Geral</span>
+        </button>
+
+        {/* 2. Agendamentos */}
+        <button 
+          onClick={() => { setActiveTab('agendamentos'); setMobileMenuOpen(false); }}
+          className="flex items-center space-x-3 p-3 bg-stone-50 hover:bg-stone-900 hover:text-white text-stone-800 rounded-xl border border-stone-200/80 transition-all group active:scale-95"
+        >
+          <div className="p-2 bg-white group-hover:bg-stone-800 rounded-lg shadow-xs text-stone-900 group-hover:text-white transition-colors shrink-0">
+            <Calendar className="w-4 h-4" />
+          </div>
+          <span className="text-xs font-bold text-left leading-tight">Agendamentos</span>
+        </button>
+
+        {/* 3. Clientes */}
+        <button 
+          onClick={() => { setActiveTab('clientes'); setMobileMenuOpen(false); }}
+          className="flex items-center space-x-3 p-3 bg-stone-50 hover:bg-stone-900 hover:text-white text-stone-800 rounded-xl border border-stone-200/80 transition-all group active:scale-95"
+        >
+          <div className="p-2 bg-white group-hover:bg-stone-800 rounded-lg shadow-xs text-stone-900 group-hover:text-white transition-colors shrink-0">
+            <Users className="w-4 h-4" />
+          </div>
+          <span className="text-xs font-bold text-left leading-tight">Clientes</span>
+        </button>
+
+        {/* 4. Financeiro */}
+        <button 
+          onClick={() => { setActiveTab('financeiro'); setMobileMenuOpen(false); }}
+          className="flex items-center space-x-3 p-3 bg-stone-50 hover:bg-stone-900 hover:text-white text-stone-800 rounded-xl border border-stone-200/80 transition-all group active:scale-95"
+        >
+          <div className="p-2 bg-white group-hover:bg-stone-800 rounded-lg shadow-xs text-stone-900 group-hover:text-white transition-colors shrink-0">
+            <DollarSign className="w-4 h-4" />
+          </div>
+          <span className="text-xs font-bold text-left leading-tight">Financeiro</span>
+        </button>
+
+        {/* 5. Serviços e Equipe */}
+        <button 
+          onClick={() => { setActiveTab('servicos'); setMobileMenuOpen(false); }}
+          className="flex items-center space-x-3 p-3 bg-stone-50 hover:bg-stone-900 hover:text-white text-stone-800 rounded-xl border border-stone-200/80 transition-all group active:scale-95"
+        >
+          <div className="p-2 bg-white group-hover:bg-stone-800 rounded-lg shadow-xs text-stone-900 group-hover:text-white transition-colors shrink-0">
+            <Scissors className="w-4 h-4" />
+          </div>
+          <span className="text-xs font-bold text-left leading-tight">Equipe & Serviços</span>
+        </button>
+
+        {/* 6. Configurações */}
+        <button 
+          onClick={() => { setActiveTab('configuracoes'); setMobileMenuOpen(false); }}
+          className="flex items-center space-x-3 p-3 bg-stone-50 hover:bg-stone-900 hover:text-white text-stone-800 rounded-xl border border-stone-200/80 transition-all group active:scale-95"
+        >
+          <div className="p-2 bg-white group-hover:bg-stone-800 rounded-lg shadow-xs text-stone-900 group-hover:text-white transition-colors shrink-0">
+            <Settings className="w-4 h-4" />
+          </div>
+          <span className="text-xs font-bold text-left leading-tight">Configurações</span>
+        </button>
+
+      </div>
+
+    </div>
+
+  </div>
+)}
 
 
 {/* TELA DE BLOQUEIO / PAYWALL CASO O TESTE TENHA EXPIRADO */}
@@ -869,7 +1080,7 @@ export default function AdminDashboard() {
         </aside>
 
         {/* CONTEÚDO PRINCIPAL */}
-        <main className="flex-1 p-4 sm:p-6 md:p-10 overflow-y-auto max-w-full">
+        <main className="flex-1 p-4 sm:p-6 md:p-10 pb-24 overflow-y-auto max-w-full">
           
           
 
@@ -898,7 +1109,7 @@ export default function AdminDashboard() {
           )}
 
           {/* CARDS DE INDICADORES */}
-          {activeTab === 'agendamentos' && (
+          {activeTab === 'relatorio financeiro' && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
             <div className="bg-white p-5 rounded-2xl border border-stone-200/80 shadow-sm">
               <div className="flex items-center justify-between text-stone-400 mb-3">
@@ -940,82 +1151,175 @@ export default function AdminDashboard() {
           )}
 
           {/* CONTEÚDO DAS ABAS */}
-          {activeTab === 'agendamentos' && (
-            <div className="bg-white rounded-3xl border border-stone-200/80 shadow-sm overflow-hidden p-6">
-              <div className="pb-4 border-b border-stone-100 mb-6">
-                <h3 className="text-base font-bold text-stone-900">Lista de Agendamentos</h3>
-                <p className="text-xs text-stone-400">Gerencie e altere os status das consultas marcadas.</p>
+{activeTab === 'agendamentos' && (
+  <div className="space-y-4 pb-24">
+    
+    {/* =========================================================
+       VERSÃO MOBILE (Cards Verticais - Sem barra de rolagem)
+       ========================================================= */}
+    <div className="md:hidden space-y-3">
+      <div className="bg-white p-4 rounded-3xl border border-stone-200/80 shadow-sm mb-4">
+        <h3 className="text-base font-bold text-stone-900">Lista de Agendamentos</h3>
+        <p className="text-xs text-stone-400">Gerencie e altere os status das consultas marcadas.</p>
+      </div>
+
+      {agendamentos.length === 0 ? (
+        <div className="bg-white p-8 rounded-3xl border border-stone-200/80 text-center text-stone-400 text-xs">
+          Nenhum agendamento encontrado para esta barbearia.
+        </div>
+      ) : (
+        agendamentos.map((item, index) => {
+          const formatarDataHora = (dataStr) => {
+            if (!dataStr) return '-';
+            if (dataStr.includes('T')) {
+              const [dataPart, horaPart] = dataStr.split('T');
+              const [ano, mes, dia] = dataPart.split('-');
+              const hora = horaPart.substring(0, 5);
+              return `${dia}/${mes}/${ano} às ${hora}`;
+            }
+            return dataStr;
+          };
+
+          return (
+            <div key={item.id || index} className="bg-white p-4 rounded-2xl border border-stone-200/80 shadow-xs space-y-3">
+              
+              {/* Linha Superior: Cliente e Status */}
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Cliente</span>
+                  <h4 className="text-xs font-bold text-stone-900">{item.cliente_nome || item.clientes?.nome || '-'}</h4>
+                </div>
+                <span className={`px-2.5 py-1 text-[10px] font-bold rounded-md uppercase inline-block shrink-0 ${
+                  item.status?.toLowerCase() === 'concluido' || item.status?.toLowerCase() === 'concluído'
+                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
+                    : 'bg-amber-50 text-amber-700 border border-amber-200'
+                }`}>
+                  {item.status || 'AGENDADO'}
+                </span>
               </div>
 
-              {agendamentos.length === 0 ? (
-                <div className="p-8 text-center text-stone-400 text-xs">
-                  Nenhum agendamento encontrado para esta barbearia.
+              {/* Detalhes em Grid */}
+              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-stone-100 text-[11px]">
+                <div>
+                  <span className="text-stone-400 block">Serviço</span>
+                  <span className="font-semibold text-stone-700">{item.servico_nome || item.servicos?.nome || '-'}</span>
                 </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse border-separate border-spacing-y-3">
-                    <thead>
-                      <tr className="text-[11px] font-bold text-stone-400 uppercase tracking-wider">
-                        <th className="p-3 pl-4">Cliente</th>
-                        <th className="p-3">Serviço</th>
-                        <th className="p-3">Barbeiro</th>
-                        <th className="p-3">Data/Hora</th>
-                        <th className="p-3">Valor</th>
-                        <th className="p-3">Status</th>
-                        <th className="p-3 pr-4 text-right">Ações</th>
-                      </tr>
-                    </thead>
-                    <tbody className="text-xs text-stone-700">
-                      {agendamentos.map((item) => (
-                        <tr key={item.id} className="bg-stone-50/70 hover:bg-stone-50 border border-stone-200/60 shadow-xs transition-colors rounded-2xl overflow-hidden">
-                          <td className="p-4 pl-5 font-medium text-stone-900 rounded-l-2xl">
-                            <div>{item.clientes?.nome || 'Cliente Não Informado'}</div>
-                            <div className="text-[11px] text-stone-400">{item.clientes?.telefone || '-'}</div>
-                          </td>
-                          <td className="p-4 font-semibold text-stone-800">{item.servicos?.nome || 'Serviço'}</td>
-                          <td className="p-4 text-stone-600">{item.barbeiros?.nome || 'Profissional'}</td>
-                          <td className="p-4 text-stone-700 font-medium">
-                            <div>{formatarData(item)}</div>
-                            <div className="text-[11px] text-stone-400">{formatarHora(item)}</div>
-                          </td>
-                          <td className="p-4 font-bold text-stone-900">R$ {item.valor_total}</td>
-                          <td className="p-4">
-                            {item.status === 'agendado' && <span className="bg-amber-50 text-amber-700 border border-amber-200/60 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase">Agendado</span>}
-                            {item.status === 'concluido' && <span className="bg-emerald-50 text-emerald-700 border border-emerald-200/60 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase">Concluído</span>}
-                            {item.status === 'cancelado' && <span className="bg-rose-50 text-rose-700 border border-rose-200/60 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase">Cancelado</span>}
-                          </td>
-                          <td className="p-4 pr-5 text-right rounded-r-2xl">
-                            <div className="flex items-center justify-end gap-1.5">
-                              {item.status === 'agendado' && (
-                                <>
-                                  <button onClick={() => handleUpdateStatus(item.id, 'concluido')} title="Marcar como Concluído" className="p-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 rounded-lg transition-colors border border-emerald-200/60 cursor-pointer">
-                                    <CheckCircle className="w-4 h-4" />
-                                  </button>
-                                  <button onClick={() => handleUpdateStatus(item.id, 'cancelado')} title="Cancelar Agendamento" className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg transition-colors border border-rose-200/60 cursor-pointer">
-                                    <XCircle className="w-4 h-4" />
-                                  </button>
-                                </>
-                              )}
-
-
-
-
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                <div>
+                  <span className="text-stone-400 block">Barbeiro</span>
+                  <span className="font-semibold text-stone-700">{item.barbeiro || 'Patrícia'}</span>
                 </div>
-              )}
+                <div className="col-span-2">
+                  <span className="text-stone-400 block">Data/Hora</span>
+                  <span className="font-semibold text-stone-700">{formatarDataHora(item.data_hora || item.horario)}</span>
+                </div>
+                <div className="col-span-2">
+                  <span className="text-stone-400 block">Valor</span>
+                  <span className="font-semibold text-emerald-600">
+                    R$ {(item.valor_total || item.valor) ? Number(item.valor_total || item.valor).toFixed(2) : '0,00'}
+                  </span>
+                </div>
+              </div>
 
+              {/* Botões de Ação */}
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-stone-100">
+                <span className="text-[10px] text-stone-400 mr-auto">Ações:</span>
+                <button 
+                  onClick={() => handleUpdateStatus(item.id, 'concluido')}
+                  className="px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-600 text-xs font-bold flex items-center gap-1 active:scale-95 transition-transform"
+                >
+                  <span>✓ Concluir</span>
+                </button>
+                <button 
+                  onClick={() => handleUpdateStatus(item.id, 'cancelado')}
+                  className="px-3 py-1.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-600 text-xs font-bold flex items-center gap-1 active:scale-95 transition-transform"
+                >
+                  <span>✕ Cancelar</span>
+                </button>
+              </div>
 
-              
             </div>
+          );
+        })
+      )}
+    </div>
 
 
+    {/* =========================================================
+       VERSÃO DESKTOP (Tabela para PC)
+       ========================================================= */}
+    <div className="hidden md:block bg-white rounded-3xl border border-stone-200/80 shadow-sm p-6 overflow-hidden">
+      <div className="pb-4 border-b border-stone-100 mb-6">
+        <h3 className="text-base font-bold text-stone-900">Lista de Agendamentos</h3>
+        <p className="text-xs text-stone-400">Gerencie e altere os status das consultas marcadas.</p>
+      </div>
 
-          )}
+      {agendamentos.length === 0 ? (
+        <div className="p-8 text-center text-stone-400 text-xs">
+          Nenhum agendamento encontrado para esta barbearia.
+        </div>
+      ) : (
+        <div className="w-full overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="text-[11px] font-bold text-stone-400 uppercase tracking-wider border-b border-stone-100">
+                <th className="pb-3 pl-4">Cliente</th>
+                <th className="pb-3">Serviço</th>
+                <th className="pb-3">Barbeiro</th>
+                <th className="pb-3">Data/Hora</th>
+                <th className="pb-3">Valor</th>
+                <th className="pb-3">Status</th>
+                <th className="pb-3 pr-4 text-right">Ações</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-stone-100 text-xs text-stone-700">
+              {agendamentos.map((item, index) => (
+                <tr key={item.id || index} className="hover:bg-stone-50/50 transition-colors">
+                  <td className="py-3.5 pl-4 font-bold text-stone-900">
+                    {item.cliente_nome || item.clientes?.nome || '-'}
+                  </td>
+                  <td className="py-3.5 font-medium">{item.servico_nome || item.servicos?.nome || '-'}</td>
+                  <td className="py-3.5">{item.barbeiro || 'Patrícia'}</td>
+                  <td className="py-3.5 whitespace-nowrap">{item.data_hora || item.horario || '-'}</td>
+                  <td className="py-3.5 font-semibold whitespace-nowrap">
+                    R$ {(item.valor_total || item.valor) ? Number(item.valor_total || item.valor).toFixed(2) : '0,00'}
+                  </td>
+                  <td className="py-3.5 whitespace-nowrap">
+                    <span className={`px-2.5 py-1 text-[10px] font-bold rounded-md uppercase inline-block ${
+                      item.status?.toLowerCase() === 'concluido' || item.status?.toLowerCase() === 'concluído'
+                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
+                        : 'bg-amber-50 text-amber-700 border border-amber-200'
+                    }`}>
+                      {item.status || 'AGENDADO'}
+                    </span>
+                  </td>
+                  <td className="py-3.5 pr-4 text-right whitespace-nowrap">
+                    <div className="flex items-center justify-end gap-1.5">
+                      <button 
+                        onClick={() => handleUpdateStatus(item.id, 'concluido')}
+                        className="w-7 h-7 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-600 flex items-center justify-center hover:bg-emerald-100 transition-colors"
+                        title="Concluir"
+                      >
+                        ✓
+                      </button>
+                      <button 
+                        onClick={() => handleUpdateStatus(item.id, 'cancelado')}
+                        className="w-7 h-7 rounded-full bg-rose-50 border border-rose-200 text-rose-600 flex items-center justify-center hover:bg-rose-100 transition-colors"
+                        title="Cancelar"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+
+  </div>
+)}
 
 
 {activeTab === 'configuracoes' && (

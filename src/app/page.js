@@ -22,9 +22,7 @@ export default function ModernLandingPage() {
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
           
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-white text-stone-900 flex items-center justify-center font-bold shadow-lg">
-              <Scissors className="w-5 h-5" />
-            </div>
+            
             <div>
               <span className="text-sm font-black tracking-tight text-white block leading-none">BarberFlow</span>
               <span className="text-[10px] uppercase tracking-wider font-semibold text-stone-400">Elite System</span>
