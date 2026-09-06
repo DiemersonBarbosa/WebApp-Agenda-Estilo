@@ -28,17 +28,56 @@ import {
   Check,
   Settings,
   Menu,
-  Calendar
+  Calendar,
+  Percent
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 import ConfiguracoesBarbearia from '@/components/ConfiguracoesBarbearia';
+
+
+
+ async function criarAcessoBarbeiro(barbeiroId, emailBarbeiro, senhaTemporaria) {
+  try {
+    const response = await fetch('/api/criar-acesso', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        barbeiroId,
+        email: emailBarbeiro,
+        password: senhaTemporaria
+      })
+    });
+
+    const resultado = await response.json();
+
+    if (!response.ok) {
+      throw new Error(resultado.error || 'Erro ao criar acesso');
+    }
+
+    alert('Acesso do barbeiro criado com sucesso!');
+    window.location.reload();
+  } catch (error) {
+    alert('Erro: ' + error.message);
+  }
+}
+
 
 export default function AdminDashboard() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('agendamentos');
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState(null);
+
+
+
+
+ 
+
+
+
+
+
 
   // NOVO: Estado para controlar a gaveta do menu no mobile
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -269,6 +308,23 @@ export default function AdminDashboard() {
         router.push('/admin/login');
         return;
       }
+
+
+
+// --- ADICIONE ESTE BLOCO LOGO AQUI ---
+      const { data: barbeiroCheck } = await supabase
+        .from('barbeiros')
+        .select('id')
+        .eq('user_id', session.user.id)
+        .single();
+
+      if (barbeiroCheck) {
+        router.push('/barbeiro');
+        return;
+      }
+      // -------------------------------------
+
+
 
       setUser(session.user);
 
@@ -891,6 +947,27 @@ export default function AdminDashboard() {
           <span className="text-xs font-bold text-left leading-tight">Equipe & Serviços</span>
         </button>
 
+
+<button
+  onClick={() => { setActiveTab('comissoes'); setMobileMenuOpen(false); }}
+  className={`flex items-center space-x-3 w-full p-3 rounded-2xl transition-all ${
+    activeTab === 'comissoes'
+      ? 'bg-stone-900 text-white shadow-sm'
+      : 'bg-stone-50 hover:bg-stone-100 text-stone-700'
+  }`}
+>
+  <div className={`p-2 rounded-lg shadow-xs transition-colors ${
+    activeTab === 'comissoes' ? 'bg-stone-800 text-white' : 'bg-white text-stone-700'
+  }`}>
+    <Percent className="w-4 h-4" />
+  </div>
+  <span className="text-xs font-bold text-left leading-tight">Comissões</span>
+</button>
+
+
+
+
+
         {/* 6. Configurações */}
         <button 
           onClick={() => { setActiveTab('configuracoes'); setMobileMenuOpen(false); }}
@@ -1041,6 +1118,24 @@ export default function AdminDashboard() {
               >
                 <Scissors className="w-4 h-4" /> Serviços & Equipe
               </button>
+
+
+<button
+  onClick={() => { setActiveTab('comissoes'); setMobileMenuOpen(false); }}
+  className={`flex items-center space-x-3 w-full p-3 rounded-2xl transition-all ${
+    activeTab === 'comissoes'
+      ? 'bg-stone-900 text-white shadow-sm'
+      : 'bg-stone-50 hover:bg-stone-100 text-stone-700'
+  }`}
+>
+  <div className={`p-2 rounded-lg shadow-xs transition-colors ${
+    activeTab === 'comissoes' ? 'bg-stone-800 text-white' : 'bg-white text-stone-700'
+  }`}>
+    <Percent className="w-4 h-4" />
+  </div>
+  <span className="text-xs font-bold text-left leading-tight">Comissões</span>
+</button>
+
 
 <button
   onClick={() => setActiveTab('configuracoes')}
@@ -1245,78 +1340,94 @@ export default function AdminDashboard() {
 
 
     {/* =========================================================
-       VERSÃO DESKTOP (Tabela para PC)
-       ========================================================= */}
-    <div className="hidden md:block bg-white rounded-3xl border border-stone-200/80 shadow-sm p-6 overflow-hidden">
-      <div className="pb-4 border-b border-stone-100 mb-6">
-        <h3 className="text-base font-bold text-stone-900">Lista de Agendamentos</h3>
-        <p className="text-xs text-stone-400">Gerencie e altere os status das consultas marcadas.</p>
-      </div>
+   VERSÃO DESKTOP (Tabela formatada para PC)
+   ========================================================= */}
+<div className="hidden md:block bg-white rounded-3xl border border-stone-200/80 shadow-sm p-6 overflow-hidden">
+  <div className="pb-4 border-b border-stone-100 mb-6">
+    <h3 className="text-base font-bold text-stone-900">Lista de Agendamentos</h3>
+    <p className="text-xs text-stone-400">Gerencie e altere os status das consultas marcadas.</p>
+  </div>
 
-      {agendamentos.length === 0 ? (
-        <div className="p-8 text-center text-stone-400 text-xs">
-          Nenhum agendamento encontrado para esta barbearia.
-        </div>
-      ) : (
-        <div className="w-full overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="text-[11px] font-bold text-stone-400 uppercase tracking-wider border-b border-stone-100">
-                <th className="pb-3 pl-4">Cliente</th>
-                <th className="pb-3">Serviço</th>
-                <th className="pb-3">Barbeiro</th>
-                <th className="pb-3">Data/Hora</th>
-                <th className="pb-3">Valor</th>
-                <th className="pb-3">Status</th>
-                <th className="pb-3 pr-4 text-right">Ações</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-stone-100 text-xs text-stone-700">
-              {agendamentos.map((item, index) => (
-                <tr key={item.id || index} className="hover:bg-stone-50/50 transition-colors">
-                  <td className="py-3.5 pl-4 font-bold text-stone-900">
-                    {item.cliente_nome || item.clientes?.nome || '-'}
-                  </td>
-                  <td className="py-3.5 font-medium">{item.servico_nome || item.servicos?.nome || '-'}</td>
-                  <td className="py-3.5">{item.barbeiro || 'Patrícia'}</td>
-                  <td className="py-3.5 whitespace-nowrap">{item.data_hora || item.horario || '-'}</td>
-                  <td className="py-3.5 font-semibold whitespace-nowrap">
-                    R$ {(item.valor_total || item.valor) ? Number(item.valor_total || item.valor).toFixed(2) : '0,00'}
-                  </td>
-                  <td className="py-3.5 whitespace-nowrap">
-                    <span className={`px-2.5 py-1 text-[10px] font-bold rounded-md uppercase inline-block ${
-                      item.status?.toLowerCase() === 'concluido' || item.status?.toLowerCase() === 'concluído'
-                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
-                        : 'bg-amber-50 text-amber-700 border border-amber-200'
-                    }`}>
-                      {item.status || 'AGENDADO'}
-                    </span>
-                  </td>
-                  <td className="py-3.5 pr-4 text-right whitespace-nowrap">
-                    <div className="flex items-center justify-end gap-1.5">
-                      <button 
-                        onClick={() => handleUpdateStatus(item.id, 'concluido')}
-                        className="w-7 h-7 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-600 flex items-center justify-center hover:bg-emerald-100 transition-colors"
-                        title="Concluir"
-                      >
-                        ✓
-                      </button>
-                      <button 
-                        onClick={() => handleUpdateStatus(item.id, 'cancelado')}
-                        className="w-7 h-7 rounded-full bg-rose-50 border border-rose-200 text-rose-600 flex items-center justify-center hover:bg-rose-100 transition-colors"
-                        title="Cancelar"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+  {agendamentos.length === 0 ? (
+    <div className="p-8 text-center text-stone-400 text-xs">
+      Nenhum agendamento encontrado para esta barbearia.
     </div>
+  ) : (
+    <div className="w-full overflow-x-auto">
+      <table className="w-full text-left border-collapse">
+        <thead>
+          <tr className="text-[11px] font-bold text-stone-400 uppercase tracking-wider border-b border-stone-100">
+            <th className="pb-3 pl-4">Cliente</th>
+            <th className="pb-3">Serviço</th>
+            <th className="pb-3">Barbeiro</th>
+            <th className="pb-3">Data/Hora</th>
+            <th className="pb-3">Valor</th>
+            <th className="pb-3">Status</th>
+            <th className="pb-3 pr-4 text-right">Ações</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-stone-100 text-xs text-stone-700">
+          {agendamentos.map((item, index) => {
+            // Função para formatar a data no desktop igual ao mobile
+            const formatarDataHora = (dataStr) => {
+              if (!dataStr) return '-';
+              if (dataStr.includes('T')) {
+                const [dataPart, horaPart] = dataStr.split('T');
+                const [ano, mes, dia] = dataPart.split('-');
+                const hora = horaPart.substring(0, 5);
+                return `${dia}/${mes}/${ano} às ${hora}`;
+              }
+              return dataStr;
+            };
+
+            return (
+              <tr key={item.id || index} className="hover:bg-stone-50/50 transition-colors">
+                <td className="py-3.5 pl-4 font-bold text-stone-900">
+                  {item.cliente_nome || item.clientes?.nome || '-'}
+                </td>
+                <td className="py-3.5 font-medium">{item.servico_nome || item.servicos?.nome || '-'}</td>
+                <td className="py-3.5">{item.barbeiro || 'Patrícia'}</td>
+                <td className="py-3.5 whitespace-nowrap font-medium text-stone-700">
+                  {formatarDataHora(item.data_hora || item.horario)}
+                </td>
+                <td className="py-3.5 font-semibold whitespace-nowrap text-emerald-600">
+                  R$ {(item.valor_total || item.valor) ? Number(item.valor_total || item.valor).toFixed(2) : '0,00'}
+                </td>
+                <td className="py-3.5 whitespace-nowrap">
+                  <span className={`px-2.5 py-1 text-[10px] font-bold rounded-md uppercase inline-block ${
+                    item.status?.toLowerCase() === 'concluido' || item.status?.toLowerCase() === 'concluído'
+                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
+                      : 'bg-amber-50 text-amber-700 border border-amber-200'
+                  }`}>
+                    {item.status || 'AGENDADO'}
+                  </span>
+                </td>
+                <td className="py-3.5 pr-4 text-right whitespace-nowrap">
+                  <div className="flex items-center justify-end gap-1.5">
+                    <button 
+                      onClick={() => handleUpdateStatus(item.id, 'concluido')}
+                      className="w-7 h-7 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-600 flex items-center justify-center hover:bg-emerald-100 transition-colors"
+                      title="Concluir"
+                    >
+                      ✓
+                    </button>
+                    <button 
+                      onClick={() => handleUpdateStatus(item.id, 'cancelado')}
+                      className="w-7 h-7 rounded-full bg-rose-50 border border-rose-200 text-rose-600 flex items-center justify-center hover:bg-rose-100 transition-colors"
+                      title="Cancelar"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  )}
+</div>
 
   </div>
 )}
@@ -1395,6 +1506,87 @@ export default function AdminDashboard() {
               </div>
             </div>
           )}
+
+
+{activeTab === 'comissoes' && (
+  <div className="bg-white rounded-3xl border border-stone-200/80 shadow-sm p-6 space-y-6">
+    <div className="pb-4 border-b border-stone-100">
+      <h3 className="text-base font-bold text-stone-900">Comissões dos Barbeiros</h3>
+      <p className="text-xs text-stone-400">Defina a porcentagem de comissão padrão para cada profissional da unidade.</p>
+    </div>
+
+    {barbeiros.length === 0 ? (
+      <div className="p-8 text-center text-stone-400 text-xs">
+        Nenhum barbeiro cadastrado no momento para esta unidade.
+      </div>
+    ) : (
+      <div className="space-y-3">
+        {barbeiros
+          .filter((barbeiro, index, self) => 
+            // Filtro para garantir que profissionais repetidos não apareçam na lista
+            index === self.findIndex(b => (b.id && b.id === barbeiro.id) || (b.nome && b.nome.toLowerCase() === barbeiro.nome.toLowerCase()))
+          )
+          .map((barbeiro) => {
+            const valorAtual = barbeiro.comissao_padrao ?? 50;
+
+            return (
+              <div 
+                key={barbeiro.id} 
+                className="flex items-center justify-between p-4 rounded-2xl border border-stone-100 bg-stone-50/50"
+              >
+                <div>
+                  <h4 className="text-xs font-bold text-stone-900">{barbeiro.nome}</h4>
+                  <span className="text-[11px] text-stone-400">
+                    Comissão atual: <strong className="text-emerald-600">{valorAtual}%</strong>
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    defaultValue={valorAtual}
+                    id={`comissao-${barbeiro.id}`}
+                    className="w-20 px-3 py-1.5 bg-white border border-stone-200 rounded-xl text-xs font-bold text-stone-900 focus:outline-none"
+                  />
+                  <button
+                    onClick={async () => {
+                      const inputEl = document.getElementById(`comissao-${barbeiro.id}`);
+                      const novaComissao = Number(inputEl.value);
+
+                      if (isNaN(novaComissao) || novaComissao < 0 || novaComissao > 100) {
+                        alert('Insira um valor entre 0 e 100.');
+                        return;
+                      }
+
+                      const { error } = await supabase
+                        .from('barbeiros')
+                        .update({ comissao_padrao: novaComissao })
+                        .eq('id', barbeiro.id);
+
+                      if (error) {
+                        alert('Erro ao atualizar: ' + error.message);
+                      } else {
+                        alert('Comissão atualizada com sucesso!');
+                        
+                        // Atualiza instantaneamente a listagem mantendo o filtro da unidade
+                        const { data: atualizados } = await supabase.from('barbeiros').select('*');
+                        if (atualizados) setBarbeiros(atualizados);
+                      }
+                    }}
+                    className="px-3 py-1.5 bg-emerald-50 border border-emerald-200 text-emerald-600 text-xs font-bold rounded-xl active:scale-95 transition-transform"
+                  >
+                    Salvar
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+      </div>
+    )}
+  </div>
+)}
+
+
 
           {activeTab === 'despesas' && (
             <div className="bg-white rounded-3xl border border-stone-200/80 shadow-sm overflow-hidden p-6 space-y-6">
@@ -1513,20 +1705,55 @@ export default function AdminDashboard() {
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {barbeiros.map((b) => (
-                      <div key={b.id} className="bg-stone-50/70 p-4 rounded-2xl border border-stone-200/70 flex justify-between items-start">
-                        <div className="space-y-1">
-                          <h4 className="font-bold text-stone-900 text-sm">{b.nome}</h4>
-                          <span className="text-xs text-stone-500 block">{b.especialidade || 'Especialista em cortes'}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <button onClick={() => handleOpenBarbeiroModal(b)} className="p-1.5 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-lg cursor-pointer">
-                            <Edit className="w-3.5 h-3.5" />
-                          </button>
-                          <button onClick={() => handleDeleteBarbeiro(b.id)} className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg cursor-pointer">
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </div>
+                      <div key={b.id} className="bg-stone-50/70 p-4 rounded-2xl border border-stone-200/80 space-y-3">
+    <div className="flex items-center justify-between">
+      <div className="space-y-1">
+        <h4 className="font-bold text-stone-900 text-sm">{b.nome}</h4>
+        <span className="text-xs text-stone-500 block">{b.especialidade || 'Especialidade não definida'}</span>
+      </div>
+      <div className="flex items-center gap-1">
+        <button onClick={() => handleOpenBarbeiroModal(b)} className="p-1.5 bg-white border border-stone-200 rounded-xl hover:bg-stone-100">
+          <Edit className="w-3.5 h-3.5 text-stone-700" />
+        </button>
+        <button onClick={() => handleDeleteBarbeiro(b.id)} className="p-1.5 bg-white border border-stone-200 rounded-xl hover:bg-red-50 text-red-500">
+          <Trash2 className="w-3.5 h-3.5" />
+        </button>
+      </div>
+    </div>
+
+    {/* Campos de Acesso */}
+    <div className="pt-3 border-t border-stone-200/60 space-y-2">
+      <p className="text-[11px] font-bold text-stone-700">Acesso ao Painel</p>
+      <input 
+        type="email" 
+        placeholder="E-mail de acesso" 
+        id={`email-${b.id}`}
+        className="w-full px-3 py-1.5 bg-white border border-stone-200 rounded-xl text-xs text-stone-900 focus:outline-none"
+      />
+      <input 
+        type="password" 
+        placeholder="Senha temporária" 
+        id={`senha-${b.id}`}
+        className="w-full px-3 py-1.5 bg-white border border-stone-200 rounded-xl text-xs text-stone-900 focus:outline-none"
+      />
+      <button
+        onClick={() => {
+          const emailInput = document.getElementById(`email-${b.id}`).value;
+          const senhaInput = document.getElementById(`senha-${b.id}`).value;
+
+          if (!emailInput || !senhaInput) {
+            alert('Preencha o e-mail e a senha.');
+            return;
+          }
+
+          criarAcessoBarbeiro(b.id, emailInput, senhaInput);
+        }}
+        className="w-full py-1.5 bg-stone-900 text-white rounded-xl text-xs font-bold hover:bg-stone-800 transition-colors"
+      >
+        Gerar Acesso
+      </button>
+    </div>
+  </div>
                     ))}
                   </div>
                 )}
