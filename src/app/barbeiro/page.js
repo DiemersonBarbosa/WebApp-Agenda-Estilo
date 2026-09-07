@@ -12,6 +12,8 @@ export default function PainelBarbeiro() {
   const [mesSelecionado, setMesSelecionado] = useState('2026-09');
 
   useEffect(() => {
+    let subscription = null;
+
     async function carregarPainelDoBarbeiro() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
@@ -77,21 +79,36 @@ export default function PainelBarbeiro() {
 
       setAgendamentos(resultadosTotais);
       setLoading(false);
+
+      // Nome do canal único usando timestamp para evitar conflito de instâncias pré-existentes
+      const nomeCanalUnico = `barbeiro-comissao-${perfilBarbeiro.id}-${Date.now()}`;
+
+      subscription = supabase
+        .channel(nomeCanalUnico)
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'barbeiros',
+            filter: `id=eq.${perfilBarbeiro.id}`
+          },
+          (payload) => {
+            if (payload.new) {
+              const novaComissao = payload.new.comissao ?? payload.new.comissao_padrao ?? 50;
+              setComissaoPercentual(novaComissao);
+            }
+          }
+        )
+        .subscribe();
     }
 
     carregarPainelDoBarbeiro();
 
-    const subscription = supabase
-      .channel('barbeiro-comissao-channel')
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'barbeiros' }, (payload) => {
-        if (payload.new && (payload.new.comissao !== undefined || payload.new.comissao_padrao !== undefined)) {
-          setComissaoPercentual(payload.new.comissao ?? payload.new.comissao_padrao ?? 50);
-        }
-      })
-      .subscribe();
-
     return () => {
-      supabase.removeChannel(subscription);
+      if (subscription) {
+        supabase.removeChannel(subscription);
+      }
     };
   }, []);
 
@@ -160,6 +177,27 @@ export default function PainelBarbeiro() {
           </span>
         </div>
       </div>
+
+
+
+      <button
+  onClick={() => {
+    // Se você tiver uma função específica que busca os dados do profissional:
+    if (typeof carregarDadosProfissional === 'function') {
+      carregarDadosProfissional();
+    } else {
+      // Caso contrário, recarrega a rota do Next.js mantendo os cookies de sessão
+      window.location.reload();
+    }
+  }}
+  className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl flex items-center gap-1.5 transition-colors active:scale-95"
+  title="Atualizar dados"
+>
+  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+  </svg>
+  Atualizar
+</button>
 
       {/* CONTAINER DOS ATENDIMENTOS COM BORDAS E SCROLL INTERNO */}
       <div className="bg-white rounded-3xl border border-stone-200/60 shadow-sm p-6 flex-1 flex flex-col overflow-hidden">

@@ -36,6 +36,9 @@ import { supabase } from '@/lib/supabase';
 import ConfiguracoesBarbearia from '@/components/ConfiguracoesBarbearia';
 
 
+import PainelAgendaDia from '@/components/PainelAgendaDia';
+
+
 
  async function criarAcessoBarbeiro(barbeiroId, emailBarbeiro, senhaTemporaria) {
   try {
@@ -1246,193 +1249,19 @@ export default function AdminDashboard() {
           )}
 
           {/* CONTEÚDO DAS ABAS */}
+{/* CONTEÚDO DAS ABAS */}
 {activeTab === 'agendamentos' && (
   <div className="space-y-4 pb-24">
-    
     {/* =========================================================
-       VERSÃO MOBILE (Cards Verticais - Sem barra de rolagem)
-       ========================================================= */}
-    <div className="md:hidden space-y-3">
-      <div className="bg-white p-4 rounded-3xl border border-stone-200/80 shadow-sm mb-4">
-        <h3 className="text-base font-bold text-stone-900">Lista de Agendamentos</h3>
-        <p className="text-xs text-stone-400">Gerencie e altere os status das consultas marcadas.</p>
-      </div>
-
-      {agendamentos.length === 0 ? (
-        <div className="bg-white p-8 rounded-3xl border border-stone-200/80 text-center text-stone-400 text-xs">
-          Nenhum agendamento encontrado para esta barbearia.
-        </div>
-      ) : (
-        agendamentos.map((item, index) => {
-          const formatarDataHora = (dataStr) => {
-            if (!dataStr) return '-';
-            if (dataStr.includes('T')) {
-              const [dataPart, horaPart] = dataStr.split('T');
-              const [ano, mes, dia] = dataPart.split('-');
-              const hora = horaPart.substring(0, 5);
-              return `${dia}/${mes}/${ano} às ${hora}`;
-            }
-            return dataStr;
-          };
-
-          return (
-            <div key={item.id || index} className="bg-white p-4 rounded-2xl border border-stone-200/80 shadow-xs space-y-3">
-              
-              {/* Linha Superior: Cliente e Status */}
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Cliente</span>
-                  <h4 className="text-xs font-bold text-stone-900">{item.cliente_nome || item.clientes?.nome || '-'}</h4>
-                </div>
-                <span className={`px-2.5 py-1 text-[10px] font-bold rounded-md uppercase inline-block shrink-0 ${
-                  item.status?.toLowerCase() === 'concluido' || item.status?.toLowerCase() === 'concluído'
-                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
-                    : 'bg-amber-50 text-amber-700 border border-amber-200'
-                }`}>
-                  {item.status || 'AGENDADO'}
-                </span>
-              </div>
-
-              {/* Detalhes em Grid */}
-              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-stone-100 text-[11px]">
-                <div>
-                  <span className="text-stone-400 block">Serviço</span>
-                  <span className="font-semibold text-stone-700">{item.servico_nome || item.servicos?.nome || '-'}</span>
-                </div>
-                <div>
-                  <span className="text-stone-400 block">Barbeiro</span>
-                  <span className="font-semibold text-stone-700">{item.barbeiro || 'Patrícia'}</span>
-                </div>
-                <div className="col-span-2">
-                  <span className="text-stone-400 block">Data/Hora</span>
-                  <span className="font-semibold text-stone-700">{formatarDataHora(item.data_hora || item.horario)}</span>
-                </div>
-                <div className="col-span-2">
-                  <span className="text-stone-400 block">Valor</span>
-                  <span className="font-semibold text-emerald-600">
-                    R$ {(item.valor_total || item.valor) ? Number(item.valor_total || item.valor).toFixed(2) : '0,00'}
-                  </span>
-                </div>
-              </div>
-
-              {/* Botões de Ação */}
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-stone-100">
-                <span className="text-[10px] text-stone-400 mr-auto">Ações:</span>
-                <button 
-                  onClick={() => handleUpdateStatus(item.id, 'concluido')}
-                  className="px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-600 text-xs font-bold flex items-center gap-1 active:scale-95 transition-transform"
-                >
-                  <span>✓ Concluir</span>
-                </button>
-                <button 
-                  onClick={() => handleUpdateStatus(item.id, 'cancelado')}
-                  className="px-3 py-1.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-600 text-xs font-bold flex items-center gap-1 active:scale-95 transition-transform"
-                >
-                  <span>✕ Cancelar</span>
-                </button>
-              </div>
-
-            </div>
-          );
-        })
-      )}
-    </div>
-
-
-    {/* =========================================================
-   VERSÃO DESKTOP (Tabela formatada para PC)
-   ========================================================= */}
-<div className="hidden md:block bg-white rounded-3xl border border-stone-200/80 shadow-sm p-6 overflow-hidden">
-  <div className="pb-4 border-b border-stone-100 mb-6">
-    <h3 className="text-base font-bold text-stone-900">Lista de Agendamentos</h3>
-    <p className="text-xs text-stone-400">Gerencie e altere os status das consultas marcadas.</p>
-  </div>
-
-  {agendamentos.length === 0 ? (
-    <div className="p-8 text-center text-stone-400 text-xs">
-      Nenhum agendamento encontrado para esta barbearia.
-    </div>
-  ) : (
-    <div className="w-full overflow-x-auto">
-      <table className="w-full text-left border-collapse">
-        <thead>
-          <tr className="text-[11px] font-bold text-stone-400 uppercase tracking-wider border-b border-stone-100">
-            <th className="pb-3 pl-4">Cliente</th>
-            <th className="pb-3">Serviço</th>
-            <th className="pb-3">Barbeiro</th>
-            <th className="pb-3">Data/Hora</th>
-            <th className="pb-3">Valor</th>
-            <th className="pb-3">Status</th>
-            <th className="pb-3 pr-4 text-right">Ações</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-stone-100 text-xs text-stone-700">
-          {agendamentos.map((item, index) => {
-            // Função para formatar a data no desktop igual ao mobile
-            const formatarDataHora = (dataStr) => {
-              if (!dataStr) return '-';
-              if (dataStr.includes('T')) {
-                const [dataPart, horaPart] = dataStr.split('T');
-                const [ano, mes, dia] = dataPart.split('-');
-                const hora = horaPart.substring(0, 5);
-                return `${dia}/${mes}/${ano} às ${hora}`;
-              }
-              return dataStr;
-            };
-
-            return (
-              <tr key={item.id || index} className="hover:bg-stone-50/50 transition-colors">
-                <td className="py-3.5 pl-4 font-bold text-stone-900">
-                  {item.cliente_nome || item.clientes?.nome || '-'}
-                </td>
-                <td className="py-3.5 font-medium">{item.servico_nome || item.servicos?.nome || '-'}</td>
-                <td className="py-3.5">{item.barbeiro || 'Patrícia'}</td>
-                <td className="py-3.5 whitespace-nowrap font-medium text-stone-700">
-                  {formatarDataHora(item.data_hora || item.horario)}
-                </td>
-                <td className="py-3.5 font-semibold whitespace-nowrap text-emerald-600">
-                  R$ {(item.valor_total || item.valor) ? Number(item.valor_total || item.valor).toFixed(2) : '0,00'}
-                </td>
-                <td className="py-3.5 whitespace-nowrap">
-                  <span className={`px-2.5 py-1 text-[10px] font-bold rounded-md uppercase inline-block ${
-                    item.status?.toLowerCase() === 'concluido' || item.status?.toLowerCase() === 'concluído'
-                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
-                      : 'bg-amber-50 text-amber-700 border border-amber-200'
-                  }`}>
-                    {item.status || 'AGENDADO'}
-                  </span>
-                </td>
-                <td className="py-3.5 pr-4 text-right whitespace-nowrap">
-                  <div className="flex items-center justify-end gap-1.5">
-                    <button 
-                      onClick={() => handleUpdateStatus(item.id, 'concluido')}
-                      className="w-7 h-7 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-600 flex items-center justify-center hover:bg-emerald-100 transition-colors"
-                      title="Concluir"
-                    >
-                      ✓
-                    </button>
-                    <button 
-                      onClick={() => handleUpdateStatus(item.id, 'cancelado')}
-                      className="w-7 h-7 rounded-full bg-rose-50 border border-rose-200 text-rose-600 flex items-center justify-center hover:bg-rose-100 transition-colors"
-                      title="Cancelar"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
-  )}
-</div>
-
+        PAINEL DE CARDS DO DIA (Automático para Desktop e Mobile)
+        ========================================================= */}
+    <PainelAgendaDia 
+      profissionalId={agendamentos[0]?.barbeiro_id || agendamentos[0]?.profissional_id} 
+      taxaComissao={50}
+      handleUpdateStatus={handleUpdateStatus}
+    />
   </div>
 )}
-
-
 {activeTab === 'configuracoes' && (
   <ConfiguracoesBarbearia 
     barbearia={barbearia} 
@@ -1523,7 +1352,6 @@ export default function AdminDashboard() {
       <div className="space-y-3">
         {barbeiros
           .filter((barbeiro, index, self) => 
-            // Filtro para garantir que profissionais repetidos não apareçam na lista
             index === self.findIndex(b => (b.id && b.id === barbeiro.id) || (b.nome && b.nome.toLowerCase() === barbeiro.nome.toLowerCase()))
           )
           .map((barbeiro) => {
@@ -1548,35 +1376,55 @@ export default function AdminDashboard() {
                     id={`comissao-${barbeiro.id}`}
                     className="w-20 px-3 py-1.5 bg-white border border-stone-200 rounded-xl text-xs font-bold text-stone-900 focus:outline-none"
                   />
-                  <button
-                    onClick={async () => {
-                      const inputEl = document.getElementById(`comissao-${barbeiro.id}`);
-                      const novaComissao = Number(inputEl.value);
+             <button
+  onClick={async () => {
+    const inputReal = document.getElementById(`comissao-${barbeiro.id}`);
+    const novaComissao = Number(inputReal.value);
 
-                      if (isNaN(novaComissao) || novaComissao < 0 || novaComissao > 100) {
-                        alert('Insira um valor entre 0 e 100.');
-                        return;
-                      }
+    if (isNaN(novaComissao) || novaComissao < 0 || novaComissao > 100) {
+      alert('Insira um valor entre 0 e 100.');
+      return;
+    }
 
-                      const { error } = await supabase
-                        .from('barbeiros')
-                        .update({ comissao_padrao: novaComissao })
-                        .eq('id', barbeiro.id);
+    // Tenta atualizar diretamente pelo ID ou telefone/user_id sem travar na sessão
+    const { data, error } = await supabase
+      .from('barbeiros')
+      .update({ 
+        taxa_comissao: novaComissao, 
+        comissao_padrao: novaComissao 
+      })
+      .eq('id', barbeiro.id)
+      .select();
 
-                      if (error) {
-                        alert('Erro ao atualizar: ' + error.message);
-                      } else {
-                        alert('Comissão atualizada com sucesso!');
-                        
-                        // Atualiza instantaneamente a listagem mantendo o filtro da unidade
-                        const { data: atualizados } = await supabase.from('barbeiros').select('*');
-                        if (atualizados) setBarbeiros(atualizados);
-                      }
-                    }}
-                    className="px-3 py-1.5 bg-emerald-50 border border-emerald-200 text-emerald-600 text-xs font-bold rounded-xl active:scale-95 transition-transform"
-                  >
-                    Salvar
-                  </button>
+    if (error) {
+      console.error('Erro detalhado do Supabase:', error);
+      alert('Erro do Banco: ' + error.message);
+    } else if (!data || data.length === 0) {
+      // Fallback: se o id falhou, tenta atualizar usando o user_id ou slug
+      const { data: data2, error: err2 } = await supabase
+        .from('barbeiros')
+        .update({ 
+          taxa_comissao: novaComissao, 
+          comissao_padrao: novaComissao 
+        })
+        .eq('user_id', barbeiro.user_id || '')
+        .select();
+
+      if (err2 || !data2 || data2.length === 0) {
+        alert('Erro: O banco recusou a atualização. Verifique as políticas de RLS (Row Level Security) da tabela barbeiros no Supabase.');
+      } else {
+        alert('Comissão atualizada com sucesso!');
+        setBarbeiros(prev => prev.map(b => b.user_id === barbeiro.user_id ? { ...b, taxa_comissao: novaComissao, comissao_padrao: novaComissao } : b));
+      }
+    } else {
+      alert('Comissão atualizada com sucesso!');
+      setBarbeiros(prev => prev.map(b => b.id === barbeiro.id ? { ...b, taxa_comissao: novaComissao, comissao_padrao: novaComissao } : b));
+    }
+  }}
+  className="px-3 py-1.5 bg-emerald-50 border border-emerald-200 text-emerald-600 text-xs font-bold rounded-xl active:scale-95 transition-transform"
+>
+  Salvar
+</button>
                 </div>
               </div>
             );
