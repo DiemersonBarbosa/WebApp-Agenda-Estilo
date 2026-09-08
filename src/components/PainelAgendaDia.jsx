@@ -9,6 +9,7 @@ export default function PainelAgendaDia({ profissionalId, taxaComissao = 50, han
   const [carregando, setCarregando] = useState(true);
   const [debugDadosBrutos, setDebugDadosBrutos] = useState([]);
   const [erroFatal, setErroFatal] = useState(null);
+  const [processandoId, setProcessandoId] = useState(null);
   
   const [mostrarOutrosDias, setMostrarOutrosDias] = useState(false);
   const [filtroStatus, setFiltroStatus] = useState('TODOS');
@@ -79,6 +80,7 @@ export default function PainelAgendaDia({ profissionalId, taxaComissao = 50, han
     carregarAgenda();
   }, [profissionalId]);
 
+  // Apenas considera concluído se o status contiver 'conclu'
   const totalAtendimentos = agendamentosHoje.length;
   const concluidos = agendamentosHoje.filter(a => {
     const s = String(a.status || '').toLowerCase();
@@ -86,6 +88,10 @@ export default function PainelAgendaDia({ profissionalId, taxaComissao = 50, han
   }).length;
   
   const faturamentoPrevisto = agendamentosHoje.reduce((acc, item) => {
+    const statusLower = String(item.status || '').toLowerCase();
+    // Opcional: se estiver cancelado, não soma no faturamento do dia
+    if (statusLower.includes('cancelado')) return acc;
+    
     const val = item.valor_total || item.valor || item.preco || item.price || 0;
     return acc + Number(val);
   }, 0);
@@ -106,15 +112,50 @@ export default function PainelAgendaDia({ profissionalId, taxaComissao = 50, han
     return String(dataStr);
   };
 
+  const alterarStatus = async (id, novoStatus) => {
+    try {
+      setProcessandoId(id);
+      if (handleUpdateStatus) {
+        await handleUpdateStatus(id, novoStatus);
+      } else {
+        const { error } = await supabase
+          .from('agendamentos')
+          .update({ status: novoStatus })
+          .eq('id', id);
+
+        if (error) throw error;
+      }
+      await carregarAgenda();
+    } catch (err) {
+      console.error('Erro ao atualizar status:', err);
+      alert('Erro ao atualizar o status. Tente novamente.');
+    } finally {
+      setProcessandoId(null);
+    }
+  };
+
+  const excluirAgendamento = async (id) => {
+    if (!confirm('Deseja realmente excluir este agendamento?')) return;
+
+    try {
+      setProcessandoId(id);
+      const { error } = await supabase
+        .from('agendamentos')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      await carregarAgenda();
+    } catch (err) {
+      console.error('Erro ao excluir:', err);
+      alert('Erro ao excluir o registro.');
+    } finally {
+      setProcessandoId(null);
+    }
+  };
+
   const agendamentosOutrosDias = todosAgendamentos.filter(item => {
     return extrairDataIso(item) !== HOJE_ISO;
-  }).filter(item => {
-    if (filtroStatus === 'TODOS') return true;
-    const statusItem = (item.status || 'PENDENTE').toUpperCase();
-    if (filtroStatus === 'CONCLUIDO') return statusItem.includes('CONCLU');
-    if (filtroStatus === 'PENDENTE') return statusItem.includes('PENDENTE') || statusItem.includes('AGENDADO');
-    if (filtroStatus === 'CANCELADO') return statusItem.includes('CANCELADO');
-    return true;
   });
 
   return (
@@ -173,38 +214,75 @@ export default function PainelAgendaDia({ profissionalId, taxaComissao = 50, han
             </p>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {agendamentosHoje.map((item) => {
               const statusLower = String(item.status || '').toLowerCase();
               const isConcluido = statusLower.includes('concluido');
               const isCancelado = statusLower.includes('cancelado');
+              const emProcesso = processandoId === item.id;
 
               return (
-                <div key={item.id} style={{ padding: '14px', backgroundColor: '#fdfdfd', borderRadius: '10px', border: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
-                  <div style={{ flex: 1 }}>
-                    <strong style={{ fontSize: '14px', color: '#111827', display: 'block', marginBottom: '2px' }}>
-                      {item.cliente_nome || item.nome_cliente || item.cliente || item.nome || 'Cliente'}
-                    </strong>
-                    <div style={{ fontSize: '12px', color: '#4b5563' }}>
-                      {item.servico_nome || item.servico || 'Serviço'} • <span style={{ color: '#6b7280' }}>{formatarDataHora(item)}</span>
+                <div key={item.id} style={{ padding: '14px', backgroundColor: '#fdfdfd', borderRadius: '10px', border: '1px solid #e5e7eb', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div>
+                      <strong style={{ fontSize: '14px', color: '#111827', display: 'block', marginBottom: '2px' }}>
+                        {item.cliente_nome || item.nome_cliente || item.cliente || item.nome || 'Cliente'}
+                      </strong>
+                      <div style={{ fontSize: '12px', color: '#4b5563' }}>
+                        {item.servico_nome || item.servico || 'Serviço'} • <span style={{ color: '#6b7280' }}>{formatarDataHora(item)}</span>
+                      </div>
+                    </div>
+                    
+                    <div style={{ textAlign: 'right' }}>
+                      <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#059669', display: 'block' }}>
+                        R$ {Number(item.valor_total || item.valor || item.preco || 0).toFixed(2)}
+                      </span>
+                      <span style={{ 
+                        fontSize: '10px', 
+                        padding: '3px 8px', 
+                        borderRadius: '6px', 
+                        fontWeight: 'bold',
+                        textTransform: 'uppercase',
+                        backgroundColor: isConcluido ? '#d1fae5' : isCancelado ? '#fee2e2' : '#fef3c7',
+                        color: isConcluido ? '#065f46' : isCancelado ? '#991b1b' : '#92400e',
+                        display: 'inline-block',
+                        marginTop: '4px'
+                      }}>
+                        {item.status || 'AGENDADO'}
+                      </span>
                     </div>
                   </div>
-                  
-                  <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px' }}>
-                    <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#059669' }}>
-                      R$ {Number(item.valor_total || item.valor || item.preco || 0).toFixed(2)}
-                    </span>
-                    <span style={{ 
-                      fontSize: '10px', 
-                      padding: '3px 8px', 
-                      borderRadius: '6px', 
-                      fontWeight: 'bold',
-                      textTransform: 'uppercase',
-                      backgroundColor: isConcluido ? '#d1fae5' : isCancelado ? '#fee2e2' : '#fef3c7',
-                      color: isConcluido ? '#065f46' : isCancelado ? '#991b1b' : '#92400e'
-                    }}>
-                      {item.status || 'AGENDADO'}
-                    </span>
+
+                  {/* BOTÕES DE AÇÃO RÁPIDA */}
+                  <div style={{ display: 'flex', gap: '8px', paddingTop: '8px', borderTop: '1px solid #f3f4f6' }}>
+                    {!isConcluido && (
+                      <button
+                        disabled={emProcesso}
+                        onClick={() => alterarStatus(item.id, 'concluido')}
+                        style={{ flex: 1, padding: '6px 10px', backgroundColor: '#059669', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer', opacity: emProcesso ? 0.7 : 1 }}
+                      >
+                        {emProcesso ? 'Salvando...' : 'Concluir'}
+                      </button>
+                    )}
+
+                    {!isCancelado && (
+                      <button
+                        disabled={emProcesso}
+                        onClick={() => alterarStatus(item.id, 'cancelado')}
+                        style={{ flex: 1, padding: '6px 10px', backgroundColor: '#d97706', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer', opacity: emProcesso ? 0.7 : 1 }}
+                      >
+                        {emProcesso ? 'Salvando...' : 'Cancelar'}
+                      </button>
+                    )}
+
+                    <button
+                      disabled={emProcesso}
+                      onClick={() => excluirAgendamento(item.id)}
+                      style={{ padding: '6px 10px', backgroundColor: '#fee2e2', color: '#991b1b', border: '1px solid #fecaca', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer', opacity: emProcesso ? 0.7 : 1 }}
+                      title="Excluir Agendamento"
+                    >
+                      Excluir
+                    </button>
                   </div>
                 </div>
               );
@@ -218,7 +296,7 @@ export default function PainelAgendaDia({ profissionalId, taxaComissao = 50, han
         onClick={() => setMostrarOutrosDias(!mostrarOutrosDias)}
         style={{ width: '100%', padding: '12px', backgroundColor: '#fff', border: '1px solid #d1d5db', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', color: '#374151', fontSize: '13px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
       >
-        {mostrarOutrosDias ? 'Ocultar Histórico / Outros Dias' : `Ver Histórico / Outros Dias (${todosAgendamentos.length - agendamentosHoje.length})`}
+        {mostrarOutrosDias ? 'Ocultar Histórico / Outros Dias' : `Ver Histórico / Outros Dias (${agendamentosOutrosDias.length})`}
       </button>
 
       {mostrarOutrosDias && (
@@ -229,22 +307,34 @@ export default function PainelAgendaDia({ profissionalId, taxaComissao = 50, han
             <p style={{ fontSize: '13px', color: '#6b7280', textAlign: 'center', padding: '16px 0' }}>Nenhum outro registro encontrado.</p>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {agendamentosOutrosDias.map((item) => (
-                <div key={item.id} style={{ padding: '12px', backgroundColor: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '13px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div>
-                    <strong style={{ color: '#111827', display: 'block' }}>{item.cliente_nome || item.cliente || 'Cliente'}</strong>
-                    <span style={{ fontSize: '11px', color: '#6b7280' }}>{formatarDataHora(item)}</span>
+              {agendamentosOutrosDias.map((item) => {
+                const emProcesso = processandoId === item.id;
+                return (
+                  <div key={item.id} style={{ padding: '12px', backgroundColor: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '13px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <strong style={{ color: '#111827', display: 'block' }}>{item.cliente_nome || item.cliente || 'Cliente'}</strong>
+                      <span style={{ fontSize: '11px', color: '#6b7280' }}>{formatarDataHora(item)}</span>
+                    </div>
+                    <div style={{ textAlign: 'right', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <div>
+                        <span style={{ fontWeight: 'bold', color: '#059669', display: 'block', fontSize: '14px' }}>
+                          R$ {Number(item.valor_total || item.valor || 0).toFixed(2)}
+                        </span>
+                        <span style={{ fontSize: '10px', color: '#4b5563', textTransform: 'uppercase' }}>
+                          {item.status || 'AGENDADO'}
+                        </span>
+                      </div>
+                      <button
+                        disabled={emProcesso}
+                        onClick={() => excluirAgendamento(item.id)}
+                        style={{ padding: '4px 8px', backgroundColor: '#fee2e2', color: '#991b1b', border: '1px solid #fecaca', borderRadius: '6px', fontSize: '10px', fontWeight: 'bold', cursor: 'pointer' }}
+                      >
+                        Excluir
+                      </button>
+                    </div>
                   </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <span style={{ fontWeight: 'bold', color: '#059669', display: 'block', fontSize: '14px' }}>
-                      R$ {Number(item.valor_total || item.valor || 0).toFixed(2)}
-                    </span>
-                    <span style={{ fontSize: '10px', color: '#4b5563', textTransform: 'uppercase' }}>
-                      {item.status || 'AGENDADO'}
-                    </span>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
