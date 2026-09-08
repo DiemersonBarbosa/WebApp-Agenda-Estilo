@@ -13,8 +13,14 @@ export default function PainelAgendaDia({ profissionalId, taxaComissao = 50, han
   const [mostrarOutrosDias, setMostrarOutrosDias] = useState(false);
   const [filtroStatus, setFiltroStatus] = useState('TODOS');
 
-  // Pega a data atual de forma dinâmica (ou mantém o fallback se preferir testar)
-  const HOJE_ISO = new Date().toISOString().split('T')[0];
+  // Correção aplicada: Data atual baseada rigorosamente no fuso do Brasil (America/Sao_Paulo)
+  const formatadorDataBr = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  });
+  const HOJE_ISO = formatadorDataBr.format(new Date());
 
   const extrairDataIso = (item) => {
     if (!item) return '';
@@ -96,7 +102,6 @@ export default function PainelAgendaDia({ profissionalId, taxaComissao = 50, han
   const formatarDataHora = (item) => {
     const dataStr = item.data_hora || item.horario || item.data || item.created_at || '';
     if (!dataStr) return '';
-    // Se vier no formato ISO, tenta formatar para PT-BR bonito
     try {
       const dataObj = new Date(dataStr);
       if (!isNaN(dataObj.getTime())) {
