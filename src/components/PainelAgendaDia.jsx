@@ -163,7 +163,7 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
     .reduce((acc, item) => acc + Number(item.valor_total || item.servicos?.preco || 0), 0);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
       
       {/* ERRO FATAL */}
       {erroFatal && (
@@ -174,56 +174,58 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
         </div>
       )}
 
-      {/* CARDS DE RESUMO E PROJEÇÃO DE HOJE */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Agendamentos Hoje</p>
-            <h3 className="text-2xl font-bold text-gray-900 mt-1">{totalAtendimentosHoje}</h3>
-          </div>
-          <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-          </div>
-        </div>
-
-        <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Concluídos</p>
-            <h3 className="text-2xl font-bold text-emerald-600 mt-1">{concluidosHoje} / {totalAtendimentosHoje}</h3>
-          </div>
-          <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
+      {/* CARDS DE RESUMO E PROJEÇÃO DE HOJE (3 na mesma linha no mobile e desktop) */}
+      <div className="grid grid-cols-3 gap-2 sm:gap-4">
+        
+        <div className="bg-white p-3 sm:p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between">
+          <span className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-gray-400 truncate">Agendamentos</span>
+          <div className="flex items-baseline justify-between mt-1">
+            <h3 className="text-base sm:text-2xl font-bold text-gray-900">{totalAtendimentosHoje}</h3>
+            <div className="p-1.5 sm:p-3 bg-indigo-50 text-indigo-600 rounded-xl flex-shrink-0">
+              <svg className="w-3.5 h-3.5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            </div>
           </div>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Projeção / Faturamento Hoje</p>
-            <h3 className="text-2xl font-bold text-gray-900 mt-1">R$ {valorTotalHoje.toFixed(2)}</h3>
-          </div>
-          <div className="p-3 bg-amber-50 text-amber-600 rounded-xl">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
+        <div className="bg-white p-3 sm:p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between">
+          <span className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-gray-400 truncate">Concluídos</span>
+          <div className="flex items-baseline justify-between mt-1">
+            <h3 className="text-base sm:text-2xl font-bold text-emerald-600">{concluidosHoje}/{totalAtendimentosHoje}</h3>
+            <div className="p-1.5 sm:p-3 bg-emerald-50 text-emerald-600 rounded-xl flex-shrink-0">
+              <svg className="w-3.5 h-3.5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
           </div>
         </div>
+
+        <div className="bg-white p-3 sm:p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between">
+          <span className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-gray-400 truncate">Projeção</span>
+          <div className="flex items-baseline justify-between mt-1">
+            <h3 className="text-xs sm:text-2xl font-bold text-gray-900 truncate">R$ {valorTotalHoje.toFixed(0)}</h3>
+            <div className="p-1.5 sm:p-3 bg-amber-50 text-amber-600 rounded-xl flex-shrink-0">
+              <svg className="w-3.5 h-3.5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+          </div>
+        </div>
+
       </div>
 
       {/* SEÇÃO: ATENDIMENTOS DE HOJE */}
-      <div className="bg-white shadow-lg rounded-2xl p-5 sm:p-6 border border-gray-100">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-4 border-b border-gray-100 gap-2">
-          <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-            <span className="w-3 h-3 bg-indigo-600 rounded-full animate-pulse"></span>
+      <div className="bg-white shadow-lg rounded-2xl p-4 sm:p-6 border border-gray-100">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-3 border-b border-gray-100 gap-2">
+          <h2 className="text-lg sm:text-xl font-bold text-gray-800 flex items-center gap-2">
+            <span className="w-2.5 h-2.5 bg-indigo-600 rounded-full animate-pulse"></span>
             Atendimentos de Hoje
-            <span className="text-sm font-normal text-gray-500 bg-gray-100 px-2.5 py-0.5 rounded-full">
+            <span className="text-xs sm:text-sm font-normal text-gray-500 bg-gray-100 px-2.5 py-0.5 rounded-full">
               {agendamentosHoje.length}
             </span>
           </h2>
-          <span className="text-sm font-medium text-gray-500 bg-indigo-50 text-indigo-700 px-3 py-1 rounded-lg self-start sm:self-auto">
+          <span className="text-xs sm:text-sm font-medium text-indigo-700 bg-indigo-50 px-3 py-1 rounded-lg self-start sm:self-auto">
             {new Date().toLocaleDateString('pt-BR')}
           </span>
         </div>
@@ -334,7 +336,7 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
 
       {/* SEÇÃO: HISTÓRICO / OUTROS DIAS */}
       {mostrarOutrosDias && (
-        <div className="bg-white shadow-lg rounded-2xl p-5 sm:p-6 border border-gray-100 transition-all">
+        <div className="bg-white shadow-lg rounded-2xl p-4 sm:p-6 border border-gray-100 transition-all">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-4 border-b border-gray-100 gap-4">
             <h2 className="text-lg font-bold text-gray-800">
               Histórico e Outros Registros

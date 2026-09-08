@@ -39,6 +39,12 @@ import ConfiguracoesBarbearia from '@/components/ConfiguracoesBarbearia';
 import PainelAgendaDia from '@/components/PainelAgendaDia';
 
 
+import { Transition } from '@headlessui/react';
+import { Fragment } from 'react';
+
+import { motion, AnimatePresence } from 'framer-motion';
+
+
 
  async function criarAcessoBarbeiro(barbeiroId, emailBarbeiro, senhaTemporaria) {
   try {
@@ -639,34 +645,21 @@ export default function AdminDashboard() {
 {/* =========================================================
        NOVO CABEÇALHO MOBILE CLEAN COM BOTÃO HAMBURGUER
        ========================================================= */}
-    <header className="md:hidden bg-white border-b border-stone-200 sticky top-0 z-40 px-4 py-3 flex items-center justify-between shadow-xs">
-      <div className="flex items-center space-x-3">
-       
-        <div className="flex items-center space-x-2">
-          <div className="w-8 h-8 bg-stone-900 text-white rounded-xl flex items-center justify-center font-bold text-xs">
-            {barbearia?.nome?.charAt(0) || 'B'}
-          </div>
-          <span className="text-xs font-bold text-stone-900 truncate max-w-[150px]">
-            {barbearia?.nome || 'Painel Gestor'}
-          </span>
-        </div>
+   <header className="w-full bg-white border-b border-gray-100 px-4 py-3 sticky top-0 z-30">
+  <div className="max-w-7xl mx-auto flex items-center justify-between">
+    
+    {/* Apenas Logo/Avatar + Nome da Barbearia */}
+    <div className="flex items-center gap-3 min-w-0">
+      <div className="w-9 h-9 bg-gray-900 text-white rounded-xl flex items-center justify-center font-bold text-base shadow-sm flex-shrink-0">
+        B
       </div>
+      <h1 className="font-bold text-gray-900 text-base truncate">
+        Barbearia Barbosa
+      </h1>
+    </div>
 
-      <button 
-        onClick={() => setActiveTab('configuracoes')}
-        className="flex items-center space-x-1.5 p-1.5 pr-3 rounded-xl bg-stone-50 hover:bg-stone-100 border border-stone-200 text-xs font-bold text-stone-700 cursor-pointer"
-      >
-        <Settings className="w-4 h-4 text-stone-500" />
-        <span>Perfil</span>
-      </button>
-    </header>
-
-
-{/* CABEÇALHO MOBILE CLEAN */}
-    <header className="md:hidden bg-white border-b border-stone-200 sticky top-0 z-40 px-4 py-3 flex items-center justify-between shadow-xs">
-      {/* ... conteúdo do header ... */}
-    </header>
-
+  </div>
+</header>
 
 
 
@@ -860,136 +853,187 @@ export default function AdminDashboard() {
     </main>
 
 
-    {/* =========================================================
-   MODAL MOBILE DE BAIXO PARA CIMA (FLUIDO E COMPACTO)
-   ========================================================= */}
-{mobileMenuOpen && (
-  <div className="fixed inset-0 z-50 flex md:hidden items-end">
-    
-    {/* Backdrop com fade-in */}
-    <div 
-      onClick={() => setMobileMenuOpen(false)}
-      className="fixed inset-0 bg-stone-900/60 backdrop-blur-xs transition-opacity duration-300 ease-out"
-    />
-
-    {/* Conteúdo do Modal (Com animação de subida e botões mais compactos) */}
-    <div className="relative w-full bg-white rounded-t-3xl p-4 shadow-2xl z-10 max-h-[70vh] overflow-y-auto space-y-3 border-t border-stone-200 transform transition-all duration-300 ease-out animate-in slide-in-from-bottom">
+{/* =========================================================
+    MODAL BALÃO COMPLETO COM BICO LARGO E BORDA INTEGRADA
+    ========================================================= */}
+<AnimatePresence>
+  {mobileMenuOpen && (
+    <div className="fixed inset-0 z-50 flex md:hidden items-end justify-center pb-24 px-4">
       
-      {/* Puxador visual superior */}
-      <div className="w-10 h-1 bg-stone-300 rounded-full mx-auto mb-1" />
+      {/* Backdrop com fade-in */}
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.2 }}
+        onClick={() => setMobileMenuOpen(false)}
+        className="fixed inset-0 bg-stone-900/60 backdrop-blur-xs"
+      />
 
-      {/* Cabeçalho compacto */}
-      <div className="flex items-center justify-between pb-2 border-b border-stone-100">
-        <div>
-          <h3 className="text-xs font-extrabold text-stone-900">Menu de Acesso Rápido</h3>
-          <p className="text-[10px] text-stone-500">Selecione uma opção</p>
-        </div>
-        <button 
-          onClick={() => setMobileMenuOpen(false)}
-          className="w-7 h-7 rounded-full bg-stone-100 text-stone-500 flex items-center justify-center font-bold text-xs hover:bg-stone-200 transition-colors"
-        >
-          ✕
-        </button>
-      </div>
-
-      {/* Grade de Botões Mais Compactos (Menores) */}
-      <div className="grid grid-cols-2 gap-2 pt-0.5">
+      {/* Conteúdo do Modal (Balão) */}
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.5, y: 30 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.5, y: 30 }}
+        transition={{ type: "spring", damping: 22, stiffness: 320 }}
+        style={{ transformOrigin: '50% 100%' }}
+        className="relative w-full max-w-sm bg-white rounded-3xl p-5 shadow-2xl z-10 border border-stone-200"
+      >
         
-        {/* 1. Visão Geral */}
-        <button 
-          onClick={() => { setActiveTab('visao-geral'); setMobileMenuOpen(false); }}
-          className="flex items-center space-x-3 p-3 bg-stone-50 hover:bg-stone-900 hover:text-white text-stone-800 rounded-xl border border-stone-200/80 transition-all group active:scale-95"
-        >
-          <div className="p-2 bg-white group-hover:bg-stone-800 rounded-lg shadow-xs text-stone-900 group-hover:text-white transition-colors shrink-0">
-            <TrendingUp className="w-4 h-4" />
+        {/* Cabeçalho compacto */}
+        <div className="flex items-center justify-between pb-3 border-b border-stone-100">
+          <div>
+            <h3 className="text-xs font-extrabold text-stone-900">Menu de Acesso Rápido</h3>
+            <p className="text-[10px] text-stone-500">Selecione uma opção</p>
           </div>
-          <span className="text-xs font-bold text-left leading-tight">Visão Geral</span>
-        </button>
+          <button 
+            onClick={() => { setMobileMenuOpen(false); }}
+            className="w-7 h-7 rounded-full bg-stone-100 text-stone-500 flex items-center justify-center font-bold text-xs hover:bg-stone-200 transition-colors"
+          >
+            ✕
+          </button>
+        </div>
 
-        {/* 2. Agendamentos */}
-        <button 
-          onClick={() => { setActiveTab('agendamentos'); setMobileMenuOpen(false); }}
-          className="flex items-center space-x-3 p-3 bg-stone-50 hover:bg-stone-900 hover:text-white text-stone-800 rounded-xl border border-stone-200/80 transition-all group active:scale-95"
-        >
-          <div className="p-2 bg-white group-hover:bg-stone-800 rounded-lg shadow-xs text-stone-900 group-hover:text-white transition-colors shrink-0">
-            <Calendar className="w-4 h-4" />
+        {/* Grade de Botões com Scroll interno */}
+        <div className="max-h-[60vh] overflow-y-auto space-y-4 pt-3 pr-1">
+          <div className="grid grid-cols-2 gap-2.5">
+            
+            {/* 1. Visão Geral */}
+            <button 
+              onClick={() => { setActiveTab('visao-geral'); setMobileMenuOpen(false); }}
+              className={`flex items-center space-x-2 p-3 rounded-xl border transition-all group active:scale-95 ${
+                activeTab === 'visao-geral'
+                  ? 'bg-stone-900 text-white border-stone-900 shadow-sm'
+                  : 'bg-stone-50 hover:bg-stone-900 hover:text-white text-stone-800 border-stone-200/80'
+              }`}
+            >
+              <div className={`p-2 rounded-lg shadow-xs transition-colors shrink-0 ${
+                activeTab === 'visao-geral' ? 'bg-stone-800 text-white' : 'bg-white group-hover:bg-stone-800 text-stone-900 group-hover:text-white'
+              }`}>
+                <TrendingUp className="w-4 h-4" />
+              </div>
+              <span className="text-[11px] font-bold text-left leading-tight truncate">Visão Geral</span>
+            </button>
+
+            {/* 2. Agendamentos */}
+            <button 
+              onClick={() => { setActiveTab('agendamentos'); setMobileMenuOpen(false); }}
+              className={`flex items-center space-x-2 p-3 rounded-xl border transition-all group active:scale-95 ${
+                activeTab === 'agendamentos'
+                  ? 'bg-stone-900 text-white border-stone-900 shadow-sm'
+                  : 'bg-stone-50 hover:bg-stone-900 hover:text-white text-stone-800 border-stone-200/80'
+              }`}
+            >
+              <div className={`p-2 rounded-lg shadow-xs transition-colors shrink-0 ${
+                activeTab === 'agendamentos' ? 'bg-stone-800 text-white' : 'bg-white group-hover:bg-stone-800 text-stone-900 group-hover:text-white'
+              }`}>
+                <Calendar className="w-4 h-4" />
+              </div>
+              <span className="text-[11px] font-bold text-left leading-tight truncate">Agendamentos</span>
+            </button>
+
+            {/* 3. Clientes */}
+            <button 
+              onClick={() => { setActiveTab('clientes'); setMobileMenuOpen(false); }}
+              className={`flex items-center space-x-2 p-3 rounded-xl border transition-all group active:scale-95 ${
+                activeTab === 'clientes'
+                  ? 'bg-stone-900 text-white border-stone-900 shadow-sm'
+                  : 'bg-stone-50 hover:bg-stone-900 hover:text-white text-stone-800 border-stone-200/80'
+              }`}
+            >
+              <div className={`p-2 rounded-lg shadow-xs transition-colors shrink-0 ${
+                activeTab === 'clientes' ? 'bg-stone-800 text-white' : 'bg-white group-hover:bg-stone-800 text-stone-900 group-hover:text-white'
+              }`}>
+                <Users className="w-4 h-4" />
+              </div>
+              <span className="text-[11px] font-bold text-left leading-tight truncate">Clientes</span>
+            </button>
+
+            {/* 4. Financeiro */}
+            <button 
+              onClick={() => { setActiveTab('financeiro'); setMobileMenuOpen(false); }}
+              className={`flex items-center space-x-2 p-3 rounded-xl border transition-all group active:scale-95 ${
+                activeTab === 'financeiro'
+                  ? 'bg-stone-900 text-white border-stone-900 shadow-sm'
+                  : 'bg-stone-50 hover:bg-stone-900 hover:text-white text-stone-800 border-stone-200/80'
+              }`}
+            >
+              <div className={`p-2 rounded-lg shadow-xs transition-colors shrink-0 ${
+                activeTab === 'financeiro' ? 'bg-stone-800 text-white' : 'bg-white group-hover:bg-stone-800 text-stone-900 group-hover:text-white'
+              }`}>
+                <DollarSign className="w-4 h-4" />
+              </div>
+              <span className="text-[11px] font-bold text-left leading-tight truncate">Financeiro</span>
+            </button>
+
+            {/* 5. Serviços e Equipe */}
+            <button 
+              onClick={() => { setActiveTab('servicos'); setMobileMenuOpen(false); }}
+              className={`flex items-center space-x-2 p-3 rounded-xl border transition-all group active:scale-95 ${
+                activeTab === 'servicos'
+                  ? 'bg-stone-900 text-white border-stone-900 shadow-sm'
+                  : 'bg-stone-50 hover:bg-stone-900 hover:text-white text-stone-800 border-stone-200/80'
+              }`}
+            >
+              <div className={`p-2 rounded-lg shadow-xs transition-colors shrink-0 ${
+                activeTab === 'servicos' ? 'bg-stone-800 text-white' : 'bg-white group-hover:bg-stone-800 text-stone-900 group-hover:text-white'
+              }`}>
+                <Scissors className="w-4 h-4" />
+              </div>
+              <span className="text-[11px] font-bold text-left leading-tight truncate">Equipe & Serviços</span>
+            </button>
+
+            {/* 6. Comissões */}
+            <button 
+              onClick={() => { setActiveTab('comissoes'); setMobileMenuOpen(false); }}
+              className={`flex items-center space-x-2 p-3 rounded-xl border transition-all group active:scale-95 ${
+                activeTab === 'comissoes'
+                  ? 'bg-stone-900 text-white border-stone-900 shadow-sm'
+                  : 'bg-stone-50 hover:bg-stone-900 hover:text-white text-stone-800 border-stone-200/80'
+              }`}
+            >
+              <div className={`p-2 rounded-lg shadow-xs transition-colors shrink-0 ${
+                activeTab === 'comissoes' ? 'bg-stone-800 text-white' : 'bg-white group-hover:bg-stone-800 text-stone-900 group-hover:text-white'
+              }`}>
+                <Percent className="w-4 h-4" />
+              </div>
+              <span className="text-[11px] font-bold text-left leading-tight truncate">Comissões</span>
+            </button>
+
+            {/* 7. Configurações (Ajustado para ocupar apenas 1 coluna igual aos outros) */}
+            <button 
+              onClick={() => { setActiveTab('configuracoes'); setMobileMenuOpen(false); }}
+              className={`flex items-center space-x-2 p-3 rounded-xl border transition-all group active:scale-95 col-span-1 ${
+                activeTab === 'configuracoes'
+                  ? 'bg-stone-900 text-white border-stone-900 shadow-sm'
+                  : 'bg-stone-50 hover:bg-stone-900 hover:text-white text-stone-800 border-stone-200/80'
+              }`}
+            >
+              <div className={`p-2 rounded-lg shadow-xs transition-colors shrink-0 ${
+                activeTab === 'configuracoes' ? 'bg-stone-800 text-white' : 'bg-white group-hover:bg-stone-800 text-stone-900 group-hover:text-white'
+              }`}>
+                <Settings className="w-4 h-4" />
+              </div>
+              <span className="text-[11px] font-bold text-left leading-tight truncate">Configurações</span>
+            </button>
+
           </div>
-          <span className="text-xs font-bold text-left leading-tight">Agendamentos</span>
-        </button>
+        </div>
 
-        {/* 3. Clientes */}
-        <button 
-          onClick={() => { setActiveTab('clientes'); setMobileMenuOpen(false); }}
-          className="flex items-center space-x-3 p-3 bg-stone-50 hover:bg-stone-900 hover:text-white text-stone-800 rounded-xl border border-stone-200/80 transition-all group active:scale-95"
-        >
-          <div className="p-2 bg-white group-hover:bg-stone-800 rounded-lg shadow-xs text-stone-900 group-hover:text-white transition-colors shrink-0">
-            <Users className="w-4 h-4" />
-          </div>
-          <span className="text-xs font-bold text-left leading-tight">Clientes</span>
-        </button>
+        {/* =========================================================
+            BICO LARGO COM BORDA ENVOLVENTE INTEGRADA (SVG)
+            ========================================================= */}
+        <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 w-36 h-7 z-20 pointer-events-none">
+          <svg viewBox="0 0 100 24" className="w-full h-full drop-shadow-md fill-white stroke-stone-200" strokeWidth="2" preserveAspectRatio="none">
+            <path d="M 5,0 C 35,0 42,22 50,24 C 58,22 65,0 95,0" />
+          </svg>
+        </div>
 
-        {/* 4. Financeiro */}
-        <button 
-          onClick={() => { setActiveTab('financeiro'); setMobileMenuOpen(false); }}
-          className="flex items-center space-x-3 p-3 bg-stone-50 hover:bg-stone-900 hover:text-white text-stone-800 rounded-xl border border-stone-200/80 transition-all group active:scale-95"
-        >
-          <div className="p-2 bg-white group-hover:bg-stone-800 rounded-lg shadow-xs text-stone-900 group-hover:text-white transition-colors shrink-0">
-            <DollarSign className="w-4 h-4" />
-          </div>
-          <span className="text-xs font-bold text-left leading-tight">Financeiro</span>
-        </button>
-
-        {/* 5. Serviços e Equipe */}
-        <button 
-          onClick={() => { setActiveTab('servicos'); setMobileMenuOpen(false); }}
-          className="flex items-center space-x-3 p-3 bg-stone-50 hover:bg-stone-900 hover:text-white text-stone-800 rounded-xl border border-stone-200/80 transition-all group active:scale-95"
-        >
-          <div className="p-2 bg-white group-hover:bg-stone-800 rounded-lg shadow-xs text-stone-900 group-hover:text-white transition-colors shrink-0">
-            <Scissors className="w-4 h-4" />
-          </div>
-          <span className="text-xs font-bold text-left leading-tight">Equipe & Serviços</span>
-        </button>
-
-
-<button
-  onClick={() => { setActiveTab('comissoes'); setMobileMenuOpen(false); }}
-  className={`flex items-center space-x-3 w-full p-3 rounded-2xl transition-all ${
-    activeTab === 'comissoes'
-      ? 'bg-stone-900 text-white shadow-sm'
-      : 'bg-stone-50 hover:bg-stone-100 text-stone-700'
-  }`}
->
-  <div className={`p-2 rounded-lg shadow-xs transition-colors ${
-    activeTab === 'comissoes' ? 'bg-stone-800 text-white' : 'bg-white text-stone-700'
-  }`}>
-    <Percent className="w-4 h-4" />
-  </div>
-  <span className="text-xs font-bold text-left leading-tight">Comissões</span>
-</button>
-
-
-
-
-
-        {/* 6. Configurações */}
-        <button 
-          onClick={() => { setActiveTab('configuracoes'); setMobileMenuOpen(false); }}
-          className="flex items-center space-x-3 p-3 bg-stone-50 hover:bg-stone-900 hover:text-white text-stone-800 rounded-xl border border-stone-200/80 transition-all group active:scale-95"
-        >
-          <div className="p-2 bg-white group-hover:bg-stone-800 rounded-lg shadow-xs text-stone-900 group-hover:text-white transition-colors shrink-0">
-            <Settings className="w-4 h-4" />
-          </div>
-          <span className="text-xs font-bold text-left leading-tight">Configurações</span>
-        </button>
-
-      </div>
+      </motion.div>
 
     </div>
-
-  </div>
-)}
-
-
+  )}
+</AnimatePresence>
 {/* TELA DE BLOQUEIO / PAYWALL CASO O TESTE TENHA EXPIRADO */}
 {assinaturaExpirada && !loading && modalAssinaturaOpen && (
   <div className="fixed inset-0 bg-stone-950/95 backdrop-blur-md z-50 overflow-y-auto pointer-events-auto">
@@ -1184,7 +1228,7 @@ export default function AdminDashboard() {
 
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
             
-
+{activeTab === 'configuracoes' && (
             <div className="flex items-center gap-2">
               <a
                 href={`/agendar/${barbearia?.slug}`}
@@ -1194,7 +1238,7 @@ export default function AdminDashboard() {
               >
                 Link do Cliente ↗
               </a>
-            </div>
+            </div>)}
           </div>
 
           {errorMessage && (
