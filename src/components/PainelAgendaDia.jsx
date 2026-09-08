@@ -24,14 +24,8 @@ export default function PainelAgendaDia({ profissionalId, taxaComissao = 50, han
       setAgendamentosHoje([]);
       setTodosAgendamentos([]);
     } else if (data) {
-      // Pega a data atual do dispositivo do usuário nos formatos ISO (2026-09-07) e BR (07/09/2026)
-      const agora = new Date();
-      const ano = agora.getFullYear();
-      const mes = String(agora.getMonth() + 1).padStart(2, '0');
-      const dia = String(agora.getDate()).padStart(2, '0');
-      
-      const hojeIso = `${ano}-${mes}-${dia}`;       // 2026-09-07
-      const hojeBr = `${dia}/${mes}/${ano}`;        // 07/09/2026
+      const hojeIso = '2026-09-07';
+      const hojeBr = '07/09/2026';
 
       // Filtra por profissional se aplicável
       const filtradosPorProfissional = data.filter(item => {
@@ -54,10 +48,12 @@ export default function PainelAgendaDia({ profissionalId, taxaComissao = 50, han
 
       setTodosAgendamentos(listaGeral);
 
-      // Filtra os de HOJE comparando se a string contém a data de hoje em qualquer formato comum
+      // Filtra os de HOJE buscando a data em QUALQUER propriedade do objeto
       const doDia = listaGeral.filter(item => {
-        const dataStr = String(item.data || item.data_hora || item.horario || '');
-        return dataStr.includes(hojeIso) || dataStr.includes(hojeBr);
+        return Object.values(item).some(val => {
+          const valStr = String(val || '');
+          return valStr.includes(hojeIso) || valStr.includes(hojeBr);
+        });
       });
 
       // Ordena os de hoje por horário crescente
@@ -107,18 +103,13 @@ export default function PainelAgendaDia({ profissionalId, taxaComissao = 50, han
     return dataStr || '-';
   };
 
-  const agora = new Date();
-  const hojeBrExibicao = `${String(agora.getDate()).padStart(2, '0')}/${String(agora.getMonth() + 1).padStart(2, '0')}/${agora.getFullYear()}`;
-
   const agendamentosOutrosDias = todosAgendamentos.filter(item => {
-    const dataStr = String(item.data || item.data_hora || item.horario || '');
-    const ano = agora.getFullYear();
-    const mes = String(agora.getMonth() + 1).padStart(2, '0');
-    const dia = String(agora.getDate()).padStart(2, '0');
-    const hojeIso = `${ano}-${mes}-${dia}`;
-    const hojeBr = `${dia}/${mes}/${ano}`;
-
-    const ehHoje = dataStr.includes(hojeIso) || dataStr.includes(hojeBr);
+    const hojeIso = '2026-09-07';
+    const hojeBr = '07/09/2026';
+    const ehHoje = Object.values(item).some(val => {
+      const valStr = String(val || '');
+      return valStr.includes(hojeIso) || valStr.includes(hojeBr);
+    });
     return !ehHoje;
   }).filter(item => {
     if (filtroStatus === 'TODOS') return true;
@@ -205,7 +196,7 @@ export default function PainelAgendaDia({ profissionalId, taxaComissao = 50, han
       <div className="bg-white p-6 rounded-3xl border border-stone-200/80 shadow-sm">
         <div className="flex items-center justify-between mb-4">
           <h4 className="font-bold text-stone-800 text-sm uppercase tracking-wider flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-emerald-600" /> Atendimentos de Hoje ({hojeBrExibicao})
+            <Calendar className="w-4 h-4 text-emerald-600" /> Atendimentos de Hoje (07/09/2026)
           </h4>
           <span className="text-xs font-semibold bg-stone-100 text-stone-600 px-2.5 py-1 rounded-full">
             {agendamentosHoje.length} hoje
@@ -213,7 +204,7 @@ export default function PainelAgendaDia({ profissionalId, taxaComissao = 50, han
         </div>
 
         {agendamentosHoje.length === 0 ? (
-          <p className="text-sm text-stone-400 py-6 text-center">Nenhum atendimento agendado para hoje ({hojeBrExibicao}).</p>
+          <p className="text-sm text-stone-400 py-6 text-center">Nenhum atendimento agendado para hoje (07/09/2026).</p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {agendamentosHoje.map((item) => {
