@@ -2,8 +2,20 @@
 
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { 
+  FiRefreshCw, 
+  FiCheckCircle, 
+  FiEdit2, 
+  FiTrash2, 
+  FiSearch, 
+  FiCalendar, 
+  FiDollarSign, 
+  FiUsers, 
+  FiActivity,
+  FiClock
+} from 'react-icons/fi';
 
-export default function PainelAgendaDia({ barbeariaId, profissionalId, taxaComissao = 50, handleUpdateStatus }) {
+export default function PainelAgendaDia({ barbeariaId, profissionalId, taxaComissao = 50, onEditarAgendamento }) {
   const [agendamentosHoje, setAgendamentosHoje] = useState([]);
   const [todosAgendamentos, setTodosAgendamentos] = useState([]);
   const [carregando, setCarregando] = useState(true);
@@ -12,7 +24,7 @@ export default function PainelAgendaDia({ barbeariaId, profissionalId, taxaComis
   const [mostrarOutrosDias, setMostrarOutrosDias] = useState(false);
   const [termoBusca, setTermoBusca] = useState('');
 
-  // Data atual baseada rigorosamente no fuso do Brasil (America/Sao_Paulo)
+  // Data atual baseada no fuso do Brasil (America/Sao_Paulo)
   const formatadorDataBr = new Intl.DateTimeFormat('en-CA', {
     timeZone: 'America/Sao_Paulo',
     year: 'numeric',
@@ -44,7 +56,6 @@ export default function PainelAgendaDia({ barbeariaId, profissionalId, taxaComis
       setCarregando(true);
       setErroFatal(null);
 
-      // Consulta protegida focando na coluna de barbearia ou barbeiro existente
       let query = supabase.from('agendamentos').select('*');
 
       if (barbeariaId) {
@@ -62,7 +73,6 @@ export default function PainelAgendaDia({ barbeariaId, profissionalId, taxaComis
         setTodosAgendamentos([]);
       } else if (data) {
         setTodosAgendamentos(data);
-
         const doDia = data.filter(item => extrairDataIso(item) === HOJE_ISO);
         setAgendamentosHoje(doDia);
       }
@@ -77,6 +87,42 @@ export default function PainelAgendaDia({ barbeariaId, profissionalId, taxaComis
   useEffect(() => {
     carregarAgenda();
   }, [profissionalId, barbeariaId]);
+
+  // Funções de Ação (Concluir, Excluir)
+  const alterarStatus = async functioN(id, novoStatus) {
+    try {
+      const { error } = await supabase
+        .from('agendamentos')
+        .update({ status: novoStatus })
+        .eq('id', id);
+
+      if (error) {
+        alert('Erro ao atualizar status: ' + error.message);
+      } else {
+        carregarAgenda();
+      }
+    } catch (err) {
+      console.error('Erro:', err);
+    }
+  };
+
+  const excluirAgendamento = async (id) => {
+    if (!window.confirm('Deseja realmente excluir este agendamento?')) return;
+    try {
+      const { error } = await supabase
+        .from('agendamentos')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        alert('Erro ao excluir: ' + error.message);
+      } else {
+        carregarAgenda();
+      }
+    } catch (err) {
+      console.error('Erro:', err);
+    }
+  };
 
   const totalAtendimentos = agendamentosHoje.length;
   const concluidos = agendamentosHoje.filter(a => {
@@ -99,9 +145,7 @@ export default function PainelAgendaDia({ barbeariaId, profissionalId, taxaComis
       if (!isNaN(dataObj.getTime())) {
         return dataObj.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) + ' às ' + dataObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
       }
-    } catch (e) {
-      // fallback
-    }
+    } catch (e) {}
     return String(dataStr);
   };
 
@@ -119,15 +163,17 @@ export default function PainelAgendaDia({ barbeariaId, profissionalId, taxaComis
 
   return (
     <div style={{ padding: '16px', fontFamily: 'sans-serif', backgroundColor: '#f9fafb', borderRadius: '16px', border: '1px solid #e5e7eb' }}>
+      
+      {/* CABEÇALHO DO PAINEL */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-        <h2 style={{ fontSize: '18px', fontWeight: 'bold', margin: '0', color: '#111827' }}>
-          Painel da Agenda de Hoje
+        <h2 style={{ fontSize: '18px', fontWeight: 'bold', margin: '0', color: '#111827', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <FiCalendar color="#059669" /> Painel da Agenda de Hoje
         </h2>
         <button 
           onClick={carregarAgenda}
-          style={{ backgroundColor: '#fff', border: '1px solid #d1d5db', padding: '6px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', color: '#374151' }}
+          style={{ backgroundColor: '#fff', border: '1px solid #d1d5db', padding: '6px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', color: '#374151', display: 'flex', alignItems: 'center', gap: '6px' }}
         >
-          {carregando ? 'Atualizando...' : 'Atualizar'}
+          <FiRefreshCw className={carregando ? 'spin' : ''} /> {carregando ? 'Atualizando...' : 'Atualizar'}
         </button>
       </div>
 
@@ -139,21 +185,29 @@ export default function PainelAgendaDia({ barbeariaId, profissionalId, taxaComis
 
       {/* MÉTRICAS */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px', marginBottom: '24px' }}>
-        <div style={{ backgroundColor: '#fff', padding: '16px', borderRadius: '12px', border: '1px solid #e5e7eb', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-          <p style={{ fontSize: '11px', color: '#6b7280', textTransform: 'uppercase', margin: '0 0 4px 0', fontWeight: 'bold' }}>Atendimentos</p>
-          <h3 style={{ fontSize: '22px', fontWeight: 'bold', margin: '0', color: '#111827' }}>{concluidos} / {totalAtendimentos}</h3>
+        <div style={{ backgroundColor: '#fff', padding: '14px', borderRadius: '12px', border: '1px solid #e5e7eb', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+          <p style={{ fontSize: '11px', color: '#6b7280', textTransform: 'uppercase', margin: '0 0 4px 0', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <FiUsers size={13} /> Atendimentos
+          </p>
+          <h3 style={{ fontSize: '20px', fontWeight: 'bold', margin: '0', color: '#111827' }}>{concluidos} / {totalAtendimentos}</h3>
         </div>
-        <div style={{ backgroundColor: '#fff', padding: '16px', borderRadius: '12px', border: '1px solid #e5e7eb', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-          <p style={{ fontSize: '11px', color: '#6b7280', textTransform: 'uppercase', margin: '0 0 4px 0', fontWeight: 'bold' }}>Faturamento</p>
-          <h3 style={{ fontSize: '22px', fontWeight: 'bold', margin: '0', color: '#111827' }}>R$ {faturamentoPrevisto.toFixed(2)}</h3>
+        <div style={{ backgroundColor: '#fff', padding: '14px', borderRadius: '12px', border: '1px solid #e5e7eb', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+          <p style={{ fontSize: '11px', color: '#6b7280', textTransform: 'uppercase', margin: '0 0 4px 0', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <FiDollarSign size={13} /> Faturamento
+          </p>
+          <h3 style={{ fontSize: '20px', fontWeight: 'bold', margin: '0', color: '#111827' }}>R$ {faturamentoPrevisto.toFixed(2)}</h3>
         </div>
-        <div style={{ backgroundColor: '#fff', padding: '16px', borderRadius: '12px', border: '1px solid #e5e7eb', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-          <p style={{ fontSize: '11px', color: '#6b7280', textTransform: 'uppercase', margin: '0 0 4px 0', fontWeight: 'bold' }}>Comissão ({taxaComissao}%)</p>
-          <h3 style={{ fontSize: '22px', fontWeight: 'bold', color: '#059669', margin: '0' }}>R$ {comissaoEstimada.toFixed(2)}</h3>
+        <div style={{ backgroundColor: '#fff', padding: '14px', borderRadius: '12px', border: '1px solid #e5e7eb', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+          <p style={{ fontSize: '11px', color: '#6b7280', textTransform: 'uppercase', margin: '0 0 4px 0', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <FiDollarSign size={13} /> Comissão ({taxaComissao}%)
+          </p>
+          <h3 style={{ fontSize: '20px', fontWeight: 'bold', color: '#059669', margin: '0' }}>R$ {comissaoEstimada.toFixed(2)}</h3>
         </div>
-        <div style={{ backgroundColor: '#fff', padding: '16px', borderRadius: '12px', border: '1px solid #e5e7eb', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-          <p style={{ fontSize: '11px', color: '#6b7280', textTransform: 'uppercase', margin: '0 0 4px 0', fontWeight: 'bold' }}>Status</p>
-          <h3 style={{ fontSize: '18px', fontWeight: 'bold', margin: '0', color: totalAtendimentos > 0 ? '#059669' : '#6b7280' }}>
+        <div style={{ backgroundColor: '#fff', padding: '14px', borderRadius: '12px', border: '1px solid #e5e7eb', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+          <p style={{ fontSize: '11px', color: '#6b7280', textTransform: 'uppercase', margin: '0 0 4px 0', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <FiActivity size={13} /> Status
+          </p>
+          <h3 style={{ fontSize: '16px', fontWeight: 'bold', margin: '0', color: totalAtendimentos > 0 ? '#059669' : '#6b7280' }}>
             {carregando ? 'Carregando...' : (totalAtendimentos > 0 ? 'Ativo' : 'Livre')}
           </h3>
         </div>
@@ -173,39 +227,73 @@ export default function PainelAgendaDia({ barbeariaId, profissionalId, taxaComis
             </p>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {agendamentosHoje.map((item) => {
               const statusLower = String(item.status || '').toLowerCase();
               const isConcluido = statusLower.includes('concluido');
               const isCancelado = statusLower.includes('cancelado');
 
               return (
-                <div key={item.id} style={{ padding: '14px', backgroundColor: '#fdfdfd', borderRadius: '10px', border: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
-                  <div style={{ flex: 1 }}>
-                    <strong style={{ fontSize: '14px', color: '#111827', display: 'block', marginBottom: '2px' }}>
-                      {item.cliente_nome || item.nome_cliente || item.cliente || item.nome || 'Cliente'}
-                    </strong>
-                    <div style={{ fontSize: '12px', color: '#4b5563' }}>
-                      {item.servico_nome || item.servico || 'Serviço'} • <span style={{ color: '#6b7280' }}>{formatarDataHora(item)}</span>
+                <div key={item.id} style={{ padding: '14px', backgroundColor: '#fdfdfd', borderRadius: '10px', border: '1px solid #e5e7eb', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  
+                  {/* Info principal */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div>
+                      <strong style={{ fontSize: '14px', color: '#111827', display: 'block', marginBottom: '2px' }}>
+                        {item.cliente_nome || item.nome_cliente || item.cliente || item.nome || 'Cliente'}
+                      </strong>
+                      <div style={{ fontSize: '12px', color: '#4b5563', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <span>{item.servico_nome || item.servico || 'Serviço'}</span> • 
+                        <span style={{ color: '#6b7280', display: 'flex', alignItems: 'center', gap: '2px' }}><FiClock size={11} /> {formatarDataHora(item)}</span>
+                      </div>
+                    </div>
+                    
+                    <div style={{ textAlign: 'right' }}>
+                      <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#059669', display: 'block' }}>
+                        R$ {Number(item.valor_total || item.valor || item.preco || 0).toFixed(2)}
+                      </span>
+                      <span style={{ 
+                        fontSize: '9px', 
+                        padding: '2px 6px', 
+                        borderRadius: '4px', 
+                        fontWeight: 'bold',
+                        textTransform: 'uppercase',
+                        backgroundColor: isConcluido ? '#d1fae5' : isCancelado ? '#fee2e2' : '#fef3c7',
+                        color: isConcluido ? '#065f46' : isCancelado ? '#991b1b' : '#92400e',
+                        display: 'inline-block',
+                        marginTop: '4px'
+                      }}>
+                        {item.status || 'AGENDADO'}
+                      </span>
                     </div>
                   </div>
-                  
-                  <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px' }}>
-                    <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#059669' }}>
-                      R$ {Number(item.valor_total || item.valor || item.preco || 0).toFixed(2)}
-                    </span>
-                    <span style={{ 
-                      fontSize: '10px', 
-                      padding: '3px 8px', 
-                      borderRadius: '6px', 
-                      fontWeight: 'bold',
-                      textTransform: 'uppercase',
-                      backgroundColor: isConcluido ? '#d1fae5' : isCancelado ? '#fee2e2' : '#fef3c7',
-                      color: isConcluido ? '#065f46' : isCancelado ? '#991b1b' : '#92400e'
-                    }}>
-                      {item.status || 'AGENDADO'}
-                    </span>
+
+                  {/* BARRA DE AÇÕES (CONCLUIR, EDITAR, EXCLUIR) */}
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', borderTop: '1px solid #f3f4f6', paddingTop: '8px' }}>
+                    {!isConcluido && (
+                      <button 
+                        onClick={() => alterarStatus(item.id, 'Concluído')}
+                        style={{ backgroundColor: '#ecfdf5', color: '#059669', border: '1px solid #a7f3d0', padding: '5px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                      >
+                        <FiCheckCircle /> Concluir
+                      </button>
+                    )}
+                    
+                    <button 
+                      onClick={() => onEditarAgendamento ? onEditarAgendamento(item) : alert('Função de editar em breve')}
+                      style={{ backgroundColor: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe', padding: '5px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                    >
+                      <FiEdit2 /> Editar
+                    </button>
+
+                    <button 
+                      onClick={() => excluirAgendamento(item.id)}
+                      style={{ backgroundColor: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '5px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                    >
+                      <FiTrash2 /> Excluir
+                    </button>
                   </div>
+
                 </div>
               );
             })}
@@ -216,9 +304,9 @@ export default function PainelAgendaDia({ barbeariaId, profissionalId, taxaComis
       {/* BOTÃO PARA MOSTRAR OUTROS DIAS */}
       <button
         onClick={() => setMostrarOutrosDias(!mostrarOutrosDias)}
-        style={{ width: '100%', padding: '12px', backgroundColor: '#fff', border: '1px solid #d1d5db', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', color: '#374151', fontSize: '13px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
+        style={{ width: '100%', padding: '12px', backgroundColor: '#fff', border: '1px solid #d1d5db', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', color: '#374151', fontSize: '13px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '6px' }}
       >
-        {mostrarOutrosDias ? 'Ocultar Histórico / Outros Dias' : `Ver Histórico / Outros Dias (${todosAgendamentos.length - agendamentosHoje.length})`}
+        <FiCalendar /> {mostrarOutrosDias ? 'Ocultar Histórico / Outros Dias' : `Ver Histórico / Outros Dias (${todosAgendamentos.length - agendamentosHoje.length})`}
       </button>
 
       {/* SEÇÃO DE OUTROS DIAS COM A BARRA DE PESQUISA */}
@@ -227,15 +315,16 @@ export default function PainelAgendaDia({ barbeariaId, profissionalId, taxaComis
           <h4 style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '10px', color: '#111827' }}>Outros Registros / Histórico ({agendamentosOutrosDias.length})</h4>
           
           {/* BARRA DE PESQUISA */}
-          <div style={{ marginBottom: '14px' }}>
+          <div style={{ marginBottom: '14px', position: 'relative', display: 'flex', alignItems: 'center' }}>
+            <FiSearch style={{ position: 'absolute', left: '12px', color: '#94a3b8' }} />
             <input 
               type="text"
-              placeholder="🔍 Pesquisar por nome do cliente ou serviço..."
+              placeholder="Pesquisar por nome do cliente ou serviço..."
               value={termoBusca}
               onChange={(e) => setTermoBusca(e.target.value)}
               style={{ 
                 width: '100%', 
-                padding: '10px 14px', 
+                padding: '10px 14px 10px 36px', 
                 borderRadius: '8px', 
                 border: '1px solid #cbd5e1', 
                 fontSize: '13px', 
@@ -260,13 +349,22 @@ export default function PainelAgendaDia({ barbeariaId, profissionalId, taxaComis
                       {item.servico_nome || item.servico || 'Serviço'} • {formatarDataHora(item)}
                     </span>
                   </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <span style={{ fontWeight: 'bold', color: '#059669', display: 'block', fontSize: '14px' }}>
-                      R$ {Number(item.valor_total || item.valor || item.preco || 0).toFixed(2)}
-                    </span>
-                    <span style={{ fontSize: '10px', color: '#4b5563', textTransform: 'uppercase' }}>
-                      {item.status || 'AGENDADO'}
-                    </span>
+                  <div style={{ textAlign: 'right', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div>
+                      <span style={{ fontWeight: 'bold', color: '#059669', display: 'block', fontSize: '13px' }}>
+                        R$ {Number(item.valor_total || item.valor || item.preco || 0).toFixed(2)}
+                      </span>
+                      <span style={{ fontSize: '9px', color: '#4b5563', textTransform: 'uppercase' }}>
+                        {item.status || 'AGENDADO'}
+                      </span>
+                    </div>
+                    <button 
+                      onClick={() => excluirAgendamento(item.id)}
+                      style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', padding: '4px' }}
+                      title="Excluir"
+                    >
+                      <FiTrash2 size={16} />
+                    </button>
                   </div>
                 </div>
               ))}
