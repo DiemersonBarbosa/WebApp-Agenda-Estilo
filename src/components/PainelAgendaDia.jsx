@@ -16,44 +16,10 @@ import {
 } from 'react-icons/fi';
 
 export default function PainelAgendaDia({ barbeariaId, profissionalId, taxaComissao = 50, onEditarAgendamento }) {
-  const [agendamentosHoje, setAgendamentosHoje] = useState([]);
-  const [todosAgendamentos, setTodosAgendamentos] = useState([]);
+  const [agendamentos, setAgendamentos] = useState([]);
   const [carregando, setCarregando] = useState(true);
   const [erroFatal, setErroFatal] = useState(null);
-  
-  const [mostrarOutrosDias, setMostrarOutrosDias] = useState(false);
   const [termoBusca, setTermoBusca] = useState('');
-
-  // Data atual no formato ISO (YYYY-MM-DD) ajustada para o Brasil
-  const formatadorDataBr = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'America/Sao_Paulo',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit'
-  });
-  const HOJE_ISO = formatadorDataBr.format(new Date());
-
-  // Função ultra-tolerante para achar a data de hoje independente de como o banco salva
-  const eDeHoje = (item) => {
-    const dataStr = String(
-      item.data_hora || item.horario || item.data || item.created_at || ''
-    );
-    if (!dataStr) return false;
-
-    // Se bater com a string de hoje ou contiver a data de hoje no formato YYYY-MM-DD ou DD/MM/YYYY
-    if (dataStr.includes(HOJE_ISO)) return true;
-    
-    // Tenta converter para verificar o dia exato
-    try {
-      const d = new Date(dataStr);
-      if (!isNaN(d.getTime())) {
-        const isoD = d.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
-        if (isoD === HOJE_ISO) return true;
-      }
-    } catch (e) {}
-
-    return false;
-  };
 
   const carregarAgenda = async () => {
     try {
@@ -73,12 +39,10 @@ export default function PainelAgendaDia({ barbeariaId, profissionalId, taxaComis
       if (error) {
         console.error('Erro Supabase:', error);
         setErroFatal(error.message);
-        setAgendamentosHoje([]);
-        setTodosAgendamentos([]);
+        setAgendamentos([]);
       } else if (data) {
-        setTodosAgendamentos(data);
-        const doDia = data.filter(item => eDeHoje(item));
-        setAgendamentosHoje(doDia);
+        console.log('Dados brutos vindos do Supabase:', data);
+        setAgendamentos(data);
       }
     } catch (err) {
       console.error('Erro inesperado:', err);
@@ -127,13 +91,21 @@ export default function PainelAgendaDia({ barbeariaId, profissionalId, taxaComis
     }
   };
 
-  const totalAtendimentos = agendamentosHoje.length;
-  const concluidos = agendamentosHoje.filter(a => {
+  const agendamentosFiltrados = agendamentos.filter(item => {
+    if (!termoBusca) return true;
+    const termo = termoBusca.toLowerCase();
+    const nomeCliente = String(item.cliente_nome || item.nome_cliente || item.cliente || item.nome || '').toLowerCase();
+    const servicoNome = String(item.servico_nome || item.servico || '').toLowerCase();
+    return nomeCliente.includes(termo) || servicoNome.includes(termo);
+  });
+
+  const totalAtendimentos = agendamentos.length;
+  const concluidos = agendamentos.filter(a => {
     const s = String(a.status || '').toLowerCase();
     return s.includes('concluido') || s.includes('concluído');
   }).length;
   
-  const faturamentoPrevisto = agendamentosHoje.reduce((acc, item) => {
+  const faturamentoPrevisto = agendamentos.reduce((acc, item) => {
     const val = item.valor_total || item.valor || item.preco || item.price || 0;
     return acc + Number(val);
   }, 0);
@@ -152,21 +124,13 @@ export default function PainelAgendaDia({ barbeariaId, profissionalId, taxaComis
     return String(dataStr);
   };
 
-  const agendamentosOutrosDias = todosAgendamentos.filter(item => !eDeHoje(item)).filter(item => {
-    if (!termoBusca) return true;
-    const termo = termoBusca.toLowerCase();
-    const nomeCliente = String(item.cliente_nome || item.nome_cliente || item.cliente || item.nome || '').toLowerCase();
-    const servicoNome = String(item.servico_nome || item.servico || '').toLowerCase();
-    return nomeCliente.includes(termo) || servicoNome.includes(termo);
-  });
-
   return (
     <div style={{ padding: '16px', fontFamily: 'sans-serif', backgroundColor: '#f9fafb', borderRadius: '16px', border: '1px solid #e5e7eb' }}>
       
       {/* CABEÇALHO DO PAINEL */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
         <h2 style={{ fontSize: '18px', fontWeight: 'bold', margin: '0', color: '#111827', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <FiCalendar color="#059669" /> Painel da Agenda de Hoje
+          <FiCalendar color="#059669" /> Painel Geral de Agendamentos
         </h2>
         <button 
           onClick={carregarAgenda}
@@ -212,22 +176,43 @@ export default function PainelAgendaDia({ barbeariaId, profissionalId, taxaComis
         </div>
       </div>
 
-      {/* LISTA DO DIA */}
-      <div style={{ backgroundColor: '#fff', padding: '16px', borderRadius: '12px', border: '1px solid #e5e7eb', marginBottom: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+      {/* BARRA DE PESQUISA */}
+      <div style={{ marginBottom: '16px', position: 'relative', display: 'flex', alignItems: 'center' }}>
+        <FiSearch style={{ position: 'absolute', left: '12px', color: '#94a3b8' }} />
+        <input 
+          type="text"
+          placeholder="Pesquisar por nome do cliente ou serviço..."
+          value={termoBusca}
+          onChange={(e) => setTermoBusca(e.target.value)}
+          style={{ 
+            width: '100%', 
+            padding: '10px 14px 10px 36px', 
+            borderRadius: '8px', 
+            border: '1px solid #cbd5e1', 
+            fontSize: '13px', 
+            outline: 'none', 
+            boxSizing: 'border-box',
+            backgroundColor: '#fff'
+          }}
+        />
+      </div>
+
+      {/* LISTA DE AGENDAMENTOS */}
+      <div style={{ backgroundColor: '#fff', padding: '16px', borderRadius: '12px', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
         <h4 style={{ fontSize: '13px', fontWeight: 'bold', textTransform: 'uppercase', color: '#374151', marginBottom: '12px', letterSpacing: '0.5px' }}>
-          Atendimentos de Hoje ({HOJE_ISO.split('-').reverse().join('/')})
+          Lista de Registros ({agendamentosFiltrados.length})
         </h4>
 
-        {agendamentosHoje.length === 0 ? (
+        {agendamentosFiltrados.length === 0 ? (
           <div style={{ padding: '32px 16px', textAlign: 'center', color: '#6b7280', fontSize: '14px' }}>
-            <p style={{ fontWeight: '500', color: '#4b5563', margin: '0 0 4px 0' }}>Nenhum atendimento agendado para hoje.</p>
+            <p style={{ fontWeight: '500', color: '#4b5563', margin: '0 0 4px 0' }}>Nenhum agendamento encontrado no banco de dados.</p>
             <p style={{ fontSize: '12px', color: '#9ca3af', margin: '0' }}>
-              Total de registros na unidade: {todosAgendamentos.length}
+              Verifique se os IDs (barbeariaId / profissionalId) estão sendo passados corretamente para este componente.
             </p>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {agendamentosHoje.map((item) => {
+            {agendamentosFiltrados.map((item) => {
               const statusLower = String(item.status || '').toLowerCase();
               const isConcluido = statusLower.includes('concluido') || statusLower.includes('concluído');
               const isCancelado = statusLower.includes('cancelado');
@@ -239,7 +224,7 @@ export default function PainelAgendaDia({ barbeariaId, profissionalId, taxaComis
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <div>
                       <strong style={{ fontSize: '14px', color: '#111827', display: 'block', marginBottom: '2px' }}>
-                        {item.cliente_nome || item.nome_cliente || item.cliente || item.nome || 'Cliente'}
+                        {item.cliente_nome || item.nome_cliente || item.cliente || item.nome || 'Cliente sem nome'}
                       </strong>
                       <div style={{ fontSize: '12px', color: '#4b5563', display: 'flex', alignItems: 'center', gap: '4px' }}>
                         <span>{item.servico_nome || item.servico || 'Serviço'}</span> • 
@@ -301,78 +286,6 @@ export default function PainelAgendaDia({ barbeariaId, profissionalId, taxaComis
           </div>
         )}
       </div>
-
-      {/* BOTÃO PARA MOSTRAR OUTROS DIAS */}
-      <button
-        onClick={() => setMostrarOutrosDias(!mostrarOutrosDias)}
-        style={{ width: '100%', padding: '12px', backgroundColor: '#fff', border: '1px solid #d1d5db', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', color: '#374151', fontSize: '13px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '6px' }}
-      >
-        <FiCalendar /> {mostrarOutrosDias ? 'Ocultar Histórico / Outros Dias' : `Ver Histórico / Outros Dias (${agendamentosOutrosDias.length})`}
-      </button>
-
-      {/* SEÇÃO DE OUTROS DIAS COM A BARRA DE PESQUISA */}
-      {mostrarOutrosDias && (
-        <div style={{ marginTop: '16px', backgroundColor: '#fff', padding: '16px', borderRadius: '12px', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-          <h4 style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '10px', color: '#111827' }}>Outros Registros / Histórico ({agendamentosOutrosDias.length})</h4>
-          
-          {/* BARRA DE PESQUISA */}
-          <div style={{ marginBottom: '14px', position: 'relative', display: 'flex', alignItems: 'center' }}>
-            <FiSearch style={{ position: 'absolute', left: '12px', color: '#94a3b8' }} />
-            <input 
-              type="text"
-              placeholder="Pesquisar por nome do cliente ou serviço..."
-              value={termoBusca}
-              onChange={(e) => setTermoBusca(e.target.value)}
-              style={{ 
-                width: '100%', 
-                padding: '10px 14px 10px 36px', 
-                borderRadius: '8px', 
-                border: '1px solid #cbd5e1', 
-                fontSize: '13px', 
-                outline: 'none', 
-                boxSizing: 'border-box',
-                backgroundColor: '#f8fafc'
-              }}
-            />
-          </div>
-
-          {agendamentosOutrosDias.length === 0 ? (
-            <p style={{ fontSize: '13px', color: '#6b7280', textAlign: 'center', padding: '16px 0' }}>Nenhum outro registro encontrado.</p>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '350px', overflowY: 'auto' }}>
-              {agendamentosOutrosDias.map((item) => (
-                <div key={item.id} style={{ padding: '12px', backgroundColor: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '13px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div>
-                    <strong style={{ color: '#111827', display: 'block' }}>
-                      {item.cliente_nome || item.nome_cliente || item.cliente || item.nome || 'Cliente'}
-                    </strong>
-                    <span style={{ fontSize: '11px', color: '#6b7280' }}>
-                      {item.servico_nome || item.servico || 'Serviço'} • {formatarDataHora(item)}
-                    </span>
-                  </div>
-                  <div style={{ textAlign: 'right', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <div>
-                      <span style={{ fontWeight: 'bold', color: '#059669', display: 'block', fontSize: '13px' }}>
-                        R$ {Number(item.valor_total || item.valor || item.preco || 0).toFixed(2)}
-                      </span>
-                      <span style={{ fontSize: '9px', color: '#4b5563', textTransform: 'uppercase' }}>
-                        {item.status || 'AGENDADO'}
-                      </span>
-                    </div>
-                    <button 
-                      onClick={() => excluirAgendamento(item.id)}
-                      style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', padding: '4px' }}
-                      title="Excluir"
-                    >
-                      <FiTrash2 size={16} />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 }
