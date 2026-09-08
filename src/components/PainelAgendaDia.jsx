@@ -1,18 +1,21 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@supabase/supabase-js';
 
-export default function PainelAgendaDia({ profissionalId, taxaComissao = 50, handleUpdateStatus }) {
+// Inicialização direta do Supabase caso precise garantir a conexão na página
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+export default function PainelAgendaDia({ profissionalId, taxaComissao = 50 }) {
   const [agendamentosHoje, setAgendamentosHoje] = useState([]);
   const [todosAgendamentos, setTodosAgendamentos] = useState([]);
   const [carregando, setCarregando] = useState(true);
   const [debugDadosBrutos, setDebugDadosBrutos] = useState([]);
   const [erroFatal, setErroFatal] = useState(null);
   const [processandoId, setProcessandoId] = useState(null);
-  
   const [mostrarOutrosDias, setMostrarOutrosDias] = useState(false);
-  const [filtroStatus, setFiltroStatus] = useState('TODOS');
 
   const HOJE_ISO = new Date().toISOString().split('T')[0];
 
@@ -44,7 +47,6 @@ export default function PainelAgendaDia({ profissionalId, taxaComissao = 50, han
         .select('*');
 
       if (error) {
-        console.error('Erro Supabase:', error);
         setErroFatal(error.message);
         setAgendamentosHoje([]);
         setTodosAgendamentos([]);
@@ -69,7 +71,6 @@ export default function PainelAgendaDia({ profissionalId, taxaComissao = 50, han
         setAgendamentosHoje(doDia);
       }
     } catch (err) {
-      console.error('Erro inesperado:', err);
       setErroFatal(err.message);
     } finally {
       setCarregando(false);
@@ -80,7 +81,6 @@ export default function PainelAgendaDia({ profissionalId, taxaComissao = 50, han
     carregarAgenda();
   }, [profissionalId]);
 
-  // Apenas considera concluído se o status contiver 'conclu'
   const totalAtendimentos = agendamentosHoje.length;
   const concluidos = agendamentosHoje.filter(a => {
     const s = String(a.status || '').toLowerCase();
@@ -89,9 +89,7 @@ export default function PainelAgendaDia({ profissionalId, taxaComissao = 50, han
   
   const faturamentoPrevisto = agendamentosHoje.reduce((acc, item) => {
     const statusLower = String(item.status || '').toLowerCase();
-    // Opcional: se estiver cancelado, não soma no faturamento do dia
     if (statusLower.includes('cancelado')) return acc;
-    
     const val = item.valor_total || item.valor || item.preco || item.price || 0;
     return acc + Number(val);
   }, 0);
@@ -106,29 +104,22 @@ export default function PainelAgendaDia({ profissionalId, taxaComissao = 50, han
       if (!isNaN(dataObj.getTime())) {
         return dataObj.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) + ' às ' + dataObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
       }
-    } catch (e) {
-      // fallback
-    }
+    } catch (e) {}
     return String(dataStr);
   };
 
   const alterarStatus = async (id, novoStatus) => {
     try {
       setProcessandoId(id);
-      if (handleUpdateStatus) {
-        await handleUpdateStatus(id, novoStatus);
-      } else {
-        const { error } = await supabase
-          .from('agendamentos')
-          .update({ status: novoStatus })
-          .eq('id', id);
+      const { error } = await supabase
+        .from('agendamentos')
+        .update({ status: novoStatus })
+        .eq('id', id);
 
-        if (error) throw error;
-      }
+      if (error) throw error;
       await carregarAgenda();
     } catch (err) {
-      console.error('Erro ao atualizar status:', err);
-      alert('Erro ao atualizar o status. Tente novamente.');
+      alert('Erro ao atualizar o status.');
     } finally {
       setProcessandoId(null);
     }
@@ -147,7 +138,6 @@ export default function PainelAgendaDia({ profissionalId, taxaComissao = 50, han
       if (error) throw error;
       await carregarAgenda();
     } catch (err) {
-      console.error('Erro ao excluir:', err);
       alert('Erro ao excluir o registro.');
     } finally {
       setProcessandoId(null);
@@ -174,25 +164,25 @@ export default function PainelAgendaDia({ profissionalId, taxaComissao = 50, han
 
       {erroFatal && (
         <div style={{ backgroundColor: '#fee2e2', border: '1px solid #fecaca', padding: '12px', borderRadius: '8px', color: '#991b1b', marginBottom: '16px', fontSize: '14px' }}>
-          <strong>Erro ao conectar com o Supabase:</strong> {erroFatal}
+          <strong>Erro:</strong> {erroFatal}
         </div>
       )}
 
       {/* MÉTRICAS */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px', marginBottom: '24px' }}>
-        <div style={{ backgroundColor: '#fff', padding: '16px', borderRadius: '12px', border: '1px solid #e5e7eb', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+        <div style={{ backgroundColor: '#fff', padding: '16px', borderRadius: '12px', border: '1px solid #e5e7eb' }}>
           <p style={{ fontSize: '11px', color: '#6b7280', textTransform: 'uppercase', margin: '0 0 4px 0', fontWeight: 'bold' }}>Atendimentos</p>
           <h3 style={{ fontSize: '22px', fontWeight: 'bold', margin: '0', color: '#111827' }}>{concluidos} / {totalAtendimentos}</h3>
         </div>
-        <div style={{ backgroundColor: '#fff', padding: '16px', borderRadius: '12px', border: '1px solid #e5e7eb', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+        <div style={{ backgroundColor: '#fff', padding: '16px', borderRadius: '12px', border: '1px solid #e5e7eb' }}>
           <p style={{ fontSize: '11px', color: '#6b7280', textTransform: 'uppercase', margin: '0 0 4px 0', fontWeight: 'bold' }}>Faturamento</p>
           <h3 style={{ fontSize: '22px', fontWeight: 'bold', margin: '0', color: '#111827' }}>R$ {faturamentoPrevisto.toFixed(2)}</h3>
         </div>
-        <div style={{ backgroundColor: '#fff', padding: '16px', borderRadius: '12px', border: '1px solid #e5e7eb', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+        <div style={{ backgroundColor: '#fff', padding: '16px', borderRadius: '12px', border: '1px solid #e5e7eb' }}>
           <p style={{ fontSize: '11px', color: '#6b7280', textTransform: 'uppercase', margin: '0 0 4px 0', fontWeight: 'bold' }}>Comissão ({taxaComissao}%)</p>
           <h3 style={{ fontSize: '22px', fontWeight: 'bold', color: '#059669', margin: '0' }}>R$ {comissaoEstimada.toFixed(2)}</h3>
         </div>
-        <div style={{ backgroundColor: '#fff', padding: '16px', borderRadius: '12px', border: '1px solid #e5e7eb', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+        <div style={{ backgroundColor: '#fff', padding: '16px', borderRadius: '12px', border: '1px solid #e5e7eb' }}>
           <p style={{ fontSize: '11px', color: '#6b7280', textTransform: 'uppercase', margin: '0 0 4px 0', fontWeight: 'bold' }}>Status</p>
           <h3 style={{ fontSize: '18px', fontWeight: 'bold', margin: '0', color: totalAtendimentos > 0 ? '#059669' : '#6b7280' }}>
             {carregando ? 'Carregando...' : (totalAtendimentos > 0 ? 'Ativo' : 'Livre')}
@@ -201,17 +191,14 @@ export default function PainelAgendaDia({ profissionalId, taxaComissao = 50, han
       </div>
 
       {/* LISTA DO DIA */}
-      <div style={{ backgroundColor: '#fff', padding: '16px', borderRadius: '12px', border: '1px solid #e5e7eb', marginBottom: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-        <h4 style={{ fontSize: '13px', fontWeight: 'bold', textTransform: 'uppercase', color: '#374151', marginBottom: '12px', letterSpacing: '0.5px' }}>
+      <div style={{ backgroundColor: '#fff', padding: '16px', borderRadius: '12px', border: '1px solid #e5e7eb', marginBottom: '16px' }}>
+        <h4 style={{ fontSize: '13px', fontWeight: 'bold', textTransform: 'uppercase', color: '#374151', marginBottom: '12px' }}>
           Atendimentos de Hoje ({HOJE_ISO.split('-').reverse().join('/')})
         </h4>
 
         {agendamentosHoje.length === 0 ? (
           <div style={{ padding: '32px 16px', textAlign: 'center', color: '#6b7280', fontSize: '14px' }}>
             <p style={{ fontWeight: '500', color: '#4b5563', margin: '0 0 4px 0' }}>Nenhum atendimento agendado para hoje.</p>
-            <p style={{ fontSize: '12px', color: '#9ca3af', margin: '0' }}>
-              Total de registros na base: {debugDadosBrutos.length}
-            </p>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -279,7 +266,6 @@ export default function PainelAgendaDia({ profissionalId, taxaComissao = 50, han
                       disabled={emProcesso}
                       onClick={() => excluirAgendamento(item.id)}
                       style={{ padding: '6px 10px', backgroundColor: '#fee2e2', color: '#991b1b', border: '1px solid #fecaca', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer', opacity: emProcesso ? 0.7 : 1 }}
-                      title="Excluir Agendamento"
                     >
                       Excluir
                     </button>
@@ -294,15 +280,14 @@ export default function PainelAgendaDia({ profissionalId, taxaComissao = 50, han
       {/* BOTÃO PARA MOSTRAR OUTROS DIAS */}
       <button
         onClick={() => setMostrarOutrosDias(!mostrarOutrosDias)}
-        style={{ width: '100%', padding: '12px', backgroundColor: '#fff', border: '1px solid #d1d5db', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', color: '#374151', fontSize: '13px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
+        style={{ width: '100%', padding: '12px', backgroundColor: '#fff', border: '1px solid #d1d5db', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', color: '#374151', fontSize: '13px' }}
       >
         {mostrarOutrosDias ? 'Ocultar Histórico / Outros Dias' : `Ver Histórico / Outros Dias (${agendamentosOutrosDias.length})`}
       </button>
 
       {mostrarOutrosDias && (
-        <div style={{ marginTop: '16px', backgroundColor: '#fff', padding: '16px', borderRadius: '12px', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+        <div style={{ marginTop: '16px', backgroundColor: '#fff', padding: '16px', borderRadius: '12px', border: '1px solid #e5e7eb' }}>
           <h4 style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '12px', color: '#111827' }}>Outros Registros</h4>
-          
           {agendamentosOutrosDias.length === 0 ? (
             <p style={{ fontSize: '13px', color: '#6b7280', textAlign: 'center', padding: '16px 0' }}>Nenhum outro registro encontrado.</p>
           ) : (
