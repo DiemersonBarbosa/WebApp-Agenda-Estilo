@@ -13,7 +13,8 @@ export default function PainelAgendaDia({ profissionalId, taxaComissao = 50, han
   const [mostrarOutrosDias, setMostrarOutrosDias] = useState(false);
   const [filtroStatus, setFiltroStatus] = useState('TODOS');
 
-  const HOJE_ISO = '2026-09-07';
+  // Ajustado temporariamente para 2026-09-05 para bater com os dados que o seu banco retornou na imagem
+  const HOJE_ISO = '2026-09-05';
 
   const extrairDataIso = (item) => {
     if (!item) return '';
@@ -118,7 +119,7 @@ export default function PainelAgendaDia({ profissionalId, taxaComissao = 50, han
   return (
     <div style={{ padding: '16px', fontFamily: 'sans-serif', backgroundColor: '#f9fafb', borderRadius: '16px', border: '1px solid #e5e7eb' }}>
       <h2 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '16px', color: '#111827' }}>
-        Painel da Agenda (Diagnóstico Ativo)
+        Painel da Agenda (Simulando data: 05/09/2026)
       </h2>
 
       {erroFatal && (
@@ -130,7 +131,7 @@ export default function PainelAgendaDia({ profissionalId, taxaComissao = 50, han
       {/* MÉTRICAS */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', marginBottom: '24px' }}>
         <div style={{ backgroundColor: '#fff', padding: '16px', borderRadius: '12px', border: '1px solid #e5e7eb' }}>
-          <p style={{ fontSize: '12px', color: '#6b7280', textTransform: 'uppercase', margin: '0 0 4px 0' }}>Atendimentos Hoje</p>
+          <p style={{ fontSize: '12px', color: '#6b7280', textTransform: 'uppercase', margin: '0 0 4px 0' }}>Atendimentos do Dia</p>
           <h3 style={{ fontSize: '24px', fontWeight: 'bold', margin: '0' }}>{concluidos} / {totalAtendimentos}</h3>
         </div>
         <div style={{ backgroundColor: '#fff', padding: '16px', borderRadius: '12px', border: '1px solid #e5e7eb' }}>
@@ -147,18 +148,15 @@ export default function PainelAgendaDia({ profissionalId, taxaComissao = 50, han
         </div>
       </div>
 
-      {/* LISTA DE HOJE */}
+      {/* LISTA DO DIA */}
       <div style={{ backgroundColor: '#fff', padding: '16px', borderRadius: '12px', border: '1px solid #e5e7eb', marginBottom: '16px' }}>
         <h4 style={{ fontSize: '14px', fontWeight: 'bold', textTransform: 'uppercase', color: '#374151', marginBottom: '12px' }}>
-          Atendimentos de Hoje (07/09/2026) — Total na lista: {agendamentosHoje.length} | Total bruto no banco: {debugDadosBrutos.length}
+          Atendimentos de 05/09/2026 — Total na lista: {agendamentosHoje.length} | Total bruto no banco: {debugDadosBrutos.length}
         </h4>
 
         {agendamentosHoje.length === 0 ? (
           <div style={{ padding: '24px', textAlign: 'center', color: '#6b7280', fontSize: '14px' }}>
-            <p>Nenhum agendamento encontrado para hoje (07/09/2026).</p>
-            <p style={{ fontSize: '12px', marginTop: '8px', color: '#9ca3af' }}>
-              Total de registros trazidos da tabela agendamentos: {debugDadosBrutos.length}. Se for 0, verifique o nome da tabela no Supabase.
-            </p>
+            <p>Nenhum atendimento encontrado para esta data.</p>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -200,8 +198,9 @@ export default function PainelAgendaDia({ profissionalId, taxaComissao = 50, han
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {agendamentosOutrosDias.map((item) => (
-                <div key={item.id} style={{ padding: '10px', backgroundColor: '#f9fafb', borderRadius: '6px', border: '1px solid #e5e7eb', fontSize: '13px' }}>
-                  <strong>{item.cliente_nome || item.cliente || 'Cliente'}</strong> — {formatarDataHora(item)} — R$ {Number(item.valor_total || item.valor || 0).toFixed(2)}
+                <div key={item.id} style={{ padding: '10px', backgroundColor: '#f9fafb', borderRadius: '6px', border: '1px solid #e5e7eb', fontSize: '13px', display: 'flex', justifyContent: 'space-between' }}>
+                  <span><strong>{item.cliente_nome || item.cliente || 'Cliente'}</strong> — {formatarDataHora(item)}</span>
+                  <span style={{ fontWeight: 'bold', color: '#059669' }}>R$ {Number(item.valor_total || item.valor || 0).toFixed(2)}</span>
                 </div>
               ))}
             </div>
