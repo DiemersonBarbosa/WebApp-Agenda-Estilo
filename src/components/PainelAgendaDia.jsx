@@ -12,7 +12,7 @@ export default function PainelAgendaDia({ profissionalId, taxaComissao = 50, han
   const [mostrarOutrosDias, setMostrarOutrosDias] = useState(false);
   const [filtroStatus, setFiltroStatus] = useState('TODOS');
 
-  // Data fixa de hoje baseada no seu sistema (07/09/2026)
+  // Data de hoje padrão do sistema
   const hojeIso = '2026-09-07';
 
   const carregarAgenda = async () => {
@@ -27,6 +27,8 @@ export default function PainelAgendaDia({ profissionalId, taxaComissao = 50, han
       setAgendamentosHoje([]);
       setTodosAgendamentos([]);
     } else if (data) {
+      console.log('DADOS BRUTOS DO SUPABASE:', data);
+
       // Filtra por profissional se aplicável
       const filtradosPorProfissional = data.filter(item => {
         if (!profissionalId) return true;
@@ -39,20 +41,23 @@ export default function PainelAgendaDia({ profissionalId, taxaComissao = 50, han
 
       const listaGeral = filtradosPorProfissional.length > 0 ? filtradosPorProfissional : data;
 
-      // Ordena a lista geral por data decrescente (mais recente primeiro)
+      // Ordena a lista geral por data decrescente
       listaGeral.sort((a, b) => {
-        const tA = String(a.data || a.data_hora || a.horario || '');
-        const tB = String(b.data || b.data_hora || b.horario || '');
+        const tA = String(a.data || a.data_hora || a.horario || a.created_at || '');
+        const tB = String(b.data || b.data_hora || b.horario || b.created_at || '');
         return tB.localeCompare(tA);
       });
 
       setTodosAgendamentos(listaGeral);
 
-      // Filtra especificamente os agendamentos de HOJE
+      // Filtra os de HOJE pegando os 10 primeiros caracteres da data (ex: '2026-09-07')
       const doDia = listaGeral.filter(item => {
-        const dataHoraStr = String(item.data || item.data_hora || item.horario || '');
-        return dataHoraStr.includes(hojeIso) || dataHoraStr.includes('07/09/2026');
+        const dataStr = String(item.data || item.data_hora || item.horario || '');
+        const dataFormatada = dataStr.substring(0, 10); // Pega '2026-09-07' independente se tem hora ou formato diferente
+        return dataFormatada === hojeIso || dataStr.includes('07/09/2026');
       });
+
+      console.log('AGENDAMENTOS FILTRADOS PARA HOJE:', doDia);
 
       // Ordena os de hoje por horário crescente
       doDia.sort((a, b) => {
@@ -92,13 +97,20 @@ export default function PainelAgendaDia({ profissionalId, taxaComissao = 50, han
       const hora = horaPart ? horaPart.substring(0, 5) : '';
       return hora ? `${dia}/${mes}/${ano} às ${hora}` : `${dia}/${mes}/${ano}`;
     }
+    // Se vier no formato yyyy-mm-dd hh:mm:ss
+    if (String(dataStr).includes('-') && String(dataStr).includes(':')) {
+      const [dataPart, horaPart] = dataStr.split(' ');
+      const [ano, mes, dia] = dataPart.split('-');
+      const hora = horaPart ? horaPart.substring(0, 5) : '';
+      return hora ? `${dia}/${mes}/${ano} às ${hora}` : `${dia}/${mes}/${ano}`;
+    }
     return dataStr || '-';
   };
 
-  // Separa o histórico (dias diferentes de hoje) aplicando o filtro de status
   const agendamentosOutrosDias = todosAgendamentos.filter(item => {
-    const dataHoraStr = String(item.data || item.data_hora || item.horario || '');
-    const ehHoje = dataHoraStr.includes(hojeIso) || dataHoraStr.includes('07/09/2026');
+    const dataStr = String(item.data || item.data_hora || item.horario || '');
+    const dataFormatada = dataStr.substring(0, 10);
+    const ehHoje = dataFormatada === hojeIso || dataStr.includes('07/09/2026');
     return !ehHoje;
   }).filter(item => {
     if (filtroStatus === 'TODOS') return true;
@@ -118,7 +130,7 @@ export default function PainelAgendaDia({ profissionalId, taxaComissao = 50, han
 
   return (
     <div className="space-y-6">
-      {/* GRID DE CARDS DE MÉTRICAS (Calculado apenas sobre HOJE) */}
+      {/* GRID DE CARDS DE MÉTRICAS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white p-5 rounded-2xl border border-stone-200/80 shadow-sm flex items-center justify-between">
           <div>
@@ -181,7 +193,7 @@ export default function PainelAgendaDia({ profissionalId, taxaComissao = 50, han
         </div>
       </div>
 
-      {/* LISTAGEM PRINCIPAL APENAS DE HOJE */}
+      {/* LISTAGEM PRINCIPAL DE HOJE */}
       <div className="bg-white p-6 rounded-3xl border border-stone-200/80 shadow-sm">
         <div className="flex items-center justify-between mb-4">
           <h4 className="font-bold text-stone-800 text-sm uppercase tracking-wider flex items-center gap-2">
@@ -193,7 +205,7 @@ export default function PainelAgendaDia({ profissionalId, taxaComissao = 50, han
         </div>
 
         {agendamentosHoje.length === 0 ? (
-          <p className="text-sm text-stone-400 py-6 text-center">Nenhum atendimento agendado para hoje.</p>
+          <p className="text-sm text-stone-400 py-6 text-center">Nenhum atendimento agendado para hoje (07/09/2026).</p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {agendamentosHoje.map((item) => {
@@ -266,7 +278,7 @@ export default function PainelAgendaDia({ profissionalId, taxaComissao = 50, han
         </button>
       </div>
 
-      {/* BLOCO RECOLHÍVEL COM O RESTANTE DOS DIAS E FILTROS */}
+      {/* BLOCO RECOLHÍVEL COM O RESTANTE DOS DIAS */}
       {mostrarOutrosDias && (
         <div className="bg-white p-6 rounded-3xl border border-stone-200/80 shadow-sm space-y-5">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-stone-100 pb-4">
