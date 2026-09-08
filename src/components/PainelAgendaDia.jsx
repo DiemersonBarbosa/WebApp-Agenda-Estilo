@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 
-export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComissao = 50, handleUpdateStatus }) {
+export default function PainelAgendaDia({ barbeariaId, profissionalId, taxaComissao = 50, handleUpdateStatus }) {
   const [agendamentosHoje, setAgendamentosHoje] = useState([]);
   const [todosAgendamentos, setTodosAgendamentos] = useState([]);
   const [carregando, setCarregando] = useState(true);
@@ -44,14 +44,13 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
       setCarregando(true);
       setErroFatal(null);
 
-      // Constrói a consulta ao Supabase filtrando com segurança pela barbearia ou profissional logado
+      // Consulta protegida focando na coluna de barbearia ou barbeiro existente
       let query = supabase.from('agendamentos').select('*');
 
       if (barbeariaId) {
         query = query.eq('barbearia_id', barbeariaId);
       } else if (profissionalId) {
-        // Caso utilize ID do profissional na tabela
-        query = query.or(`barbeiro_id.eq.${profissionalId},profissional_id.eq.${profissionalId}`);
+        query = query.eq('barbeiro_id', profissionalId);
       }
 
       const { data, error } = await query;
