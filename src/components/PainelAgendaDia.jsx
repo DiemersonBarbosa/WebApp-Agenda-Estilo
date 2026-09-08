@@ -12,8 +12,11 @@ export default function PainelAgendaDia({ profissionalId, taxaComissao = 50, han
   
   const [mostrarOutrosDias, setMostrarOutrosDias] = useState(false);
   const [filtroStatus, setFiltroStatus] = useState('TODOS');
+  
+  // Novo estado para a barra de pesquisa nos outros registros
+  const [termoBusca, setTermoBusca] = useState('');
 
-  // Correção aplicada: Data atual baseada rigorosamente no fuso do Brasil (America/Sao_Paulo)
+  // Data atual baseada rigorosamente no fuso do Brasil (America/Sao_Paulo)
   const formatadorDataBr = new Intl.DateTimeFormat('en-CA', {
     timeZone: 'America/Sao_Paulo',
     year: 'numeric',
@@ -113,23 +116,17 @@ export default function PainelAgendaDia({ profissionalId, taxaComissao = 50, han
     return String(dataStr);
   };
 
+  // Filtra outros dias e aplica o campo de pesquisa (por nome do cliente ou serviço)
   const agendamentosOutrosDias = todosAgendamentos.filter(item => {
     return extrairDataIso(item) !== HOJE_ISO;
   }).filter(item => {
-    if (filtroStatus === 'TODOS') return true;
-    const statusItem = (item.status || 'PENDENTE').toUpperCase();
-    if (filtroStatus === 'CONCLUIDO') return statusItem.includes('CONCLU');
-    if (filtroStatus === 'PENDENTE') return statusItem.includes('PENDENTE') || statusItem.includes('AGENDADO');
-    if (filtroStatus === 'CANCELADO') return statusItem.includes('CANCELADO');
-    return true;
+    if (!termoBusca) return true;
+    const termo = termoBusca.toLowerCase();
+    const nomeCliente = String(item.cliente_nome || item.cliente || '').toLowerCase();
+    const servicoNome = String(item.servico_nome || item.servico || '').toLowerCase();
+    const dataItem = String(extrairDataIso(item));
+    return nomeCliente.includes(termo) || servicoNome.includes(termo) || dataItem.includes(termo);
   });
-
-  const executarAcaoStatus = async (id, novoStatus) => {
-    if (handleUpdateStatus) {
-      await handleUpdateStatus(id, novoStatus);
-      carregarAgenda(); 
-    }
-  };
 
   return (
     <div style={{ padding: '16px', fontFamily: 'sans-serif', backgroundColor: '#f9fafb', borderRadius: '16px', border: '1px solid #e5e7eb' }}>
@@ -237,17 +234,28 @@ export default function PainelAgendaDia({ profissionalId, taxaComissao = 50, han
 
       {mostrarOutrosDias && (
         <div style={{ marginTop: '16px', backgroundColor: '#fff', padding: '16px', borderRadius: '12px', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-          <h4 style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '12px', color: '#111827' }}>Outros Registros</h4>
+          <h4 style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '12px', color: '#111827' }}>Outros Registros / Histórico</h4>
           
+          {/* BARRA DE PESQUISA NOS OUTROS DIAS */}
+          <div style={{ marginBottom: '12px' }}>
+            <input 
+              type="text"
+              placeholder="Pesquisar por nome, serviço..."
+              value={termoBusca}
+              onChange={(e) => setTermoBusca(e.target.value)}
+              style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }}
+            />
+          </div>
+
           {agendamentosOutrosDias.length === 0 ? (
-            <p style={{ fontSize: '13px', color: '#6b7280', textAlign: 'center', padding: '16px 0' }}>Nenhum outro registro encontrado.</p>
+            <p style={{ fontSize: '13px', color: '#6b7280', textAlign: 'center', padding: '16px 0' }}>Nenhum registro encontrado com esse termo.</p>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '300px', overflowY: 'auto' }}>
               {agendamentosOutrosDias.map((item) => (
                 <div key={item.id} style={{ padding: '12px', backgroundColor: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '13px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div>
                     <strong style={{ color: '#111827', display: 'block' }}>{item.cliente_nome || item.cliente || 'Cliente'}</strong>
-                    <span style={{ fontSize: '11px', color: '#6b7280' }}>{formatarDataHora(item)}</span>
+                    <span style={{ fontSize: '11px', color: '#6b7280' }}>{item.servico_nome || item.servico || 'Serviço'} • {formatarDataHora(item)}</span>
                   </div>
                   <div style={{ textAlign: 'right' }}>
                     <span style={{ fontWeight: 'bold', color: '#059669', display: 'block', fontSize: '14px' }}>
