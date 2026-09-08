@@ -12,27 +12,22 @@ export default function PainelAgendaDia({ profissionalId, taxaComissao = 50, han
   const [mostrarOutrosDias, setMostrarOutrosDias] = useState(false);
   const [filtroStatus, setFiltroStatus] = useState('TODOS');
 
-  // Data de hoje no formato base YYYY-MM-DD
   const hojeIso = '2026-09-07';
 
   const carregarAgenda = async () => {
     setCarregando(true);
 
-    // Busca os agendamentos trazendo também os dados relacionados de clientes e serviços se existirem
+    // Busca simples e direta para evitar qualquer erro de relacionamento no Supabase
     const { data, error } = await supabase
       .from('agendamentos')
-      .select(`
-        *,
-        clientes:cliente_id (nome),
-        servicos:servico_id (nome, preco, valor)
-      `);
+      .select('*');
 
     if (error) {
       console.error('Erro ao buscar agendamentos:', error.message || error);
       setAgendamentosHoje([]);
       setTodosAgendamentos([]);
     } else if (data) {
-      // Filtra por profissional caso venha preenchido e seja compatível
+      // Filtra por profissional se aplicável
       const filtradosPorProfissional = data.filter(item => {
         if (!profissionalId) return true;
         return (
@@ -53,7 +48,7 @@ export default function PainelAgendaDia({ profissionalId, taxaComissao = 50, han
 
       setTodosAgendamentos(listaGeral);
 
-      // Filtra de forma flexível tudo o que pertence ao dia de hoje
+      // Filtra agendamentos de hoje de forma ampla
       const doDia = listaGeral.filter(item => {
         const dataHoraStr = String(item.data || item.data_hora || item.horario || '');
         return dataHoraStr.includes(hojeIso) || dataHoraStr.includes('07/09/2026') || dataHoraStr.includes('2026-09-07');
@@ -82,7 +77,7 @@ export default function PainelAgendaDia({ profissionalId, taxaComissao = 50, han
   }).length;
   
   const faturamentoPrevisto = agendamentosHoje.reduce((acc, item) => {
-    const val = item.valor_total || item.valor || item.preco || item.servicos?.preco || item.servicos?.valor || 0;
+    const val = item.valor_total || item.valor || item.preco || 0;
     return acc + Number(val);
   }, 0);
   
@@ -203,9 +198,9 @@ export default function PainelAgendaDia({ profissionalId, taxaComissao = 50, han
               const statusItem = (item.status || 'AGENDADO').toUpperCase();
               const isConcluido = statusItem === 'CONCLUIDO' || statusItem === 'CONCLUÍDO';
               
-              const nomeCliente = item.cliente_nome || item.clientes?.nome || item.nome_cliente || item.cliente || 'Cliente';
-              const nomeServico = item.servico_nome || item.servicos?.nome || item.nome_servico || item.servico || 'Serviço';
-              const valorItem = Number(item.valor_total || item.valor || item.preco || item.servicos?.preco || item.servicos?.valor || 0);
+              const nomeCliente = item.cliente_nome || item.nome_cliente || item.cliente || item.nome || 'Cliente';
+              const nomeServico = item.servico_nome || item.nome_servico || item.servico || 'Serviço';
+              const valorItem = Number(item.valor_total || item.valor || item.preco || 0);
 
               return (
                 <div key={item.id} className="p-4 bg-stone-50 rounded-2xl border border-stone-200/60 flex flex-col justify-between gap-3">
@@ -306,9 +301,9 @@ export default function PainelAgendaDia({ profissionalId, taxaComissao = 50, han
                 const statusItem = (item.status || 'AGENDADO').toUpperCase();
                 const isConcluido = statusItem === 'CONCLUIDO' || statusItem === 'CONCLUÍDO';
                 
-                const nomeCliente = item.cliente_nome || item.clientes?.nome || item.nome_cliente || item.cliente || 'Cliente';
-                const nomeServico = item.servico_nome || item.servicos?.nome || item.nome_servico || item.servico || 'Serviço';
-                const valorItem = Number(item.valor_total || item.valor || item.preco || item.servicos?.preco || item.servicos?.valor || 0);
+                const nomeCliente = item.cliente_nome || item.nome_cliente || item.cliente || item.nome || 'Cliente';
+                const nomeServico = item.servico_nome || item.nome_servico || item.servico || 'Serviço';
+                const valorItem = Number(item.valor_total || item.valor || item.preco || 0);
 
                 return (
                   <div key={item.id} className="p-4 bg-stone-50 rounded-2xl border border-stone-200/60 space-y-3">
