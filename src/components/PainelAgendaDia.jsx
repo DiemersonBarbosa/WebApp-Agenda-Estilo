@@ -4,10 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { CalendarCheck, DollarSign, Percent, Clock, ChevronDown, ChevronUp, Check, X, Calendar, Filter } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
-// ==========================================
-// 1. PAINEL INTELIGENTE DE CARDS E HISTÓRICO
-// ==========================================
-function PainelAgendaDia({ profissionalId, taxaComissao, handleUpdateStatus }) {
+export default function PainelAgendaDia({ profissionalId, taxaComissao = 50, handleUpdateStatus }) {
   const [agendamentosHoje, setAgendamentosHoje] = useState([]);
   const [todosAgendamentos, setTodosAgendamentos] = useState([]);
   const [carregando, setCarregando] = useState(true);
@@ -15,8 +12,7 @@ function PainelAgendaDia({ profissionalId, taxaComissao, handleUpdateStatus }) {
   const [mostrarOutrosDias, setMostrarOutrosDias] = useState(false);
   const [filtroStatus, setFiltroStatus] = useState('TODOS');
 
-  // Data atual baseada no seu contexto (07/09/2026)
-  const hojeStr = '07/09/2026';
+  // Data de hoje formatada conforme o contexto (07/09/2026)
   const hojeIso = '2026-09-07';
 
   const carregarAgenda = async () => {
@@ -31,17 +27,18 @@ function PainelAgendaDia({ profissionalId, taxaComissao, handleUpdateStatus }) {
       setAgendamentosHoje([]);
       setTodosAgendamentos([]);
     } else if (data) {
+      // Filtra por profissional se houver ID informado
       const filtradosPorProfissional = data.filter(item => {
         if (!profissionalId) return true;
         return (
-          item.barbeiro_id === profissionalId || 
-          item.profissional_id === profissionalId ||
-          String(item.barbeiro_id || '').toLowerCase() === String(profissionalId).toLowerCase()
+          String(item.barbeiro_id || '') === String(profissionalId) || 
+          String(item.profissional_id || '') === String(profissionalId)
         );
       });
 
       const listaGeral = filtradosPorProfissional.length > 0 ? filtradosPorProfissional : data;
 
+      // Ordena decrescente pelo horário/data
       listaGeral.sort((a, b) => {
         const tA = String(a.data || a.data_hora || a.horario || '');
         const tB = String(b.data || b.data_hora || b.horario || '');
@@ -50,9 +47,10 @@ function PainelAgendaDia({ profissionalId, taxaComissao, handleUpdateStatus }) {
 
       setTodosAgendamentos(listaGeral);
 
+      // Filtra os agendamentos que pertencem estritamente ao dia de hoje
       const doDia = listaGeral.filter(item => {
         const dataHoraStr = String(item.data || item.data_hora || item.horario || '');
-        return dataHoraStr.includes(hojeStr) || dataHoraStr.includes(hojeIso);
+        return dataHoraStr.includes(hojeIso) || dataHoraStr.includes('07/09/2026');
       });
 
       doDia.sort((a, b) => {
@@ -93,7 +91,7 @@ function PainelAgendaDia({ profissionalId, taxaComissao, handleUpdateStatus }) {
 
   const agendamentosOutrosDias = todosAgendamentos.filter(item => {
     const dataHoraStr = String(item.data || item.data_hora || item.horario || '');
-    const ehHoje = dataHoraStr.includes(hojeStr) || dataHoraStr.includes(hojeIso);
+    const ehHoje = dataHoraStr.includes(hojeIso) || dataHoraStr.includes('07/09/2026');
     return !ehHoje;
   }).filter(item => {
     if (filtroStatus === 'TODOS') return true;
@@ -103,6 +101,13 @@ function PainelAgendaDia({ profissionalId, taxaComissao, handleUpdateStatus }) {
     if (filtroStatus === 'CANCELADO') return statusItem === 'CANCELADO';
     return true;
   });
+
+  const executarAcaoStatus = async (id, novoStatus) => {
+    if (handleUpdateStatus) {
+      await handleUpdateStatus(id, novoStatus);
+      carregarAgenda(); // Atualiza instantaneamente os dados após a ação
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -186,7 +191,7 @@ function PainelAgendaDia({ profissionalId, taxaComissao, handleUpdateStatus }) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {agendamentosHoje.map((item) => {
               const statusItem = (item.status || 'AGENDADO').toUpperCase();
-              const isConcluido = statusItem === 'concluido' || statusItem === 'concluído' || statusItem === 'CONCLUIDO' || statusItem === 'CONCLUÍDO';
+              const isConcluido = statusItem === 'CONCLUIDO' || statusItem === 'CONCLUÍDO';
 
               return (
                 <div key={item.id} className="p-4 bg-stone-50 rounded-2xl border border-stone-200/60 flex flex-col justify-between gap-3">
@@ -195,7 +200,7 @@ function PainelAgendaDia({ profissionalId, taxaComissao, handleUpdateStatus }) {
                       <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Cliente</span>
                       <h4 className="text-xs font-bold text-stone-900">{item.cliente_nome || item.clientes?.nome || '-'}</h4>
                       <p className="text-xs text-stone-500 font-medium">
-                        {item.servico_nome || item.servicos?.nome || '-'} • <span className="text-stone-700">{formatarDataHora(item.data_hora || item.horario)}</span>
+                        {item.servico_nome || item.servicos?.nome || '-'} • <span className="text-stone-700">{formatarDataHora(item.data_hora || item.horario || item.data)}</span>
                       </p>
                     </div>
                     <div className="text-right space-y-2">
@@ -212,19 +217,19 @@ function PainelAgendaDia({ profissionalId, taxaComissao, handleUpdateStatus }) {
 
                   {/* AÇÕES PARA OS ATENDIMENTOS DE HOJE */}
                   <div className="flex items-center justify-between pt-2 border-t border-stone-200/60 text-xs text-stone-500">
-                    <span>Barbeiro: <strong className="text-stone-700">{item.barbeiro || item.profissional_nome || 'Patrícia'}</strong></span>
+                    <span>Profissional: <strong className="text-stone-700">{item.barbeiro || item.profissional_nome || 'Patrícia'}</strong></span>
                     
                     <div className="flex items-center gap-2">
                       {handleUpdateStatus && (
                         <>
                           <button
-                            onClick={() => handleUpdateStatus(item.id, 'concluido')}
+                            onClick={() => executarAcaoStatus(item.id, 'concluido')}
                             className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold rounded-xl flex items-center gap-1 transition-colors border border-emerald-200 text-xs cursor-pointer"
                           >
                             <Check className="w-3.5 h-3.5" /> Concluir
                           </button>
                           <button
-                            onClick={() => handleUpdateStatus(item.id, 'cancelado')}
+                            onClick={() => executarAcaoStatus(item.id, 'cancelado')}
                             className="px-3.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-semibold rounded-xl flex items-center gap-1 transition-colors border border-rose-200 text-xs cursor-pointer"
                           >
                             <X className="w-3.5 h-3.5" /> Cancelar
@@ -253,7 +258,7 @@ function PainelAgendaDia({ profissionalId, taxaComissao, handleUpdateStatus }) {
 
       {/* BLOCO RECOLHÍVEL COM O RESTANTE DOS DIAS E FILTROS */}
       {mostrarOutrosDias && (
-        <div className="bg-white p-6 rounded-3xl border border-stone-200/80 shadow-sm space-y-5 animate-fadeIn">
+        <div className="bg-white p-6 rounded-3xl border border-stone-200/80 shadow-sm space-y-5">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-stone-100 pb-4">
             <div>
               <h4 className="font-bold text-stone-900 text-base">Outros Dias e Histórico</h4>
@@ -286,7 +291,7 @@ function PainelAgendaDia({ profissionalId, taxaComissao, handleUpdateStatus }) {
             <div className="space-y-3">
               {agendamentosOutrosDias.map((item) => {
                 const statusItem = (item.status || 'AGENDADO').toUpperCase();
-                const isConcluido = statusItem === 'concluido' || statusItem === 'concluído' || statusItem === 'CONCLUIDO' || statusItem === 'CONCLUÍDO';
+                const isConcluido = statusItem === 'CONCLUIDO' || statusItem === 'CONCLUÍDO';
 
                 return (
                   <div key={item.id} className="p-4 bg-stone-50 rounded-2xl border border-stone-200/60 space-y-3">
@@ -295,7 +300,7 @@ function PainelAgendaDia({ profissionalId, taxaComissao, handleUpdateStatus }) {
                         <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Cliente</span>
                         <h4 className="text-xs font-bold text-stone-900">{item.cliente_nome || item.clientes?.nome || '-'}</h4>
                         <p className="text-xs text-stone-500 mt-0.5">
-                          {item.servico_nome || item.servicos?.nome || '-'} • <span className="font-medium text-stone-700">{formatarDataHora(item.data_hora || item.horario)}</span>
+                          {item.servico_nome || item.servicos?.nome || '-'} • <span className="font-medium text-stone-700">{formatarDataHora(item.data_hora || item.horario || item.data)}</span>
                         </p>
                       </div>
                       <div className="text-right">
@@ -311,19 +316,19 @@ function PainelAgendaDia({ profissionalId, taxaComissao, handleUpdateStatus }) {
                     </div>
 
                     <div className="flex items-center justify-between pt-2 border-t border-stone-200/60 text-xs text-stone-500">
-                      <span>Barbeiro: <strong className="text-stone-700">{item.barbeiro || item.profissional_nome || 'Patrícia'}</strong></span>
+                      <span>Profissional: <strong className="text-stone-700">{item.barbeiro || item.profissional_nome || 'Patrícia'}</strong></span>
                       
                       <div className="flex items-center gap-2">
                         {handleUpdateStatus && (
                           <>
                             <button
-                              onClick={() => handleUpdateStatus(item.id, 'concluido')}
+                              onClick={() => executarAcaoStatus(item.id, 'concluido')}
                               className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold rounded-xl flex items-center gap-1 transition-colors border border-emerald-200 text-xs cursor-pointer"
                             >
                               <Check className="w-3.5 h-3.5" /> Concluir
                             </button>
                             <button
-                              onClick={() => handleUpdateStatus(item.id, 'cancelado')}
+                              onClick={() => executarAcaoStatus(item.id, 'cancelado')}
                               className="px-3.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-semibold rounded-xl flex items-center gap-1 transition-colors border border-rose-200 text-xs cursor-pointer"
                             >
                               <X className="w-3.5 h-3.5" /> Cancelar
@@ -338,25 +343,6 @@ function PainelAgendaDia({ profissionalId, taxaComissao, handleUpdateStatus }) {
             </div>
           )}
         </div>
-      )}
-    </div>
-  );
-}
-
-// ==========================================
-// 2. EXPORTAÇÃO PRINCIPAL DA ABA
-// ==========================================
-export default function AgendamentosTab({ agendamentos = [], handleUpdateStatus, activeTab }) {
-  const profissionalAtualId = agendamentos[0]?.barbeiro_id || agendamentos[0]?.profissional_id;
-
-  return (
-    <div className="space-y-4 pb-24 max-w-7xl mx-auto">
-      {(!activeTab || activeTab === 'agendamentos') && (
-        <PainelAgendaDia 
-          profissionalId={profissionalAtualId} 
-          taxaComissao={50} 
-          handleUpdateStatus={handleUpdateStatus}
-        />
       )}
     </div>
   );
