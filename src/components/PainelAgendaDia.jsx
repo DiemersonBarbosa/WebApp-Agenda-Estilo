@@ -12,7 +12,6 @@ export default function PainelAgendaDia({ profissionalId, taxaComissao = 50, han
   const [mostrarOutrosDias, setMostrarOutrosDias] = useState(false);
   const [filtroStatus, setFiltroStatus] = useState('TODOS');
 
-  // Data de hoje formatada conforme o contexto (07/09/2026)
   const hojeIso = '2026-09-07';
 
   const carregarAgenda = async () => {
@@ -27,7 +26,6 @@ export default function PainelAgendaDia({ profissionalId, taxaComissao = 50, han
       setAgendamentosHoje([]);
       setTodosAgendamentos([]);
     } else if (data) {
-      // Filtra por profissional se houver ID informado
       const filtradosPorProfissional = data.filter(item => {
         if (!profissionalId) return true;
         return (
@@ -38,7 +36,6 @@ export default function PainelAgendaDia({ profissionalId, taxaComissao = 50, han
 
       const listaGeral = filtradosPorProfissional.length > 0 ? filtradosPorProfissional : data;
 
-      // Ordena decrescente pelo horário/data
       listaGeral.sort((a, b) => {
         const tA = String(a.data || a.data_hora || a.horario || '');
         const tB = String(b.data || b.data_hora || b.horario || '');
@@ -47,7 +44,6 @@ export default function PainelAgendaDia({ profissionalId, taxaComissao = 50, han
 
       setTodosAgendamentos(listaGeral);
 
-      // Filtra os agendamentos que pertencem estritamente ao dia de hoje
       const doDia = listaGeral.filter(item => {
         const dataHoraStr = String(item.data || item.data_hora || item.horario || '');
         return dataHoraStr.includes(hojeIso) || dataHoraStr.includes('07/09/2026');
@@ -75,18 +71,26 @@ export default function PainelAgendaDia({ profissionalId, taxaComissao = 50, han
     return s === 'concluido' || s === 'concluído';
   }).length;
   
-  const faturamentoPrevisto = agendamentosHoje.reduce((acc, item) => acc + Number(item.valor || item.valor_total || 0), 0);
+  const faturamentoPrevisto = agendamentosHoje.reduce((acc, item) => acc + Number(item.valor || item.valor_total || item.preco || 0), 0);
   const comissaoEstimada = faturamentoPrevisto * ((taxaComissao || 0) / 100);
 
-  const formatarDataHora = (dataStr) => {
-    if (!dataStr) return '-';
+  const formatarDataHora = (item) => {
+    // Tenta pegar a data de campos comuns
+    const dataStr = item.data_hora || item.horario || item.data || '';
+    const horaStr = item.hora || item.horario_inicio || '';
+
     if (dataStr.includes('T')) {
       const [dataPart, horaPart] = dataStr.split('T');
       const [ano, mes, dia] = dataPart.split('-');
       const hora = horaPart.substring(0, 5);
       return `${dia}/${mes}/${ano} às ${hora}`;
     }
-    return dataStr;
+
+    if (dataStr && horaStr) {
+      return `${dataStr} às ${horaStr}`;
+    }
+
+    return dataStr || horaStr || '-';
   };
 
   const agendamentosOutrosDias = todosAgendamentos.filter(item => {
@@ -105,7 +109,7 @@ export default function PainelAgendaDia({ profissionalId, taxaComissao = 50, han
   const executarAcaoStatus = async (id, novoStatus) => {
     if (handleUpdateStatus) {
       await handleUpdateStatus(id, novoStatus);
-      carregarAgenda(); // Atualiza instantaneamente os dados após a ação
+      carregarAgenda(); 
     }
   };
 
@@ -192,20 +196,24 @@ export default function PainelAgendaDia({ profissionalId, taxaComissao = 50, han
             {agendamentosHoje.map((item) => {
               const statusItem = (item.status || 'AGENDADO').toUpperCase();
               const isConcluido = statusItem === 'CONCLUIDO' || statusItem === 'CONCLUÍDO';
+              
+              // Busca ampla para garantir que ache o nome do cliente em qualquer coluna possível
+              const nomeCliente = item.cliente_nome || item.clientes?.nome || item.nome_cliente || item.cliente || 'Cliente não informado';
+              const nomeServico = item.servico_nome || item.servicos?.nome || item.nome_servico || item.servico || 'Serviço';
 
               return (
                 <div key={item.id} className="p-4 bg-stone-50 rounded-2xl border border-stone-200/60 flex flex-col justify-between gap-3">
                   <div className="flex items-start justify-between gap-3">
                     <div className="space-y-1">
                       <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Cliente</span>
-                      <h4 className="text-xs font-bold text-stone-900">{item.cliente_nome || item.clientes?.nome || '-'}</h4>
+                      <h4 className="text-xs font-bold text-stone-900">{nomeCliente}</h4>
                       <p className="text-xs text-stone-500 font-medium">
-                        {item.servico_nome || item.servicos?.nome || '-'} • <span className="text-stone-700">{formatarDataHora(item.data_hora || item.horario || item.data)}</span>
+                        {nomeServico} • <span className="text-stone-700">{formatarDataHora(item)}</span>
                       </p>
                     </div>
                     <div className="text-right space-y-2">
                       <span className="font-semibold text-emerald-600 text-xs block">
-                        R$ {(item.valor_total || item.valor) ? Number(item.valor_total || item.valor).toFixed(2) : '0,00'}
+                        R$ {Number(item.valor_total || item.valor || item.preco || 0).toFixed(2)}
                       </span>
                       <span className={`px-2.5 py-0.5 text-[10px] font-bold rounded-md uppercase inline-block ${
                         isConcluido ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700 border border-amber-200'
@@ -292,20 +300,23 @@ export default function PainelAgendaDia({ profissionalId, taxaComissao = 50, han
               {agendamentosOutrosDias.map((item) => {
                 const statusItem = (item.status || 'AGENDADO').toUpperCase();
                 const isConcluido = statusItem === 'CONCLUIDO' || statusItem === 'CONCLUÍDO';
+                
+                const nomeCliente = item.cliente_nome || item.clientes?.nome || item.nome_cliente || item.cliente || 'Cliente não informado';
+                const nomeServico = item.servico_nome || item.servicos?.nome || item.nome_servico || item.servico || 'Serviço';
 
                 return (
                   <div key={item.id} className="p-4 bg-stone-50 rounded-2xl border border-stone-200/60 space-y-3">
                     <div className="flex items-start justify-between">
                       <div>
                         <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Cliente</span>
-                        <h4 className="text-xs font-bold text-stone-900">{item.cliente_nome || item.clientes?.nome || '-'}</h4>
+                        <h4 className="text-xs font-bold text-stone-900">{nomeCliente}</h4>
                         <p className="text-xs text-stone-500 mt-0.5">
-                          {item.servico_nome || item.servicos?.nome || '-'} • <span className="font-medium text-stone-700">{formatarDataHora(item.data_hora || item.horario || item.data)}</span>
+                          {nomeServico} • <span className="font-medium text-stone-700">{formatarDataHora(item)}</span>
                         </p>
                       </div>
                       <div className="text-right">
                         <span className="font-semibold text-emerald-600 text-xs block">
-                          R$ {(item.valor_total || item.valor) ? Number(item.valor_total || item.valor).toFixed(2) : '0,00'}
+                          R$ {Number(item.valor_total || item.valor || item.preco || 0).toFixed(2)}
                         </span>
                         <span className={`px-2.5 py-0.5 text-[10px] font-bold rounded-md uppercase inline-block mt-1 ${
                           isConcluido ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700 border border-amber-200'
