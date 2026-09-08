@@ -1,41 +1,38 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { CalendarCheck, DollarSign, Percent, Clock, ChevronDown, ChevronUp, Check, X, Calendar, Filter } from 'lucide-react';
+import { CalendarCheck, DollarSign, Percent, Clock, ChevronDown, ChevronUp, Check, X, Calendar, Filter, AlertCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 export default function PainelAgendaDia({ profissionalId, taxaComissao = 50, handleUpdateStatus }) {
   const [agendamentosHoje, setAgendamentosHoje] = useState([]);
   const [todosAgendamentos, setTodosAgendamentos] = useState([]);
   const [carregando, setCarregando] = useState(true);
+  const [debugDadosBrutos, setDebugDadosBrutos] = useState([]);
   
   const [mostrarOutrosDias, setMostrarOutrosDias] = useState(false);
   const [filtroStatus, setFiltroStatus] = useState('TODOS');
 
-  // Função normalizadora de data super robusta
-  const extrairDataIso = (valor) => {
-    if (!valor) return '';
-    const str = String(valor).trim();
-
-    // Se estiver no formato brasileiro DD/MM/YYYY
-    if (/^\d{2}\/\d{2}\/\d{4}/.test(str)) {
-      const [dia, mes, ano] = str.split('T')[0].split(' ')[0].split('/');
-      return `${ano}-${mes.padStart(2, '0')}-${dia.padStart(2, '0')}`;
-    }
-
-    // Se contiver hífen (YYYY-MM-DD ou ISO com T)
-    if (str.includes('-')) {
-      return str.substring(0, 10);
-    }
-
-    return str;
-  };
-
   const HOJE_ISO = '2026-09-07';
 
-  const éDataDeHoje = (item) => {
-    const camposData = [item.data, item.data_hora, item.horario, item.created_at];
-    return camposData.some(campo => extrairDataIso(campo) === HOJE_ISO);
+  // Função inteligente que procura a data em qualquer propriedade do objeto
+  const extrairDataIso = (item) => {
+    if (!item) return '';
+    // Varre todas as chaves do objeto para achar qualquer coisa que pareça data
+    const valores = Object.values(item);
+    for (const val of valores) {
+      if (val && typeof val === 'string') {
+        const str = val.trim();
+        if (/^\d{4}-\d{2}-\d{2}/.test(str)) {
+          return str.substring(0, 10);
+        }
+        if (/^\d{2}\/\d{2}\/\d{4}/.test(str)) {
+          const [dia, mes, ano] = str.split('T')[0].split(' ')[0].split('/');
+          return `${ano}-${mes.padStart(2, '0')}-${dia.padStart(2, '0')}`;
+        }
+      }
+    }
+    return '';
   };
 
   const carregarAgenda = async () => {
@@ -49,36 +46,31 @@ export default function PainelAgendaDia({ profissionalId, taxaComissao = 50, han
       console.error('Erro ao buscar agendamentos:', error);
       setAgendamentosHoje([]);
       setTodosAgendamentos([]);
+      setDebugDadosBrutos([]);
     } else if (data) {
-      // Filtra por profissional se aplicável
+      setDebugDadosBrutos(data); // Guarda para inspecionar caso precise
+
+      // Se quiser ignorar o filtro de profissional temporariamente para testes, comente o filtro abaixo. 
+      // Aqui vamos filtrar por profissional apenas se o campo existir no registro:
       const filtradosPorProfissional = data.filter(item => {
         if (!profissionalId) return true;
+        const profStr = String(profissionalId).toLowerCase();
         return (
-          String(item.barbeiro_id || '') === String(profissionalId) || 
-          String(item.profissional_id || '') === String(profissionalId) ||
-          String(item.barbeiro || '').toLowerCase() === String(profissionalId).toLowerCase()
+          String(item.barbeiro_id || '').toLowerCase() === profStr || 
+          String(item.profissional_id || '').toLowerCase() === profStr ||
+          String(item.barbeiro || '').toLowerCase().includes(profStr) ||
+          String(item.profissional_nome || '').toLowerCase().includes(profStr)
         );
       });
 
       const listaGeral = filtradosPorProfissional.length > 0 ? filtradosPorProfissional : data;
 
-      // Ordena a lista geral por data decrescente
-      listaGeral.sort((a, b) => {
-        const tA = String(a.data || a.data_hora || a.horario || a.created_at || '');
-        const tB = String(b.data || b.data_hora || b.horario || b.created_at || '');
-        return tB.localeCompare(tA);
-      });
-
       setTodosAgendamentos(listaGeral);
 
-      // Filtra estritamente os de HOJE
-      const doDia = listaGeral.filter(item => éDataDeHoje(item));
-
-      // Ordena os de hoje por horário crescente
-      doDia.sort((a, b) => {
-        const tA = String(a.data || a.data_hora || a.horario || '');
-        const tB = String(b.data || b.data_hora || b.horario || '');
-        return tA.localeCompare(tB);
+      // Filtra os de HOJE comparando com o formato ISO extraído de qualquer coluna
+      const doDia = listaGeral.filter(item => {
+        const dataExtraida = extrairDataIso(item);
+        return dataExtraida === HOJE_ISO;
       });
 
       setAgendamentosHoje(doDia);
@@ -93,42 +85,30 @@ export default function PainelAgendaDia({ profissionalId, taxaComissao = 50, han
 
   const totalAtendimentos = agendamentosHoje.length;
   const concluidos = agendamentosHoje.filter(a => {
-    const s = (a.status || '').toLowerCase();
-    return s === 'concluido' || s === 'concluído';
+    const s = String(a.status || '').toLowerCase();
+    return s.includes('concluido') || s.includes('concluído');
   }).length;
   
   const faturamentoPrevisto = agendamentosHoje.reduce((acc, item) => {
-    const val = item.valor_total || item.valor || item.preco || 0;
+    const val = item.valor_total || item.valor || item.preco || item.price || 0;
     return acc + Number(val);
   }, 0);
   
   const comissaoEstimada = faturamentoPrevisto * ((taxaComissao || 0) / 100);
 
   const formatarDataHora = (item) => {
-    const dataStr = item.data_hora || item.horario || item.data || '';
-    if (String(dataStr).includes('T')) {
-      const [dataPart, horaPart] = dataStr.split('T');
-      const [ano, mes, dia] = dataPart.split('-');
-      const hora = horaPart ? horaPart.substring(0, 5) : '';
-      return hora ? `${dia}/${mes}/${ano} às ${hora}` : `${dia}/${mes}/${ano}`;
-    }
-    if (String(dataStr).includes('-') && String(dataStr).includes(':')) {
-      const [dataPart, horaPart] = dataStr.split(' ');
-      const [ano, mes, dia] = dataPart.split('-');
-      const hora = horaPart ? horaPart.substring(0, 5) : '';
-      return hora ? `${dia}/${mes}/${ano} às ${hora}` : `${dia}/${mes}/${ano}`;
-    }
-    return dataStr || '-';
+    const dataStr = item.data_hora || item.horario || item.data || item.created_at || '';
+    return String(dataStr);
   };
 
   const agendamentosOutrosDias = todosAgendamentos.filter(item => {
-    return !éDataDeHoje(item);
+    return extrairDataIso(item) !== HOJE_ISO;
   }).filter(item => {
     if (filtroStatus === 'TODOS') return true;
     const statusItem = (item.status || 'PENDENTE').toUpperCase();
-    if (filtroStatus === 'CONCLUIDO') return statusItem === 'CONCLUIDO' || statusItem === 'CONCLUÍDO';
-    if (filtroStatus === 'PENDENTE') return statusItem === 'PENDENTE' || statusItem === 'AGENDADO';
-    if (filtroStatus === 'CANCELADO') return statusItem === 'CANCELADO';
+    if (filtroStatus === 'CONCLUIDO') return statusItem.includes('CONCLU');
+    if (filtroStatus === 'PENDENTE') return statusItem.includes('PENDENTE') || statusItem.includes('AGENDADO');
+    if (filtroStatus === 'CANCELADO') return statusItem.includes('CANCELADO');
     return true;
   });
 
@@ -141,6 +121,17 @@ export default function PainelAgendaDia({ profissionalId, taxaComissao = 50, han
 
   return (
     <div className="space-y-6">
+      {/* PAINEL DE DIAGNÓSTICO (Caso o banco retorne vazio ou colunas diferentes) */}
+      {debugDadosBrutos.length === 0 && !carregando && (
+        <div className="bg-amber-50 border border-amber-200 p-4 rounded-2xl flex items-start gap-3 text-amber-800 text-xs">
+          <AlertCircle className="w-5 h-5 shrink-0 text-amber-600" />
+          <div>
+            <strong className="block font-bold text-sm mb-1">Aviso de Diagnóstico:</strong>
+            O Supabase retornou 0 registros na tabela <code className="bg-amber-100 px-1 py-0.5 rounded">agendamentos</code>. Verifique se a tabela possui dados salvos ou se o nome da tabela está correto no banco de dados.
+          </div>
+        </div>
+      )}
+
       {/* GRID DE CARDS DE MÉTRICAS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white p-5 rounded-2xl border border-stone-200/80 shadow-sm flex items-center justify-between">
@@ -216,12 +207,15 @@ export default function PainelAgendaDia({ profissionalId, taxaComissao = 50, han
         </div>
 
         {agendamentosHoje.length === 0 ? (
-          <p className="text-sm text-stone-400 py-6 text-center">Nenhum atendimento agendado para hoje (07/09/2026).</p>
+          <div className="py-8 text-center space-y-2">
+            <p className="text-sm text-stone-400">Nenhum atendimento agendado para hoje (07/09/2026).</p>
+            <p className="text-[11px] text-stone-400">Total de registros encontrados no banco: {debugDadosBrutos.length}</p>
+          </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {agendamentosHoje.map((item) => {
               const statusItem = (item.status || 'AGENDADO').toUpperCase();
-              const isConcluido = statusItem === 'CONCLUIDO' || statusItem === 'CONCLUÍDO';
+              const isConcluido = statusItem.includes('CONCLU');
               
               const nomeCliente = item.cliente_nome || item.nome_cliente || item.cliente || item.nome || 'Cliente';
               const nomeServico = item.servico_nome || item.nome_servico || item.servico || 'Serviço';
@@ -324,7 +318,7 @@ export default function PainelAgendaDia({ profissionalId, taxaComissao = 50, han
             <div className="space-y-3">
               {agendamentosOutrosDias.map((item) => {
                 const statusItem = (item.status || 'AGENDADO').toUpperCase();
-                const isConcluido = statusItem === 'CONCLUIDO' || statusItem === 'CONCLUÍDO';
+                const isConcluido = statusItem.includes('CONCLU');
                 
                 const nomeCliente = item.cliente_nome || item.nome_cliente || item.cliente || item.nome || 'Cliente';
                 const nomeServico = item.servico_nome || item.nome_servico || item.servico || 'Serviço';
