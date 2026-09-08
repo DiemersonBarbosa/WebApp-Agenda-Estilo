@@ -12,7 +12,7 @@ export default function PainelAgendaDia({ profissionalId, taxaComissao = 50, han
   const [mostrarOutrosDias, setMostrarOutrosDias] = useState(false);
   const [filtroStatus, setFiltroStatus] = useState('TODOS');
 
-  // Validação flexível e segura para o dia 07/09/2026
+  // Função robusta que extrai e compara o ano, mês e dia reais do registro com o dia de hoje (07/09/2026)
   const éDataDeHoje = (item) => {
     const camposData = [
       item.data,
@@ -21,17 +21,31 @@ export default function PainelAgendaDia({ profissionalId, taxaComissao = 50, han
       item.created_at
     ];
 
+    const hojeAno = '2026';
+    const hojeMes = '09';
+    const hojeDia = '07';
+
     return camposData.some(campo => {
       if (!campo) return false;
       const valStr = String(campo);
-      
-      // Verifica padrões comuns para 07/09/2026
-      return (
+
+      // Se contiver a string exata em qualquer variação comum
+      if (
         valStr.includes('2026-09-07') || 
         valStr.includes('07/09/2026') ||
         valStr.includes('2026-9-7') ||
         valStr.includes('7/9/2026')
-      );
+      ) {
+        return true;
+      }
+
+      // Tenta extrair os primeiros 10 caracteres se for formato ISO (YYYY-MM-DD)
+      const substringData = valStr.substring(0, 10);
+      if (substringData === `${hojeAno}-${hojeMes}-${hojeDia}`) {
+        return true;
+      }
+
+      return false;
     });
   };
 
