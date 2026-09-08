@@ -8,36 +8,35 @@ export default function PainelAgendaDia({ profissionalId, taxaComissao = 50, han
   const [agendamentosHoje, setAgendamentosHoje] = useState([]);
   const [todosAgendamentos, setTodosAgendamentos] = useState([]);
   const [carregando, setCarregando] = useState(true);
+  const [erroBanco, setErroBanco] = useState(null);
   
   const [mostrarOutrosDias, setMostrarOutrosDias] = useState(false);
   const [filtroStatus, setFiltroStatus] = useState('TODOS');
 
   const carregarAgenda = async () => {
     setCarregando(true);
+    setErroBanco(null);
+
+    console.log('🔄 Buscando dados da tabela "agendamentos"...');
 
     const { data, error } = await supabase
       .from('agendamentos')
       .select('*');
 
     if (error) {
-      console.error('Erro ao buscar agendamentos:', error);
+      console.error('❌ Erro retornado pelo Supabase:', error);
+      setErroBanco(error.message);
       setAgendamentosHoje([]);
       setTodosAgendamentos([]);
-    } else if (data) {
-      const hojeIso = '2026-09-07';
-      const hojeBr = '07/09/2026';
+    } else {
+      console.log('✅ Dados brutos recebidos do Supabase:', data);
+      
+      if (!data || data.length === 0) {
+        console.warn('⚠️ A tabela "agendamentos" retornou vazia (0 registros). Verifique se há dados cadastrados.');
+        setErroBanco('A tabela "agendamentos" está vazia ou sem registros.');
+      }
 
-      // Filtra por profissional se aplicável
-      const filtradosPorProfissional = data.filter(item => {
-        if (!profissionalId) return true;
-        return (
-          String(item.barbeiro_id || '') === String(profissionalId) || 
-          String(item.profissional_id || '') === String(profissionalId) ||
-          String(item.barbeiro || '').toLowerCase() === String(profissionalId).toLowerCase()
-        );
-      });
-
-      const listaGeral = filtradosPorProfissional.length > 0 ? filtradosPorProfissional : data;
+      const listaGeral = data || [];
 
       // Ordena a lista geral por data decrescente
       listaGeral.sort((a, b) => {
@@ -48,6 +47,10 @@ export default function PainelAgendaDia({ profissionalId, taxaComissao = 50, han
 
       setTodosAgendamentos(listaGeral);
 
+      // Data de hoje fixa para teste (07/09/2026)
+      const hojeIso = '2026-09-07';
+      const hojeBr = '07/09/2026';
+
       // Filtra os de HOJE buscando a data em QUALQUER propriedade do objeto
       const doDia = listaGeral.filter(item => {
         return Object.values(item).some(val => {
@@ -55,6 +58,8 @@ export default function PainelAgendaDia({ profissionalId, taxaComissao = 50, han
           return valStr.includes(hojeIso) || valStr.includes(hojeBr);
         });
       });
+
+      console.log('🎯 Agendamentos encontrados para hoje:', doDia);
 
       // Ordena os de hoje por horário crescente
       doDia.sort((a, b) => {
@@ -129,6 +134,15 @@ export default function PainelAgendaDia({ profissionalId, taxaComissao = 50, han
 
   return (
     <div className="space-y-6">
+      {/* AVISO DE DIAGNÓSTICO SE HOUVER ERRO OU TABELA VAZIA */}
+      {erroBanco && (
+        <div className="bg-amber-50 border border-amber-200 text-amber-800 p-4 rounded-2xl text-xs space-y-1">
+          <p className="font-bold">⚠️ Diagnóstico do Supabase:</p>
+          <p>{erroBanco}</p>
+          <p className="text-[10px] text-amber-600">Dica: Abra o console do navegador (F12) para ver os detalhes completos retornados pelo banco.</p>
+        </div>
+      )}
+
       {/* GRID DE CARDS DE MÉTRICAS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white p-5 rounded-2xl border border-stone-200/80 shadow-sm flex items-center justify-between">
@@ -204,7 +218,7 @@ export default function PainelAgendaDia({ profissionalId, taxaComissao = 50, han
         </div>
 
         {agendamentosHoje.length === 0 ? (
-          <p className="text-sm text-stone-400 py-6 text-center">Nenhum atendimento agendado para hoje (07/09/2026).</p>
+          <p className="text-sm text-stone-400 py-6 text-center">Nenhum atendimento agendado para hoje (07/09/2026). Total geral na tabela: {todosAgendamentos.length}</p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {agendamentosHoje.map((item) => {
@@ -272,7 +286,7 @@ export default function PainelAgendaDia({ profissionalId, taxaComissao = 50, han
           onClick={() => setMostrarOutrosDias(!mostrarOutrosDias)}
           className="w-full py-3.5 px-4 bg-white hover:bg-stone-50 border border-stone-200/80 rounded-2xl text-stone-700 font-semibold text-sm flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer"
         >
-          <span>{mostrarOutrosDias ? 'Ocultar Histórico / Outros Dias' : 'Ver Agendamentos de Outros Dias (Histórico e Filtros)'}</span>
+          <span>{mostrarOutrosDias ? 'Ocultar Histórico / Outros Dias' : `Ver Todos os Registros do Banco (${todosAgendamentos.length})`}</span>
           {mostrarOutrosDias ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
         </button>
       </div>
@@ -283,7 +297,7 @@ export default function PainelAgendaDia({ profissionalId, taxaComissao = 50, han
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-stone-100 pb-4">
             <div>
               <h4 className="font-bold text-stone-900 text-base">Outros Dias e Histórico</h4>
-              <p className="text-xs text-stone-400">Gerencie consultas passadas ou futuras</p>
+              <p className="text-xs text-stone-400">Total geral de registros carregados: {todosAgendamentos.length}</p>
             </div>
 
             <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0">
@@ -307,7 +321,7 @@ export default function PainelAgendaDia({ profissionalId, taxaComissao = 50, han
           </div>
 
           {agendamentosOutrosDias.length === 0 ? (
-            <p className="text-sm text-stone-400 py-8 text-center">Nenhum agendamento encontrado para os filtros selecionados.</p>
+            <p className="text-sm text-stone-400 py-8 text-center">Nenhum outro agendamento encontrado.</p>
           ) : (
             <div className="space-y-3">
               {agendamentosOutrosDias.map((item) => {
