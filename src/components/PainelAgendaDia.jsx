@@ -3,11 +3,10 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 
-export default function PainelAgendaDia({ profissionalId, taxaComissao = 50, handleUpdateStatus }) {
+export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComissao = 50, handleUpdateStatus }) {
   const [agendamentosHoje, setAgendamentosHoje] = useState([]);
   const [todosAgendamentos, setTodosAgendamentos] = useState([]);
   const [carregando, setCarregando] = useState(true);
-  const [debugDadosBrutos, setDebugDadosBrutos] = useState([]);
   const [erroFatal, setErroFatal] = useState(null);
   
   const [mostrarOutrosDias, setMostrarOutrosDias] = useState(false);
@@ -45,9 +44,17 @@ export default function PainelAgendaDia({ profissionalId, taxaComissao = 50, han
       setCarregando(true);
       setErroFatal(null);
 
-      const { data, error } = await supabase
-        .from('agendamentos')
-        .select('*');
+      // Constrói a consulta ao Supabase filtrando com segurança pela barbearia ou profissional logado
+      let query = supabase.from('agendamentos').select('*');
+
+      if (barbeariaId) {
+        query = query.eq('barbearia_id', barbeariaId);
+      } else if (profissionalId) {
+        // Caso utilize ID do profissional na tabela
+        query = query.or(`barbeiro_id.eq.${profissionalId},profissional_id.eq.${profissionalId}`);
+      }
+
+      const { data, error } = await query;
 
       if (error) {
         console.error('Erro Supabase:', error);
@@ -55,24 +62,9 @@ export default function PainelAgendaDia({ profissionalId, taxaComissao = 50, han
         setAgendamentosHoje([]);
         setTodosAgendamentos([]);
       } else if (data) {
-        setDebugDadosBrutos(data);
-        // Guarda todos os registros da base sem travas rígidas de profissional para o histórico
         setTodosAgendamentos(data);
 
-        // Filtra para o painel de hoje apenas os que batem com a data de hoje e opcionalmente com o profissional
-        const filtradosPorProfissional = data.filter(item => {
-          if (!profissionalId) return true;
-          const profStr = String(profissionalId).toLowerCase();
-          return (
-            String(item.barbeiro_id || '').toLowerCase() === profStr || 
-            String(item.profissional_id || '').toLowerCase() === profStr ||
-            String(item.barbeiro || '').toLowerCase().includes(profStr) ||
-            String(item.profissional_nome || '').toLowerCase().includes(profStr)
-          );
-        });
-
-        const listaDoDiaBase = filtradosPorProfissional.length > 0 ? filtradosPorProfissional : data;
-        const doDia = listaDoDiaBase.filter(item => extrairDataIso(item) === HOJE_ISO);
+        const doDia = data.filter(item => extrairDataIso(item) === HOJE_ISO);
         setAgendamentosHoje(doDia);
       }
     } catch (err) {
@@ -85,7 +77,7 @@ export default function PainelAgendaDia({ profissionalId, taxaComissao = 50, han
 
   useEffect(() => {
     carregarAgenda();
-  }, [profissionalId]);
+  }, [profissionalId, barbeariaId]);
 
   const totalAtendimentos = agendamentosHoje.length;
   const concluidos = agendamentosHoje.filter(a => {
@@ -114,7 +106,6 @@ export default function PainelAgendaDia({ profissionalId, taxaComissao = 50, han
     return String(dataStr);
   };
 
-  // Exibe todos os registros que não são de hoje (ou permite buscar livremente)
   const agendamentosOutrosDias = todosAgendamentos.filter(item => {
     const dataIso = extrairDataIso(item);
     return dataIso !== HOJE_ISO;
@@ -179,7 +170,7 @@ export default function PainelAgendaDia({ profissionalId, taxaComissao = 50, han
           <div style={{ padding: '32px 16px', textAlign: 'center', color: '#6b7280', fontSize: '14px' }}>
             <p style={{ fontWeight: '500', color: '#4b5563', margin: '0 0 4px 0' }}>Nenhum atendimento agendado para hoje.</p>
             <p style={{ fontSize: '12px', color: '#9ca3af', margin: '0' }}>
-              Total de registros na base: {debugDadosBrutos.length}
+              Total de registros da unidade: {todosAgendamentos.length}
             </p>
           </div>
         ) : (
@@ -257,7 +248,7 @@ export default function PainelAgendaDia({ profissionalId, taxaComissao = 50, han
           </div>
 
           {agendamentosOutrosDias.length === 0 ? (
-            <p style={{ fontSize: '13px', color: '#6b7280', textAlign: 'center', padding: '16px 0' }}>Nenhum outro registro encontrado na base.</p>
+            <p style={{ fontSize: '13px', color: '#6b7280', textAlign: 'center', padding: '16px 0' }}>Nenhum outro registro encontrado para esta barbearia.</p>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '350px', overflowY: 'auto' }}>
               {agendamentosOutrosDias.map((item) => (
