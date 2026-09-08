@@ -12,41 +12,30 @@ export default function PainelAgendaDia({ profissionalId, taxaComissao = 50, han
   const [mostrarOutrosDias, setMostrarOutrosDias] = useState(false);
   const [filtroStatus, setFiltroStatus] = useState('TODOS');
 
-  // Função robusta que extrai e compara o ano, mês e dia reais do registro com o dia de hoje (07/09/2026)
+  // Função normalizadora de data super robusta
+  const extrairDataIso = (valor) => {
+    if (!valor) return '';
+    const str = String(valor).trim();
+
+    // Se estiver no formato brasileiro DD/MM/YYYY
+    if (/^\d{2}\/\d{2}\/\d{4}/.test(str)) {
+      const [dia, mes, ano] = str.split('T')[0].split(' ')[0].split('/');
+      return `${ano}-${mes.padStart(2, '0')}-${dia.padStart(2, '0')}`;
+    }
+
+    // Se contiver hífen (YYYY-MM-DD ou ISO com T)
+    if (str.includes('-')) {
+      return str.substring(0, 10);
+    }
+
+    return str;
+  };
+
+  const HOJE_ISO = '2026-09-07';
+
   const éDataDeHoje = (item) => {
-    const camposData = [
-      item.data,
-      item.data_hora,
-      item.horario,
-      item.created_at
-    ];
-
-    const hojeAno = '2026';
-    const hojeMes = '09';
-    const hojeDia = '07';
-
-    return camposData.some(campo => {
-      if (!campo) return false;
-      const valStr = String(campo);
-
-      // Se contiver a string exata em qualquer variação comum
-      if (
-        valStr.includes('2026-09-07') || 
-        valStr.includes('07/09/2026') ||
-        valStr.includes('2026-9-7') ||
-        valStr.includes('7/9/2026')
-      ) {
-        return true;
-      }
-
-      // Tenta extrair os primeiros 10 caracteres se for formato ISO (YYYY-MM-DD)
-      const substringData = valStr.substring(0, 10);
-      if (substringData === `${hojeAno}-${hojeMes}-${hojeDia}`) {
-        return true;
-      }
-
-      return false;
-    });
+    const camposData = [item.data, item.data_hora, item.horario, item.created_at];
+    return camposData.some(campo => extrairDataIso(campo) === HOJE_ISO);
   };
 
   const carregarAgenda = async () => {
