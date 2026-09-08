@@ -24,7 +24,7 @@ export default function PainelAgendaDia({ barbeariaId, profissionalId, taxaComis
   const [mostrarOutrosDias, setMostrarOutrosDias] = useState(false);
   const [termoBusca, setTermoBusca] = useState('');
 
-  // Data atual baseada rigorosamente no fuso do Brasil (America/Sao_Paulo)
+  // Data atual no formato ISO (YYYY-MM-DD) ajustada para o Brasil
   const formatadorDataBr = new Intl.DateTimeFormat('en-CA', {
     timeZone: 'America/Sao_Paulo',
     year: 'numeric',
@@ -33,22 +33,26 @@ export default function PainelAgendaDia({ barbeariaId, profissionalId, taxaComis
   });
   const HOJE_ISO = formatadorDataBr.format(new Date());
 
-  const extrairDataIso = (item) => {
-    if (!item) return '';
-    const valores = Object.values(item);
-    for (const val of valores) {
-      if (val && typeof val === 'string') {
-        const str = val.trim();
-        if (/^\d{4}-\d{2}-\d{2}/.test(str)) {
-          return str.substring(0, 10);
-        }
-        if (/^\d{2}\/\d{2}\/\d{4}/.test(str)) {
-          const [dia, mes, ano] = str.split('T')[0].split(' ')[0].split('/');
-          return `${ano}-${mes.padStart(2, '0')}-${dia.padStart(2, '0')}`;
-        }
+  // Função ultra-tolerante para achar a data de hoje independente de como o banco salva
+  const eDeHoje = (item) => {
+    const dataStr = String(
+      item.data_hora || item.horario || item.data || item.created_at || ''
+    );
+    if (!dataStr) return false;
+
+    // Se bater com a string de hoje ou contiver a data de hoje no formato YYYY-MM-DD ou DD/MM/YYYY
+    if (dataStr.includes(HOJE_ISO)) return true;
+    
+    // Tenta converter para verificar o dia exato
+    try {
+      const d = new Date(dataStr);
+      if (!isNaN(d.getTime())) {
+        const isoD = d.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
+        if (isoD === HOJE_ISO) return true;
       }
-    }
-    return '';
+    } catch (e) {}
+
+    return false;
   };
 
   const carregarAgenda = async () => {
@@ -73,7 +77,7 @@ export default function PainelAgendaDia({ barbeariaId, profissionalId, taxaComis
         setTodosAgendamentos([]);
       } else if (data) {
         setTodosAgendamentos(data);
-        const doDia = data.filter(item => extrairDataIso(item) === HOJE_ISO);
+        const doDia = data.filter(item => eDeHoje(item));
         setAgendamentosHoje(doDia);
       }
     } catch (err) {
@@ -88,7 +92,6 @@ export default function PainelAgendaDia({ barbeariaId, profissionalId, taxaComis
     carregarAgenda();
   }, [profissionalId, barbeariaId]);
 
-  // Função para alterar status (Corrigida)
   const alterarStatus = async (id, novoStatus) => {
     try {
       const { error } = await supabase
@@ -106,7 +109,6 @@ export default function PainelAgendaDia({ barbeariaId, profissionalId, taxaComis
     }
   };
 
-  // Função para excluir agendamento
   const excluirAgendamento = async (id) => {
     if (!window.confirm('Deseja realmente excluir este agendamento?')) return;
     try {
@@ -140,7 +142,7 @@ export default function PainelAgendaDia({ barbeariaId, profissionalId, taxaComis
 
   const formatarDataHora = (item) => {
     const dataStr = item.data_hora || item.horario || item.data || item.created_at || '';
-    if (!dataStr) return '';
+    if (!dataStr) return 'Horário não informado';
     try {
       const dataObj = new Date(dataStr);
       if (!isNaN(dataObj.getTime())) {
@@ -150,16 +152,12 @@ export default function PainelAgendaDia({ barbeariaId, profissionalId, taxaComis
     return String(dataStr);
   };
 
-  const agendamentosOutrosDias = todosAgendamentos.filter(item => {
-    const dataIso = extrairDataIso(item);
-    return dataIso !== HOJE_ISO;
-  }).filter(item => {
+  const agendamentosOutrosDias = todosAgendamentos.filter(item => !eDeHoje(item)).filter(item => {
     if (!termoBusca) return true;
     const termo = termoBusca.toLowerCase();
     const nomeCliente = String(item.cliente_nome || item.nome_cliente || item.cliente || item.nome || '').toLowerCase();
     const servicoNome = String(item.servico_nome || item.servico || '').toLowerCase();
-    const dataItem = String(extrairDataIso(item));
-    return nomeCliente.includes(termo) || servicoNome.includes(termo) || dataItem.includes(termo);
+    return nomeCliente.includes(termo) || servicoNome.includes(termo);
   });
 
   return (
@@ -224,7 +222,7 @@ export default function PainelAgendaDia({ barbeariaId, profissionalId, taxaComis
           <div style={{ padding: '32px 16px', textAlign: 'center', color: '#6b7280', fontSize: '14px' }}>
             <p style={{ fontWeight: '500', color: '#4b5563', margin: '0 0 4px 0' }}>Nenhum atendimento agendado para hoje.</p>
             <p style={{ fontSize: '12px', color: '#9ca3af', margin: '0' }}>
-              Total de registros da unidade: {todosAgendamentos.length}
+              Total de registros na unidade: {todosAgendamentos.length}
             </p>
           </div>
         ) : (
@@ -245,7 +243,9 @@ export default function PainelAgendaDia({ barbeariaId, profissionalId, taxaComis
                       </strong>
                       <div style={{ fontSize: '12px', color: '#4b5563', display: 'flex', alignItems: 'center', gap: '4px' }}>
                         <span>{item.servico_nome || item.servico || 'Serviço'}</span> • 
-                        <span style={{ color: '#6b7280', display: 'flex', alignItems: 'center', gap: '2px' }}><FiClock size={11} /> {formatarDataHora(item)}</span>
+                        <span style={{ color: '#6b7280', display: 'flex', alignItems: 'center', gap: '2px' }}>
+                          <FiClock size={11} /> {formatarDataHora(item)}
+                        </span>
                       </div>
                     </div>
                     
@@ -281,7 +281,7 @@ export default function PainelAgendaDia({ barbeariaId, profissionalId, taxaComis
                     )}
                     
                     <button 
-                      onClick={() => onEditarAgendamento ? onEditarAgendamento(item) : alert('Função de editar selecionada')}
+                      onClick={() => onEditarAgendamento ? onEditarAgendamento(item) : alert('Função de editar acionada')}
                       style={{ backgroundColor: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe', padding: '5px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
                     >
                       <FiEdit2 /> Editar
@@ -307,7 +307,7 @@ export default function PainelAgendaDia({ barbeariaId, profissionalId, taxaComis
         onClick={() => setMostrarOutrosDias(!mostrarOutrosDias)}
         style={{ width: '100%', padding: '12px', backgroundColor: '#fff', border: '1px solid #d1d5db', borderRadius: '12px', fontWeight: 'bold', cursor: 'pointer', color: '#374151', fontSize: '13px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '6px' }}
       >
-        <FiCalendar /> {mostrarOutrosDias ? 'Ocultar Histórico / Outros Dias' : `Ver Histórico / Outros Dias (${todosAgendamentos.length - agendamentosHoje.length})`}
+        <FiCalendar /> {mostrarOutrosDias ? 'Ocultar Histórico / Outros Dias' : `Ver Histórico / Outros Dias (${agendamentosOutrosDias.length})`}
       </button>
 
       {/* SEÇÃO DE OUTROS DIAS COM A BARRA DE PESQUISA */}
@@ -337,7 +337,7 @@ export default function PainelAgendaDia({ barbeariaId, profissionalId, taxaComis
           </div>
 
           {agendamentosOutrosDias.length === 0 ? (
-            <p style={{ fontSize: '13px', color: '#6b7280', textAlign: 'center', padding: '16px 0' }}>Nenhum outro registro encontrado para esta barbearia.</p>
+            <p style={{ fontSize: '13px', color: '#6b7280', textAlign: 'center', padding: '16px 0' }}>Nenhum outro registro encontrado.</p>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '350px', overflowY: 'auto' }}>
               {agendamentosOutrosDias.map((item) => (
