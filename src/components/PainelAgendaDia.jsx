@@ -12,12 +12,8 @@ export default function PainelAgendaDia({ profissionalId, taxaComissao = 50, han
   const [mostrarOutrosDias, setMostrarOutrosDias] = useState(false);
   const [filtroStatus, setFiltroStatus] = useState('TODOS');
 
-  // Função precisa para verificar se um registro pertence estritamente a hoje (07/09/2026)
+  // Validação flexível e segura para o dia 07/09/2026
   const éDataDeHoje = (item) => {
-    const hojeIso = '2026-09-07';
-    const hojeBr = '07/09/2026';
-
-    // Varre as colunas principais de data/horário do agendamento
     const camposData = [
       item.data,
       item.data_hora,
@@ -28,8 +24,14 @@ export default function PainelAgendaDia({ profissionalId, taxaComissao = 50, han
     return camposData.some(campo => {
       if (!campo) return false;
       const valStr = String(campo);
-      // Verifica se contém a data exata em formato ISO ou BR, evitando pegar dias errados como o dia 08
-      return valStr.includes(hojeIso) || valStr.includes(hojeBr);
+      
+      // Verifica padrões comuns para 07/09/2026
+      return (
+        valStr.includes('2026-09-07') || 
+        valStr.includes('07/09/2026') ||
+        valStr.includes('2026-9-7') ||
+        valStr.includes('7/9/2026')
+      );
     });
   };
 
