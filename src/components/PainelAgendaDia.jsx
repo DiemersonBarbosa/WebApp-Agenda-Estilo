@@ -24,7 +24,7 @@ export default function PainelAgendaDia({ barbeariaId, profissionalId, taxaComis
   const [mostrarOutrosDias, setMostrarOutrosDias] = useState(false);
   const [termoBusca, setTermoBusca] = useState('');
 
-  // Data atual baseada no fuso do Brasil (America/Sao_Paulo)
+  // Data atual baseada rigorosamente no fuso do Brasil (America/Sao_Paulo)
   const formatadorDataBr = new Intl.DateTimeFormat('en-CA', {
     timeZone: 'America/Sao_Paulo',
     year: 'numeric',
@@ -88,8 +88,8 @@ export default function PainelAgendaDia({ barbeariaId, profissionalId, taxaComis
     carregarAgenda();
   }, [profissionalId, barbeariaId]);
 
-  // Funções de Ação (Concluir, Excluir)
-  const alterarStatus = async functioN(id, novoStatus) {
+  // Função para alterar status (Corrigida)
+  const alterarStatus = async (id, novoStatus) => {
     try {
       const { error } = await supabase
         .from('agendamentos')
@@ -106,6 +106,7 @@ export default function PainelAgendaDia({ barbeariaId, profissionalId, taxaComis
     }
   };
 
+  // Função para excluir agendamento
   const excluirAgendamento = async (id) => {
     if (!window.confirm('Deseja realmente excluir este agendamento?')) return;
     try {
@@ -173,7 +174,7 @@ export default function PainelAgendaDia({ barbeariaId, profissionalId, taxaComis
           onClick={carregarAgenda}
           style={{ backgroundColor: '#fff', border: '1px solid #d1d5db', padding: '6px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', color: '#374151', display: 'flex', alignItems: 'center', gap: '6px' }}
         >
-          <FiRefreshCw className={carregando ? 'spin' : ''} /> {carregando ? 'Atualizando...' : 'Atualizar'}
+          <FiRefreshCw /> {carregando ? 'Atualizando...' : 'Atualizar'}
         </button>
       </div>
 
@@ -230,7 +231,7 @@ export default function PainelAgendaDia({ barbeariaId, profissionalId, taxaComis
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {agendamentosHoje.map((item) => {
               const statusLower = String(item.status || '').toLowerCase();
-              const isConcluido = statusLower.includes('concluido');
+              const isConcluido = statusLower.includes('concluido') || statusLower.includes('concluído');
               const isCancelado = statusLower.includes('cancelado');
 
               return (
@@ -280,7 +281,7 @@ export default function PainelAgendaDia({ barbeariaId, profissionalId, taxaComis
                     )}
                     
                     <button 
-                      onClick={() => onEditarAgendamento ? onEditarAgendamento(item) : alert('Função de editar em breve')}
+                      onClick={() => onEditarAgendamento ? onEditarAgendamento(item) : alert('Função de editar selecionada')}
                       style={{ backgroundColor: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe', padding: '5px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
                     >
                       <FiEdit2 /> Editar
