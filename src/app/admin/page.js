@@ -1183,10 +1183,7 @@ export default function AdminDashboard() {
           
 
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-            <div>
-              <h2 className="text-xl sm:text-2xl font-bold text-stone-900">Visão Geral - {barbearia?.nome}</h2>
-              <p className="text-xs text-stone-500 mt-0.5">Gerencie atendimentos, clientes e faturamento da sua unidade.</p>
-            </div>
+            
 
             <div className="flex items-center gap-2">
               <a
