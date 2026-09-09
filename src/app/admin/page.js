@@ -153,60 +153,86 @@ export default function AdminDashboard() {
       return new Date(rawData).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
     }
     return '-';
+
   };
+
+
+
+  const [aberturaManual, setAberturaManual] = useState(false);
+
+
+
+// Função para abrir o modal manualmente quando o usuário clicar no botão
+  const abrirModalAssinaturaManual = () => {
+  setAberturaManual(true);
+  setModalAssinaturaOpen(true);
+  if (!pixDataMP?.paymentId) {
+    gerarPixMercadoPago({
+      transaction_amount: 9.90,
+      description: 'Plano Mensal Gestor - Acesso Completo',
+      payer_email: user?.email || 'diemersonlimabarbosa@gmail.com',
+      payer_name: barbearia?.nome || 'Gestor'
+    });
+  }
+};
+
 
   // Cálculo do período de teste de 7 dias
   const verificarStatusAssinatura = (dadosBarbearia) => {
-  console.log("DADOS VINDO DO BANCO:", dadosBarbearia);
-  
-  if (!dadosBarbearia) return;
-
-  const status = dadosBarbearia?.status_assinatura;
-  const dataCriacaoStr = dadosBarbearia?.created_at;
-
-  // 1. Se estiver explicitamente ativo, libera tudo
-  if (status === 'ativo') {
-    setModalAssinaturaOpen(false);
-    setAssinaturaExpirada(false);
-    return;
-  }
-
-  // 2. Se estiver explicitamente vencido, bloqueia
-  if (status === 'vencido') {
-    setModalAssinaturaOpen(true);
-    setAssinaturaExpirada(true);
-    return;
-  }
-
-  // 3. Se estiver em 'teste' ou sem status definido, calcula os 7 dias pela data de criação
-  if (dataCriacaoStr) {
-    const dataCriacao = new Date(dataCriacaoStr);
-    const hoje = new Date();
+    console.log("DADOS VINDO DO BANCO:", dadosBarbearia);
     
-    dataCriacao.setHours(0, 0, 0, 0);
-    hoje.setHours(0, 0, 0, 0);
+    if (!dadosBarbearia) return;
 
-    const diferencaEmMilissegundos = hoje - dataCriacao;
-    const diasPassados = Math.floor(diferencaEmMilissegundos / (1000 * 60 * 60 * 24));
-    const restante = 7 - diasPassados;
+    const status = dadosBarbearia?.status_assinatura;
+    const dataCriacaoStr = dadosBarbearia?.created_at;
 
-    console.log("Dias passados desde a criação:", diasPassados);
-    console.log("Dias restantes de teste:", restante);
-
-    if (restante <= 0) {
-      // Passaram 7 dias -> Bloqueia
-      setModalAssinaturaOpen(true);
-      setAssinaturaExpirada(true);
-    } else {
-      // Ainda está dentro dos 7 dias de teste -> LIBERA O PAINEL FORÇADAMENTE
+    // 1. Se estiver explicitamente ativo, libera tudo
+    if (status === 'ativo') {
       setModalAssinaturaOpen(false);
       setAssinaturaExpirada(false);
+      return;
     }
-  } else {
-    setModalAssinaturaOpen(true);
-    setAssinaturaExpirada(true);
-  }
-};
+
+    // 2. Se estiver explicitamente vencido, bloqueia
+    if (status === 'vencido') {
+      setModalAssinaturaOpen(true);
+      setAssinaturaExpirada(true);
+      return;
+    }
+
+    // 3. Se estiver em 'teste' ou sem status definido, calcula os 7 dias pela data de criação
+    if (dataCriacaoStr) {
+      const dataCriacao = new Date(dataCriacaoStr);
+      const hoje = new Date();
+      
+      dataCriacao.setHours(0, 0, 0, 0);
+      hoje.setHours(0, 0, 0, 0);
+
+      const diferencaEmMilissegundos = hoje - dataCriacao;
+      const diasPassados = Math.floor(diferencaEmMilissegundos / (1000 * 60 * 60 * 24));
+      const restante = Math.max(0, 7 - diasPassados);
+
+      console.log("Dias passados desde a criação:", diasPassados);
+      console.log("Dias restantes de teste:", restante);
+
+      if (typeof setDiasRestantes === 'function') {
+        setDiasRestantes(restante);
+      }
+
+      if (restante <= 0) {
+        // Passaram 7 dias -> Só aqui o modal abre de forma automática
+        setModalAssinaturaOpen(true);
+        setAssinaturaExpirada(true);
+      } else {
+        // Ainda está no período de teste -> GARANTE QUE O MODAL FICA FECHADO AUTOMATICAMENTE
+        setModalAssinaturaOpen(false);
+        setAssinaturaExpirada(false);
+      }
+    } else {
+      setModalAssinaturaOpen(true);
+      setAssinaturaExpirada(true);
+    }
+  };
 
   // Carregar Dados isolados por barbearia_id
   const loadDashboardData = useCallback(async (barbeariaId) => {
@@ -244,30 +270,17 @@ export default function AdminDashboard() {
 
 
 // ADICIONE ESTA LINHA AQUI PARA EXECUTAR A VALIDAÇÃO:
+   // Apenas essa linha deve ficar:
     if (dadosBarbearia) {
       verificarStatusAssinatura(dadosBarbearia);
     }
 
-
-      const dataVencimentoStr = dadosBarbearia?.data_vencimento;
-      const status = dadosBarbearia?.status_assinatura;
-      
-      const hoje = new Date();
-      const dataExpiracao = dataVencimentoStr ? new Date(dataVencimentoStr) : null;
-      const estaVencida = !dataExpiracao || dataExpiracao < hoje || status !== 'ativo';
-
-      if (estaVencida) {
-        setModalAssinaturaOpen(true);
-      } else {
-        setModalAssinaturaOpen(false);
-      }
-
-    } catch (err) {
-      setErrorMessage(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  } catch (err) {
+    setErrorMessage(err.message);
+  } finally {
+    setLoading(false);
+  }
+}, []);
 
   // Gerar Pix dinâmico Oficial via API do Mercado Pago
   const gerarPixMercadoPago = useCallback(async (paymentData) => {
@@ -357,7 +370,7 @@ export default function AdminDashboard() {
     checkAuthAndLoad();
   }, [router, loadDashboardData]);
 
-  // Efeito para verificar o status do pagamento automaticamente a cada 5 segundos enquanto o Pix estiver na tela
+ // Efeito para verificar o status do pagamento automaticamente a cada 5 segundos enquanto o Pix estiver na tela
   useEffect(() => {
     let intervalId;
 
@@ -388,37 +401,40 @@ export default function AdminDashboard() {
     };
   }, [modalAssinaturaOpen, metodoPagamento, pixDataMP?.paymentId, router]);
 
- useEffect(() => {
-  // Se ainda estiver no período de teste ou ativo, sai imediatamente sem fazer nada
-  const dataCriacaoStr = barbearia?.created_at;
-  const status = barbearia?.status_assinatura;
+  useEffect(() => {
+    // Se o usuário abriu manualmente para adiantar a assinatura, não interfere!
+    if (aberturaManual) return;
 
-  if (status === 'ativo' || status === 'teste') {
-    if (dataCriacaoStr) {
-      const dataCriacao = new Date(dataCriacaoStr);
-      const hoje = new Date();
-      dataCriacao.setHours(0, 0, 0, 0);
-      hoje.setHours(0, 0, 0, 0);
-      const diasPassados = Math.floor((hoje - dataCriacao) / (1000 * 60 * 60 * 24));
-      const restante = 7 - diasPassados;
+    // Se ainda estiver no período de teste ou ativo, sai imediatamente sem fazer nada
+    const dataCriacaoStr = barbearia?.created_at;
+    const status = barbearia?.status_assinatura;
 
-      if (restante > 0) {
-        setModalAssinaturaOpen(false);
-        return; // Retorna antes de validar o modalOpen, impedindo qualquer "piscar"
+    if (status === 'ativo' || status === 'teste') {
+      if (dataCriacaoStr) {
+        const dataCriacao = new Date(dataCriacaoStr);
+        const hoje = new Date();
+        dataCriacao.setHours(0, 0, 0, 0);
+        hoje.setHours(0, 0, 0, 0);
+        const diasPassados = Math.floor((hoje - dataCriacao) / (1000 * 60 * 60 * 24));
+        const restante = 7 - diasPassados;
+
+        if (restante > 0) {
+          return; // Retorna sem fechar o modal à força
+        }
       }
     }
-  }
 
-  // Só prossegue para gerar o Pix se realmente passou do prazo ou não está em teste
-  if (modalAssinaturaOpen && metodoPagamento === 'pix' && !pixDataMP?.paymentId) {
-    gerarPixMercadoPago({
-      transaction_amount: 9.90,
-      description: 'Plano Mensal Gestor - Acesso Completo',
-      payer_email: user?.email || 'diemersonlimabarbosa@gmail.com',
-      payer_name: barbearia?.nome || 'Gestor'
-    });
-  }
-}, [modalAssinaturaOpen, metodoPagamento, pixDataMP?.paymentId, gerarPixMercadoPago, user, barbearia]);
+    // Só prossegue para gerar o Pix se realmente passou do prazo ou não está em teste
+    if (modalAssinaturaOpen && metodoPagamento === 'pix' && !pixDataMP?.paymentId) {
+      gerarPixMercadoPago({
+        transaction_amount: 9.90,
+        description: 'Plano Mensal Gestor - Acesso Completo',
+        payer_email: user?.email || 'diemersonlimabarbosa@gmail.com',
+        payer_name: barbearia?.nome || 'Gestor'
+      });
+    }
+  }, [modalAssinaturaOpen, metodoPagamento, pixDataMP?.paymentId, gerarPixMercadoPago, user, barbearia, aberturaManual]);
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     router.push('/admin/login');
@@ -643,21 +659,34 @@ export default function AdminDashboard() {
 
 
 {/* =========================================================
-       NOVO CABEÇALHO MOBILE CLEAN COM BOTÃO HAMBURGUER
-       ========================================================= */}
-   <header className="w-full bg-white border-b border-gray-100 px-4 py-3 sticky top-0 z-30">
+    1. NOTIFICAÇÃO NO TOPO ABSOLUTO (TESTE OU ALERTA)
+    ========================================================= */}
+{!assinaturaExpirada && barbearia?.status_assinatura !== 'ativo' && (
+  <div className="bg-sky-600 text-white px-4 py-2 text-center text-xs font-bold flex items-center justify-center gap-2 shadow-sm z-40">
+    <AlertCircle className="w-4 h-4" />
+    <span>Seu período de testes gratuitos termina em {diasRestantes} {diasRestantes === 1 ? 'dia' : 'dias'}.</span>
+    <button
+      onClick={abrirModalAssinaturaManual}
+      className="underline ml-2 hover:text-stone-200 transition-colors cursor-pointer"
+    >
+      Assinar via Mercado Pago agora
+    </button>
+  </div>
+)}
+
+{/* =========================================================
+    2. CABEÇALHO MOBILE CLEAN (Abaixo do aviso)
+    ========================================================= */}
+<header className="w-full bg-white border-b border-gray-100 px-4 py-3 sticky top-0 z-30 md:hidden">
   <div className="max-w-7xl mx-auto flex items-center justify-between">
-    
-    {/* Apenas Logo/Avatar + Nome da Barbearia */}
     <div className="flex items-center gap-3 min-w-0">
       <div className="w-9 h-9 bg-gray-900 text-white rounded-xl flex items-center justify-center font-bold text-base shadow-sm flex-shrink-0">
-        B
+        {barbearia?.nome ? barbearia.nome.charAt(0).toUpperCase() : 'B'}
       </div>
       <h1 className="font-bold text-gray-900 text-base truncate">
-        Barbearia Barbosa
+        {barbearia?.nome || 'Minha Barbearia'}
       </h1>
     </div>
-
   </div>
 </header>
 
@@ -1090,19 +1119,6 @@ export default function AdminDashboard() {
     </div>
   </div>
 )}
-      {/* NOTIFICAÇÃO NO TOPO (TESTE OU ALERTA) */}
-      {!assinaturaExpirada && barbearia?.status_assinatura !== 'ativo' && (
-        <div className="bg-sky-600 text-white px-4 py-2 text-center text-xs font-bold flex items-center justify-center gap-2 shadow-sm z-40">
-          <AlertCircle className="w-4 h-4" />
-          <span>Seu período de testes gratuitos termina em {diasRestantes} {diasRestantes === 1 ? 'dia' : 'dias'}.</span>
-          <button
-            onClick={() => setModalAssinaturaOpen(true)}
-            className="underline ml-2 hover:text-stone-200 transition-colors cursor-pointer"
-          >
-            Assinar via Mercado Pago agora
-          </button>
-        </div>
-      )}
 
       <div className="flex flex-1">
         {/* BARRA LATERAL */}
@@ -1721,8 +1737,8 @@ export default function AdminDashboard() {
       )}
 
       {/* MODAL DE CHECKOUT DO MERCADO PAGO */}
-      {assinaturaExpirada && !loading && (
-        <div className="fixed inset-0 bg-white backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      {modalAssinaturaOpen && !loading && (
+  <div className="fixed inset-0 bg-white/95 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl border border-stone-200 space-y-6">
             <div className="flex justify-between items-center">
               {/* TOPO DO MODAL COM O AVISO DE TESTE EXPIRADO */}
