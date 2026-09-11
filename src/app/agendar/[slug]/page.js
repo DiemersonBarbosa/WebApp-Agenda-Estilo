@@ -71,7 +71,6 @@ export default function AgendamentoPublico() {
       }
 
       try {
-        // Define o intervalo do dia selecionado (Início e Fim do dia)
         const inicioDia = `${data}T00:00:00`;
         const fimDia = `${data}T23:59:59`;
 
@@ -79,16 +78,14 @@ export default function AgendamentoPublico() {
           .from('agendamentos')
           .select('data_hora')
           .eq('barbeiro_id', selectedBarbeiro)
-          .neq('status', 'cancelado') // Se tiver status cancelado, não bloqueia
+          .neq('status', 'cancelado')
           .gte('data_hora', new Date(inicioDia).toISOString())
           .lte('data_hora', new Date(fimDia).toISOString());
 
         if (error) throw error;
 
-        // Extrai apenas os horários no formato "HH:MM"
         const ocupados = (agendamentos || []).map((ag) => {
           const d = new Date(ag.data_hora);
-          // Ajuste para hora local se necessário, ou pega direto o formato UTC/Local
           const horas = String(d.getHours()).padStart(2, '0');
           const minutos = String(d.getMinutes()).padStart(2, '0');
           return `${horas}:${minutos}`;
@@ -119,7 +116,6 @@ export default function AgendamentoPublico() {
 
       const dataHoraIso = new Date(`${data}T${hora}:00`).toISOString();
 
-      // DUPLA VERIFICAÇÃO DE SEGURANÇA: Checa no banco se já existe agendamento ativo para este barbeiro exato neste horário
       const { data: conflito } = await supabase
         .from('agendamentos')
         .select('id')
@@ -129,10 +125,9 @@ export default function AgendamentoPublico() {
         .maybeSingle();
 
       if (conflito) {
-        throw new Error('Este horário acabou de ser ocupado para este barbeiro. Por favor, escolha outro horário.');
+        throw new Error('Este horário acabou de ser ocupado para este profissional. Por favor, escolha outro horário.');
       }
 
-      // 1. Criar ou buscar cliente
       let clienteId;
       const { data: existingClient } = await supabase
         .from('clientes')
@@ -154,7 +149,6 @@ export default function AgendamentoPublico() {
         clienteId = newClient.id;
       }
 
-      // 2. Registrar Agendamento
       const { error: agendamentoErr } = await supabase.from('agendamentos').insert([
         {
           barbearia_id: barbearia.id,
@@ -310,20 +304,50 @@ export default function AgendamentoPublico() {
               </div>
             </div>
 
-            {/* Barbeiros */}
+            {/* Barbeiros com Fotos (Cards Selecionáveis) */}
             <div>
-              <label className="block text-xs font-semibold text-stone-600 mb-1">Selecione o Barbeiro</label>
-              <select
-                required
-                value={selectedBarbeiro || ''}
-                onChange={(e) => setSelectedBarbeiro(e.target.value)}
-                className="w-full p-3 rounded-xl bg-stone-50 border border-stone-200 text-xs text-stone-800 focus:outline-none focus:border-stone-900"
-              >
-                <option value="">Escolha um barbeiro...</option>
-                {barbeiros.map((b) => (
-                  <option key={b.id} value={b.id}>{b.nome}</option>
-                ))}
-              </select>
+              <label className="block text-xs font-semibold text-stone-600 mb-1">Selecione o Profissional</label>
+              <div className="grid grid-cols-1 gap-2">
+                {barbeiros.map((b) => {
+                  const isSelected = String(selectedBarbeiro) === String(b.id);
+                  const fotoBarbeiro = b.foto || b.avatar || b.imagem || b.logo;
+
+                  return (
+                    <button
+                      type="button"
+                      key={b.id}
+                      onClick={() => setSelectedBarbeiro(b.id)}
+                      style={isSelected ? { backgroundColor: corTema, borderColor: corTema } : {}}
+                      className={`w-full p-3 rounded-2xl border text-left flex items-center gap-3 transition-all cursor-pointer ${
+                        isSelected
+                          ? 'text-white shadow-md'
+                          : 'border-stone-200 bg-stone-50 text-stone-800 hover:border-stone-300'
+                      }`}
+                    >
+                      {fotoBarbeiro ? (
+                        <img 
+                          src={fotoBarbeiro} 
+                          alt={b.nome} 
+                          className="w-10 h-10 rounded-full object-cover border border-stone-200 shrink-0"
+                        />
+                      ) : (
+                        <div 
+                          style={isSelected ? { backgroundColor: '#ffffff', color: corTema } : { backgroundColor: corTema }}
+                          className="w-10 h-10 rounded-full text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-sm"
+                        >
+                          {b.nome?.charAt(0).toUpperCase()}
+                        </div>
+                      )}
+                      <div className="overflow-hidden">
+                        <p className="text-xs font-bold truncate">{b.nome}</p>
+                        <p className={`text-[10px] truncate ${isSelected ? 'text-white/80' : 'text-stone-400'}`}>
+                          Profissional Disponível
+                        </p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             {/* Nome e Telefone */}
@@ -368,7 +392,7 @@ export default function AgendamentoPublico() {
             <div>
               <label className="block text-xs font-semibold text-stone-600 mb-2 flex items-center justify-between">
                 <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> Escolha o Horário</span>
-                {!selectedBarbeiro && <span className="text-[10px] text-amber-600 font-normal">Selecione o barbeiro primeiro</span>}
+                {!selectedBarbeiro && <span className="text-[10px] text-amber-600 font-normal">Selecione o profissional primeiro</span>}
               </label>
 
               <div className="grid grid-cols-4 gap-2">

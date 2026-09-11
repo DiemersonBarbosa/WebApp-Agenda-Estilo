@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   CalendarCheck,
@@ -46,6 +46,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 
 
+import RelatoriosPage from './relatorios'; // Ajuste o caminho caso o arquivo esteja em outra pasta dentro de admin
+
+
+
  async function criarAcessoBarbeiro(barbeiroId, emailBarbeiro, senhaTemporaria) {
   try {
     const response = await fetch('/api/criar-acesso', {
@@ -81,6 +85,13 @@ export default function AdminDashboard() {
 
 
 
+
+
+
+
+
+
+
  
 
 
@@ -103,6 +114,15 @@ export default function AdminDashboard() {
   const [modalAssinaturaOpen, setModalAssinaturaOpen] = useState(false);
   const [processandoPagamento, setProcessandoPagamento] = useState(false);
   const [copiado, setCopiado] = useState(false);
+
+
+
+
+const [barbeiroParaEditar, setBarbeiroParaEditar] = useState(null);
+
+
+
+  
   
   // Opção de pagamento selecionada no modal ('pix', 'credito', 'debito')
   const [metodoPagamento, setMetodoPagamento] = useState('pix');
@@ -132,6 +152,18 @@ export default function AdminDashboard() {
   const [barbeiros, setBarbeiros] = useState([]);
   const [servicos, setServicos] = useState([]);
   const [despesas, setDespesas] = useState([]);
+
+
+
+  
+// Log para inspecionar os agendamentos no console de forma correta
+  useEffect(() => {
+    console.log("Agendamentos carregados:", agendamentos);
+  }, [agendamentos]);
+
+
+
+  
 
   // Filtro de busca de cliente
   const [searchTerm, setSearchTerm] = useState('');
@@ -241,11 +273,7 @@ export default function AdminDashboard() {
 
     try {
       const [resAgendamentos, resClientes, resBarbeiros, resServicos, resDespesas, resBarbearia] = await Promise.all([
-        supabase
-          .from('agendamentos')
-          .select('*, clientes(*), barbeiros(*), servicos(*)')
-          .eq('barbearia_id', barbeariaId)
-          .order('data_hora', { ascending: true }),
+        supabase.from('agendamentos').select('*, clientes(*), barbeiros(*), servicos(*)').eq('barbearia_id', barbeariaId).order('data_hora', { ascending: true }),
         supabase.from('clientes').select('*').eq('barbearia_id', barbeariaId).order('created_at', { ascending: false }),
         supabase.from('barbeiros').select('*').eq('barbearia_id', barbeariaId).order('nome', { ascending: true }),
         supabase.from('servicos').select('*').eq('barbearia_id', barbeariaId).order('nome', { ascending: true }),
@@ -526,6 +554,128 @@ export default function AdminDashboard() {
   const [formServico, setFormServico] = useState({ nome: '', preco: '', duracao_minutos: 30 });
 
   const [modalBarbeiroOpen, setModalBarbeiroOpen] = useState(false);
+
+const [uploading, setUploading] = useState(false);
+const [fotoUrl, setFotoUrl] = useState('');
+
+const [nome, setNome] = useState('');
+const [especialidade, setEspecialidade] = useState('');
+const [taxaComissao, setTaxaComissao] = useState('');
+
+const handleUploadFoto = async (e) => {
+  const arquivo = e.target.files[0];
+  if (!arquivo) return;
+
+  setUploading(true);
+  try {
+    // 1. Redimensiona e comprime a imagem usando Canvas antes do upload
+    const comprimidoBlob = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(arquivo);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target.result;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+
+          // Define o limite máximo (ex: 800px de largura/altura máxima)
+          const MAX_SIZE = 800;
+          if (width > height) {
+            if (width > MAX_SIZE) {
+              height *= MAX_SIZE / width;
+              width = MAX_SIZE;
+            }
+          } else {
+            if (height > MAX_SIZE) {
+              width *= MAX_SIZE / height;
+              height = MAX_SIZE;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // Converte para JPEG com qualidade de 80% (0.8)
+          canvas.toBlob(
+            (blob) => {
+              resolve(blob);
+            },
+            'image/jpeg',
+            0.8
+          );
+        };
+        img.onerror = (error) => reject(error);
+      };
+      reader.onerror = (error) => reject(error);
+    });
+
+    // 2. Prepara o arquivo comprimido para o envio ao Supabase
+    const fileExt = 'jpg';
+    const fileName = `barbeiro-${Math.random()}.${fileExt}`;
+    const filePath = `barbeiros/${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('barbearia-bucket')
+      .upload(filePath, comprimidoBlob, {
+        contentType: 'image/jpeg',
+        upsert: true
+      });
+
+    if (uploadError) throw uploadError;
+
+    const { data: publicURLData } = supabase.storage
+      .from('barbearia-bucket')
+      .getPublicUrl(filePath);
+
+    setFotoUrl(publicURLData.publicUrl);
+  } catch (err) {
+    console.error('Erro no upload:', err);
+    alert('Erro ao enviar a imagem. Tente novamente.');
+  } finally {
+    setUploading(false);
+  }
+};
+
+
+const handleSalvarBarbeiro = async (e) => {
+  e.preventDefault();
+
+  try {
+    const dadosBarbeiro = {
+      barbearia_id: barbearia?.id,
+      nome,
+      especialidade,
+      taxa_comissao: Number(taxaComissao) || 0,
+      foto: fotoUrl
+    };
+
+    if (barbeiroParaEditar?.id) {
+      const { error } = await supabase
+        .from('barbeiros')
+        .update(dadosBarbeiro)
+        .eq('id', barbeiroParaEditar.id);
+      if (error) throw error;
+    } else {
+      const { error } = await supabase
+        .from('barbeiros')
+        .insert([dadosBarbeiro]);
+      if (error) throw error;
+    }
+
+    alert('Profissional salvo com sucesso!');
+    setModalBarbeiroOpen(false);
+    window.location.reload();
+  } catch (err) {
+    console.error('Erro ao salvar profissional:', err);
+    alert('Erro ao salvar o profissional.');
+  }
+};
+
+
   const [editingBarbeiro, setEditingBarbeiro] = useState(null);
   const [formBarbeiro, setFormBarbeiro] = useState({ nome: '', especialidade: '' });
 
@@ -565,29 +715,54 @@ export default function AdminDashboard() {
     loadDashboardData(barbearia.id);
   };
 
-  const handleOpenBarbeiroModal = (barbeiro = null) => {
-    if (barbeiro) {
-      setEditingBarbeiro(barbeiro);
-      setFormBarbeiro({ nome: barbeiro.nome || '', especialidade: barbeiro.especialidade || '' });
-    } else {
-      setEditingBarbeiro(null);
-      setFormBarbeiro({ nome: '', especialidade: '' });
-    }
-    setModalBarbeiroOpen(true);
-  };
+ const handleOpenBarbeiroModal = (barbeiro = null) => {
+  if (barbeiro) {
+    setBarbeiroParaEditar(barbeiro);
+    setNome(barbeiro.nome || '');
+    setEspecialidade(barbeiro.especialidade || '');
+    setTaxaComissao(barbeiro.taxa_comissao || '');
+    setFotoUrl(barbeiro.foto || '');
+  } else {
+    setBarbeiroParaEditar(null);
+    setNome('');
+    setEspecialidade('');
+    setTaxaComissao('');
+    setFotoUrl('');
+  }
+  setModalBarbeiroOpen(true);
+};
 
-  const handleSaveBarbeiro = async (e) => {
-    e.preventDefault();
-    try {
-      if (editingBarbeiro) {
-        await supabase.from('barbeiros').update({ nome: formBarbeiro.nome, especialidade: formBarbeiro.especialidade }).eq('id', editingBarbeiro.id);
-      } else {
-        await supabase.from('barbeiros').insert([{ barbearia_id: barbearia.id, nome: formBarbeiro.nome, especialidade: formBarbeiro.especialidade }]);
-      }
-      setModalBarbeiroOpen(false);
-      loadDashboardData(barbearia.id);
-    } catch (err) { alert('Erro ao salvar barbeiro: ' + err.message); }
-  };
+const handleSaveBarbeiro = async (e) => {
+  e.preventDefault();
+
+  try {
+    const dadosBarbeiro = {
+      barbearia_id: barbearia?.id,
+      nome,
+      especialidade
+    };
+
+    if (barbeiroParaEditar?.id) {
+      const { error } = await supabase
+        .from('barbeiros')
+        .update(dadosBarbeiro)
+        .eq('id', barbeiroParaEditar.id);
+      if (error) throw error;
+    } else {
+      const { error } = await supabase
+        .from('barbeiros')
+        .insert([dadosBarbeiro]);
+      if (error) throw error;
+    }
+
+    setModalBarbeiroOpen(false);
+    loadDashboardData(barbearia.id);
+    alert('Profissional salvo com sucesso!');
+  } catch (err) {
+    console.error('ERRO DETALHADO SUPABASE:', JSON.stringify(err, null, 2));
+    alert('Erro ao salvar: ' + (err.message || JSON.stringify(err)));
+  }
+};
 
   const handleDeleteBarbeiro = async (id) => {
     if (!confirm('Deseja realmente excluir este funcionário?')) return;
@@ -619,6 +794,11 @@ export default function AdminDashboard() {
     } catch (err) { alert('Erro ao salvar despesa: ' + err.message); }
   };
 
+
+
+
+
+
   const handleDeleteDespesa = async (id) => {
     if (!confirm('Deseja realmente excluir esta despesa?')) return;
     await supabase.from('despesas').delete().eq('id', id);
@@ -642,7 +822,16 @@ export default function AdminDashboard() {
     );
   }
 
+
+
+
+
+
   return (
+
+
+
+
    <div className={`min-h-screen bg-stone-100 text-stone-800 flex flex-col font-sans relative ${assinaturaExpirada ? 'pointer-events-none select-none' : ''}`}>
     {/* TRAVA DE CARREGAMENTO PARA EVITAR O PISCAR DO MODAL */}
     {loading && (
@@ -680,9 +869,17 @@ export default function AdminDashboard() {
 <header className="w-full bg-white border-b border-gray-100 px-4 py-3 sticky top-0 z-30 md:hidden">
   <div className="max-w-7xl mx-auto flex items-center justify-between">
     <div className="flex items-center gap-3 min-w-0">
-      <div className="w-9 h-9 bg-gray-900 text-white rounded-xl flex items-center justify-center font-bold text-base shadow-sm flex-shrink-0">
-        {barbearia?.nome ? barbearia.nome.charAt(0).toUpperCase() : 'B'}
-      </div>
+      {barbearia?.logo || barbearia?.logo_url || barbearia?.avatar || barbearia?.imagem ? (
+        <img 
+          src={barbearia.logo || barbearia.logo_url || barbearia.avatar || barbearia.imagem} 
+          alt={barbearia?.nome || "Barbearia"} 
+          className="w-9 h-9 rounded-xl object-cover border border-stone-200 shadow-sm flex-shrink-0"
+        />
+      ) : (
+        <div className="w-9 h-9 bg-gray-900 text-white rounded-xl flex items-center justify-center font-bold text-base shadow-sm flex-shrink-0">
+          {barbearia?.nome ? barbearia.nome.charAt(0).toUpperCase() : 'B'}
+        </div>
+      )}
       <h1 className="font-bold text-gray-900 text-base truncate">
         {barbearia?.nome || 'Minha Barbearia'}
       </h1>
@@ -832,11 +1029,11 @@ export default function AdminDashboard() {
   
   {/* 1. Início / Visão Geral */}
   <button 
-    onClick={() => setActiveTab('visao-geral')}
-    className={`flex flex-col items-center space-y-1 transition-colors ${activeTab === 'visao-geral' ? 'text-stone-900 font-bold' : 'text-stone-400 font-medium'}`}
+    onClick={() => setActiveTab('financeiro')}
+    className={`flex flex-col items-center space-y-1 transition-colors ${activeTab === 'financeiro' ? 'text-stone-900 font-bold' : 'text-stone-400 font-medium'}`}
   >
     <TrendingUp className="w-5 h-5" />
-    <span className="text-[10px]">Início</span>
+    <span className="text-[10px]">Financeiro</span>
   </button>
 
   {/* 2. Agenda */}
@@ -1125,9 +1322,17 @@ export default function AdminDashboard() {
         <aside className="w-64 bg-white border-r border-stone-200/80 p-6 flex flex-col justify-between hidden md:flex">
           <div className="space-y-8">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-stone-900 text-white flex items-center justify-center shadow-md">
-                <Store className="w-5 h-5" />
-              </div>
+              {barbearia?.logo || barbearia?.logo_url || barbearia?.avatar || barbearia?.imagem ? (
+                <img 
+                  src={barbearia.logo || barbearia.logo_url || barbearia.avatar || barbearia.imagem} 
+                  alt={barbearia?.nome || "Barbearia"} 
+                  className="w-10 h-10 rounded-2xl object-cover border border-stone-200 shadow-sm shrink-0"
+                />
+              ) : (
+                <div className="w-10 h-10 rounded-2xl bg-stone-900 text-white flex items-center justify-center shadow-md shrink-0">
+                  <Store className="w-5 h-5" />
+                </div>
+              )}
               <div>
                 <h1 className="font-bold text-stone-900 text-base leading-none truncate max-w-[130px]" title={barbearia?.nome}>
                   {barbearia?.nome || 'Minha Barbearia'}
@@ -1370,28 +1575,12 @@ export default function AdminDashboard() {
           )}
 
           {activeTab === 'financeiro' && (
-            <div className="bg-white rounded-3xl border border-stone-200/80 shadow-sm overflow-hidden p-6 space-y-6">
-              <div className="pb-4 border-b border-stone-100">
-                <h3 className="text-base font-bold text-stone-900">Relatório Financeiro Detalhado</h3>
-                <p className="text-xs text-stone-400">Entradas provenientes de atendimentos concluídos.</p>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="bg-emerald-50/50 p-4 rounded-2xl border border-emerald-100">
-                  <span className="text-xs text-emerald-700 font-semibold uppercase block mb-1">Total Entradas</span>
-                  <span className="text-xl font-extrabold text-emerald-900">R$ {totalFaturamento.toFixed(2)}</span>
-                </div>
-                <div className="bg-rose-50/50 p-4 rounded-2xl border border-rose-100">
-                  <span className="text-xs text-rose-700 font-semibold uppercase block mb-1">Total Despesas</span>
-                  <span className="text-xl font-extrabold text-rose-900">R$ {totalDespesas.toFixed(2)}</span>
-                </div>
-                <div className="bg-indigo-50/50 p-4 rounded-2xl border border-indigo-100">
-                  <span className="text-xs text-indigo-700 font-semibold uppercase block mb-1">Balanço Líquido</span>
-                  <span className="text-xl font-extrabold text-indigo-900">R$ {lucroLiquido.toFixed(2)}</span>
-                </div>
-              </div>
-            </div>
-          )}
+  <RelatoriosPage 
+  agendamentos={agendamentos} 
+  despesas={despesas} 
+  barbeiros={barbeiros} 
+/>
+)}
 
 
 {activeTab === 'comissoes' && (
@@ -1591,78 +1780,192 @@ export default function AdminDashboard() {
               </div>
 
               {/* Seção de Barbeiros / Equipe */}
-              <div className="bg-white rounded-3xl border border-stone-200/80 shadow-sm overflow-hidden p-6 space-y-6">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-stone-100">
-                  <div>
-                    <h3 className="text-base font-bold text-stone-900">Equipe de Barbeiros</h3>
-                    <p className="text-xs text-stone-400">Profissionais disponíveis para agendamento.</p>
-                  </div>
-                  <button
-                    onClick={() => handleOpenBarbeiroModal()}
-                    className="bg-stone-900 hover:bg-stone-800 text-white px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer"
-                  >
-                    <Plus className="w-4 h-4" /> Novo Barbeiro
-                  </button>
-                </div>
-
-                {barbeiros.length === 0 ? (
-                  <div className="p-8 text-center text-stone-400 text-xs">Nenhum barbeiro cadastrado.</div>
-                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {barbeiros.map((b) => (
-                      <div key={b.id} className="bg-stone-50/70 p-4 rounded-2xl border border-stone-200/80 space-y-3">
-    <div className="flex items-center justify-between">
-      <div className="space-y-1">
-        <h4 className="font-bold text-stone-900 text-sm">{b.nome}</h4>
-        <span className="text-xs text-stone-500 block">{b.especialidade || 'Especialidade não definida'}</span>
-      </div>
-      <div className="flex items-center gap-1">
-        <button onClick={() => handleOpenBarbeiroModal(b)} className="p-1.5 bg-white border border-stone-200 rounded-xl hover:bg-stone-100">
-          <Edit className="w-3.5 h-3.5 text-stone-700" />
-        </button>
-        <button onClick={() => handleDeleteBarbeiro(b.id)} className="p-1.5 bg-white border border-stone-200 rounded-xl hover:bg-red-50 text-red-500">
-          <Trash2 className="w-3.5 h-3.5" />
-        </button>
-      </div>
+<div className="bg-white rounded-3xl border border-stone-200/80 shadow-sm overflow-hidden p-6 space-y-6">
+  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-stone-100">
+    <div>
+      <h3 className="text-base font-bold text-stone-900">Equipe de Barbeiros</h3>
+      <p className="text-xs text-stone-400">Profissionais disponíveis para agendamento.</p>
     </div>
-
-    {/* Campos de Acesso */}
-    <div className="pt-3 border-t border-stone-200/60 space-y-2">
-      <p className="text-[11px] font-bold text-stone-700">Acesso ao Painel</p>
-      <input 
-        type="email" 
-        placeholder="E-mail de acesso" 
-        id={`email-${b.id}`}
-        className="w-full px-3 py-1.5 bg-white border border-stone-200 rounded-xl text-xs text-stone-900 focus:outline-none"
-      />
-      <input 
-        type="password" 
-        placeholder="Senha temporária" 
-        id={`senha-${b.id}`}
-        className="w-full px-3 py-1.5 bg-white border border-stone-200 rounded-xl text-xs text-stone-900 focus:outline-none"
-      />
-      <button
-        onClick={() => {
-          const emailInput = document.getElementById(`email-${b.id}`).value;
-          const senhaInput = document.getElementById(`senha-${b.id}`).value;
-
-          if (!emailInput || !senhaInput) {
-            alert('Preencha o e-mail e a senha.');
-            return;
-          }
-
-          criarAcessoBarbeiro(b.id, emailInput, senhaInput);
-        }}
-        className="w-full py-1.5 bg-stone-900 text-white rounded-xl text-xs font-bold hover:bg-stone-800 transition-colors"
-      >
-        Gerar Acesso
-      </button>
-    </div>
+    <button
+      onClick={() => handleOpenBarbeiroModal()}
+      className="bg-stone-900 hover:bg-stone-800 text-white px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer"
+    >
+      <Plus className="w-4 h-4" /> Novo Barbeiro
+    </button>
   </div>
-                    ))}
-                  </div>
-                )}
+
+  {barbeiros.length === 0 ? (
+    <div className="p-8 text-center text-stone-400 text-xs">Nenhum barbeiro cadastrado.</div>
+  ) : (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      {barbeiros.map((b) => (
+        <div key={b.id} className="bg-stone-50/70 p-4 rounded-2xl border border-stone-200/80 space-y-3">
+          
+          {/* Cabeçalho do Card com Foto e Ações */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3 overflow-hidden">
+              {b.foto ? (
+                <img 
+                  src={b.foto} 
+                  alt={b.nome} 
+                  className="w-11 h-11 rounded-full object-cover border border-stone-200 shrink-0 shadow-sm" 
+                />
+              ) : (
+                <div className="w-11 h-11 rounded-full bg-stone-900 text-white font-bold flex items-center justify-center text-xs shrink-0">
+                  {(b.nome || 'P').charAt(0).toUpperCase()}
+                </div>
+              )}
+              <div className="space-y-0.5 overflow-hidden">
+                <h4 className="font-bold text-stone-900 text-sm truncate">{b.nome}</h4>
+                <span className="text-xs text-stone-500 block truncate">{b.especialidade || 'Profissional'}</span>
               </div>
+            </div>
+
+            <div className="flex items-center gap-1 shrink-0">
+              <button onClick={() => handleOpenBarbeiroModal(b)} className="p-1.5 bg-white border border-stone-200 rounded-xl hover:bg-stone-100 cursor-pointer">
+                <Edit className="w-3.5 h-3.5 text-stone-700" />
+              </button>
+              <button onClick={() => handleDeleteBarbeiro(b.id)} className="p-1.5 bg-white border border-stone-200 rounded-xl hover:bg-red-50 text-red-500 cursor-pointer">
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Campos de Acesso */}
+          <div className="pt-3 border-t border-stone-200/60 space-y-2">
+            <p className="text-[11px] font-bold text-stone-700">Acesso ao Painel</p>
+            <input 
+              type="email" 
+              placeholder="E-mail de acesso" 
+              id={`email-${b.id}`}
+              className="w-full px-3 py-1.5 bg-white border border-stone-200 rounded-xl text-xs text-stone-900 focus:outline-none"
+            />
+            <input 
+              type="password" 
+              placeholder="Senha temporária" 
+              id={`senha-${b.id}`}
+              className="w-full px-3 py-1.5 bg-white border border-stone-200 rounded-xl text-xs text-stone-900 focus:outline-none"
+            />
+            <button
+              onClick={() => {
+                const emailInput = document.getElementById(`email-${b.id}`).value;
+                const senhaInput = document.getElementById(`senha-${b.id}`).value;
+
+                if (!emailInput || !senhaInput) {
+                  alert('Preencha o e-mail e a senha.');
+                  return;
+                }
+
+                criarAcessoBarbeiro(b.id, emailInput, senhaInput);
+              }}
+              className="w-full py-1.5 bg-stone-900 text-white rounded-xl text-xs font-bold hover:bg-stone-800 transition-colors cursor-pointer"
+            >
+              Gerar Acesso
+            </button>
+          </div>
+        </div>
+      ))}
+    </div>
+  )}
+
+  {/* MODAL DE CADASTRO / EDIÇÃO DENTRO DA SEÇÃO */}
+  {modalBarbeiroOpen && (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 relative">
+        <button 
+          onClick={() => setModalBarbeiroOpen(false)}
+          className="absolute top-4 right-4 p-1.5 bg-stone-100 rounded-full hover:bg-stone-200 text-stone-600 cursor-pointer"
+        >
+          <X className="w-4 h-4" />
+        </button>
+
+        <h3 className="font-bold text-stone-900 text-base">
+          {barbeiroParaEditar ? 'Editar Profissional' : 'Novo Profissional'}
+        </h3>
+
+        <form onSubmit={handleSalvarBarbeiro} className="space-y-4">
+          <div>
+            <label className="block text-xs font-semibold text-stone-600 mb-1">Nome</label>
+            <input 
+              type="text" 
+              required
+              value={nome} 
+              onChange={(e) => setNome(e.target.value)} 
+              className="w-full p-3 rounded-xl bg-stone-50 border border-stone-200 text-xs text-stone-800 focus:outline-none"
+              placeholder="Ex: Thais"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-stone-600 mb-1">Especialidade</label>
+            <input 
+              type="text" 
+              value={especialidade} 
+              onChange={(e) => setEspecialidade(e.target.value)} 
+              className="w-full p-3 rounded-xl bg-stone-50 border border-stone-200 text-xs text-stone-800 focus:outline-none"
+              placeholder="Ex: Designer de sobrancelhas"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-stone-600 mb-1">Taxa de Comissão (%)</label>
+            <input 
+              type="number" 
+              value={taxaComissao} 
+              onChange={(e) => setTaxaComissao(e.target.value)} 
+              className="w-full p-3 rounded-xl bg-stone-50 border border-stone-200 text-xs text-stone-800 focus:outline-none"
+              placeholder="Ex: 50"
+            />
+          </div>
+
+          {/* Campo de Upload de Foto */}
+          <div>
+            <label className="block text-xs font-semibold text-stone-600 mb-1">Foto de Perfil</label>
+            <div className="flex items-center gap-3">
+              {fotoUrl ? (
+                <img 
+                  src={fotoUrl} 
+                  alt="Preview" 
+                  className="w-12 h-12 rounded-full object-cover border border-stone-200 shrink-0 shadow-sm" 
+                />
+              ) : (
+                <div className="w-12 h-12 rounded-full bg-stone-100 border border-stone-200 flex items-center justify-center text-stone-400 text-[10px] shrink-0 font-bold">
+                  Sem foto
+                </div>
+              )}
+
+              <input 
+                type="file" 
+                accept="image/*"
+                onChange={handleUploadFoto}
+                disabled={uploading}
+                className="w-full text-xs text-stone-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-stone-900 file:text-white hover:file:bg-stone-800 cursor-pointer"
+              />
+            </div>
+            {uploading && <p className="text-[10px] text-amber-600 mt-1 font-medium">Enviando imagem...</p>}
+          </div>
+
+          <div className="pt-2 flex gap-2">
+            <button
+              type="button"
+              onClick={() => setModalBarbeiroOpen(false)}
+              className="w-1/2 py-3 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-2xl text-xs font-semibold cursor-pointer transition-colors"
+            >
+              Cancelar
+            </button>
+            <button 
+              type="submit" 
+              disabled={uploading}
+              className="w-1/2 bg-stone-900 text-white font-semibold py-3 rounded-2xl text-xs uppercase tracking-wider shadow-md hover:bg-stone-800 cursor-pointer disabled:opacity-50 transition-all"
+            >
+              {uploading ? 'Aguarde...' : 'Salvar'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )}
+</div>
             </div>
           )}
 
@@ -1956,45 +2259,7 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* MODAL DE BARBEIROS */}
-      {modalBarbeiroOpen && (
-        <div className="fixed inset-0 bg-stone-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-stone-200 space-y-6">
-            <div className="flex justify-between items-center">
-              <h3 className="font-bold text-stone-900 text-lg">{editingBarbeiro ? 'Editar Barbeiro' : 'Novo Barbeiro'}</h3>
-              <button onClick={() => setModalBarbeiroOpen(false)} className="p-1 text-stone-400 hover:text-stone-600 rounded-lg cursor-pointer">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <form onSubmit={handleSaveBarbeiro} className="space-y-4">
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-stone-600">Nome do Profissional</label>
-                <input
-                  type="text"
-                  placeholder="Ex: Carlos Silva"
-                  value={formBarbeiro.nome}
-                  onChange={(e) => setFormBarbeiro({ ...formBarbeiro, nome: e.target.value })}
-                  className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2.5 text-xs text-stone-800 focus:outline-none focus:ring-2 focus:ring-stone-900"
-                  required
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-stone-600">Especialidade</label>
-                <input
-                  type="text"
-                  placeholder="Ex: Barba e Corte Clássico"
-                  value={formBarbeiro.especialidade}
-                  onChange={(e) => setFormBarbeiro({ ...formBarbeiro, especialidade: e.target.value })}
-                  className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2.5 text-xs text-stone-800 focus:outline-none focus:ring-2 focus:ring-stone-900"
-                />
-              </div>
-              <button type="submit" className="w-full bg-stone-900 hover:bg-stone-800 text-white font-bold py-3 rounded-xl transition duration-200 text-xs shadow-md cursor-pointer mt-2">
-                Salvar Barbeiro
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
+     
 
       {/* MODAL DE DESPESAS */}
       {modalDespesaOpen && (
