@@ -31,7 +31,8 @@ import {
   Calendar,
   Percent,
   ClipboardPenLine,
-  BadgePercent 
+  BadgePercent,
+  MessageCircleCheck
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
@@ -78,23 +79,14 @@ import RelatoriosPage from './relatorios'; // Ajuste o caminho caso o arquivo es
 }
 
 
+
+
 export default function AdminDashboard() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('agendamentos');
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState(null);
 
-
-
-
-
-
-
-
-
-
-
- 
 
 
 
@@ -1172,7 +1164,7 @@ const handleSaveBarbeiro = async (e) => {
           
           <button 
             onClick={() => { setActiveTab('financeiro'); setMobileMenuOpen(false); }}
-            className={`flex flex-col items-center space-y-1 transition-colors cursor-pointer ${activeTab === 'financeiro' ? 'text-stone-900 font-bold' : 'text-stone-400 font-medium'}`}
+            className={` flex flex-col items-center space-y-1 transition-colors cursor-pointer ${activeTab === 'financeiro' ? 'text-stone-900 font-bold' : 'text-stone-400 font-medium'}`}
           >
             <TrendingUp className="w-8 h-8" />
             <span className="text-[10px]">Financeiro</span>
@@ -1235,7 +1227,7 @@ const handleSaveBarbeiro = async (e) => {
             onClick={() => { setActiveTab('servicos'); setMobileMenuOpen(false); }}
             className={`flex flex-col items-center space-y-1 transition-colors cursor-pointer ${activeTab === 'servicos' ? 'text-stone-900 font-bold' : 'text-stone-400 font-medium'}`}
           >
-            <Scissors className="w-8 h-8" />
+            <Scissors className="w-8 h-8 " />
             <span className="text-[10px]">Equipe</span>
           </button>
 
@@ -1247,7 +1239,7 @@ const handleSaveBarbeiro = async (e) => {
 
           <button 
             onClick={() => setModalInfoAssinaturaOpen(true)}
-            className={`flex flex-col items-center text-[10px] space-y-1 transition-colors cursor-pointer ${activeTab === 'clientes' ? 'text-stone-900 font-bold' : 'text-stone-400 font-medium'}`}
+            className={`flex flex-col items-center text-[10px] space-y-1 transition-colors cursor-pointer ${activeTab === 'assinatura' ? 'text-stone-900 font-bold' : 'text-stone-400 font-medium'}`}
           >
             <ClipboardPenLine className="w-10 h-10 text-[10px]" /> {barbearia?.status_assinatura === 'ativo' ? 'Assinatura' : 'Assinatura'}
           </button>
@@ -1269,6 +1261,21 @@ const handleSaveBarbeiro = async (e) => {
 {/* GRADE DE BOTÕES EXTRAS LOGO ABAIXO */}
         <div className="max-h-[40vh] overflow-y-auto">
           <div className=" flex items-center justify-center border-b border-stone-100">
+
+
+
+           <a
+  href="https://wa.me/5542998040396?text=Olá,%20preciso%20de%20suporte%20com%20o%20sistema%20AgendaSoft."
+  target="_blank"
+  rel="noopener noreferrer"
+  onClick={() => setMobileMenuOpen(false)}
+  className="flex flex-col items-center space-y-1.5 p-3 rounded-2xl transition-all active:scale-95 cursor-pointer text-stone-500 hover:text-stone-900 font-medium"
+>
+  <div className=" rounded-xl  text-stone-400 shadow-xs">
+    <MessageCircleCheck className="w-8 h-8" /> {/* ou o ícone que você estiver usando */}
+  </div>
+  <span className="text-[15px] text-stone-400 text-center leading-tight">Suporte</span>
+</a>
           
           
 
@@ -1280,6 +1287,8 @@ const handleSaveBarbeiro = async (e) => {
             <LogOut className="w-8 h-8 text-red-500" />
             <span className="text-[15px] text-red-500">Sair</span>
           </button>
+
+          
 
           
           
