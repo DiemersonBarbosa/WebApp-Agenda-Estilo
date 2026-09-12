@@ -20,11 +20,7 @@
 }
 
 
-/* === INira AQUI PARA TRAVAR O SCROLL E BARRAS NO MOBILE === */
-html, body {
-  overscroll-behavior-y: none;
-  -webkit-overflow-scrolling: touch;
-}
+
 
 body {
   background: var(--background);
