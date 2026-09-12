@@ -1133,7 +1133,7 @@ const handleSaveBarbeiro = async (e) => {
     ========================================================= */}
 <AnimatePresence>
   {mobileMenuOpen && (
-    <div className="fixed text-black inset-0 z-40 flex md:hidden items-end justify-center pointer-events-none">
+    <div className="fixed text-black  inset-0 z-40 flex md:hidden items-end justify-center pointer-events-none">
       
       {/* Backdrop escuro de fundo */}
       <motion.div 
@@ -1151,11 +1151,11 @@ const handleSaveBarbeiro = async (e) => {
         animate={{ y: 0 }}
         exit={{ y: "100%" }}
         transition={{ type: "tween" }}
-        className="relative ml-2 mr-2 w-full bg-white rounded-t-[2.5rem] pt-5 px-5 pb-8 shadow-2xl z-10 border-t border-stone-200 pointer-events-auto flex flex-col"
+        className="relative ml-2 mr-2 w-full bg-white backdrop-blur-md rounded-t-[2.5rem] pt-5 px-5 pb-8 shadow-2xl z-10 border-t border-stone-200 pointer-events-auto flex flex-col"
       >
         
         {/* Puxador / Header do Menu */}
-        <div className="w-10 h-1 bg-stone-300 rounded-full mx-auto mb-3"></div>
+        <div className="w-10 h-1 bg-stone-300 rounded-full mx-auto "></div>
         
         
 
@@ -1269,7 +1269,7 @@ const handleSaveBarbeiro = async (e) => {
   target="_blank"
   rel="noopener noreferrer"
   onClick={() => setMobileMenuOpen(false)}
-  className="flex flex-col items-center space-y-1.5 p-3 rounded-2xl transition-all active:scale-95 cursor-pointer text-stone-500 hover:text-stone-900 font-medium"
+  className="flex flex-col items-center space-y-1.5 p-3 rounded-2xl transition-all active:scale-95 cursor-pointer text-black hover:text-stone-900 font-medium"
 >
   <div className=" rounded-xl  text-stone-400 shadow-xs">
     <MessageCircleCheck className="w-8 h-8" /> {/* ou o ícone que você estiver usando */}
