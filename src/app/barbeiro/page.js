@@ -11,7 +11,7 @@ export default function PainelBarbeiro() {
   const [loading, setLoading] = useState(true);
   const [uploadingFoto, setUploadingFoto] = useState(false);
 
-  const [barbeiroParaEditar, setBarbeiroParaEditar] = useState(null);
+  
   
   // Estado para o filtro de mês (formato "YYYY-MM")
   const [mesSelecionado, setMesSelecionado] = useState('2026-09');

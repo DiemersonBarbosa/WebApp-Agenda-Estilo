@@ -1141,16 +1141,16 @@ const handleSaveBarbeiro = async (e) => {
     ========================================================= */}
 <AnimatePresence>
   {mobileMenuOpen && (
-    <div className="fixed inset-0 z-40 flex md:hidden items-end justify-center pointer-events-none">
+    <div className="fixed text-black inset-0 z-40 flex md:hidden items-end justify-center pointer-events-none">
       
       {/* Backdrop escuro de fundo */}
       <motion.div 
         initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
+        animate={{ opacity: 0 }}
         exit={{ opacity: 0 }}
         transition={{ duration: 0.2 }}
         onClick={() => setMobileMenuOpen(false)}
-        className="fixed inset-0 bg-stone-950/60 backdrop-blur-xs pointer-events-auto"
+        className="fixed inset-0  bg-stone-950/60 backdrop-blur-xs pointer-events-auto"
       />
 
       {/* Container Principal Unificado */}
@@ -1158,8 +1158,8 @@ const handleSaveBarbeiro = async (e) => {
         initial={{ y: "100%" }}
         animate={{ y: 0 }}
         exit={{ y: "100%" }}
-        transition={{ type: "spring", damping: 25, stiffness: 320 }}
-        className="relative w-full bg-white rounded-t-[2.5rem] pt-5 px-5 pb-8 shadow-2xl z-10 border-t border-stone-200 pointer-events-auto flex flex-col"
+        transition={{ type: "tween" }}
+        className="relative ml-2 mr-2 w-full bg-white rounded-t-[2.5rem] pt-5 px-5 pb-8 shadow-2xl z-10 border-t border-stone-200 pointer-events-auto flex flex-col"
       >
         
         {/* Puxador / Header do Menu */}
@@ -1275,7 +1275,7 @@ const handleSaveBarbeiro = async (e) => {
           
           <button 
             onClick={handleLogout}
-            className={`flex flex-col items-center space-y-1 transition-colors cursor-pointer`}
+            className={`flex flex-col items-center space-y-1 transition-colors cursor-pointer `}
           >
             <LogOut className="w-8 h-8 text-red-500" />
             <span className="text-[15px] text-red-500">Sair</span>
