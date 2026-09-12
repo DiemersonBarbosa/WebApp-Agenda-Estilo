@@ -156,7 +156,7 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
         </div>
         <div className="bg-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-stone-200/80 shadow-sm space-y-1">
           <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-stone-400">Ticket Médio</span>
-          <div className="text-lg sm:text-2xl font-black text-stone-950 truncate">R$ {ticketMedioCalculado.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>
+          <div className="text-lg sm:text-2xl font-black text-stone-950 truncate">R$ {ticketMedioCalculado.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
           <p className="text-[10px] text-stone-400 font-medium">Média por atendimento</p>
         </div>
       </div>

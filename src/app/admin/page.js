@@ -29,7 +29,9 @@ import {
   Settings,
   Menu,
   Calendar,
-  Percent
+  Percent,
+  ClipboardPenLine,
+  BadgePercent 
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
@@ -1080,186 +1082,269 @@ const handleSaveBarbeiro = async (e) => {
 
 
 {/* =========================================================
-    MODAL BALÃO COMPLETO COM BICO LARGO E BORDA INTEGRADA
+    BARRA DE NAVEGAÇÃO INFERIOR ANIMADA (DESCE QUANDO O MENU ABRE)
+    ========================================================= */}
+<motion.nav 
+  aria-label="Navegação inferior mobile"
+  animate={{ y: mobileMenuOpen ? 100 : 0 }}
+  transition={{ type: "spring", damping: 25, stiffness: 320 }}
+  className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-stone-200 px-4 py-2 z-40 flex items-center justify-between shadow-lg"
+>
+  
+  <button 
+    onClick={() => setActiveTab('financeiro')}
+    className={`flex flex-col items-center space-y-1 transition-colors cursor-pointer ${activeTab === 'financeiro' ? 'text-stone-900 font-bold' : 'text-stone-400 font-medium'}`}
+  >
+    <TrendingUp className="w-5 h-5" />
+    <span className="text-[10px]">Financeiro</span>
+  </button>
+
+  <button 
+    onClick={() => setActiveTab('agendamentos')}
+    className={`flex flex-col items-center space-y-1 transition-colors cursor-pointer ${activeTab === 'agendamentos' ? 'text-stone-900 font-bold' : 'text-stone-400 font-medium'}`}
+  >
+    <Calendar className="w-5 h-5" />
+    <span className="text-[10px]">Agenda</span>
+  </button>
+
+  <div className="relative -top-3">
+    <button 
+      onClick={() => setMobileMenuOpen(true)}
+      className="w-12 h-12 bg-stone-900 text-white rounded-full flex items-center justify-center shadow-md active:scale-95 transition-transform border-4 border-white cursor-pointer"
+      aria-label="Abrir Menu de Acesso Rápido"
+    >
+      <Menu className="w-5 h-5" />
+    </button>
+  </div>
+
+  <button 
+    onClick={() => setActiveTab('clientes')}
+    className={`flex flex-col items-center space-y-1 transition-colors cursor-pointer ${activeTab === 'clientes' ? 'text-stone-900 font-bold' : 'text-stone-400 font-medium'}`}
+  >
+    <Users className="w-5 h-5" />
+    <span className="text-[10px]">Clientes</span>
+  </button>
+
+  <button 
+    onClick={() => setActiveTab('configuracoes')}
+    className={`flex flex-col items-center space-y-1 transition-colors cursor-pointer ${activeTab === 'configuracoes' ? 'text-stone-900 font-bold' : 'text-stone-400 font-medium'}`}
+  >
+    <Settings className="w-5 h-5" />
+    <span className="text-[10px]">Ajustes</span>
+  </button>
+
+</motion.nav>
+
+
+{/* =========================================================
+    PAINEL DESLIZANTE COM A BARRA NO TOPO E OPÇÕES ABAIXO
     ========================================================= */}
 <AnimatePresence>
   {mobileMenuOpen && (
-    <div className="fixed inset-0 z-50 flex md:hidden items-end justify-center pb-24 px-4">
+    <div className="fixed inset-0 z-40 flex md:hidden items-end justify-center pointer-events-none">
       
-      {/* Backdrop com fade-in */}
+      {/* Backdrop escuro de fundo */}
       <motion.div 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         transition={{ duration: 0.2 }}
         onClick={() => setMobileMenuOpen(false)}
-        className="fixed inset-0 bg-stone-900/60 backdrop-blur-xs"
+        className="fixed inset-0 bg-stone-950/60 backdrop-blur-xs pointer-events-auto"
       />
 
-      {/* Conteúdo do Modal (Balão) */}
+      {/* Container Principal Unificado */}
       <motion.div 
-        initial={{ opacity: 0, scale: 0.5, y: 30 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.5, y: 30 }}
-        transition={{ type: "spring", damping: 22, stiffness: 320 }}
-        style={{ transformOrigin: '50% 100%' }}
-        className="relative w-full max-w-sm bg-white rounded-3xl p-5 shadow-2xl z-10 border border-stone-200"
+        initial={{ y: "100%" }}
+        animate={{ y: 0 }}
+        exit={{ y: "100%" }}
+        transition={{ type: "spring", damping: 25, stiffness: 320 }}
+        className="relative w-full bg-white rounded-t-[2.5rem] pt-5 px-5 pb-8 shadow-2xl z-10 border-t border-stone-200 pointer-events-auto flex flex-col"
       >
         
-        {/* Cabeçalho compacto */}
-        <div className="flex items-center justify-between pb-3 border-b border-stone-100">
-          <div>
-            <h3 className="text-xs font-extrabold text-stone-900">Menu de Acesso Rápido</h3>
-            <p className="text-[10px] text-stone-500">Selecione uma opção</p>
-          </div>
+        {/* Puxador / Header do Menu */}
+        <div className="w-10 h-1 bg-stone-300 rounded-full mx-auto mb-3"></div>
+        
+        
+
+        {/* BARRA DE NAVEGAÇÃO POSICIONADA NO TOPO DO MODAL */}
+        <div className="py-2 flex items-center justify-between border-b border-stone-100 mb-4">
+          
           <button 
-            onClick={() => { setMobileMenuOpen(false); }}
-            className="w-7 h-7 rounded-full bg-stone-100 text-stone-500 flex items-center justify-center font-bold text-xs hover:bg-stone-200 transition-colors"
+            onClick={() => { setActiveTab('financeiro'); setMobileMenuOpen(false); }}
+            className={`flex flex-col items-center space-y-1 transition-colors cursor-pointer ${activeTab === 'financeiro' ? 'text-stone-900 font-bold' : 'text-stone-400 font-medium'}`}
           >
-            ✕
+            <TrendingUp className="w-8 h-8" />
+            <span className="text-[10px]">Financeiro</span>
           </button>
+
+          <button 
+            onClick={() => { setActiveTab('agendamentos'); setMobileMenuOpen(false); }}
+            className={`flex flex-col items-center space-y-1 transition-colors cursor-pointer ${activeTab === 'agendamentos' ? 'text-stone-900 font-bold' : 'text-stone-400 font-medium'}`}
+          >
+            <Calendar className="w-8 h-8" />
+            <span className="text-[10px]">Agenda</span>
+          </button>
+
+          {/* Botão Central de Fechar/Alternar no meio */}
+          
+
+          <button 
+            onClick={() => { setActiveTab('clientes'); setMobileMenuOpen(false); }}
+            className={`flex flex-col items-center space-y-1 transition-colors cursor-pointer ${activeTab === 'clientes' ? 'text-stone-900 font-bold' : 'text-stone-400 font-medium'}`}
+          >
+            <Users className="w-8 h-8" />
+            <span className="text-[10px]">Clientes</span>
+          </button>
+
+          <button 
+            onClick={() => { setActiveTab('configuracoes'); setMobileMenuOpen(false); }}
+            className={`flex flex-col items-center space-y-1 transition-colors cursor-pointer ${activeTab === 'configuracoes' ? 'text-stone-900 font-bold' : 'text-stone-400 font-medium'}`}
+          >
+            <Settings className="w-8 h-8" />
+            <span className="text-[10px]">Ajustes</span>
+          </button>
+
         </div>
 
-        {/* Grade de Botões com Scroll interno */}
-        <div className="max-h-[60vh] overflow-y-auto space-y-4 pt-3 pr-1">
-          <div className="grid grid-cols-2 gap-2.5">
-            
-            {/* 1. Visão Geral */}
-            <button 
-              onClick={() => { setActiveTab('visao-geral'); setMobileMenuOpen(false); }}
-              className={`flex items-center space-x-2 p-3 rounded-xl border transition-all group active:scale-95 ${
-                activeTab === 'visao-geral'
-                  ? 'bg-stone-900 text-white border-stone-900 shadow-sm'
-                  : 'bg-stone-50 hover:bg-stone-900 hover:text-white text-stone-800 border-stone-200/80'
-              }`}
-            >
-              <div className={`p-2 rounded-lg shadow-xs transition-colors shrink-0 ${
-                activeTab === 'visao-geral' ? 'bg-stone-800 text-white' : 'bg-white group-hover:bg-stone-800 text-stone-900 group-hover:text-white'
-              }`}>
-                <TrendingUp className="w-4 h-4" />
-              </div>
-              <span className="text-[11px] font-bold text-left leading-tight truncate">Visão Geral</span>
-            </button>
+        {/* GRADE DE BOTÕES EXTRAS LOGO ABAIXO */}
+        <div className="max-h-[40vh] overflow-y-auto pb-2">
+          <div className="py-2 flex items-center justify-between border-b border-stone-100 mb-4">
+          
+          <button 
+            onClick={() => { setActiveTab('despesas'); setMobileMenuOpen(false); }}
+            className={`flex flex-col items-center space-y-1 transition-colors cursor-pointer ${activeTab === 'despesas' ? 'text-stone-900 font-bold' : 'text-stone-400 font-medium'}`}
+          >
+            <TrendingDown className="w-8 h-8" />
+            <span className="text-[10px]">Despesas</span>
+          </button>
 
-            {/* 2. Agendamentos */}
-            <button 
-              onClick={() => { setActiveTab('agendamentos'); setMobileMenuOpen(false); }}
-              className={`flex items-center space-x-2 p-3 rounded-xl border transition-all group active:scale-95 ${
-                activeTab === 'agendamentos'
-                  ? 'bg-stone-900 text-white border-stone-900 shadow-sm'
-                  : 'bg-stone-50 hover:bg-stone-900 hover:text-white text-stone-800 border-stone-200/80'
-              }`}
-            >
-              <div className={`p-2 rounded-lg shadow-xs transition-colors shrink-0 ${
-                activeTab === 'agendamentos' ? 'bg-stone-800 text-white' : 'bg-white group-hover:bg-stone-800 text-stone-900 group-hover:text-white'
-              }`}>
-                <Calendar className="w-4 h-4" />
-              </div>
-              <span className="text-[11px] font-bold text-left leading-tight truncate">Agendamentos</span>
-            </button>
+          <button 
+            onClick={() => { setActiveTab('comissoes'); setMobileMenuOpen(false); }}
+            className={`flex flex-col items-center space-y-1 transition-colors cursor-pointer ${activeTab === 'comissoes' ? 'text-stone-900 font-bold' : 'text-stone-400 font-medium'}`}
+          >
+            <BadgePercent  className="w-8 h-8" />
+            <span className="text-[10px]">Comissões</span>
+          </button>
 
-            {/* 3. Clientes */}
-            <button 
-              onClick={() => { setActiveTab('clientes'); setMobileMenuOpen(false); }}
-              className={`flex items-center space-x-2 p-3 rounded-xl border transition-all group active:scale-95 ${
-                activeTab === 'clientes'
-                  ? 'bg-stone-900 text-white border-stone-900 shadow-sm'
-                  : 'bg-stone-50 hover:bg-stone-900 hover:text-white text-stone-800 border-stone-200/80'
-              }`}
-            >
-              <div className={`p-2 rounded-lg shadow-xs transition-colors shrink-0 ${
-                activeTab === 'clientes' ? 'bg-stone-800 text-white' : 'bg-white group-hover:bg-stone-800 text-stone-900 group-hover:text-white'
-              }`}>
-                <Users className="w-4 h-4" />
-              </div>
-              <span className="text-[11px] font-bold text-left leading-tight truncate">Clientes</span>
-            </button>
+          {/* Botão Central de Fechar/Alternar no meio */}
 
-            {/* 4. Financeiro */}
-            <button 
-              onClick={() => { setActiveTab('financeiro'); setMobileMenuOpen(false); }}
-              className={`flex items-center space-x-2 p-3 rounded-xl border transition-all group active:scale-95 ${
-                activeTab === 'financeiro'
-                  ? 'bg-stone-900 text-white border-stone-900 shadow-sm'
-                  : 'bg-stone-50 hover:bg-stone-900 hover:text-white text-stone-800 border-stone-200/80'
-              }`}
-            >
-              <div className={`p-2 rounded-lg shadow-xs transition-colors shrink-0 ${
-                activeTab === 'financeiro' ? 'bg-stone-800 text-white' : 'bg-white group-hover:bg-stone-800 text-stone-900 group-hover:text-white'
-              }`}>
-                <DollarSign className="w-4 h-4" />
-              </div>
-              <span className="text-[11px] font-bold text-left leading-tight truncate">Financeiro</span>
-            </button>
 
-            {/* 5. Serviços e Equipe */}
-            <button 
-              onClick={() => { setActiveTab('servicos'); setMobileMenuOpen(false); }}
-              className={`flex items-center space-x-2 p-3 rounded-xl border transition-all group active:scale-95 ${
-                activeTab === 'servicos'
-                  ? 'bg-stone-900 text-white border-stone-900 shadow-sm'
-                  : 'bg-stone-50 hover:bg-stone-900 hover:text-white text-stone-800 border-stone-200/80'
-              }`}
-            >
-              <div className={`p-2 rounded-lg shadow-xs transition-colors shrink-0 ${
-                activeTab === 'servicos' ? 'bg-stone-800 text-white' : 'bg-white group-hover:bg-stone-800 text-stone-900 group-hover:text-white'
-              }`}>
-                <Scissors className="w-4 h-4" />
-              </div>
-              <span className="text-[11px] font-bold text-left leading-tight truncate">Equipe & Serviços</span>
-            </button>
 
-            {/* 6. Comissões */}
-            <button 
-              onClick={() => { setActiveTab('comissoes'); setMobileMenuOpen(false); }}
-              className={`flex items-center space-x-2 p-3 rounded-xl border transition-all group active:scale-95 ${
-                activeTab === 'comissoes'
-                  ? 'bg-stone-900 text-white border-stone-900 shadow-sm'
-                  : 'bg-stone-50 hover:bg-stone-900 hover:text-white text-stone-800 border-stone-200/80'
-              }`}
-            >
-              <div className={`p-2 rounded-lg shadow-xs transition-colors shrink-0 ${
-                activeTab === 'comissoes' ? 'bg-stone-800 text-white' : 'bg-white group-hover:bg-stone-800 text-stone-900 group-hover:text-white'
-              }`}>
-                <Percent className="w-4 h-4" />
-              </div>
-              <span className="text-[11px] font-bold text-left leading-tight truncate">Comissões</span>
-            </button>
+           <button 
+            onClick={() => { setActiveTab('servicos'); setMobileMenuOpen(false); }}
+            className={`flex flex-col items-center space-y-1 transition-colors cursor-pointer ${activeTab === 'servicos' ? 'text-stone-900 font-bold' : 'text-stone-400 font-medium'}`}
+          >
+            <Scissors className="w-8 h-8" />
+            <span className="text-[10px]">Equipe</span>
+          </button>
 
-            {/* 7. Configurações (Ajustado para ocupar apenas 1 coluna igual aos outros) */}
-            <button 
-              onClick={() => { setActiveTab('configuracoes'); setMobileMenuOpen(false); }}
-              className={`flex items-center space-x-2 p-3 rounded-xl border transition-all group active:scale-95 col-span-1 ${
-                activeTab === 'configuracoes'
-                  ? 'bg-stone-900 text-white border-stone-900 shadow-sm'
-                  : 'bg-stone-50 hover:bg-stone-900 hover:text-white text-stone-800 border-stone-200/80'
-              }`}
-            >
-              <div className={`p-2 rounded-lg shadow-xs transition-colors shrink-0 ${
-                activeTab === 'configuracoes' ? 'bg-stone-800 text-white' : 'bg-white group-hover:bg-stone-800 text-stone-900 group-hover:text-white'
-              }`}>
-                <Settings className="w-4 h-4" />
-              </div>
-              <span className="text-[11px] font-bold text-left leading-tight truncate">Configurações</span>
-            </button>
 
-          </div>
+
+
+
+          
+
+          <button 
+            onClick={() => setModalInfoAssinaturaOpen(true)}
+            className={`flex flex-col items-center text-[10px] space-y-1 transition-colors cursor-pointer ${activeTab === 'clientes' ? 'text-stone-900 font-bold' : 'text-stone-400 font-medium'}`}
+          >
+            <ClipboardPenLine className="w-10 h-10 text-[10px]" /> {barbearia?.status_assinatura === 'ativo' ? 'Assinatura' : 'Assinatura'}
+          </button>
+
+
+
+
+
+
+          
+          
+
+          
+          
+
+        </div>
         </div>
 
-        {/* =========================================================
-            BICO LARGO COM BORDA ENVOLVENTE INTEGRADA (SVG)
-            ========================================================= */}
-        <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 w-36 h-7 z-20 pointer-events-none">
-          <svg viewBox="0 0 100 24" className="w-full h-full drop-shadow-md fill-white stroke-stone-200" strokeWidth="2" preserveAspectRatio="none">
-            <path d="M 5,0 C 35,0 42,22 50,24 C 58,22 65,0 95,0" />
-          </svg>
+{/* GRADE DE BOTÕES EXTRAS LOGO ABAIXO */}
+        <div className="max-h-[40vh] overflow-y-auto">
+          <div className=" flex items-center justify-center border-b border-stone-100">
+          
+          
+
+          
+          <button 
+            onClick={handleLogout}
+            className={`flex flex-col items-center space-y-1 transition-colors cursor-pointer`}
+          >
+            <LogOut className="w-8 h-8 text-red-500" />
+            <span className="text-[15px] text-red-500">Sair</span>
+          </button>
+
+          
+          
+
         </div>
+        </div>
+
+
 
       </motion.div>
 
     </div>
   )}
 </AnimatePresence>
+
+{/* =========================================================
+    BARRA DE NAVEGAÇÃO INFERIOR FIXA NORMAL (QUANDO O MENU ESTÁ FECHADO)
+    ========================================================= */}
+{!mobileMenuOpen && (
+  <nav aria-label="Navegação inferior mobile" className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-stone-200 px-4 py-2 z-40 flex items-center justify-between shadow-lg">
+    
+    <button 
+      onClick={() => setActiveTab('financeiro')}
+      className={`flex flex-col items-center space-y-1 transition-colors cursor-pointer ${activeTab === 'financeiro' ? 'text-stone-900 font-bold' : 'text-stone-400 font-medium'}`}
+    >
+      <TrendingUp className="w-5 h-5" />
+      <span className="text-[10px]">Financeiro</span>
+    </button>
+
+    <button 
+      onClick={() => setActiveTab('agendamentos')}
+      className={`flex flex-col items-center space-y-1 transition-colors cursor-pointer ${activeTab === 'agendamentos' ? 'text-stone-900 font-bold' : 'text-stone-400 font-medium'}`}
+    >
+      <Calendar className="w-5 h-5" />
+      <span className="text-[10px]">Agenda</span>
+    </button>
+
+    <div className="relative -top-3">
+      <button 
+        onClick={() => setMobileMenuOpen(true)}
+        className="w-12 h-12 bg-stone-900 text-white rounded-full flex items-center justify-center shadow-md active:scale-95 transition-transform border-4 border-white cursor-pointer"
+        aria-label="Abrir Menu de Acesso Rápido"
+      >
+        <Menu className="w-5 h-5" />
+      </button>
+    </div>
+
+    <button 
+      onClick={() => setActiveTab('clientes')}
+      className={`flex flex-col items-center space-y-1 transition-colors cursor-pointer ${activeTab === 'clientes' ? 'text-stone-900 font-bold' : 'text-stone-400 font-medium'}`}
+    >
+      <Users className="w-5 h-5" />
+      <span className="text-[10px]">Clientes</span>
+    </button>
+
+    <button 
+      onClick={() => setActiveTab('configuracoes')}
+      className={`flex flex-col items-center space-y-1 transition-colors cursor-pointer ${activeTab === 'configuracoes' ? 'text-stone-900 font-bold' : 'text-stone-400 font-medium'}`}
+    >
+      <Settings className="w-5 h-5" />
+      <span className="text-[10px]">Ajustes</span>
+    </button>
+
+  </nav>
+)}
 {/* TELA DE BLOQUEIO / PAYWALL CASO O TESTE TENHA EXPIRADO */}
 {assinaturaExpirada && !loading && modalAssinaturaOpen && (
   <div className="fixed inset-0 bg-stone-950/95 backdrop-blur-md z-50 overflow-y-auto pointer-events-auto">
