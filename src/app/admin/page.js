@@ -1243,7 +1243,7 @@ const handleSaveBarbeiro = async (e) => {
         initial={{ y: "100%" }}
         animate={{ y: 0 }}
         exit={{ y: 0 }}
-        transition={{ type: "spring", damping: 25, stiffness: 300 }}
+        transition={{ type: "spring", damping: 30, stiffness: 320 }}
         className="relative modal-menu-aberto w-full max-w-lg mx-4 mb-4 bg-white/75 backdrop-blur-2xl rounded-[2.5rem] pt-4 px-6 pb-8 shadow-2xl border border-white/60 z-10 flex flex-col text-stone-800"
       >
         
