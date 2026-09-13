@@ -1108,7 +1108,11 @@ const handleSaveBarbeiro = async (e) => {
     <main className="...">
 
 {/* BARRA DE NAVEGAÇÃO INFERIOR FIXA COM BOTÃO CENTRAL DE MENU RÁPIDO */}
-<nav aria-label="Navegação inferior mobile" className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-stone-200 px-4 py-2 z-40 flex items-center justify-between shadow-lg">
+<nav 
+  aria-label="Navegação inferior mobile" 
+  style={{ display: mobileMenuOpen ? 'none' : undefined }}
+  className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-stone-200 px-4 py-2 z-40 flex items-center justify-between shadow-lg"
+>
   
   {/* 1. Início / Visão Geral */}
   <button 
@@ -1395,10 +1399,10 @@ const handleSaveBarbeiro = async (e) => {
     BARRA DE NAVEGAÇÃO INFERIOR FIXA NORMAL (QUANDO O MENU ESTÁ FECHADO)
     ========================================================= */}
 {!mobileMenuOpen && (
- <nav 
+<nav 
   aria-label="Navegação inferior mobile" 
-  style={{ display: mobileMenuOpen ? 'none' : 'flex' }}
-  className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-stone-200 px-4 py-2 z-40 items-center justify-between shadow-lg"
+  style={{ display: mobileMenuOpen ? 'none' : undefined }}
+  className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-stone-200 px-4 py-2 z-40 flex items-center justify-between shadow-lg"
 >
     <button 
       onClick={() => setActiveTab('financeiro')}
