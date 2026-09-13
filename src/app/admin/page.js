@@ -32,7 +32,9 @@ import {
   Percent,
   ClipboardPenLine,
   BadgePercent,
-  MessageCircleCheck
+  MessageCircleCheck,
+  ShoppingCart,
+  ShoppingBag
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
@@ -51,7 +53,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 import RelatoriosPage from './relatorios'; // Ajuste o caminho caso o arquivo esteja em outra pasta dentro de admin
 
+import PdvScreen from '@/components/PdvScreen'; 
+import ProdutosScreen from '@/components/ProdutosScreen';
 
+
+
+
+
+// ou o caminho relativo correto de onde você salvou o arquivo
 
  async function criarAcessoBarbeiro(barbeiroId, emailBarbeiro, senhaTemporaria) {
   try {
@@ -87,6 +96,22 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState(null);
 
+
+
+
+  const [produtos, setProdutos] = useState([]);
+
+// Função para buscar produtos do Supabase
+async function carregarProdutos(barbeariaId) {
+  const { data, error } = await supabase
+    .from('produtos')
+    .select('*')
+    .eq('barbearia_id', barbeariaId);
+  
+  if (!error && data) {
+    setProdutos(data);
+  }
+}
 
 
 
@@ -1436,6 +1461,28 @@ const handleSaveBarbeiro = async (e) => {
             </div>
 
             <nav className="space-y-1.5">
+
+
+<button
+  onClick={() => setActiveTab('pdv')}
+  className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-semibold ${
+    activeTab === 'pdv' ? 'bg-stone-950 text-white shadow-sm' : 'text-stone-600 hover:bg-stone-100'
+  }`}
+>
+  <ShoppingCart className="w-4 h-4" /> PDV
+</button>
+
+
+<button
+  onClick={() => setActiveTab('produtos')}
+  className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-semibold cursor-pointer transition-all ${
+    activeTab === 'produtos' ? 'bg-stone-950 text-white shadow-sm' : 'text-stone-600 hover:bg-stone-100'
+  }`}
+>
+  <ShoppingBag className="w-4 h-4" /> Produtos & Estoque
+</button>
+
+
               <button
                 onClick={() => setActiveTab('agendamentos')}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-semibold transition-all cursor-pointer ${
@@ -1538,11 +1585,17 @@ const handleSaveBarbeiro = async (e) => {
 
         {/* CONTEÚDO PRINCIPAL */}
         <main className="flex-1 p-4 sm:p-6 md:p-10 pb-24 overflow-y-auto max-w-full">
+
+
+
+          
           
           
 
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
             
+
+
 {activeTab === 'configuracoes' && (
             <div className="flex items-center gap-2">
               <a
@@ -1606,6 +1659,32 @@ const handleSaveBarbeiro = async (e) => {
 
           {/* CONTEÚDO DAS ABAS */}
 {/* CONTEÚDO DAS ABAS */}
+
+
+{activeTab === 'pdv' && (
+  <PdvScreen 
+    servicosIniciais={servicos} 
+    produtosIniciais={produtos} 
+    barbeariaId={barbearia?.id}
+    supabase={supabase}
+    onVendaConcluida={() => {
+      carregarProdutos(barbearia?.id);
+    }}
+  />
+)}
+
+
+
+{activeTab === 'produtos' && (
+  <ProdutosScreen
+    produtos={produtos}
+    barbeariaId={barbearia?.id}
+    supabase={supabase}
+    onReload={() => carregarProdutos(barbearia?.id)}
+  />
+)}
+
+
 {activeTab === 'agendamentos' && (
   <div className="space-y-4 pb-24">
     {/* =========================================================
