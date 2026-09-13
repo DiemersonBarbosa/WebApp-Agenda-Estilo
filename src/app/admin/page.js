@@ -543,32 +543,7 @@ const [barbeiroParaEditar, setBarbeiroParaEditar] = useState(null);
     }
   };
 
-  const copiarChavePix = () => {
-  const inputElement = document.getElementById('input-copia-cola');
-
-  if (!inputElement || !inputElement.value) {
-    alert('O código Pix ainda não está disponível.');
-    return;
-  }
-
-  inputElement.select();
-  inputElement.setSelectionRange(0, 99999);
-
-  try {
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(inputElement.value);
-    } else {
-      document.execCommand('copy');
-    }
-
-    setCopiado(true);
-    setTimeout(() => setCopiado(false), 3000);
-  } catch (err) {
-    alert('Erro ao copiar o código. Selecione-o manualmente.');
-  }
-};
-
-  const handleUpdateStatus = async (id, newStatus) => {
+const handleUpdateStatus = async (id, newStatus) => {
     try {
       const { error } = await supabase
         .from('agendamentos')
@@ -582,6 +557,47 @@ const [barbeiroParaEditar, setBarbeiroParaEditar] = useState(null);
       );
     } catch (err) {
       alert('Erro ao atualizar status: ' + err.message);
+    }
+  };
+
+  
+
+ const copiarChavePix = () => {
+    const codigoParaCopiar = pixDataMP?.copiaECola;
+
+    if (!codigoParaCopiar) {
+      alert('O código Pix ainda não está disponível.');
+      return;
+    }
+
+    try {
+      // Cria um elemento textarea temporário invisível para garantir a cópia nativa
+      const textarea = document.createElement('textarea');
+      textarea.value = codigoParaCopiar;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      
+      textarea.focus();
+      textarea.select();
+
+      const sucesso = document.execCommand('copy');
+      document.body.removeChild(textarea);
+
+      if (sucesso) {
+        setCopiado(true);
+        setTimeout(() => setCopiado(false), 3000);
+      } else {
+        throw new Error('Falha');
+      }
+    } catch (err) {
+      // Fallback final: seleciona o input visual da tela caso o temporário falhe
+      const inputElement = document.getElementById('input-copia-cola');
+      if (inputElement) {
+        inputElement.focus();
+        inputElement.select();
+      }
+      alert('Não foi possível copiar automaticamente. Por favor, selecione e copie o código manualmente no campo.');
     }
   };
 
@@ -869,7 +885,7 @@ const handleSaveBarbeiro = async (e) => {
 
 
 
-   <div className={`min-h-screen bg-stone-100 text-stone-800 flex flex-col font-sans relative ${assinaturaExpirada ? 'pointer-events-none select-none' : ''}`}>
+   <div className="min-h-screen bg-stone-100 text-stone-800 flex flex-col font-sans relative select-none">
     {/* TRAVA DE CARREGAMENTO PARA EVITAR O PISCAR DO MODAL */}
     {loading && (
       <div className="fixed inset-0 bg-stone-900 z-50 flex items-center justify-center text-white">
@@ -1302,8 +1318,28 @@ const handleSaveBarbeiro = async (e) => {
         </div>
 
 {/* GRADE DE BOTÕES EXTRAS LOGO ABAIXO */}
-        <div className="max-h-[40vh] overflow-y-auto">
-          <div className=" flex items-center justify-center border-b border-stone-100">
+        <div className="max-h-[40vh] overflow-y-auto pb-2">
+          <div className="py-2 flex items-center justify-between border-b border-stone-100 mb-4">
+
+
+
+            <button 
+            onClick={() => { setActiveTab('pdv'); setMobileMenuOpen(false); }}
+            className={`flex flex-col items-center space-y-1 transition-colors cursor-pointer ${activeTab === 'pdv' ? 'text-stone-900 font-bold' : 'text-stone-400 font-medium'}`}
+          >
+            <Scissors className="w-8 h-8 " />
+            <span className="text-[10px]">PDV</span>
+          </button>
+
+
+
+          <button 
+            onClick={() => { setActiveTab('produtos'); setMobileMenuOpen(false); }}
+            className={`pl-6 flex flex-col items-center space-y-1 transition-colors cursor-pointer ${activeTab === 'produtos' ? 'text-stone-900 font-bold' : 'text-stone-400 font-medium'}`}
+          >
+            <ShoppingBag className="w-8 h-8 " />
+            <span className="text-[10px]">Produtos</span>
+          </button>
 
 
 
@@ -1312,12 +1348,12 @@ const handleSaveBarbeiro = async (e) => {
   target="_blank"
   rel="noopener noreferrer"
   onClick={() => setMobileMenuOpen(false)}
-  className="flex flex-col items-center space-y-1.5 p-3 rounded-2xl transition-all active:scale-95 cursor-pointer text-black hover:text-stone-900 font-medium"
+  className="flex pr-4 flex-col items-center space-y-1.5 p-3 rounded-2xl transition-all active:scale-95 cursor-pointer text-black hover:text-stone-900 font-medium"
 >
   <div className=" rounded-xl  text-stone-400 shadow-xs">
     <MessageCircleCheck className="w-8 h-8" /> {/* ou o ícone que você estiver usando */}
   </div>
-  <span className="text-[15px] text-stone-400 text-center leading-tight">Suporte</span>
+  <span className="text-[10px] text-stone-400 text-center leading-tight">Suporte</span>
 </a>
           
           
@@ -1328,7 +1364,7 @@ const handleSaveBarbeiro = async (e) => {
             className={`flex flex-col items-center space-y-1 transition-colors cursor-pointer `}
           >
             <LogOut className="w-8 h-8 text-red-500" />
-            <span className="text-[15px] text-red-500">Sair</span>
+            <span className="text-[10px] text-red-500">Sair</span>
           </button>
 
           
@@ -1459,9 +1495,11 @@ const handleSaveBarbeiro = async (e) => {
           readOnly
           value={pixDataMP?.copiaECola || ''}
           onClick={(e) => {
-            e.stopPropagation(); // Impede que o clique no código vaze para outros elementos
+            e.preventDefault();
+            e.stopPropagation();
+            e.currentTarget.select();
           }}
-          className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-xs text-stone-600 focus:outline-none select-all cursor-text"
+          className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-xs text-stone-600 focus:outline-none cursor-text"
         />
       </div>
 
@@ -2364,38 +2402,105 @@ const handleSaveBarbeiro = async (e) => {
                 )}
 
                 {pixDataMP.copiaECola && (
-                  <div className="space-y-2">
-                    <div className="flex gap-2">
-                      <input
-  id="input-copia-cola"
-  type="text"
-  readOnly
-  value={pixDataMP.copiaECola}
-  className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-xs text-stone-600 focus:outline-none"
-/>
+                  <div className="space-y-3 w-full" onClick={(e) => e.stopPropagation()}>
+                    {/* Caixa do código Pix */}
+                    <div 
+                      onClick={async (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        try {
+                          if (navigator.clipboard && navigator.clipboard.writeText) {
+                            await navigator.clipboard.writeText(pixDataMP.copiaECola);
+                          } else {
+                            const textarea = document.createElement('textarea');
+                            textarea.value = pixDataMP.copiaECola;
+                            document.body.appendChild(textarea);
+                            textarea.select();
+                            document.execCommand('copy');
+                            document.body.removeChild(textarea);
+                          }
+                          setCopiado(true);
+                          setTimeout(() => setCopiado(false), 3000);
+                        } catch (err) {
+                          alert('Erro ao copiar.');
+                        }
+                      }}
+                      className="p-3 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-600 break-all text-center select-all font-mono cursor-pointer hover:bg-stone-100 transition-colors shadow-inner"
+                      title="Clique para copiar"
+                    >
+                      {pixDataMP.copiaECola}
+                    </div>
+
+                    {/* Container isolado estritamente para os botões com margem de segurança */}
+                    <div className="w-full space-y-3 mt-4 relative z-50">
+                      
+                      {/* Botão Copiar */}
                       <button
-                        onClick={copiarChavePix}
-                        className="bg-stone-900 hover:bg-stone-800 text-white px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 shrink-0 transition-all cursor-pointer"
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          
+                          const texto = pixDataMP?.copiaECola;
+                          if (!texto) return;
+
+                          try {
+                            if (navigator.clipboard && navigator.clipboard.writeText) {
+                              navigator.clipboard.writeText(texto);
+                            } else {
+                              const textarea = document.createElement('textarea');
+                              textarea.value = texto;
+                              document.body.appendChild(textarea);
+                              textarea.select();
+                              document.execCommand('copy');
+                              document.body.removeChild(textarea);
+                            }
+                            setCopiado(true);
+                            setTimeout(() => setCopiado(false), 3000);
+                          } catch (err) {
+                            executarFallbackManual(texto);
+                          }
+                        }}
+                        className="w-full bg-stone-900 hover:bg-stone-800 text-white py-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-lg relative z-50"
                       >
                         {copiado ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
-                        {copiado ? 'Copiado!' : 'Copiar'}
+                        {copiado ? 'Código Pix Copiado com Sucesso!' : 'Copiar Código Pix'}
                       </button>
+
+                      {/* Espaçador visual intransponível para evitar sobreposição de hitbox */}
+                      <div className="w-full h-2" />
+
+                      {/* Botão de Verificação de Pagamento */}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleProcessarPagamentoMercadoPago(e);
+                        }}
+                        disabled={processandoPagamento}
+                        className="w-full bg-sky-600 hover:bg-sky-700 text-white font-bold py-3 rounded-xl transition duration-200 text-xs shadow-md cursor-pointer disabled:opacity-50 relative z-10"
+                      >
+                        {processandoPagamento ? 'Verificando Pagamento...' : 'Já fiz o pagamento / Ativar Assinatura'}
+                      </button>
+
                     </div>
                   </div>
                 )}
-
-                <button
-                  onClick={handleProcessarPagamentoMercadoPago}
-                  disabled={processandoPagamento}
-                  className="w-full bg-sky-600 hover:bg-sky-700 text-white font-bold py-3 rounded-xl transition duration-200 text-xs shadow-md cursor-pointer disabled:opacity-50"
-                >
-                  {processandoPagamento ? 'Verificando Pagamento...' : 'Já fiz o pagamento / Ativar Assinatura'}
-                </button>
               </div>
             )}
 
             {(metodoPagamento === 'credito' || metodoPagamento === 'debito') && (
-              <form onSubmit={handleProcessarPagamentoMercadoPago} className="space-y-4">
+              <form 
+  onSubmit={(e) => {
+    e.preventDefault();
+    // Só processa se o método ativo for crédito ou débito
+    if (metodoPagamento === 'credito' || metodoPagamento === 'debito') {
+      handleProcessarPagamentoMercadoPago(e);
+    }
+  }} 
+  className="space-y-4"
+>
                 <div className="space-y-1">
                   <label className="text-xs font-semibold text-stone-600">Número do Cartão</label>
                   <input
