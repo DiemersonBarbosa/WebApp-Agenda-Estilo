@@ -544,11 +544,29 @@ const [barbeiroParaEditar, setBarbeiroParaEditar] = useState(null);
   };
 
   const copiarChavePix = () => {
-    if (!pixDataMP.copiaECola) return;
-    navigator.clipboard.writeText(pixDataMP.copiaECola);
+  const inputElement = document.getElementById('input-copia-cola');
+
+  if (!inputElement || !inputElement.value) {
+    alert('O código Pix ainda não está disponível.');
+    return;
+  }
+
+  inputElement.select();
+  inputElement.setSelectionRange(0, 99999);
+
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(inputElement.value);
+    } else {
+      document.execCommand('copy');
+    }
+
     setCopiado(true);
     setTimeout(() => setCopiado(false), 3000);
-  };
+  } catch (err) {
+    alert('Erro ao copiar o código. Selecione-o manualmente.');
+  }
+};
 
   const handleUpdateStatus = async (id, newStatus) => {
     try {
@@ -1384,7 +1402,11 @@ const handleSaveBarbeiro = async (e) => {
   <div className="fixed inset-0 bg-stone-950/95 backdrop-blur-md z-50 overflow-y-auto pointer-events-auto">
     <div className="min-h-full flex items-center justify-center p-4 py-8">
       
-      <div className="bg-white rounded-3xl p-5 sm:p-6 w-full max-w-md shadow-2xl border border-stone-200 flex flex-col items-center text-center space-y-3 my-auto">
+      {/* ADICIONE O onClick={(e) => e.stopPropagation()} AQUI NA CAIXA BRANCA */}
+      <div 
+        onClick={(e) => e.stopPropagation()}
+        className="bg-white rounded-3xl p-5 sm:p-6 w-full max-w-md shadow-2xl border border-stone-200 flex flex-col items-center text-center space-y-3 my-auto relative z-10"
+      >
         
         {/* CABEÇALHO COM O CADEADO */}
         <div className="w-full flex flex-col items-center text-center space-y-2 pb-3 border-b border-stone-100">
@@ -1392,7 +1414,7 @@ const handleSaveBarbeiro = async (e) => {
             <Lock className="w-5 h-5" />
           </div>
           <div className="w-full space-y-0.5 text-center">
-            <h2 className="text-lg  font-extrabold text-stone-900 w-full text-center">Período de Teste Finalizado</h2>
+            <h2 className="text-lg font-extrabold text-stone-900 w-full text-center">Período de Teste Finalizado</h2>
             <p className="text-[11px] sm:text-xs text-stone-500 leading-relaxed w-full text-center px-2">
               Seus 7 dias gratuitos expiraram. Para liberar o acesso completo ao painel, efetue o pagamento abaixo.
             </p>
@@ -1409,27 +1431,87 @@ const handleSaveBarbeiro = async (e) => {
         </div>
 
         {/* ÁREA DOS BOTÕES E QR CODE */}
-        <div className="w-full space-y-2.5 text-center">
-          {pixDataMP ? (
-            <div className="flex flex-col items-center justify-center space-y-1.5 w-full">
-              <img src={`data:image/png;base64,${pixDataMP.qrCodeBase64}`} alt="QR Code Pix" className="w-32 h-32 sm:w-36 sm:h-36 border rounded-xl shadow-sm mx-auto" />
-              <p className="text-[10px] sm:text-[11px] text-emerald-600 font-bold w-full text-center">Escaneie o QR Code para liberar o sistema instantaneamente!</p>
-            </div>
-          ) : (
-            <button 
-              onClick={() => gerarPixMercadoPago({
-                transaction_amount: 9.90,
-                description: 'Plano Mensal Gestor - Acesso Completo',
-                payer_email: user?.email || 'diemersonlimabarbosa@gmail.com',
-                payer_name: barbearia?.nome || 'Gestor'
-              })}
-              className="w-full py-2.5 bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold rounded-xl shadow-md transition-all cursor-pointer"
-            >
-              Gerar Pix de Pagamento
-            </button>
-          )}
-        </div>
+<div className="w-full flex flex-col items-center space-y-3" onClick={(e) => e.stopPropagation()}>
+  {pixDataMP ? (
+    <div className="flex flex-col items-center justify-center space-y-3 w-full max-w-sm mx-auto" onClick={(e) => e.stopPropagation()}>
+      
+      {/* Imagem do QR Code */}
+      <div className="bg-white p-2 rounded-2xl border border-stone-200 shadow-inner inline-block" onClick={(e) => e.stopPropagation()}>
+        <img 
+          src={`data:image/png;base64,${pixDataMP.qrCodeBase64}`} 
+          alt="QR Code Pix" 
+          className="w-36 h-36 sm:w-40 sm:h-40 object-contain mx-auto block pointer-events-none" 
+        />
+      </div>
 
+      {/* Texto informativo */}
+      <div className="w-full pointer-events-none select-none">
+        <p className="text-[10px] sm:text-[11px] text-stone-500 text-center px-4">
+          Escaneie o QR Code acima ou copie o código Pix abaixo:
+        </p>
+      </div>
+
+      {/* Input Copia e Cola isolado */}
+      <div className="w-full">
+        <input
+          id="input-copia-cola"
+          type="text"
+          readOnly
+          value={pixDataMP?.copiaECola || ''}
+          onClick={(e) => {
+            e.stopPropagation(); // Impede que o clique no código vaze para outros elementos
+          }}
+          className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-xs text-stone-600 focus:outline-none select-all cursor-text"
+        />
+      </div>
+
+      {/* Botão Copiar */}
+      <button
+        type="button"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          copiarChavePix();
+        }}
+        className="w-full bg-stone-900 hover:bg-stone-800 text-white py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-xs mt-1"
+      >
+        {copiado ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+        {copiado ? 'Código Pix Copiado com Sucesso!' : 'Copiar Código Pix'}
+      </button>
+
+      {/* Botão Ativar Assinatura (Garantindo que responde aos cliques) */}
+      <button
+        type="button"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          handleProcessarPagamentoMercadoPago(e);
+        }}
+        disabled={processandoPagamento}
+        className="w-full bg-sky-600 hover:bg-sky-700 text-white font-bold py-3 rounded-xl transition duration-200 text-xs shadow-md cursor-pointer disabled:opacity-50 mt-2 z-20 relative"
+      >
+        {processandoPagamento ? 'Verificando Pagamento...' : 'Já fiz o pagamento / Ativar Assinatura'}
+      </button>
+    </div>
+  ) : (
+    <button 
+      type="button"
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        gerarPixMercadoPago({
+          transaction_amount: 9.90,
+          description: 'Plano Mensal Gestor - Acesso Completo',
+          payer_email: user?.email || 'diemersonlimabarbosa@gmail.com',
+          payer_name: barbearia?.nome || 'Gestor'
+        });
+      }}
+      className="w-full py-2.5 bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold rounded-xl shadow-md transition-all cursor-pointer"
+    >
+      Gerar Pix de Pagamento
+    </button>
+  )}
+</div>
       </div>
 
     </div>
@@ -2285,11 +2367,12 @@ const handleSaveBarbeiro = async (e) => {
                   <div className="space-y-2">
                     <div className="flex gap-2">
                       <input
-                        type="text"
-                        readOnly
-                        value={pixDataMP.copiaECola}
-                        className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-xs text-stone-600 focus:outline-none"
-                      />
+  id="input-copia-cola"
+  type="text"
+  readOnly
+  value={pixDataMP.copiaECola}
+  className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-xs text-stone-600 focus:outline-none"
+/>
                       <button
                         onClick={copiarChavePix}
                         className="bg-stone-900 hover:bg-stone-800 text-white px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 shrink-0 transition-all cursor-pointer"
