@@ -146,6 +146,19 @@ const [barbeiroParaEditar, setBarbeiroParaEditar] = useState(null);
   // Opção de pagamento selecionada no modal ('pix', 'credito', 'debito')
   const [metodoPagamento, setMetodoPagamento] = useState('pix');
 
+
+
+// Função para fechar o menu mobile instantaneamente sem delay na barra inferior
+const fecharMenuMobile = () => {
+  const barraAntiga = document.querySelector('nav[aria-label="Navegação inferior mobile"]');
+  if (barraAntiga) {
+    barraAntiga.style.transition = 'none';
+    barraAntiga.style.opacity = '1';
+  }
+  setMobileMenuOpen(false);
+};
+
+
   // Estados dinâmicos para o Pix do Mercado Pago
   const [pixDataMP, setPixDataMP] = useState({
     qrCodeBase64: '',
@@ -228,30 +241,23 @@ const [barbeiroParaEditar, setBarbeiroParaEditar] = useState(null);
 };
 
 
-  // Cálculo do período de teste de 7 dias
   const verificarStatusAssinatura = (dadosBarbearia) => {
-    console.log("DADOS VINDO DO BANCO:", dadosBarbearia);
+    console.log("STATUS VINDO DO SUPABASE:", dadosBarbearia?.status_assinatura);
+    console.log("DATA DE VENCIMENTO:", dadosBarbearia?.data_vencimento);
     
     if (!dadosBarbearia) return;
 
-    const status = dadosBarbearia?.status_assinatura;
-    const dataCriacaoStr = dadosBarbearia?.created_at;
+    const status = dadosBarbearia?.status_assinatura?.trim().toLowerCase();
 
-    // 1. Se estiver explicitamente ativo, libera tudo
+    // SE O STATUS FOR ATIVO, LIBERA IMEDIATAMENTE (Sem checar datas complexas que possam falhar)
     if (status === 'ativo') {
       setModalAssinaturaOpen(false);
       setAssinaturaExpirada(false);
       return;
     }
 
-    // 2. Se estiver explicitamente vencido, bloqueia
-    if (status === 'vencido') {
-      setModalAssinaturaOpen(true);
-      setAssinaturaExpirada(true);
-      return;
-    }
-
-    // 3. Se estiver em 'teste' ou sem status definido, calcula os 7 dias pela data de criação
+    // Se estiver explicitamente vencido ou o teste acabou
+    const dataCriacaoStr = dadosBarbearia?.created_at;
     if (dataCriacaoStr) {
       const dataCriacao = new Date(dataCriacaoStr);
       const hoje = new Date();
@@ -263,19 +269,14 @@ const [barbeiroParaEditar, setBarbeiroParaEditar] = useState(null);
       const diasPassados = Math.floor(diferencaEmMilissegundos / (1000 * 60 * 60 * 24));
       const restante = Math.max(0, 7 - diasPassados);
 
-      console.log("Dias passados desde a criação:", diasPassados);
-      console.log("Dias restantes de teste:", restante);
-
       if (typeof setDiasRestantes === 'function') {
         setDiasRestantes(restante);
       }
 
-      if (restante <= 0) {
-        // Passaram 7 dias -> Só aqui o modal abre de forma automática
+      if (restante <= 0 && status !== 'ativo') {
         setModalAssinaturaOpen(true);
         setAssinaturaExpirada(true);
       } else {
-        // Ainda está no período de teste -> GARANTE QUE O MODAL FICA FECHADO AUTOMATICAMENTE
         setModalAssinaturaOpen(false);
         setAssinaturaExpirada(false);
       }
@@ -417,11 +418,11 @@ const [barbeiroParaEditar, setBarbeiroParaEditar] = useState(null);
     checkAuthAndLoad();
   }, [router, loadDashboardData]);
 
- // Efeito para verificar o status do pagamento automaticamente a cada 5 segundos enquanto o Pix estiver na tela
+ // Efeito para verificar o status do pagamento automaticamente a cada 5 segundos
   useEffect(() => {
     let intervalId;
 
-    if (modalAssinaturaOpen && metodoPagamento === 'pix' && pixDataMP?.paymentId) {
+    if (modalAssinaturaOpen && metodoPagamento === 'pix' && pixDataMP?.paymentId && !processandoPagamento) {
       intervalId = setInterval(async () => {
         try {
           const res = await fetch('/api/verificar-pagamento', {
@@ -434,8 +435,8 @@ const [barbeiroParaEditar, setBarbeiroParaEditar] = useState(null);
 
           if (res.ok && data.status === 'approved') {
             clearInterval(intervalId);
-            alert('Pagamento aprovado com sucesso! Redirecionando...');
-            router.push('/admin');
+            // Chama a função centralizada de aprovação para evitar duplicações de alertas
+            handleProcessarPagamentoMercadoPago();
           }
         } catch (err) {
           console.error('Erro ao verificar status automático:', err);
@@ -446,7 +447,7 @@ const [barbeiroParaEditar, setBarbeiroParaEditar] = useState(null);
     return () => {
       if (intervalId) clearInterval(intervalId);
     };
-  }, [modalAssinaturaOpen, metodoPagamento, pixDataMP?.paymentId, router]);
+  }, [modalAssinaturaOpen, metodoPagamento, pixDataMP?.paymentId, processandoPagamento]);
 
   useEffect(() => {
     // Se o usuário abriu manualmente para adiantar a assinatura, não interfere!
@@ -489,6 +490,8 @@ const [barbeiroParaEditar, setBarbeiroParaEditar] = useState(null);
 
   const handleProcessarPagamentoMercadoPago = async (e) => {
     if (e) e.preventDefault();
+    if (processandoPagamento) return; // Evita cliques duplos / múltiplos disparos
+    
     setProcessandoPagamento(true);
 
     try {
@@ -517,28 +520,50 @@ const [barbeiroParaEditar, setBarbeiroParaEditar] = useState(null);
           return;
         }
 
-        if (barbearia?.id) {
+       if (barbearia?.id) {
+          console.log("ID DA BARBEARIA SENDO ATUALIZADO:", barbearia.id);
+
+          const dataInicio = new Date();
           const dataExpiracao = new Date();
           dataExpiracao.setMonth(dataExpiracao.getMonth() + 1);
 
-          await supabase
-            .from('barbearias')
-            .update({ 
-              status_assinatura: 'ativo', 
-              assinatura_expira_em: dataExpiracao.toISOString(),
-              ultimo_payment_id: pixDataMP.paymentId 
-            })
-            .eq('id', barbearia.id);
-        }
+          // Enviamos estritamente apenas as colunas essenciais que existem na sua tabela do Supabase
+          const novosDadosAssinatura = {
+            status_assinatura: 'ativo',
+            data_inicio_assinatura: dataInicio.toISOString().split('T')[0],
+            data_vencimento: dataExpiracao.toISOString().split('T')[0]
+          };
 
+          const { data: updateData, error: updateError } = await supabase
+            .from('barbearias')
+            .update(novosDadosAssinatura)
+            .eq('id', barbearia.id)
+            .select();
+
+          console.log("RESPOSTA DO UPDATE NO SUPABASE:", { updateData, updateError });
+
+          if (updateError) {
+            console.error('Erro detalhado do Supabase:', updateError);
+            throw new Error('Erro ao atualizar assinatura: ' + updateError.message);
+          }
+
+          if (!updateData || updateData.length === 0) {
+            throw new Error('O Supabase não encontrou nenhuma barbearia com este ID para atualizar.');
+          }
+
+          setBarbearia(prev => ({ ...prev, ...novosDadosAssinatura }));
+        }
         alert('Pagamento aprovado com sucesso! Acesso liberado.');
         setModalAssinaturaOpen(false);
-        router.push('/admin');
+        setAssinaturaExpirada(false);
+        setProcessandoPagamento(false);
+        
+        // Recarrega os dados da barbearia do banco para garantir consistência
+        loadDashboardData(barbearia.id);
       }
     } catch (err) {
       console.error('Erro ao processar pagamento:', err);
       alert(err.message);
-    } finally {
       setProcessandoPagamento(false);
     }
   };
@@ -900,6 +925,9 @@ const handleSaveBarbeiro = async (e) => {
 
 
 
+{/* WRAPPER FIXO DO TOPO (Aviso + Cabeçalho grudados juntos sem espaço vazio) */}
+<div className="sticky top-0 z-40 w-full">
+
 {/* =========================================================
     1. NOTIFICAÇÃO NO TOPO ABSOLUTO (TESTE OU ALERTA)
     ========================================================= */}
@@ -939,6 +967,8 @@ const handleSaveBarbeiro = async (e) => {
     </div>
   </div>
 </header>
+
+</div>
 
 
 
@@ -1188,197 +1218,175 @@ const handleSaveBarbeiro = async (e) => {
 
 
 {/* =========================================================
-    PAINEL DESLIZANTE COM A BARRA NO TOPO E OPÇÕES ABAIXO
+    PAINEL DESLIZANTE ESTILO GLASSMORPHISM (MODERNIZADO)
     ========================================================= */}
 <AnimatePresence>
   {mobileMenuOpen && (
-    <div className="fixed text-black  inset-0 z-40 flex md:hidden items-end justify-center pointer-events-none">
+    <div className="fixed inset-0 z-[60] flex md:hidden items-end justify-center">
       
-      {/* Backdrop escuro de fundo */}
+      {/* Backdrop escuro com desfoque suave */}
       <motion.div 
         initial={{ opacity: 0 }}
         animate={{ opacity: 0 }}
         exit={{ opacity: 0 }}
         transition={{ duration: 0.2 }}
-        onClick={() => setMobileMenuOpen(false)}
-        className="fixed inset-0  bg-stone-950/60 backdrop-blur-xs pointer-events-auto"
+        onClick={fecharMenuMobile}
+        className="fixed inset-0 bg-stone-950/40 backdrop-blur-sm"
       />
 
-      {/* Container Principal Unificado */}
+      {/* Container Principal do Menu */}
       <motion.div 
         initial={{ y: "100%" }}
         animate={{ y: 0 }}
-        exit={{ y: "100%" }}
-        transition={{ type: "tween" }}
-        className="relative ml-2 mr-2 w-full bg-white backdrop-blur-md rounded-t-[2.5rem] pt-5 px-5 pb-8 shadow-2xl z-10 border-t border-stone-200 pointer-events-auto flex flex-col"
+        exit={{ y: 0 }}
+        transition={{ type: "spring", damping: 25, stiffness: 300 }}
+        className="relative modal-menu-aberto w-full max-w-lg mx-4 mb-4 bg-white/75 backdrop-blur-2xl rounded-[2.5rem] pt-4 px-6 pb-8 shadow-2xl border border-white/60 z-10 flex flex-col text-stone-800"
       >
         
-        {/* Puxador / Header do Menu */}
-        <div className="w-10 h-1 bg-stone-300 rounded-full mx-auto "></div>
-        
-        
+        {/* Puxador superior */}
+        <div className="w-12 h-1.5 bg-stone-300/80 rounded-full mx-auto mb-6"></div>
 
-        {/* BARRA DE NAVEGAÇÃO POSICIONADA NO TOPO DO MODAL */}
-        <div className="py-2 flex items-center justify-between border-b border-stone-100 mb-4">
+        {/* GRADE DE APLICATIVOS (4 Colunas Organizadas) */}
+        <div className="grid grid-cols-4 gap-y-6 gap-x-2 py-2">
           
+          {/* 1. Financeiro */}
           <button 
-            onClick={() => { setActiveTab('financeiro'); setMobileMenuOpen(false); }}
-            className={` flex flex-col items-center space-y-1 transition-colors cursor-pointer ${activeTab === 'financeiro' ? 'text-stone-900 font-bold' : 'text-stone-400 font-medium'}`}
+            onClick={() => { setActiveTab('financeiro'); fecharMenuMobile(); }}
+            className="flex flex-col items-center justify-center space-y-2 group cursor-pointer"
           >
-            <TrendingUp className="w-8 h-8" />
-            <span className="text-[10px]">Financeiro</span>
+            <div className="w-14 h-14 rounded-2xl bg-white/80 border border-stone-200/60 shadow-xs flex items-center justify-center text-stone-700 group-active:scale-95 transition-transform">
+              <TrendingUp className="w-6 h-6" />
+            </div>
+            <span className="text-[11px] font-medium text-stone-700 tracking-tight">Financeiro</span>
           </button>
 
+          {/* 2. Agenda */}
           <button 
-            onClick={() => { setActiveTab('agendamentos'); setMobileMenuOpen(false); }}
-            className={`flex flex-col items-center space-y-1 transition-colors cursor-pointer ${activeTab === 'agendamentos' ? 'text-stone-900 font-bold' : 'text-stone-400 font-medium'}`}
+            onClick={() => { setActiveTab('agendamentos'); fecharMenuMobile(); }}
+            className="flex flex-col items-center justify-center space-y-2 group cursor-pointer"
           >
-            <Calendar className="w-8 h-8" />
-            <span className="text-[10px]">Agenda</span>
+            <div className="w-14 h-14 rounded-2xl bg-white/80 border border-stone-200/60 shadow-xs flex items-center justify-center text-stone-700 group-active:scale-95 transition-transform">
+              <Calendar className="w-6 h-6" />
+            </div>
+            <span className="text-[11px] font-medium text-stone-700 tracking-tight">Agenda</span>
           </button>
 
-          {/* Botão Central de Fechar/Alternar no meio */}
-          
-
+          {/* 3. Clientes */}
           <button 
-            onClick={() => { setActiveTab('clientes'); setMobileMenuOpen(false); }}
-            className={`flex flex-col items-center space-y-1 transition-colors cursor-pointer ${activeTab === 'clientes' ? 'text-stone-900 font-bold' : 'text-stone-400 font-medium'}`}
+            onClick={() => { setActiveTab('clientes'); fecharMenuMobile(); }}
+            className="flex flex-col items-center justify-center space-y-2 group cursor-pointer"
           >
-            <Users className="w-8 h-8" />
-            <span className="text-[10px]">Clientes</span>
+            <div className="w-14 h-14 rounded-2xl bg-white/80 border border-stone-200/60 shadow-xs flex items-center justify-center text-stone-700 group-active:scale-95 transition-transform">
+              <Users className="w-6 h-6" />
+            </div>
+            <span className="text-[11px] font-medium text-stone-700 tracking-tight">Clientes</span>
           </button>
 
+          {/* 4. Configurações / Settings */}
           <button 
-            onClick={() => { setActiveTab('configuracoes'); setMobileMenuOpen(false); }}
-            className={`flex flex-col items-center space-y-1 transition-colors cursor-pointer ${activeTab === 'configuracoes' ? 'text-stone-900 font-bold' : 'text-stone-400 font-medium'}`}
+            onClick={() => { setActiveTab('configuracoes'); fecharMenuMobile(); }}
+            className="flex flex-col items-center justify-center space-y-2 group cursor-pointer"
           >
-            <Settings className="w-8 h-8" />
-            <span className="text-[10px]">Ajustes</span>
+            <div className="w-14 h-14 rounded-2xl bg-white/80 border border-stone-200/60 shadow-xs flex items-center justify-center text-stone-700 group-active:scale-95 transition-transform">
+              <Settings className="w-6 h-6" />
+            </div>
+            <span className="text-[11px] font-medium text-stone-700 tracking-tight">Configurações</span>
           </button>
 
-        </div>
-
-        {/* GRADE DE BOTÕES EXTRAS LOGO ABAIXO */}
-        <div className="max-h-[40vh] overflow-y-auto pb-2">
-          <div className="py-2 flex items-center justify-between border-b border-stone-100 mb-4">
-          
+          {/* 5. Despesas / Expenses */}
           <button 
-            onClick={() => { setActiveTab('despesas'); setMobileMenuOpen(false); }}
-            className={`flex flex-col items-center space-y-1 transition-colors cursor-pointer ${activeTab === 'despesas' ? 'text-stone-900 font-bold' : 'text-stone-400 font-medium'}`}
+            onClick={() => { setActiveTab('despesas'); fecharMenuMobile(); }}
+            className="flex flex-col items-center justify-center space-y-2 group cursor-pointer"
           >
-            <TrendingDown className="w-8 h-8" />
-            <span className="text-[10px]">Despesas</span>
+            <div className="w-14 h-14 rounded-2xl bg-white/80 border border-stone-200/60 shadow-xs flex items-center justify-center text-stone-700 group-active:scale-95 transition-transform">
+              <TrendingDown className="w-6 h-6" />
+            </div>
+            <span className="text-[11px] font-medium text-stone-700 tracking-tight">Despesas</span>
           </button>
 
+          {/* 6. Comissões */}
           <button 
-            onClick={() => { setActiveTab('comissoes'); setMobileMenuOpen(false); }}
-            className={`flex flex-col items-center space-y-1 transition-colors cursor-pointer ${activeTab === 'comissoes' ? 'text-stone-900 font-bold' : 'text-stone-400 font-medium'}`}
+            onClick={() => { setActiveTab('comissoes'); fecharMenuMobile(); }}
+            className="flex flex-col items-center justify-center space-y-2 group cursor-pointer"
           >
-            <BadgePercent  className="w-8 h-8" />
-            <span className="text-[10px]">Comissões</span>
+            <div className="w-14 h-14 rounded-2xl bg-white/80 border border-stone-200/60 shadow-xs flex items-center justify-center text-stone-700 group-active:scale-95 transition-transform">
+              <Percent className="w-6 h-6" />
+            </div>
+            <span className="text-[11px] font-medium text-stone-700 tracking-tight">Comissões</span>
           </button>
 
-          {/* Botão Central de Fechar/Alternar no meio */}
-
-
-
-           <button 
-            onClick={() => { setActiveTab('servicos'); setMobileMenuOpen(false); }}
-            className={`flex flex-col items-center space-y-1 transition-colors cursor-pointer ${activeTab === 'servicos' ? 'text-stone-900 font-bold' : 'text-stone-400 font-medium'}`}
-          >
-            <Scissors className="w-8 h-8 " />
-            <span className="text-[10px]">Equipe</span>
-          </button>
-
-
-
-
-
-          
-
+          {/* 7. Equipe / Team */}
           <button 
-            onClick={() => setModalInfoAssinaturaOpen(true)}
-            className={`flex flex-col items-center text-[10px] space-y-1 transition-colors cursor-pointer ${activeTab === 'assinatura' ? 'text-stone-900 font-bold' : 'text-stone-400 font-medium'}`}
+            onClick={() => { setActiveTab('servicos'); fecharMenuMobile(); }}
+            className="flex flex-col items-center justify-center space-y-2 group cursor-pointer"
           >
-            <ClipboardPenLine className="w-10 h-10 text-[10px]" /> {barbearia?.status_assinatura === 'ativo' ? 'Assinatura' : 'Assinatura'}
+            <div className="w-14 h-14 rounded-2xl bg-white/80 border border-stone-200/60 shadow-xs flex items-center justify-center text-stone-700 group-active:scale-95 transition-transform">
+              <Scissors className="w-6 h-6" />
+            </div>
+            <span className="text-[11px] font-medium text-stone-700 tracking-tight">Equipe</span>
           </button>
 
-
-
-
-
-
-          
-          
-
-          
-          
-
-        </div>
-        </div>
-
-{/* GRADE DE BOTÕES EXTRAS LOGO ABAIXO */}
-        <div className="max-h-[40vh] overflow-y-auto pb-2">
-          <div className="py-2 flex items-center justify-between border-b border-stone-100 mb-4">
-
-
-
-            <button 
-            onClick={() => { setActiveTab('pdv'); setMobileMenuOpen(false); }}
-            className={`flex flex-col items-center space-y-1 transition-colors cursor-pointer ${activeTab === 'pdv' ? 'text-stone-900 font-bold' : 'text-stone-400 font-medium'}`}
-          >
-            <Scissors className="w-8 h-8 " />
-            <span className="text-[10px]">PDV</span>
-          </button>
-
-
-
+          {/* 8. Assinatura / Signature */}
           <button 
-            onClick={() => { setActiveTab('produtos'); setMobileMenuOpen(false); }}
-            className={`pl-6 flex flex-col items-center space-y-1 transition-colors cursor-pointer ${activeTab === 'produtos' ? 'text-stone-900 font-bold' : 'text-stone-400 font-medium'}`}
+            onClick={() => { setModalInfoAssinaturaOpen(true); fecharMenuMobile(); }}
+            className="flex flex-col items-center justify-center space-y-2 group cursor-pointer"
           >
-            <ShoppingBag className="w-8 h-8 " />
-            <span className="text-[10px]">Produtos</span>
+            <div className="w-14 h-14 rounded-2xl bg-white/80 border border-stone-200/60 shadow-xs flex items-center justify-center text-stone-700 group-active:scale-95 transition-transform">
+              <ClipboardPenLine className="w-6 h-6" />
+            </div>
+            <span className="text-[11px] font-medium text-stone-700 tracking-tight">Assinatura</span>
           </button>
 
+          {/* 9. PDV */}
+          <button 
+            onClick={() => { setActiveTab('pdv'); fecharMenuMobile(); }}
+            className="flex flex-col items-center justify-center space-y-2 group cursor-pointer"
+          >
+            <div className="w-14 h-14 rounded-2xl bg-white/80 border border-stone-200/60 shadow-xs flex items-center justify-center text-stone-700 group-active:scale-95 transition-transform">
+              <ShoppingCart className="w-6 h-6" />
+            </div>
+            <span className="text-[11px] font-medium text-stone-700 tracking-tight">PDV</span>
+          </button>
 
+          {/* 10. Produtos */}
+          <button 
+            onClick={() => { setActiveTab('produtos'); fecharMenuMobile(); }}
+            className="flex flex-col items-center justify-center space-y-2 group cursor-pointer"
+          >
+            <div className="w-14 h-14 rounded-2xl bg-white/80 border border-stone-200/60 shadow-xs flex items-center justify-center text-stone-700 group-active:scale-95 transition-transform">
+              <ShoppingBag className="w-6 h-6" />
+            </div>
+            <span className="text-[11px] font-medium text-stone-700 tracking-tight">Produtos</span>
+          </button>
 
-           <a
-  href="https://wa.me/5542998040396?text=Olá,%20preciso%20de%20suporte%20com%20o%20sistema%20AgendaSoft."
-  target="_blank"
-  rel="noopener noreferrer"
-  onClick={() => setMobileMenuOpen(false)}
-  className="flex pr-4 flex-col items-center space-y-1.5 p-3 rounded-2xl transition-all active:scale-95 cursor-pointer text-black hover:text-stone-900 font-medium"
->
-  <div className=" rounded-xl  text-stone-400 shadow-xs">
-    <MessageCircleCheck className="w-8 h-8" /> {/* ou o ícone que você estiver usando */}
-  </div>
-  <span className="text-[10px] text-stone-400 text-center leading-tight">Suporte</span>
-</a>
-          
-          
+          {/* 11. Suporte */}
+          <a
+            href="https://wa.me/5542998040396?text=Olá,%20preciso%20de%20suporte%20com%20o%20sistema%20AgendaSoft."
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={fecharMenuMobile}
+            className="flex flex-col items-center justify-center space-y-2 group cursor-pointer"
+          >
+            <div className="w-14 h-14 rounded-2xl bg-white/80 border border-stone-200/60 shadow-xs flex items-center justify-center text-stone-700 group-active:scale-95 transition-transform">
+              <MessageCircleCheck className="w-6 h-6" />
+            </div>
+            <span className="text-[11px] font-medium text-stone-700 tracking-tight">Suporte</span>
+          </a>
 
-          
+          {/* 12. Sair / Logout (Com destaque em vermelho sutil igual à referência) */}
           <button 
             onClick={handleLogout}
-            className={`flex flex-col items-center space-y-1 transition-colors cursor-pointer `}
+            className="flex flex-col items-center justify-center space-y-2 group cursor-pointer"
           >
-            <LogOut className="w-8 h-8 text-red-500" />
-            <span className="text-[10px] text-red-500">Sair</span>
+            <div className="w-14 h-14 rounded-2xl bg-rose-50/80 border border-rose-200/60 shadow-xs flex items-center justify-center text-rose-600 group-active:scale-95 transition-transform">
+              <LogOut className="w-6 h-6" />
+            </div>
+            <span className="text-[11px] font-medium text-rose-600 tracking-tight">Logout</span>
           </button>
 
-          
-
-          
-          
-
         </div>
-        </div>
-
-
 
       </motion.div>
-
     </div>
   )}
 </AnimatePresence>
@@ -1387,8 +1395,11 @@ const handleSaveBarbeiro = async (e) => {
     BARRA DE NAVEGAÇÃO INFERIOR FIXA NORMAL (QUANDO O MENU ESTÁ FECHADO)
     ========================================================= */}
 {!mobileMenuOpen && (
-  <nav aria-label="Navegação inferior mobile" className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-stone-200 px-4 py-2 z-40 flex items-center justify-between shadow-lg">
-    
+ <nav 
+  aria-label="Navegação inferior mobile" 
+  style={{ display: mobileMenuOpen ? 'none' : 'flex' }}
+  className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-stone-200 px-4 py-2 z-40 items-center justify-between shadow-lg"
+>
     <button 
       onClick={() => setActiveTab('financeiro')}
       className={`flex flex-col items-center space-y-1 transition-colors cursor-pointer ${activeTab === 'financeiro' ? 'text-stone-900 font-bold' : 'text-stone-400 font-medium'}`}

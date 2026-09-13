@@ -28,6 +28,16 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+
+/* Esconde qualquer barra de navegação antiga se o modal estiver aberto */
+body:has(.modal-menu-aberto) nav[aria-label="Navegação inferior mobile"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  transition: none !important;
+}
+
+
 @media print {
   /* Oculta barras laterais, menus, botões e cabeçalhos globais */
   aside, nav, header, footer, button, .print\:hidden {
