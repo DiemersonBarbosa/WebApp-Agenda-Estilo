@@ -1240,15 +1240,14 @@ const handleSaveBarbeiro = async (e) => {
 
       {/* Container Principal do Menu */}
       <motion.div 
-        initial={{ y: "100%" }}
-        animate={{ y: 0 }}
-        exit={{ y: 0 }}
-        transition={{ type: "spring", damping: 30, stiffness: 320 }}
-        className="relative modal-menu-aberto w-full max-w-lg mx-4 mb-4 bg-white/75 backdrop-blur-2xl rounded-[2.5rem] pt-4 px-6 pb-8 shadow-2xl border border-white/60 z-10 flex flex-col text-stone-800"
-      >
-        
-        {/* Puxador superior */}
-        <div className="w-12 h-1.5 bg-stone-300/80 rounded-full mx-auto mb-6"></div>
+  initial={{ y: "100%" }}
+  animate={{ y: 0 }}
+  exit={{ y: 0 }}
+  transition={{ duration: 0.1 }}
+  className="relative w-full max-w-lg mx-4 mb-4 bg-stone-200/90 backdrop-blur-2xl rounded-[2.5rem] pt-3 px-6 pb-8 shadow-2xl border border-stone-300 z-10 flex flex-col text-stone-800"
+>
+  {/* Puxador superior */}
+  <div className="w-10 h-1 bg-stone-400 rounded-full mx-auto mb-5"></div>
 
         {/* GRADE DE APLICATIVOS (4 Colunas Organizadas) */}
         <div className="grid grid-cols-4 gap-y-6 gap-x-2 py-2">
