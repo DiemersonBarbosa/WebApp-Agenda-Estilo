@@ -188,7 +188,7 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
       {/* CARDS DE RESUMO DO TOPO */}
       <div className="grid grid-cols-3 gap-3 sm:gap-4">
         
-        <div className="bg-white p-4 sm:p-5 rounded-3xl shadow-[0_4px_20px_rgba(0,0,0,0.04)] border border-gray-100 flex flex-col justify-between">
+        <div className="bg-aco-escovado rounded-3xl p-5 shadow-md flex flex-col justify-between">
           <span className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-gray-400">Agendamentos</span>
           <div className="flex items-baseline justify-between mt-2">
             <h3 className="text-lg sm:text-2xl font-bold text-gray-900">{totalAtendimentosHoje}</h3>
@@ -200,7 +200,7 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
           </div>
         </div>
 
-        <div className="bg-white p-4 sm:p-5 rounded-3xl shadow-[0_4px_20px_rgba(0,0,0,0.04)] border border-gray-100 flex flex-col justify-between">
+        <div className="bg-aco-escovado rounded-3xl p-5 shadow-md flex flex-col justify-between">
           <span className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-gray-400">Concluídos</span>
           <div className="flex items-baseline justify-between mt-2">
             <h3 className="text-lg sm:text-2xl font-bold text-gray-900">{concluidosHoje}/{totalAtendimentosHoje}</h3>
@@ -212,7 +212,7 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
           </div>
         </div>
 
-        <div className="bg-white p-4 sm:p-5 rounded-3xl shadow-[0_4px_20px_rgba(0,0,0,0.04)] border border-gray-100 flex flex-col justify-between">
+        <div className="bg-aco-escovado rounded-3xl p-5 shadow-md flex flex-col justify-between">
           <span className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-gray-400">Projeção</span>
           <div className="flex items-baseline justify-between mt-2">
             <h3 className="text-xs sm:text-2xl font-bold text-gray-900 truncate">R$ {valorTotalHoje.toFixed(0)}</h3>
@@ -227,7 +227,7 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
       </div>
 
       {/* SEÇÃO PRINCIPAL: LINHA DO TEMPO DOS ATENDIMENTOS DE HOJE */}
-      <div className="bg-white shadow-[0_10px_30px_rgba(0,0,0,0.04)] rounded-[2.5rem] p-5 sm:p-8 border border-gray-100">
+      <div className="bg-aco-escovado shadow-[0_10px_30px_rgba(0,0,0,0.04)] rounded-[2.5rem] p-5 sm:p-8 border border-gray-100">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-5 border-b border-gray-100 gap-3">
           <h2 className="text-lg sm:text-xl font-bold text-gray-900 flex items-center gap-3">
             <span className="w-3 h-3 bg-gray-900 rounded-full"></span>
@@ -262,7 +262,7 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
                 </div>
 
                 {/* Cartão do Atendimento */}
-                <div className="flex-1 bg-white border border-gray-200/80 rounded-3xl p-5 shadow-[0_4px_15px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_25px_rgba(0,0,0,0.06)] transition-all flex flex-col justify-between">
+                <div className="flex-1 bg-aco-escovado border border-gray-200/80 rounded-3xl p-5 shadow-[0_4px_15px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_25px_rgba(0,0,0,0.06)] transition-all flex flex-col justify-between">
                   <div>
                     <div className="flex justify-between items-start gap-3">
                       <h3 className="font-bold text-gray-900 text-base truncate">

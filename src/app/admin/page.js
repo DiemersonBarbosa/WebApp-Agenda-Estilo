@@ -763,6 +763,21 @@ const handleSalvarBarbeiro = async (e) => {
 
   const [modalInfoAssinaturaOpen, setModalInfoAssinaturaOpen] = useState(false);
 
+
+const [isMobile, setIsMobile] = useState(false);
+
+useEffect(() => {
+  const checkScreenSize = () => {
+    setIsMobile(window.innerWidth < 768); // 768px é o breakpoint padrão (md) do Tailwind
+  };
+  
+  checkScreenSize();
+  window.addEventListener('resize', checkScreenSize);
+  return () => window.removeEventListener('resize', checkScreenSize);
+}, []);
+
+
+
   const handleOpenServicoModal = (servico = null) => {
     if (servico) {
       setEditingServico(servico);
@@ -1106,62 +1121,58 @@ const handleSaveBarbeiro = async (e) => {
 
     {/* ÁREA PRINCIPAL DA PÁGINA */}
     <main className="...">
-
-{/* BARRA DE NAVEGAÇÃO INFERIOR FIXA COM BOTÃO CENTRAL DE MENU RÁPIDO */}
-<nav 
-  aria-label="Navegação inferior mobile" 
-  style={{ display: mobileMenuOpen ? 'none' : undefined }}
-  className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-stone-200 px-4 py-2 z-40 flex items-center justify-between shadow-lg"
->
-  
-  {/* 1. Início / Visão Geral */}
-  <button 
-    onClick={() => setActiveTab('financeiro')}
-    className={`flex flex-col items-center space-y-1 transition-colors ${activeTab === 'financeiro' ? 'text-stone-900 font-bold' : 'text-stone-400 font-medium'}`}
+{/* =========================================================
+    BARRA DE NAVEGAÇÃO INFERIOR FIXA (CONTROLE POR ESTADO)
+    ========================================================= */}
+{!mobileMenuOpen && (
+  <nav 
+    aria-label="Navegação inferior mobile" 
+    style={{ display: typeof window !== 'undefined' && window.innerWidth >= 1024 ? 'none' : 'flex' }}
+    className="fixed bottom-0 left-0 right-0 bg-aco-escovado px-4 py-2 z-40 items-center justify-between shadow-lg md:hidden"
   >
-    <TrendingUp className="w-5 h-5" />
-    <span className="text-[10px]">Financeiro</span>
-  </button>
-
-  {/* 2. Agenda */}
-  <button 
-    onClick={() => setActiveTab('agendamentos')}
-    className={`flex flex-col items-center space-y-1 transition-colors ${activeTab === 'agendamentos' ? 'text-stone-900 font-bold' : 'text-stone-400 font-medium'}`}
-  >
-    <Calendar className="w-5 h-5" />
-    <span className="text-[10px]">Agenda</span>
-  </button>
-
-  {/* 3. BOTÃO CENTRAL DESTAQUE (Abre o Menu / Substitui o Drawer do topo) */}
-  <div className="relative -top-3">
     <button 
-      onClick={() => setMobileMenuOpen(true)}
-      className="w-12 h-12 bg-stone-900 text-white rounded-full flex items-center justify-center shadow-md active:scale-95 transition-transform border-4 border-white cursor-pointer"
-      aria-label="Abrir Menu de Acesso Rápido"
+      onClick={() => setActiveTab('financeiro')}
+      className={`flex flex-col items-center space-y-1 transition-colors cursor-pointer ${activeTab === 'financeiro' ? 'text-stone-900 font-bold' : 'text-stone-400 font-medium'}`}
     >
-      <Menu className="w-5 h-5" />
+      <TrendingUp className="w-5 h-5" />
+      <span className="text-[10px]">Financeiro</span>
     </button>
-  </div>
 
-  {/* 4. Clientes */}
-  <button 
-    onClick={() => setActiveTab('clientes')}
-    className={`flex flex-col items-center space-y-1 transition-colors ${activeTab === 'clientes' ? 'text-stone-900 font-bold' : 'text-stone-400 font-medium'}`}
-  >
-    <Users className="w-5 h-5" />
-    <span className="text-[10px]">Clientes</span>
-  </button>
+    <button 
+      onClick={() => setActiveTab('agendamentos')}
+      className={`flex flex-col items-center space-y-1 transition-colors cursor-pointer ${activeTab === 'agendamentos' ? 'text-stone-900 font-bold' : 'text-stone-400 font-medium'}`}
+    >
+      <Calendar className="w-5 h-5" />
+      <span className="text-[10px]">Agenda</span>
+    </button>
 
-  {/* 5. Ajustes / Configurações */}
-  <button 
-    onClick={() => setActiveTab('configuracoes')}
-    className={`flex flex-col items-center space-y-1 transition-colors ${activeTab === 'configuracoes' ? 'text-stone-900 font-bold' : 'text-stone-400 font-medium'}`}
-  >
-    <Settings className="w-5 h-5" />
-    <span className="text-[10px]">Ajustes</span>
-  </button>
+    <div className="relative -top-3">
+      <button 
+        onClick={() => setMobileMenuOpen(true)}
+        className="w-12 h-12 bg-stone-900 text-white rounded-full flex items-center justify-center shadow-md active:scale-95 transition-transform border-4 border-white cursor-pointer"
+        aria-label="Abrir Menu de Acesso Rápido"
+      >
+        <Menu className="w-5 h-5" />
+      </button>
+    </div>
 
-</nav>
+    <button 
+      onClick={() => setActiveTab('clientes')}
+      className={`flex flex-col items-center space-y-1 transition-colors cursor-pointer ${activeTab === 'clientes' ? 'text-stone-900 font-bold' : 'text-stone-400 font-medium'}`}
+    >
+      <Users className="w-5 h-5" />
+      <span className="text-[10px]">Clientes</span>
+    </button>
+
+    <button 
+      onClick={() => setActiveTab('configuracoes')}
+      className={`flex flex-col items-center space-y-1 transition-colors cursor-pointer ${activeTab === 'configuracoes' ? 'text-stone-900 font-bold' : 'text-stone-400 font-medium'}`}
+    >
+      <Settings className="w-5 h-5" />
+      <span className="text-[10px]">Ajustes</span>
+    </button>
+  </nav>
+)}
 
     </main>
 
@@ -1224,6 +1235,9 @@ const handleSaveBarbeiro = async (e) => {
 {/* =========================================================
     PAINEL DESLIZANTE ESTILO GLASSMORPHISM (MODERNIZADO)
     ========================================================= */}
+{/* =========================================================
+    PAINEL DESLIZANTE ESTILO GLASSMORPHISM (MODERNIZADO)
+    ========================================================= */}
 <AnimatePresence>
   {mobileMenuOpen && (
     <div className="fixed inset-0 z-[60] flex md:hidden items-end justify-center">
@@ -1231,7 +1245,7 @@ const handleSaveBarbeiro = async (e) => {
       {/* Backdrop escuro com desfoque suave */}
       <motion.div 
         initial={{ opacity: 0 }}
-        animate={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         transition={{ duration: 0.2 }}
         onClick={fecharMenuMobile}
@@ -1242,23 +1256,22 @@ const handleSaveBarbeiro = async (e) => {
       <motion.div 
         initial={{ y: "100%" }}
         animate={{ y: 0 }}
-        exit={{ y: 0 }}
-        transition={{ type: "spring", damping: 30, stiffness: 320 }}
-        className="relative modal-menu-aberto w-full max-w-lg mx-4 mb-4 bg-white/75 backdrop-blur-2xl rounded-[2.5rem] pt-4 px-6 pb-8 shadow-2xl border border-white/60 z-10 flex flex-col text-stone-800"
+        exit={{ y: "100%" }}
+        transition={{ duration: 0.1 }}
+        className="relative w-full max-w-lg mx-4 mb-4 bg-aco-escovado-modal rounded-[2.5rem] pt-3 px-6 pb-8 shadow-2xl border-x border-stone-300/50 z-10 flex flex-col text-stone-800"
       >
-        
         {/* Puxador superior */}
-        <div className="w-12 h-1.5 bg-stone-300/80 rounded-full mx-auto mb-6"></div>
+        <div className="w-10 h-1 bg-stone-600/40 rounded-full mx-auto mb-5 shadow-xs"></div>
 
         {/* GRADE DE APLICATIVOS (4 Colunas Organizadas) */}
-        <div className="grid grid-cols-4 gap-y-6 gap-x-2 py-2">
+        <div className="grid grid-cols-4 gap-y-5 gap-x-3">
           
           {/* 1. Financeiro */}
           <button 
             onClick={() => { setActiveTab('financeiro'); fecharMenuMobile(); }}
-            className="flex flex-col items-center justify-center space-y-2 group cursor-pointer"
+            className="flex flex-col items-center justify-center space-y-1.5 group cursor-pointer"
           >
-            <div className="w-14 h-14 rounded-2xl bg-white/80 border border-stone-200/60 shadow-xs flex items-center justify-center text-stone-700 group-active:scale-95 transition-transform">
+            <div className="w-14 h-14 rounded-2xl bg-stone-900 text-white flex items-center justify-center shadow-md group-hover:bg-stone-800 transition-colors">
               <TrendingUp className="w-6 h-6" />
             </div>
             <span className="text-[11px] font-medium text-stone-700 tracking-tight">Financeiro</span>
@@ -1267,9 +1280,9 @@ const handleSaveBarbeiro = async (e) => {
           {/* 2. Agenda */}
           <button 
             onClick={() => { setActiveTab('agendamentos'); fecharMenuMobile(); }}
-            className="flex flex-col items-center justify-center space-y-2 group cursor-pointer"
+            className="flex flex-col items-center justify-center space-y-1.5 group cursor-pointer"
           >
-            <div className="w-14 h-14 rounded-2xl bg-white/80 border border-stone-200/60 shadow-xs flex items-center justify-center text-stone-700 group-active:scale-95 transition-transform">
+            <div className="w-14 h-14 rounded-2xl bg-stone-900 text-white flex items-center justify-center shadow-md group-hover:bg-stone-800 transition-colors">
               <Calendar className="w-6 h-6" />
             </div>
             <span className="text-[11px] font-medium text-stone-700 tracking-tight">Agenda</span>
@@ -1278,31 +1291,31 @@ const handleSaveBarbeiro = async (e) => {
           {/* 3. Clientes */}
           <button 
             onClick={() => { setActiveTab('clientes'); fecharMenuMobile(); }}
-            className="flex flex-col items-center justify-center space-y-2 group cursor-pointer"
+            className="flex flex-col items-center justify-center space-y-1.5 group cursor-pointer"
           >
-            <div className="w-14 h-14 rounded-2xl bg-white/80 border border-stone-200/60 shadow-xs flex items-center justify-center text-stone-700 group-active:scale-95 transition-transform">
+            <div className="w-14 h-14 rounded-2xl bg-stone-900 text-white flex items-center justify-center shadow-md group-hover:bg-stone-800 transition-colors">
               <Users className="w-6 h-6" />
             </div>
             <span className="text-[11px] font-medium text-stone-700 tracking-tight">Clientes</span>
           </button>
 
-          {/* 4. Configurações / Settings */}
+          {/* 4. Configurações */}
           <button 
             onClick={() => { setActiveTab('configuracoes'); fecharMenuMobile(); }}
-            className="flex flex-col items-center justify-center space-y-2 group cursor-pointer"
+            className="flex flex-col items-center justify-center space-y-1.5 group cursor-pointer"
           >
-            <div className="w-14 h-14 rounded-2xl bg-white/80 border border-stone-200/60 shadow-xs flex items-center justify-center text-stone-700 group-active:scale-95 transition-transform">
+            <div className="w-14 h-14 rounded-2xl bg-stone-900 text-white flex items-center justify-center shadow-md group-hover:bg-stone-800 transition-colors">
               <Settings className="w-6 h-6" />
             </div>
             <span className="text-[11px] font-medium text-stone-700 tracking-tight">Configurações</span>
           </button>
 
-          {/* 5. Despesas / Expenses */}
+          {/* 5. Despesas */}
           <button 
             onClick={() => { setActiveTab('despesas'); fecharMenuMobile(); }}
-            className="flex flex-col items-center justify-center space-y-2 group cursor-pointer"
+            className="flex flex-col items-center justify-center space-y-1.5 group cursor-pointer"
           >
-            <div className="w-14 h-14 rounded-2xl bg-white/80 border border-stone-200/60 shadow-xs flex items-center justify-center text-stone-700 group-active:scale-95 transition-transform">
+            <div className="w-14 h-14 rounded-2xl bg-stone-900 text-white flex items-center justify-center shadow-md group-hover:bg-stone-800 transition-colors">
               <TrendingDown className="w-6 h-6" />
             </div>
             <span className="text-[11px] font-medium text-stone-700 tracking-tight">Despesas</span>
@@ -1311,31 +1324,31 @@ const handleSaveBarbeiro = async (e) => {
           {/* 6. Comissões */}
           <button 
             onClick={() => { setActiveTab('comissoes'); fecharMenuMobile(); }}
-            className="flex flex-col items-center justify-center space-y-2 group cursor-pointer"
+            className="flex flex-col items-center justify-center space-y-1.5 group cursor-pointer"
           >
-            <div className="w-14 h-14 rounded-2xl bg-white/80 border border-stone-200/60 shadow-xs flex items-center justify-center text-stone-700 group-active:scale-95 transition-transform">
+            <div className="w-14 h-14 rounded-2xl bg-stone-900 text-white flex items-center justify-center shadow-md group-hover:bg-stone-800 transition-colors">
               <Percent className="w-6 h-6" />
             </div>
             <span className="text-[11px] font-medium text-stone-700 tracking-tight">Comissões</span>
           </button>
 
-          {/* 7. Equipe / Team */}
+          {/* 7. Equipe */}
           <button 
             onClick={() => { setActiveTab('servicos'); fecharMenuMobile(); }}
-            className="flex flex-col items-center justify-center space-y-2 group cursor-pointer"
+            className="flex flex-col items-center justify-center space-y-1.5 group cursor-pointer"
           >
-            <div className="w-14 h-14 rounded-2xl bg-white/80 border border-stone-200/60 shadow-xs flex items-center justify-center text-stone-700 group-active:scale-95 transition-transform">
+            <div className="w-14 h-14 rounded-2xl bg-stone-900 text-white flex items-center justify-center shadow-md group-hover:bg-stone-800 transition-colors">
               <Scissors className="w-6 h-6" />
             </div>
             <span className="text-[11px] font-medium text-stone-700 tracking-tight">Equipe</span>
           </button>
 
-          {/* 8. Assinatura / Signature */}
+          {/* 8. Assinatura */}
           <button 
             onClick={() => { setModalInfoAssinaturaOpen(true); fecharMenuMobile(); }}
-            className="flex flex-col items-center justify-center space-y-2 group cursor-pointer"
+            className="flex flex-col items-center justify-center space-y-1.5 group cursor-pointer"
           >
-            <div className="w-14 h-14 rounded-2xl bg-white/80 border border-stone-200/60 shadow-xs flex items-center justify-center text-stone-700 group-active:scale-95 transition-transform">
+            <div className="w-14 h-14 rounded-2xl bg-stone-900 text-white flex items-center justify-center shadow-md group-hover:bg-stone-800 transition-colors">
               <ClipboardPenLine className="w-6 h-6" />
             </div>
             <span className="text-[11px] font-medium text-stone-700 tracking-tight">Assinatura</span>
@@ -1344,9 +1357,9 @@ const handleSaveBarbeiro = async (e) => {
           {/* 9. PDV */}
           <button 
             onClick={() => { setActiveTab('pdv'); fecharMenuMobile(); }}
-            className="flex flex-col items-center justify-center space-y-2 group cursor-pointer"
+            className="flex flex-col items-center justify-center space-y-1.5 group cursor-pointer"
           >
-            <div className="w-14 h-14 rounded-2xl bg-white/80 border border-stone-200/60 shadow-xs flex items-center justify-center text-stone-700 group-active:scale-95 transition-transform">
+            <div className="w-14 h-14 rounded-2xl bg-stone-900 text-white flex items-center justify-center shadow-md group-hover:bg-stone-800 transition-colors">
               <ShoppingCart className="w-6 h-6" />
             </div>
             <span className="text-[11px] font-medium text-stone-700 tracking-tight">PDV</span>
@@ -1355,9 +1368,9 @@ const handleSaveBarbeiro = async (e) => {
           {/* 10. Produtos */}
           <button 
             onClick={() => { setActiveTab('produtos'); fecharMenuMobile(); }}
-            className="flex flex-col items-center justify-center space-y-2 group cursor-pointer"
+            className="flex flex-col items-center justify-center space-y-1.5 group cursor-pointer"
           >
-            <div className="w-14 h-14 rounded-2xl bg-white/80 border border-stone-200/60 shadow-xs flex items-center justify-center text-stone-700 group-active:scale-95 transition-transform">
+            <div className="w-14 h-14 rounded-2xl bg-stone-900 text-white flex items-center justify-center shadow-md group-hover:bg-stone-800 transition-colors">
               <ShoppingBag className="w-6 h-6" />
             </div>
             <span className="text-[11px] font-medium text-stone-700 tracking-tight">Produtos</span>
@@ -1369,34 +1382,33 @@ const handleSaveBarbeiro = async (e) => {
             target="_blank"
             rel="noopener noreferrer"
             onClick={fecharMenuMobile}
-            className="flex flex-col items-center justify-center space-y-2 group cursor-pointer"
+            className="flex flex-col items-center justify-center space-y-1.5 group cursor-pointer"
           >
-            <div className="w-14 h-14 rounded-2xl bg-white/80 border border-stone-200/60 shadow-xs flex items-center justify-center text-stone-700 group-active:scale-95 transition-transform">
+            <div className="w-14 h-14 rounded-2xl bg-stone-900 text-white flex items-center justify-center shadow-md group-hover:bg-stone-800 transition-colors">
               <MessageCircleCheck className="w-6 h-6" />
             </div>
             <span className="text-[11px] font-medium text-stone-700 tracking-tight">Suporte</span>
           </a>
 
-          {/* 12. Sair / Logout (Com destaque em vermelho sutil igual à referência) */}
+          {/* 12. Logout */}
           <button 
             onClick={handleLogout}
             className="flex flex-col items-center justify-center space-y-2 group cursor-pointer"
           >
-            <div className="w-14 h-14 rounded-2xl bg-rose-50/80 border border-rose-200/60 shadow-xs flex items-center justify-center text-rose-600 group-active:scale-95 transition-transform">
+            <div className="w-14 h-14 rounded-2xl bg-stone-900 text-white flex items-center justify-center shadow-md group-hover:bg-stone-800 transition-colors">
               <LogOut className="w-6 h-6" />
             </div>
             <span className="text-[11px] font-medium text-rose-600 tracking-tight">Logout</span>
           </button>
 
         </div>
-
       </motion.div>
     </div>
   )}
 </AnimatePresence>
 
 {/* =========================================================
-    BARRA DE NAVEGAÇÃO INFERIOR FIXA NORMAL (QUANDO O MENU ESTÁ FECHADO)
+    BARRA DE NAVEGAÇÃO INFERIOR FIXA (CONTROLE TOTAL VIA JS)
     ========================================================= */}
 {!mobileMenuOpen && (
 <nav 
@@ -1445,7 +1457,6 @@ const handleSaveBarbeiro = async (e) => {
       <Settings className="w-5 h-5" />
       <span className="text-[10px]">Ajustes</span>
     </button>
-
   </nav>
 )}
 {/* TELA DE BLOQUEIO / PAYWALL CASO O TESTE TENHA EXPIRADO */}
