@@ -1253,15 +1253,16 @@ const handleSaveBarbeiro = async (e) => {
         <div className="grid grid-cols-4 gap-y-6 gap-x-2 py-2">
           
           {/* 1. Financeiro */}
-          <button 
-            onClick={() => { setActiveTab('financeiro'); fecharMenuMobile(); }}
-            className="flex flex-col items-center justify-center space-y-2 group cursor-pointer"
-          >
-            <div className="w-14 h-14 rounded-2xl bg-white/80 border border-stone-200/60 shadow-xs flex items-center justify-center text-stone-700 group-active:scale-95 transition-transform">
-              <TrendingUp className="w-6 h-6" />
-            </div>
-            <span className="text-[11px] font-medium text-stone-700 tracking-tight">Financeiro</span>
-          </button>
+           {/* Exemplo de Botão / Ícone */}
+    <button 
+      onClick={() => { setActiveTab('financeiro'); fecharMenuMobile(); }}
+      className="flex flex-col items-center justify-center space-y-1.5 group cursor-pointer"
+    >
+      <div className="w-14 h-14 rounded-2xl bg-stone-900 text-white flex items-center justify-center shadow-md group-hover:bg-stone-800 transition-colors">
+        <TrendingUp className="w-6 h-6" />
+      </div>
+      <span className="text-[11px] font-medium text-stone-700 tracking-tight">Financeiro</span>
+    </button>
 
           {/* 2. Agenda */}
           <button 
