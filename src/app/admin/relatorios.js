@@ -1,4 +1,7 @@
+'use client';
+
 import React, { useRef } from 'react';
+import { FileText, TrendingUp, TrendingDown, DollarSign, PieChart, Users, Calendar, ArrowUpRight } from 'lucide-react';
 
 export default function RelatoriosPage({ agendamentos = [], despesas = [], barbeiros = [], servicos = [], barbearia = {} }) {
   const scrollContainerRef = useRef(null);
@@ -100,7 +103,7 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
   })();
 
   return (
-    <div className="space-y-6 pb-24 px-2 sm:px-0">
+    <div className="max-w-7xl mx-auto space-y-6 pb-28 px-2 sm:px-0">
       
       {/* Cabeçalho da Barbearia exclusivo para o PDF */}
       <div className="hidden print:flex items-center gap-3 pb-4 border-b border-stone-200">
@@ -121,59 +124,118 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
         </div>
       </div>
 
-      {/* Cabeçalho padrão da tela */}
-      <div className="print:hidden flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-5 rounded-3xl border border-stone-200/80 shadow-sm">
+      {/* Cabeçalho padrão da tela com o Botão de Exportar PDF Discreto e Estratégico */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white/90 p-5 sm:p-6 rounded-[2.5rem] border border-stone-200/80 shadow-[0_4px_20px_rgba(0,0,0,0.03)] backdrop-blur-md">
         <div>
-          <h3 className="text-sm sm:text-base font-bold text-stone-900">Relatório Financeiro & Operacional</h3>
-          <p className="text-[11px] sm:text-xs text-stone-400">Visão completa de entradas, saídas e comissões.</p>
+          <h3 className="text-base sm:text-lg font-black text-stone-900 tracking-tight">Relatório Financeiro & Operacional</h3>
+          <p className="text-xs text-stone-500 mt-0.5">Visão completa de entradas, saídas, comissões e histórico operacional.</p>
         </div>
+        
+        {/* Botão Exportar PDF Discreto */}
         <button 
           onClick={handleExportarPDF}
-          className="bg-stone-900 hover:bg-stone-800 text-white px-4 py-2.5 rounded-2xl text-xs font-semibold transition-colors cursor-pointer"
+          className="print:hidden inline-flex items-center gap-2 px-4 py-2.5 bg-stone-100 hover:bg-stone-200/80 text-stone-700 rounded-2xl text-xs font-bold transition-all border border-stone-200 cursor-pointer self-start sm:self-auto shadow-xs"
         >
-          Exportar Relatório PDF
+          <FileText className="w-4 h-4 text-stone-500" />
+          <span>Exportar PDF</span>
         </button>
       </div>
 
-      {/* Cards de Indicadores (KPIs) */}
+      {/* Cards de Indicadores (KPIs) com Estilo Black Piano Degradê 3D */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <div className="bg-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-stone-200/80 shadow-sm space-y-1">
-          <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-stone-400">Faturamento</span>
-          <div className="text-lg sm:text-2xl font-black text-stone-950 truncate">R$ {faturamentoTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>
-          <p className="text-[10px] text-emerald-600 font-medium">{atendimentosConcluidos.length} concluídos</p>
+        
+        {/* 1. Faturamento */}
+        <div 
+          className="relative rounded-2xl md:rounded-[2rem] p-4 sm:p-5 flex flex-col justify-between border border-stone-700/50 shadow-lg overflow-hidden"
+          style={{
+            background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
+            boxShadow: '0 12px 30px rgba(0, 0, 0, 0.45), inset 0 1.5px 2px rgba(255, 255, 255, 0.25), inset 0 -2px 4px rgba(0, 0, 0, 0.8)'
+          }}
+        >
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[9px] sm:text-[10px] font-bold text-stone-400 uppercase tracking-wider">Faturamento</span>
+            <div className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-emerald-400">
+              <TrendingUp className="w-3.5 h-3.5" />
+            </div>
+          </div>
+          <div className="text-base sm:text-2xl font-black text-white truncate">R$ {faturamentoTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>
+          <p className="text-[10px] text-emerald-400 font-medium mt-1">{atendimentosConcluidos.length} concluídos</p>
         </div>
-        <div className="bg-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-stone-200/80 shadow-sm space-y-1">
-          <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-stone-400">Despesas</span>
-          <div className="text-lg sm:text-2xl font-black text-stone-950 truncate">R$ {custosTotais.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>
-          <p className="text-[10px] text-rose-600 font-medium">{despesas.length} cadastradas</p>
+
+        {/* 2. Despesas */}
+        <div 
+          className="relative rounded-2xl md:rounded-[2rem] p-4 sm:p-5 flex flex-col justify-between border border-stone-700/50 shadow-lg overflow-hidden"
+          style={{
+            background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
+            boxShadow: '0 12px 30px rgba(0, 0, 0, 0.45), inset 0 1.5px 2px rgba(255, 255, 255, 0.25), inset 0 -2px 4px rgba(0, 0, 0, 0.8)'
+          }}
+        >
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[9px] sm:text-[10px] font-bold text-stone-400 uppercase tracking-wider">Despesas</span>
+            <div className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-rose-400">
+              <TrendingDown className="w-3.5 h-3.5" />
+            </div>
+          </div>
+          <div className="text-base sm:text-2xl font-black text-white truncate">R$ {custosTotais.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>
+          <p className="text-[10px] text-rose-400 font-medium mt-1">{despesas.length} cadastradas</p>
         </div>
-        <div className="bg-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-stone-200/80 shadow-sm space-y-1">
-          <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-stone-400">Lucro Líquido</span>
-          <div className={`text-lg sm:text-2xl font-black truncate ${lucroLiquidoReal >= 0 ? 'text-sky-600' : 'text-rose-600'}`}>
+
+        {/* 3. Lucro Líquido */}
+        <div 
+          className="relative rounded-2xl md:rounded-[2rem] p-4 sm:p-5 flex flex-col justify-between border border-stone-700/50 shadow-lg overflow-hidden"
+          style={{
+            background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
+            boxShadow: '0 12px 30px rgba(0, 0, 0, 0.45), inset 0 1.5px 2px rgba(255, 255, 255, 0.25), inset 0 -2px 4px rgba(0, 0, 0, 0.8)'
+          }}
+        >
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[9px] sm:text-[10px] font-bold text-stone-400 uppercase tracking-wider">Lucro Líquido</span>
+            <div className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-sky-400">
+              <DollarSign className="w-3.5 h-3.5" />
+            </div>
+          </div>
+          <div className={`text-base sm:text-2xl font-black truncate ${lucroLiquidoReal >= 0 ? 'text-sky-400' : 'text-rose-400'}`}>
             R$ {lucroLiquidoReal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
           </div>
-          <p className="text-[10px] text-stone-400 font-medium">Entradas - Saídas</p>
+          <p className="text-[10px] text-stone-400 font-medium mt-1">Entradas - Saídas</p>
         </div>
-        <div className="bg-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-stone-200/80 shadow-sm space-y-1">
-          <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-stone-400">Ticket Médio</span>
-          <div className="text-lg sm:text-2xl font-black text-stone-950 truncate">R$ {ticketMedioCalculado.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-          <p className="text-[10px] text-stone-400 font-medium">Média por atendimento</p>
+
+        {/* 4. Ticket Médio */}
+        <div 
+          className="relative rounded-2xl md:rounded-[2rem] p-4 sm:p-5 flex flex-col justify-between border border-stone-700/50 shadow-lg overflow-hidden"
+          style={{
+            background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
+            boxShadow: '0 12px 30px rgba(0, 0, 0, 0.45), inset 0 1.5px 2px rgba(255, 255, 255, 0.25), inset 0 -2px 4px rgba(0, 0, 0, 0.8)'
+          }}
+        >
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[9px] sm:text-[10px] font-bold text-stone-400 uppercase tracking-wider">Ticket Médio</span>
+            <div className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-stone-300">
+              <PieChart className="w-3.5 h-3.5" />
+            </div>
+          </div>
+          <div className="text-base sm:text-2xl font-black text-white truncate">R$ {ticketMedioCalculado.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+          <p className="text-[10px] text-stone-400 font-medium mt-1">Média por atendimento</p>
         </div>
+
       </div>
 
       {/* =========================================================
           SEÇÃO 1: ATENDIMENTOS REALIZADOS
           ========================================================= */}
-      <div className="bg-white rounded-3xl border border-stone-200/80 shadow-sm p-4 sm:p-6 space-y-4">
-        <h4 className="font-bold text-stone-900 text-xs sm:text-sm">Atendimentos Realizados</h4>
+      <div className="bg-white rounded-[2.5rem] border border-stone-200/85 shadow-[0_10px_30px_rgba(0,0,0,0.03)] p-5 sm:p-8 space-y-4">
+        <h4 className="font-extrabold text-stone-900 text-sm sm:text-base tracking-tight flex items-center gap-2.5">
+          <span className="w-2.5 h-2.5 rounded-full bg-[#111111]"></span>
+          Atendimentos Realizados
+        </h4>
         {atendimentosConcluidos.length === 0 ? (
-          <p className="text-xs text-stone-400 py-4 text-center">Nenhum atendimento concluído registrado.</p>
+          <p className="text-xs text-stone-400 py-8 text-center">Nenhum atendimento concluído registrado.</p>
         ) : (
           <>
-            {/* Visualização em Cards Fluidos (Perfeito para Celular / some no PC e PDF) */}
+            {/* Cards em dispositivos móveis */}
             <div className="print:hidden sm:hidden space-y-3">
               {atendimentosConcluidos.map((item, index) => (
-                <div key={index} className="p-3.5 rounded-2xl bg-stone-50/80 border border-stone-100 space-y-2">
+                <div key={index} className="p-4 rounded-2xl bg-stone-50/80 border border-stone-200/60 space-y-2 shadow-xs">
                   <div className="flex justify-between items-start">
                     <div>
                       <span className="font-bold text-stone-900 text-xs block">{getNomeCliente(item)}</span>
@@ -181,7 +243,7 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
                     </div>
                     <span className="font-black text-emerald-600 text-xs">R$ {getValorServico(item).toFixed(2)}</span>
                   </div>
-                  <div className="flex justify-between items-center pt-2 border-t border-stone-200/60 text-[11px] text-stone-400">
+                  <div className="flex justify-between items-center pt-2 border-t border-stone-200/60 text-[11px] text-stone-500 font-medium">
                     <span>👤 {getNomeBarbeiro(item)}</span>
                     <span>📅 {item.data_hora ? new Date(item.data_hora).toLocaleDateString('pt-BR') : 'N/A'}</span>
                   </div>
@@ -189,26 +251,26 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
               ))}
             </div>
 
-            {/* Visualização em Tabela (Visível no PC e no PDF) */}
+            {/* Tabela para PC / PDF */}
             <div className="hidden print:block sm:block overflow-x-auto">
               <table className="w-full text-left text-xs">
-                <thead className="bg-stone-50 text-stone-500 uppercase font-semibold border-b border-stone-100">
+                <thead className="bg-stone-100/70 text-stone-600 uppercase font-bold border-b border-stone-200">
                   <tr>
-                    <th className="p-3">Cliente</th>
-                    <th className="p-3">Serviço</th>
-                    <th className="p-3">Profissional</th>
-                    <th className="p-3">Data</th>
-                    <th className="p-3 text-right">Valor</th>
+                    <th className="p-3.5 rounded-l-xl">Cliente</th>
+                    <th className="p-3.5">Serviço</th>
+                    <th className="p-3.5">Profissional</th>
+                    <th className="p-3.5">Data</th>
+                    <th className="p-3.5 text-right rounded-r-xl">Valor</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-stone-100">
                   {atendimentosConcluidos.map((item, index) => (
-                    <tr key={index} className="hover:bg-stone-50/50">
-                      <td className="p-3 font-bold text-stone-900">{getNomeCliente(item)}</td>
-                      <td className="p-3 text-stone-600">{getNomeServico(item)}</td>
-                      <td className="p-3 text-stone-600">{getNomeBarbeiro(item)}</td>
-                      <td className="p-3 text-stone-500">{item.data_hora ? new Date(item.data_hora).toLocaleDateString('pt-BR') : 'N/A'}</td>
-                      <td className="p-3 text-right font-extrabold text-emerald-600">R$ {getValorServico(item).toFixed(2)}</td>
+                    <tr key={index} className="hover:bg-stone-50/70 transition-colors">
+                      <td className="p-3.5 font-bold text-stone-900">{getNomeCliente(item)}</td>
+                      <td className="p-3.5 text-stone-600">{getNomeServico(item)}</td>
+                      <td className="p-3.5 text-stone-600">{getNomeBarbeiro(item)}</td>
+                      <td className="p-3.5 text-stone-500">{item.data_hora ? new Date(item.data_hora).toLocaleDateString('pt-BR') : 'N/A'}</td>
+                      <td className="p-3.5 text-right font-extrabold text-emerald-600">R$ {getValorServico(item).toFixed(2)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -221,26 +283,29 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
       {/* =========================================================
           SEÇÃO 2: COMISSÕES
           ========================================================= */}
-      <div className="bg-white rounded-3xl border border-stone-200/80 shadow-sm p-4 sm:p-6 space-y-4">
-        <h4 className="font-bold text-stone-900 text-xs sm:text-sm">Resumo de Comissões por Profissional</h4>
+      <div className="bg-white rounded-[2.5rem] border border-stone-200/85 shadow-[0_10px_30px_rgba(0,0,0,0.03)] p-5 sm:p-8 space-y-4">
+        <h4 className="font-extrabold text-stone-900 text-sm sm:text-base tracking-tight flex items-center gap-2.5">
+          <span className="w-2.5 h-2.5 rounded-full bg-[#111111]"></span>
+          Resumo de Comissões por Profissional
+        </h4>
         {comissoesPorBarbeiro.length === 0 ? (
-          <p className="text-xs text-stone-400 py-4 text-center">Nenhum dado de comissão disponível.</p>
+          <p className="text-xs text-stone-400 py-8 text-center">Nenhum dado de comissão disponível.</p>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
             {comissoesPorBarbeiro.map((barb, idx) => (
-              <div key={idx} className="bg-stone-50/70 p-4 rounded-2xl border border-stone-200/70 space-y-3">
+              <div key={idx} className="bg-stone-50/80 p-5 rounded-3xl border border-stone-200/70 space-y-3 shadow-xs">
                 <div className="flex justify-between items-center">
-                  <span className="font-bold text-stone-900 text-xs sm:text-sm">{barb.nome}</span>
-                  <span className="text-[10px] bg-stone-200/80 px-2 py-0.5 rounded-full font-semibold text-stone-700">{barb.quantidade} atendimentos</span>
+                  <span className="font-bold text-stone-900 text-sm">{barb.nome}</span>
+                  <span className="text-[10px] bg-stone-200/70 px-2.5 py-1 rounded-xl font-bold text-stone-700">{barb.quantidade} atendimentos</span>
                 </div>
-                <div className="space-y-1.5 text-xs">
+                <div className="space-y-2 text-xs pt-1 border-t border-stone-200/60">
                   <div className="flex justify-between text-stone-500">
                     <span>Faturamento gerado:</span>
                     <span className="font-semibold text-stone-800">R$ {barb.faturamento.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-stone-500">
                     <span>Comissão ({Math.round(barb.taxa * 100)}%):</span>
-                    <span className="font-bold text-emerald-600">R$ {barb.comissaoEstimada.toFixed(2)}</span>
+                    <span className="font-extrabold text-emerald-600">R$ {barb.comissaoEstimada.toFixed(2)}</span>
                   </div>
                 </div>
               </div>
@@ -252,19 +317,22 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
       {/* =========================================================
           SEÇÃO 3: DESPESAS
           ========================================================= */}
-      <div className="bg-white rounded-3xl border border-stone-200/80 shadow-sm p-4 sm:p-6 space-y-4">
-        <h4 className="font-bold text-stone-900 text-xs sm:text-sm">Detalhamento de Custos e Despesas</h4>
+      <div className="bg-white rounded-[2.5rem] border border-stone-200/85 shadow-[0_10px_30px_rgba(0,0,0,0.03)] p-5 sm:p-8 space-y-4">
+        <h4 className="font-extrabold text-stone-900 text-sm sm:text-base tracking-tight flex items-center gap-2.5">
+          <span className="w-2.5 h-2.5 rounded-full bg-[#111111]"></span>
+          Detalhamento de Custos e Despesas
+        </h4>
         {despesas.length === 0 ? (
-          <p className="text-xs text-stone-400 py-4 text-center">Nenhuma despesa cadastrada.</p>
+          <p className="text-xs text-stone-400 py-8 text-center">Nenhuma despesa cadastrada.</p>
         ) : (
           <>
-            {/* Cards para celular */}
+            {/* Cards em dispositivos móveis */}
             <div className="print:hidden sm:hidden space-y-3">
               {despesas.map((item, index) => (
-                <div key={index} className="p-3.5 rounded-2xl bg-stone-50/80 border border-stone-100 flex justify-between items-center">
+                <div key={index} className="p-4 rounded-2xl bg-stone-50/80 border border-stone-200/60 flex justify-between items-center shadow-xs">
                   <div>
                     <span className="font-bold text-stone-900 text-xs block">{item.descricao || item.nome || 'Despesa'}</span>
-                    <span className="text-[10px] text-stone-400">{item.categoria || 'Geral'} • {item.data ? new Date(item.data).toLocaleDateString('pt-BR') : 'N/A'}</span>
+                    <span className="text-[10px] text-stone-500 font-medium">{item.categoria || 'Geral'} • {item.data ? new Date(item.data).toLocaleDateString('pt-BR') : 'N/A'}</span>
                   </div>
                   <span className="font-black text-rose-600 text-xs">R$ {Number(item.valor || 0).toFixed(2)}</span>
                 </div>
@@ -274,21 +342,21 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
             {/* Tabela para PC / PDF */}
             <div className="hidden print:block sm:block overflow-x-auto">
               <table className="w-full text-left text-xs">
-                <thead className="bg-stone-50 text-stone-500 uppercase font-semibold border-b border-stone-100">
+                <thead className="bg-stone-100/70 text-stone-600 uppercase font-bold border-b border-stone-200">
                   <tr>
-                    <th className="p-3">Descrição</th>
-                    <th className="p-3">Categoria</th>
-                    <th className="p-3">Data</th>
-                    <th className="p-3 text-right">Valor</th>
+                    <th className="p-3.5 rounded-l-xl">Descrição</th>
+                    <th className="p-3.5">Categoria</th>
+                    <th className="p-3.5">Data</th>
+                    <th className="p-3.5 text-right rounded-r-xl">Valor</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-stone-100">
                   {despesas.map((item, index) => (
-                    <tr key={index} className="hover:bg-stone-50/50">
-                      <td className="p-3 font-bold text-stone-900">{item.descricao || item.nome || 'Despesa'}</td>
-                      <td className="p-3 text-stone-600">{item.categoria || 'Geral'}</td>
-                      <td className="p-3 text-stone-500">{item.data ? new Date(item.data).toLocaleDateString('pt-BR') : 'N/A'}</td>
-                      <td className="p-3 text-right font-extrabold text-rose-600">R$ {Number(item.valor || 0).toFixed(2)}</td>
+                    <tr key={index} className="hover:bg-stone-50/70 transition-colors">
+                      <td className="p-3.5 font-bold text-stone-900">{item.descricao || item.nome || 'Despesa'}</td>
+                      <td className="p-3.5 text-stone-600">{item.categoria || 'Geral'}</td>
+                      <td className="p-3.5 text-stone-500">{item.data ? new Date(item.data).toLocaleDateString('pt-BR') : 'N/A'}</td>
+                      <td className="p-3.5 text-right font-extrabold text-rose-600">R$ {Number(item.valor || 0).toFixed(2)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -301,16 +369,19 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
       {/* =========================================================
           SEÇÃO 4: CANCELADOS
           ========================================================= */}
-      <div className="bg-white rounded-3xl border border-stone-200/80 shadow-sm p-4 sm:p-6 space-y-4">
-        <h4 className="font-bold text-stone-900 text-xs sm:text-sm">Histórico de Agendamentos Cancelados</h4>
+      <div className="bg-white rounded-[2.5rem] border border-stone-200/85 shadow-[0_10px_30px_rgba(0,0,0,0.03)] p-5 sm:p-8 space-y-4">
+        <h4 className="font-extrabold text-stone-900 text-sm sm:text-base tracking-tight flex items-center gap-2.5">
+          <span className="w-2.5 h-2.5 rounded-full bg-[#111111]"></span>
+          Histórico de Agendamentos Cancelados
+        </h4>
         {atendimentosCancelados.length === 0 ? (
-          <p className="text-xs text-stone-400 py-4 text-center">Nenhum agendamento cancelado.</p>
+          <p className="text-xs text-stone-400 py-8 text-center">Nenhum agendamento cancelado.</p>
         ) : (
           <>
-            {/* Cards para celular */}
+            {/* Cards em dispositivos móveis */}
             <div className="print:hidden sm:hidden space-y-3">
               {atendimentosCancelados.map((item, index) => (
-                <div key={index} className="p-3.5 rounded-2xl bg-stone-50/80 border border-stone-100 space-y-2">
+                <div key={index} className="p-4 rounded-2xl bg-stone-50/80 border border-stone-200/60 space-y-2 shadow-xs">
                   <div className="flex justify-between items-start">
                     <div>
                       <span className="font-bold text-stone-900 text-xs block">{getNomeCliente(item)}</span>
@@ -318,7 +389,7 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
                     </div>
                     <span className="font-bold text-stone-400 text-xs line-through">R$ {getValorServico(item).toFixed(2)}</span>
                   </div>
-                  <div className="flex justify-between items-center pt-2 border-t border-stone-200/60 text-[11px] text-stone-400">
+                  <div className="flex justify-between items-center pt-2 border-t border-stone-200/60 text-[11px] text-stone-500 font-medium">
                     <span>👤 {getNomeBarbeiro(item)}</span>
                     <span>📅 {item.data_hora ? new Date(item.data_hora).toLocaleDateString('pt-BR') : 'N/A'}</span>
                   </div>
@@ -329,23 +400,23 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
             {/* Tabela para PC / PDF */}
             <div className="hidden print:block sm:block overflow-x-auto">
               <table className="w-full text-left text-xs">
-                <thead className="bg-stone-50 text-stone-500 uppercase font-semibold border-b border-stone-100">
+                <thead className="bg-stone-100/70 text-stone-600 uppercase font-bold border-b border-stone-200">
                   <tr>
-                    <th className="p-3">Cliente</th>
-                    <th className="p-3">Serviço</th>
-                    <th className="p-3">Profissional</th>
-                    <th className="p-3">Data</th>
-                    <th className="p-3 text-right">Valor Perdido</th>
+                    <th className="p-3.5 rounded-l-xl">Cliente</th>
+                    <th className="p-3.5">Serviço</th>
+                    <th className="p-3.5">Profissional</th>
+                    <th className="p-3.5">Data</th>
+                    <th className="p-3.5 text-right rounded-r-xl">Valor Perdido</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-stone-100">
                   {atendimentosCancelados.map((item, index) => (
-                    <tr key={index} className="hover:bg-stone-50/50">
-                      <td className="p-3 font-bold text-stone-900">{getNomeCliente(item)}</td>
-                      <td className="p-3 text-stone-600">{getNomeServico(item)}</td>
-                      <td className="p-3 text-stone-600">{getNomeBarbeiro(item)}</td>
-                      <td className="p-3 text-stone-500">{item.data_hora ? new Date(item.data_hora).toLocaleDateString('pt-BR') : 'N/A'}</td>
-                      <td className="p-3 text-right font-bold text-stone-400 line-through">R$ {getValorServico(item).toFixed(2)}</td>
+                    <tr key={index} className="hover:bg-stone-50/70 transition-colors">
+                      <td className="p-3.5 font-bold text-stone-900">{getNomeCliente(item)}</td>
+                      <td className="p-3.5 text-stone-600">{getNomeServico(item)}</td>
+                      <td className="p-3.5 text-stone-600">{getNomeBarbeiro(item)}</td>
+                      <td className="p-3.5 text-stone-500">{item.data_hora ? new Date(item.data_hora).toLocaleDateString('pt-BR') : 'N/A'}</td>
+                      <td className="p-3.5 text-right font-bold text-stone-400 line-through">R$ {getValorServico(item).toFixed(2)}</td>
                     </tr>
                   ))}
                 </tbody>

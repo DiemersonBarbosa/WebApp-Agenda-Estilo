@@ -2,20 +2,27 @@
 
 import React, { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
+import { 
+  Calendar, CheckCircle2, DollarSign, TrendingUp, TrendingDown, 
+  Users, Settings, Percent, Scissors, ClipboardPenLine, ShoppingCart, 
+  ShoppingBag, MessageCircleCheck, LogOut, History, X, Search, Filter 
+} from 'lucide-react';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComissao = 50 }) {
+export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComissao = 50, setActiveTab, setModalInfoAssinaturaOpen, handleLogout, mobileMenuOpen, setMobileMenuOpen, fecharMenuMobile }) {
   const [agendamentosHoje, setAgendamentosHoje] = useState([]);
   const [todosAgendamentos, setTodosAgendamentos] = useState([]);
   const [carregando, setCarregando] = useState(true);
   const [erroFatal, setErroFatal] = useState(null);
   const [processandoId, setProcessandoId] = useState(null);
-  const [mostrarOutrosDias, setMostrarOutrosDias] = useState(false);
-
+  
+  // Estado para controlar o Modal de Histórico Completo
+  const [modalHistoricoOpen, setModalHistoricoOpen] = useState(false);
   const [filtroDataHistorico, setFiltroDataHistorico] = useState('');
+  const [filtroStatusHistorico, setFiltroStatusHistorico] = useState('todos');
 
   const HOJE_ISO = new Date().toISOString().split('T')[0];
 
@@ -176,7 +183,7 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
     .reduce((acc, item) => acc + Number(item.valor_total || item.servicos?.preco || 0), 0);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6 pb-24">
       
       {/* ERRO FATAL */}
       {erroFatal && (
@@ -185,114 +192,165 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
         </div>
       )}
 
-      {/* CARDS DE RESUMO DO TOPO */}
-      <div className="grid grid-cols-3 gap-3 sm:gap-4">
+      {/* CARDS DE RESUMO DO TOPO (Estilo Black Piano Degradê & 3D) */}
+      <div className="grid grid-cols-3 gap-1.5 sm:gap-3 md:gap-4 mb-6">
         
-        <div className="bg-aco-escovado rounded-3xl p-5 shadow-md flex flex-col justify-between">
-          <span className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-gray-400">Agendamentos</span>
-          <div className="flex items-baseline justify-between mt-2">
-            <h3 className="text-lg sm:text-2xl font-bold text-gray-900">{totalAtendimentosHoje}</h3>
-            <div className="p-2 sm:p-3 bg-gray-50 text-gray-700 rounded-2xl border border-gray-100">
-              <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
-              </svg>
-            </div>
+        {/* 1. Card: Agendamentos */}
+        <div 
+          className="relative rounded-2xl md:rounded-[2rem] px-2.5 py-2.5 sm:p-4 md:p-5 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden"
+          style={{
+            background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
+            boxShadow: '0 12px 30px rgba(0, 0, 0, 0.45), inset 0 1.5px 2px rgba(255, 255, 255, 0.25), inset 0 -2px 4px rgba(0, 0, 0, 0.8)'
+          }}
+        >
+          <div className="flex flex-col justify-center min-w-0 pr-1">
+            <span className="text-[7.5px] sm:text-[9px] md:text-[10px] font-bold text-stone-400 uppercase tracking-wider truncate block">Agendamentos</span>
+            <h3 className="text-sm sm:text-xl md:text-2xl font-black text-white mt-0.5 truncate">{totalAtendimentosHoje}</h3>
+          </div>
+          <div 
+            className="w-7 h-7 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center shrink-0"
+            style={{
+              background: 'radial-gradient(circle at 30% 30%, #ffffff 0%, #d8e2ec 60%, #9fb3c8 100%)',
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3), inset 0 1.5px 2px rgba(255, 255, 255, 1), inset 0 -3px 4px rgba(0, 0, 0, 0.25)',
+              border: '1px solid rgba(255, 255, 255, 0.9)'
+            }}
+          >
+            <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 text-stone-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]" />
           </div>
         </div>
 
-        <div className="bg-aco-escovado rounded-3xl p-5 shadow-md flex flex-col justify-between">
-          <span className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-gray-400">Concluídos</span>
-          <div className="flex items-baseline justify-between mt-2">
-            <h3 className="text-lg sm:text-2xl font-bold text-gray-900">{concluidosHoje}/{totalAtendimentosHoje}</h3>
-            <div className="p-2 sm:p-3 bg-gray-50 text-gray-700 rounded-2xl border border-gray-100">
-              <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
+        {/* 2. Card: Concluídos */}
+        <div 
+          className="relative rounded-2xl md:rounded-[2rem] px-2.5 py-2.5 sm:p-4 md:p-5 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden"
+          style={{
+            background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
+            boxShadow: '0 12px 30px rgba(0, 0, 0, 0.45), inset 0 1.5px 2px rgba(255, 255, 255, 0.25), inset 0 -2px 4px rgba(0, 0, 0, 0.8)'
+          }}
+        >
+          <div className="flex flex-col justify-center min-w-0 pr-1">
+            <span className="text-[7.5px] sm:text-[9px] md:text-[10px] font-bold text-stone-400 uppercase tracking-wider truncate block">Concluídos</span>
+            <h3 className="text-sm sm:text-xl md:text-2xl font-black text-white mt-0.5 truncate">{concluidosHoje}/{totalAtendimentosHoje}</h3>
+          </div>
+          <div 
+            className="w-7 h-7 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center shrink-0"
+            style={{
+              background: 'radial-gradient(circle at 30% 30%, #ffffff 0%, #d8e2ec 60%, #9fb3c8 100%)',
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3), inset 0 1.5px 2px rgba(255, 255, 255, 1), inset 0 -3px 4px rgba(0, 0, 0, 0.25)',
+              border: '1px solid rgba(255, 255, 255, 0.9)'
+            }}
+          >
+            <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 text-stone-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]" />
           </div>
         </div>
 
-        <div className="bg-aco-escovado rounded-3xl p-5 shadow-md flex flex-col justify-between">
-          <span className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-gray-400">Projeção</span>
-          <div className="flex items-baseline justify-between mt-2">
-            <h3 className="text-xs sm:text-2xl font-bold text-gray-900 truncate">R$ {valorTotalHoje.toFixed(0)}</h3>
-            <div className="p-2 sm:p-3 bg-gray-50 text-gray-700 rounded-2xl border border-gray-100">
-              <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
+        {/* 3. Card: Projeção */}
+        <div 
+          className="relative rounded-2xl md:rounded-[2rem] px-2.5 py-2.5 sm:p-4 md:p-5 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden"
+          style={{
+            background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
+            boxShadow: '0 12px 30px rgba(0, 0, 0, 0.45), inset 0 1.5px 2px rgba(255, 255, 255, 0.25), inset 0 -2px 4px rgba(0, 0, 0, 0.8)'
+          }}
+        >
+          <div className="flex flex-col justify-center min-w-0 pr-1">
+            <span className="text-[7.5px] sm:text-[9px] md:text-[10px] font-bold text-stone-400 uppercase tracking-wider truncate block">Projeção</span>
+            <h3 className="text-sm sm:text-xl md:text-2xl font-black text-white mt-0.5 truncate">R$ {valorTotalHoje.toFixed(0)}</h3>
+          </div>
+          <div 
+            className="w-7 h-7 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center shrink-0"
+            style={{
+              background: 'radial-gradient(circle at 30% 30%, #ffffff 0%, #d8e2ec 60%, #9fb3c8 100%)',
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3), inset 0 1.5px 2px rgba(255, 255, 255, 1), inset 0 -3px 4px rgba(0, 0, 0, 0.25)',
+              border: '1px solid rgba(255, 255, 255, 0.9)'
+            }}
+          >
+            <DollarSign className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 text-stone-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]" />
           </div>
         </div>
 
       </div>
 
       {/* SEÇÃO PRINCIPAL: LINHA DO TEMPO DOS ATENDIMENTOS DE HOJE */}
-      <div className="bg-aco-escovado shadow-[0_10px_30px_rgba(0,0,0,0.04)] rounded-[2.5rem] p-5 sm:p-8 border border-gray-100">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-5 border-b border-gray-100 gap-3">
-          <h2 className="text-lg sm:text-xl font-bold text-gray-900 flex items-center gap-3">
-            <span className="w-3 h-3 bg-gray-900 rounded-full"></span>
+      <div 
+        className="relative rounded-[2.5rem] p-5 sm:p-8 border border-white/80"
+        style={{
+          background: 'linear-gradient(135deg, #f7f9f8 0%, #edf1f0 50%, #e2e8e6 100%)',
+          boxShadow: '0 20px 40px rgba(0, 0, 0, 0.08), inset 0 2px 4px rgba(255, 255, 255, 0.9), inset 0 -3px 6px rgba(0, 0, 0, 0.05)'
+        }}
+      >
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-5 border-b border-stone-300/60 gap-3">
+          <h2 className="text-lg sm:text-xl font-extrabold text-stone-900 flex items-center gap-3 tracking-tight">
+            <span className="w-3 h-3 bg-[#102a43] rounded-full shadow-[0_0_8px_rgba(16,42,67,0.4)]"></span>
             Linha do Tempo • Atendimentos de Hoje
-            <span className="text-xs sm:text-sm font-medium text-gray-500 bg-gray-100 px-3 py-0.5 rounded-full">
+            <span className="text-xs sm:text-sm font-bold text-stone-600 bg-white/80 px-3 py-0.5 rounded-full border border-stone-200">
               {agendamentosHoje.length}
             </span>
           </h2>
-          <span className="text-xs sm:text-sm font-medium text-gray-700 bg-gray-50 border border-gray-200 px-3.5 py-1.5 rounded-2xl self-start sm:self-auto">
+          
+          <div 
+            className="inline-flex items-center px-4 py-2 rounded-xl text-xs font-bold text-stone-700 self-start sm:self-auto"
+            style={{
+              background: 'radial-gradient(circle at 30% 30%, #ffffff 0%, #eceeee 70%, #d8dedb 100%)',
+              boxShadow: '0 6px 15px rgba(0, 0, 0, 0.1), inset 0 2px 2px rgba(255, 255, 255, 1), inset 0 -3px 4px rgba(0, 0, 0, 0.12)',
+              border: '1px solid rgba(255, 255, 255, 0.9)'
+            }}
+          >
             {new Date().toLocaleDateString('pt-BR')}
-          </span>
+          </div>
         </div>
 
         {carregando ? (
           <div className="flex justify-center items-center py-16">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-stone-900"></div>
           </div>
         ) : agendamentosHoje.length === 0 ? (
-          <div className="text-center py-16 text-gray-400 text-sm font-medium">
+          <div className="text-center py-16 text-stone-400 text-sm font-medium">
             Nenhum atendimento agendado para hoje.
           </div>
         ) : (
-          <div className="relative mt-8 pl-1 sm:pl-2 space-y-6 before:absolute before:left-[35px] sm:before:left-[39px] before:top-4 before:bottom-4 before:w-0.5 before:bg-gray-100">
+          <div className="relative mt-8 pl-1 sm:pl-2 space-y-6 before:absolute before:left-[35px] sm:before:left-[39px] before:top-4 before:bottom-4 before:w-0.5 before:bg-stone-300/60">
             {agendamentosHoje.map((item) => (
               <div key={item.id} className="relative flex items-center gap-3 sm:gap-5 group">
                 
-                {/* Marcador de Hora na Linha do Tempo */}
+                {/* Marcador de Hora 3D na Linha do Tempo */}
                 <div className="relative z-10 flex-shrink-0">
-                  <div className="w-[64px] h-[32px] sm:w-[70px] sm:h-[34px] rounded-xl bg-gray-900 text-white flex items-center justify-center font-bold text-[11px] sm:text-xs shadow-md border-2 border-white tracking-wider">
+                  <div 
+                    className="w-[64px] h-[32px] sm:w-[70px] sm:h-[34px] rounded-xl text-white flex items-center justify-center font-bold text-[11px] sm:text-xs tracking-wider border border-white/20"
+                    style={{
+                      background: 'linear-gradient(135deg, #102a43 0%, #0b1d2d 100%)',
+                      boxShadow: '0 6px 15px rgba(11, 29, 45, 0.3), inset 0 1px 2px rgba(255, 255, 255, 0.3), inset 0 -2px 3px rgba(0, 0, 0, 0.4)'
+                    }}
+                  >
                     {extrairHoraMinuto(item.data_hora)}
                   </div>
                 </div>
 
-                {/* Cartão do Atendimento */}
-                <div className="flex-1 bg-aco-escovado border border-gray-200/80 rounded-3xl p-5 shadow-[0_4px_15px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_25px_rgba(0,0,0,0.06)] transition-all flex flex-col justify-between">
+                {/* Cartão do Atendimento com Estilo 3D */}
+                <div className="flex-1 bg-white/90 border border-stone-200/80 rounded-3xl p-5 shadow-[0_4px_15px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_25px_rgba(0,0,0,0.06)] transition-all flex flex-col justify-between">
                   <div>
                     <div className="flex justify-between items-start gap-3">
-                      <h3 className="font-bold text-gray-900 text-base truncate">
+                      <h3 className="font-bold text-stone-900 text-base truncate">
                         {item.clientes?.nome || 'Cliente não identificado'}
                       </h3>
-                      <span className="text-gray-900 font-bold text-sm bg-gray-100 px-3 py-1 rounded-2xl border border-gray-200/60">
+                      <span className="text-stone-900 font-bold text-sm bg-stone-100 px-3 py-1 rounded-2xl border border-stone-200/60">
                         R$ {Number(item.valor_total || item.servicos?.preco || 0).toFixed(2)}
                       </span>
                     </div>
                     
-                    <div className="mt-3 space-y-2 text-xs text-gray-600">
-                      <p className="flex items-center gap-2.5 font-medium text-gray-800">
-                        <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M7.846 15.356l15.154-11.236m-15.154 11.236c-1.419 1.05-3.846.541-3.846-1.356 0-1.897 2.427-2.406 3.846-1.356zm0 0l7.154 5.304m-7.154-5.304c-1.419-1.05-3.846-.541-3.846 1.356 0 1.897 2.427 2.406 3.846 1.356zm0 0L15 21m-7.154-5.644L15 9" />
-                        </svg>
+                    <div className="mt-3 space-y-2 text-xs text-stone-600">
+                      <p className="flex items-center gap-2.5 font-medium text-stone-800">
+                        <span className="w-1.5 h-1.5 rounded-full bg-stone-400"></span>
                         {item.servicos?.nome || 'Serviço não especificado'}
                       </p>
-                      <p className="flex items-center gap-2.5 text-gray-500">
-                        <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-                        </svg>
-                        Profissional: <span className="text-gray-800 font-medium">{item.barbeiros?.nome || 'Não atribuído'}</span>
+                      <p className="flex items-center gap-2.5 text-stone-500">
+                        Profissional: <span className="text-stone-800 font-medium">{item.barbeiros?.nome || 'Não atribuído'}</span>
                       </p>
                     </div>
                   </div>
 
-                  <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between gap-2">
+                  <div className="mt-4 pt-3 border-t border-stone-100 flex items-center justify-between gap-2">
                     <span className={`text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider ${
-                      item.status === 'concluido' ? 'bg-blue-900 text-white' :
-                      item.status === 'cancelado' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-700'
+                      item.status === 'concluido' ? 'bg-[#102a43] text-white' :
+                      item.status === 'cancelado' ? 'bg-red-100 text-red-800' : 'bg-stone-200 text-stone-700'
                     }`}>
                       {item.status || 'agendado'}
                     </span>
@@ -301,7 +359,7 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
                       <button 
                         onClick={() => concluirAgendamento(item.id)}
                         disabled={processandoId === item.id}
-                        className="p-2 text-blue-900 hover:bg-blue-50 rounded-2xl transition-colors disabled:opacity-50"
+                        className="p-2 text-[#102a43] hover:bg-sky-50 rounded-2xl transition-colors disabled:opacity-50 cursor-pointer"
                         title="Concluir Atendimento"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -311,7 +369,7 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
                       <button 
                         onClick={() => cancelarAgendamento(item.id)}
                         disabled={processandoId === item.id}
-                        className="p-2 text-amber-600 hover:bg-amber-50 rounded-2xl transition-colors disabled:opacity-50"
+                        className="p-2 text-amber-600 hover:bg-amber-50 rounded-2xl transition-colors disabled:opacity-50 cursor-pointer"
                         title="Cancelar Atendimento"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -321,7 +379,7 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
                       <button 
                         onClick={() => excluirAgendamento(item.id)}
                         disabled={processandoId === item.id}
-                        className="p-2 text-red-500 hover:bg-red-50 rounded-2xl transition-colors disabled:opacity-50"
+                        className="p-2 text-red-500 hover:bg-red-50 rounded-2xl transition-colors disabled:opacity-50 cursor-pointer"
                         title="Excluir Registro"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -338,112 +396,156 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
         )}
       </div>
 
-      {/* BOTÃO PARA MOSTRAR / OCULTAR HISTÓRICO */}
+      {/* BOTÃO ESTRATÉGICO PARA ABRIR O HISTÓRICO EM MODAL */}
       <div className="text-center pt-2">
         <button
-          onClick={() => setMostrarOutrosDias(!mostrarOutrosDias)}
-          className="w-full sm:w-auto px-8 py-3.5 bg-white border border-gray-200/80 shadow-[0_4px_15px_rgba(0,0,0,0.03)] rounded-2xl text-xs font-semibold text-gray-700 hover:bg-gray-50 transition-all flex items-center justify-center gap-2.5 mx-auto tracking-widest uppercase"
+          onClick={() => setModalHistoricoOpen(true)}
+          className="w-full sm:w-auto px-8 py-4 bg-white border border-stone-200/80 shadow-[0_10px_25px_rgba(0,0,0,0.04)] hover:shadow-[0_15px_30px_rgba(0,0,0,0.08)] rounded-2xl text-xs font-bold text-stone-700 hover:bg-stone-50 transition-all flex items-center justify-center gap-3 mx-auto tracking-widest uppercase cursor-pointer group"
         >
-          <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          {mostrarOutrosDias ? 'Ocultar Histórico / Outros Dias' : 'Ver Histórico / Outros Dias'}
+          <div className="w-8 h-8 rounded-xl bg-[#102a43] text-white flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
+            <History className="w-4 h-4" />
+          </div>
+          <span>Ver Histórico Completo & Outros Dias</span>
         </button>
       </div>
 
-      {/* SEÇÃO: HISTÓRICO / OUTROS DIAS */}
-      {mostrarOutrosDias && (
-        <div className="bg-white shadow-[0_10px_30px_rgba(0,0,0,0.04)] rounded-[2.5rem] p-5 sm:p-8 border border-gray-100 transition-all">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-5 border-b border-gray-100 gap-4">
-            <h2 className="text-lg font-bold text-gray-900">
-              Histórico e Outros Registros
-            </h2>
+      {/* =========================================================
+          MODAL DE HISTÓRICO E FILTROS AVANÇADOS
+          ========================================================= */}
+      {modalHistoricoOpen && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+          
+          {/* Backdrop Escuro com Blur */}
+          <div 
+            onClick={() => setModalHistoricoOpen(false)}
+            className="fixed inset-0 bg-stone-950/50 backdrop-blur-sm transition-opacity"
+          />
+
+          {/* Janela do Modal */}
+          <div className="relative w-full max-w-3xl max-h-[85vh] bg-stone-100 rounded-[2.5rem] p-6 sm:p-8 shadow-2xl border border-white/80 z-10 flex flex-col overflow-hidden">
             
-            {/* Filtro de Data */}
-            <div className="flex items-center gap-3">
-              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Filtrar Data:</label>
-              <input 
-                type="date" 
-                value={filtroDataHistorico || ''} 
-                onChange={(e) => setFiltroDataHistorico(e.target.value)}
-                className="border border-gray-200 rounded-2xl px-3.5 py-2 text-xs focus:outline-none focus:border-gray-900 bg-gray-50 text-gray-800"
-              />
-              {filtroDataHistorico && (
-                <button 
-                  onClick={() => setFiltroDataHistorico('')} 
-                  className="text-xs text-gray-900 font-semibold hover:underline px-1"
+            {/* Cabeçalho do Modal */}
+            <div className="flex items-center justify-between pb-5 border-b border-stone-300/60">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 rounded-2xl bg-[#102a43] text-white flex items-center justify-center shadow-md">
+                  <History className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg sm:text-xl font-black text-stone-900 tracking-tight">Histórico de Agendamentos</h3>
+                  <p className="text-xs text-stone-500">Consulte e filtre todos os registros do sistema.</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setModalHistoricoOpen(false)}
+                className="w-10 h-10 rounded-full bg-white border border-stone-200 flex items-center justify-center text-stone-600 hover:bg-stone-100 transition-colors cursor-pointer shadow-xs"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Barra de Filtros (Data + Status) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 py-4 border-b border-stone-300/40">
+              
+              {/* Filtro por Data */}
+              <div className="flex flex-col space-y-1">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-stone-500">Filtrar por Data:</label>
+                <div className="relative flex items-center">
+                  <input 
+                    type="date" 
+                    value={filtroDataHistorico || ''} 
+                    onChange={(e) => setFiltroDataHistorico(e.target.value)}
+                    className="w-full bg-white border border-stone-200 rounded-2xl px-4 py-2.5 text-xs font-medium text-stone-800 focus:outline-none focus:border-stone-900 shadow-xs"
+                  />
+                  {filtroDataHistorico && (
+                    <button 
+                      onClick={() => setFiltroDataHistorico('')} 
+                      className="absolute right-3 text-xs text-stone-500 hover:text-stone-900 font-bold"
+                    >
+                      Limpar
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Filtro por Status */}
+              <div className="flex flex-col space-y-1">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-stone-500">Filtrar por Status:</label>
+                <select 
+                  value={filtroStatusHistorico}
+                  onChange={(e) => setFiltroStatusHistorico(e.target.value)}
+                  className="w-full bg-white border border-stone-200 rounded-2xl px-4 py-2.5 text-xs font-medium text-stone-800 focus:outline-none focus:border-stone-900 shadow-xs"
                 >
-                  Limpar
-                </button>
+                  <option value="todos">Todos os Status</option>
+                  <option value="agendado">Agendados</option>
+                  <option value="concluido">Concluídos</option>
+                  <option value="cancelado">Cancelados</option>
+                </select>
+              </div>
+
+            </div>
+
+            {/* Lista de Registros no Modal (Com Scroll) */}
+            <div className="flex-1 overflow-y-auto py-4 space-y-3 pr-1">
+              {todosAgendamentos.length === 0 ? (
+                <div className="text-center py-16 text-stone-400 text-sm">
+                  Nenhum registro encontrado no histórico.
+                </div>
+              ) : (
+                todosAgendamentos
+                  .filter(item => !filtroDataHistorico || extrairDataIso(item) === filtroDataHistorico)
+                  .filter(item => filtroStatusHistorico === 'todos' || (item.status || 'agendado') === filtroStatusHistorico)
+                  .map((item) => (
+                    <div key={item.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-white hover:bg-stone-50 rounded-2xl border border-stone-200/80 transition-all gap-4 shadow-xs">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-3">
+                          <span className="font-bold text-stone-900 text-sm sm:text-base">
+                            {item.clientes?.nome || 'Cliente'}
+                          </span>
+                          <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase ${
+                            item.status === 'concluido' ? 'bg-[#102a43] text-white' :
+                            item.status === 'cancelado' ? 'bg-red-100 text-red-800' : 'bg-stone-200 text-stone-800'
+                          }`}>
+                            {item.status || 'agendado'}
+                          </span>
+                        </div>
+                        <p className="text-xs text-stone-500 flex flex-wrap gap-x-3 gap-y-1 items-center">
+                          <span className="text-stone-700 font-medium">{item.servicos?.nome || 'Serviço'}</span>
+                          <span>•</span>
+                          <span>{item.barbeiros?.nome || 'Barbeiro'}</span>
+                          <span>•</span>
+                          <span className="font-semibold text-stone-700">{formatarDataHora(item.data_hora)}</span>
+                        </p>
+                      </div>
+
+                      <div className="flex items-center justify-between sm:justify-end gap-4 pt-3 sm:pt-0 border-t sm:border-t-0 border-stone-100">
+                        <span className="text-sm sm:text-base font-extrabold text-stone-900">
+                          R$ {Number(item.valor_total || item.servicos?.preco || 0).toFixed(2)}
+                        </span>
+                        <button 
+                          onClick={() => excluirAgendamento(item.id)}
+                          disabled={processandoId === item.id}
+                          className="px-3 py-1.5 text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 rounded-xl transition-colors disabled:opacity-50 flex items-center gap-1 cursor-pointer"
+                        >
+                          Excluir
+                        </button>
+                      </div>
+                    </div>
+                  ))
               )}
             </div>
+
+            {/* Rodapé do Modal */}
+            <div className="pt-4 border-t border-stone-300/60 flex justify-end">
+              <button
+                onClick={() => setModalHistoricoOpen(false)}
+                className="px-6 py-2.5 bg-stone-900 text-white rounded-xl text-xs font-bold hover:bg-stone-800 transition-colors cursor-pointer shadow-md"
+              >
+                Fechar
+              </button>
+            </div>
+
           </div>
 
-          <div className="mt-5 space-y-3">
-            {todosAgendamentos.length === 0 ? (
-              <div className="text-center py-12 text-gray-400 text-sm">
-                Nenhum registro encontrado no histórico.
-              </div>
-            ) : (
-              todosAgendamentos
-                .filter(item => !filtroDataHistorico || extrairDataIso(item) === filtroDataHistorico)
-                .map((item) => (
-                  <div key={item.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-gray-50 hover:bg-gray-100/70 rounded-2xl border border-gray-100 transition-all gap-4">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-3">
-                        <span className="font-bold text-gray-900 text-base">
-                          {item.clientes?.nome || 'Cliente'}
-                        </span>
-                        <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase ${
-                          item.status === 'concluido' ? 'bg-blue-900 text-white' :
-                          item.status === 'cancelado' ? 'bg-red-100 text-red-800' : 'bg-gray-200 text-gray-800'
-                        }`}>
-                          {item.status || 'agendado'}
-                        </span>
-                      </div>
-                      <p className="text-xs text-gray-500 flex flex-wrap gap-x-3 gap-y-1 items-center">
-                        <span className="flex items-center gap-1 text-gray-700 font-medium">
-                          <svg className="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M7.846 15.356l15.154-11.236m-15.154 11.236c-1.419 1.05-3.846.541-3.846-1.356 0-1.897 2.427-2.406 3.846-1.356zm0 0l7.154 5.304m-7.154-5.304c-1.419-1.05-3.846-.541-3.846 1.356 0 1.897 2.427 2.406 3.846 1.356zm0 0L15 21m-7.154-5.644L15 9" />
-                          </svg>
-                          {item.servicos?.nome || 'Serviço'}
-                        </span>
-                        <span>•</span>
-                        <span className="flex items-center gap-1">
-                          <svg className="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-                          </svg>
-                          {item.barbeiros?.nome || 'Barbeiro'}
-                        </span>
-                        <span>•</span>
-                        <span className="text-gray-700 flex items-center gap-1">
-                          <svg className="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                          {formatarDataHora(item.data_hora)}
-                        </span>
-                      </p>
-                    </div>
-
-                    <div className="flex items-center justify-between sm:justify-end gap-4 pt-3 sm:pt-0 border-t sm:border-t-0 border-gray-200/60">
-                      <span className="text-base font-bold text-gray-900">
-                        R$ {Number(item.valor_total || item.servicos?.preco || 0).toFixed(2)}
-                      </span>
-                      <button 
-                        onClick={() => excluirAgendamento(item.id)}
-                        disabled={processandoId === item.id}
-                        className="px-3.5 py-1.5 text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 rounded-2xl transition-colors disabled:opacity-50 flex items-center gap-1.5"
-                      >
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.75" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
-                        </svg>
-                        Excluir
-                      </button>
-                    </div>
-                  </div>
-                ))
-            )}
-          </div>
         </div>
       )}
 

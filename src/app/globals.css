@@ -20,27 +20,6 @@
 }
 
 
-@layer utilities {
-  .bg-aco-escovado {
-    background: linear-gradient(to bottom, rgba(215, 232, 238, 0.95), rgba(135, 175, 188, 0.9), rgba(76, 114, 128, 0.85));
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
-    border-top: 1px solid rgba(255, 255, 255, 0.85);
-    border-left: 1px solid rgba(175, 205, 215, 0.5);
-    border-right: 1px solid rgba(175, 205, 215, 0.5);
-  }
-
-  /* Versão com fundo mais encorpado/opaco para modais e gavetas */
-  .bg-aco-escovado-modal {
-    background: linear-gradient(to bottom, rgba(200, 222, 230, 0.98), rgba(120, 162, 177, 0.96), rgba(65, 99, 112, 0.95));
-    backdrop-filter: blur(30px);
-    -webkit-backdrop-filter: blur(30px);
-    border-top: 1px solid rgba(255, 255, 255, 0.9);
-    border-left: 1px solid rgba(175, 205, 215, 0.6);
-    border-right: 1px solid rgba(175, 205, 215, 0.6);
-  }
-}
-
 
 
 body {
@@ -50,14 +29,11 @@ body {
 }
 
 
-/* Quando o modal estiver aberto, esconde a barra na hora */
+/* Esconde qualquer barra de navegação antiga se o modal estiver aberto */
 body:has(.modal-menu-aberto) nav[aria-label="Navegação inferior mobile"] {
   display: none !important;
-}
-
-/* Quando o modal fechar, exibe a barra na hora, sem transição */
-body:not(:has(.modal-menu-aberto)) nav[aria-label="Navegação inferior mobile"] {
-  display: flex !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
   transition: none !important;
 }
 
@@ -86,12 +62,5 @@ body:not(:has(.modal-menu-aberto)) nav[aria-label="Navegação inferior mobile"]
     background-color: white !important;
     color: black !important;
     -webkit-print-color-adjust: exact;
-  }
-}
-
-
-@media (min-width: 768px) {
-  .mobile-bottom-nav {
-    display: none !important;
   }
 }
