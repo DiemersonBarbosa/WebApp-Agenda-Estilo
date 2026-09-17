@@ -192,82 +192,97 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
         </div>
       )}
 
-      {/* CARDS DE RESUMO DO TOPO (Estilo Black Piano Degradê & 3D) */}
-      <div className="grid grid-cols-3 gap-1.5 sm:gap-3 md:gap-4 mb-6">
+            {/* CARDS DE RESUMO DO TOPO (Grid de 2 colunas + Botão de Histórico Integrado) */}
+      <div className="grid grid-cols-2 gap-3 md:gap-4 mb-6">
         
         {/* 1. Card: Agendamentos */}
         <div 
-          className="relative rounded-2xl md:rounded-[2rem] px-2.5 py-2.5 sm:p-4 md:p-5 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden"
+          className="relative rounded-2xl md:rounded-[2rem] px-3 py-3 sm:p-4 md:p-5 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden"
           style={{
             background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
             boxShadow: '0 12px 30px rgba(0, 0, 0, 0.45), inset 0 1.5px 2px rgba(255, 255, 255, 0.25), inset 0 -2px 4px rgba(0, 0, 0, 0.8)'
           }}
         >
           <div className="flex flex-col justify-center min-w-0 pr-1">
-            <span className="text-[7.5px] sm:text-[9px] md:text-[10px] font-bold text-stone-400 uppercase tracking-wider truncate block">Agendamentos</span>
-            <h3 className="text-sm sm:text-xl md:text-2xl font-black text-white mt-0.5 truncate">{totalAtendimentosHoje}</h3>
+            <span className="text-[8px] sm:text-[9px] md:text-[10px] font-bold text-stone-400 uppercase tracking-wider truncate block">Agendamentos</span>
+            <h3 className="text-base sm:text-xl md:text-2xl font-black text-white mt-0.5 truncate">{totalAtendimentosHoje}</h3>
           </div>
           <div 
-            className="w-7 h-7 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center shrink-0"
+            className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center shrink-0"
             style={{
               background: 'radial-gradient(circle at 30% 30%, #ffffff 0%, #d8e2ec 60%, #9fb3c8 100%)',
               boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3), inset 0 1.5px 2px rgba(255, 255, 255, 1), inset 0 -3px 4px rgba(0, 0, 0, 0.25)',
               border: '1px solid rgba(255, 255, 255, 0.9)'
             }}
           >
-            <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 text-stone-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]" />
+            <Calendar className="w-4 h-4 sm:w-4 sm:h-4 md:w-5 md:h-5 text-stone-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]" />
           </div>
         </div>
 
         {/* 2. Card: Concluídos */}
         <div 
-          className="relative rounded-2xl md:rounded-[2rem] px-2.5 py-2.5 sm:p-4 md:p-5 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden"
+          className="relative rounded-2xl md:rounded-[2rem] px-3 py-3 sm:p-4 md:p-5 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden"
           style={{
             background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
             boxShadow: '0 12px 30px rgba(0, 0, 0, 0.45), inset 0 1.5px 2px rgba(255, 255, 255, 0.25), inset 0 -2px 4px rgba(0, 0, 0, 0.8)'
           }}
         >
           <div className="flex flex-col justify-center min-w-0 pr-1">
-            <span className="text-[7.5px] sm:text-[9px] md:text-[10px] font-bold text-stone-400 uppercase tracking-wider truncate block">Concluídos</span>
-            <h3 className="text-sm sm:text-xl md:text-2xl font-black text-white mt-0.5 truncate">{concluidosHoje}/{totalAtendimentosHoje}</h3>
+            <span className="text-[8px] sm:text-[9px] md:text-[10px] font-bold text-stone-400 uppercase tracking-wider truncate block">Concluídos</span>
+            <h3 className="text-base sm:text-xl md:text-2xl font-black text-white mt-0.5 truncate">{concluidosHoje}/{totalAtendimentosHoje}</h3>
           </div>
           <div 
-            className="w-7 h-7 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center shrink-0"
+            className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center shrink-0"
             style={{
               background: 'radial-gradient(circle at 30% 30%, #ffffff 0%, #d8e2ec 60%, #9fb3c8 100%)',
               boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3), inset 0 1.5px 2px rgba(255, 255, 255, 1), inset 0 -3px 4px rgba(0, 0, 0, 0.25)',
               border: '1px solid rgba(255, 255, 255, 0.9)'
             }}
           >
-            <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 text-stone-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]" />
+            <CheckCircle2 className="w-4 h-4 sm:w-4 sm:h-4 md:w-5 md:h-5 text-stone-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]" />
           </div>
         </div>
 
         {/* 3. Card: Projeção */}
         <div 
-          className="relative rounded-2xl md:rounded-[2rem] px-2.5 py-2.5 sm:p-4 md:p-5 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden"
+          className="relative rounded-2xl md:rounded-[2rem] px-3 py-3 sm:p-4 md:p-5 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden"
           style={{
             background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
             boxShadow: '0 12px 30px rgba(0, 0, 0, 0.45), inset 0 1.5px 2px rgba(255, 255, 255, 0.25), inset 0 -2px 4px rgba(0, 0, 0, 0.8)'
           }}
         >
           <div className="flex flex-col justify-center min-w-0 pr-1">
-            <span className="text-[7.5px] sm:text-[9px] md:text-[10px] font-bold text-stone-400 uppercase tracking-wider truncate block">Projeção</span>
-            <h3 className="text-sm sm:text-xl md:text-2xl font-black text-white mt-0.5 truncate">R$ {valorTotalHoje.toFixed(0)}</h3>
+            <span className="text-[8px] sm:text-[9px] md:text-[10px] font-bold text-stone-400 uppercase tracking-wider truncate block">Projeção</span>
+            <h3 className="text-base sm:text-xl md:text-2xl font-black text-white mt-0.5 truncate">R$ {valorTotalHoje.toFixed(0)}</h3>
           </div>
           <div 
-            className="w-7 h-7 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center shrink-0"
+            className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center shrink-0"
             style={{
               background: 'radial-gradient(circle at 30% 30%, #ffffff 0%, #d8e2ec 60%, #9fb3c8 100%)',
               boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3), inset 0 1.5px 2px rgba(255, 255, 255, 1), inset 0 -3px 4px rgba(0, 0, 0, 0.25)',
               border: '1px solid rgba(255, 255, 255, 0.9)'
             }}
           >
-            <DollarSign className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 text-stone-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]" />
+            <DollarSign className="w-4 h-4 sm:w-4 sm:h-4 md:w-5 md:h-5 text-stone-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]" />
           </div>
         </div>
 
+        {/* 4. Botão Estratégico: Ver Histórico Completo (Ocupando o espaço da segunda coluna na linha de baixo) */}
+        <button
+          onClick={() => setModalHistoricoOpen(true)}
+          className="relative rounded-2xl md:rounded-[2rem] px-3 py-3 sm:p-4 md:p-5 flex items-center justify-between border border-stone-200/80 shadow-[0_10px_25px_rgba(0,0,0,0.04)] hover:shadow-[0_15px_30px_rgba(0,0,0,0.08)] bg-white transition-all cursor-pointer group min-w-0 overflow-hidden"
+        >
+          <div className="flex flex-col justify-center min-w-0 pr-1 text-left">
+            <span className="text-[8px] sm:text-[9px] md:text-[10px] font-extrabold text-stone-400 uppercase tracking-wider truncate block">Registros</span>
+            <span className="text-xs sm:text-sm md:text-base font-black text-stone-900 mt-0.5 truncate">Ver Histórico</span>
+          </div>
+          <div className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-full bg-[#222222] text-white flex items-center justify-center shrink-0 shadow-md group-hover:scale-105 transition-transform">
+            <History className="w-4 h-4 sm:w-4 sm:h-4 md:w-5 md:h-5" />
+          </div>
+        </button>
+
       </div>
+
 
       {/* SEÇÃO PRINCIPAL: LINHA DO TEMPO DOS ATENDIMENTOS DE HOJE */}
       <div 
