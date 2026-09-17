@@ -141,81 +141,109 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
         </button>
       </div>
 
-      {/* Cards de Indicadores (KPIs) com Estilo Black Piano Degradê 3D */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      {/* Cards de Indicadores (KPIs) com Estilo Black Piano Degradê & Esferas 3D */}
+      <div className="grid grid-cols-2 gap-3.5 md:gap-5 mb-6">
         
         {/* 1. Faturamento */}
         <div 
-          className="relative rounded-2xl md:rounded-[2rem] p-4 sm:p-5 flex flex-col justify-between border border-stone-700/50 shadow-lg overflow-hidden"
+          className="relative rounded-3xl md:rounded-[2.5rem] p-5 sm:p-6 md:p-7 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden shadow-xl"
           style={{
             background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
-            boxShadow: '0 12px 30px rgba(0, 0, 0, 0.45), inset 0 1.5px 2px rgba(255, 255, 255, 0.25), inset 0 -2px 4px rgba(0, 0, 0, 0.8)'
+            boxShadow: '0 15px 35px rgba(0, 0, 0, 0.5), inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
           }}
         >
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[9px] sm:text-[10px] font-bold text-stone-400 uppercase tracking-wider">Faturamento</span>
-            <div className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-emerald-400">
-              <TrendingUp className="w-3.5 h-3.5" />
-            </div>
+          <div className="flex flex-col justify-center min-w-0 pr-2">
+            <span className="text-[9px] sm:text-[10px] md:text-xs font-bold text-stone-400 uppercase tracking-wider truncate block">Faturamento</span>
+            <h3 className="text-lg sm:text-2xl md:text-3xl font-black text-white mt-1 truncate">R$ {faturamentoTotal.toFixed(0)}</h3>
+            <p className="text-[10px] text-emerald-400 font-medium mt-0.5">{atendimentosConcluidos.length} concluídos</p>
           </div>
-          <div className="text-base sm:text-2xl font-black text-white truncate">R$ {faturamentoTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>
-          <p className="text-[10px] text-emerald-400 font-medium mt-1">{atendimentosConcluidos.length} concluídos</p>
+          <div 
+            className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center shrink-0 shadow-lg"
+            style={{
+              background: 'radial-gradient(circle at 30% 30%, #ffffff 0%, #d8e2ec 60%, #9fb3c8 100%)',
+              boxShadow: '0 6px 15px rgba(0, 0, 0, 0.4), inset 0 2px 3px rgba(255, 255, 255, 1), inset 0 -4px 6px rgba(0, 0, 0, 0.25)',
+              border: '1px solid rgba(255, 255, 255, 0.9)'
+            }}
+          >
+            <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-stone-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]" />
+          </div>
         </div>
 
         {/* 2. Despesas */}
         <div 
-          className="relative rounded-2xl md:rounded-[2rem] p-4 sm:p-5 flex flex-col justify-between border border-stone-700/50 shadow-lg overflow-hidden"
+          className="relative rounded-3xl md:rounded-[2.5rem] p-5 sm:p-6 md:p-7 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden shadow-xl"
           style={{
             background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
-            boxShadow: '0 12px 30px rgba(0, 0, 0, 0.45), inset 0 1.5px 2px rgba(255, 255, 255, 0.25), inset 0 -2px 4px rgba(0, 0, 0, 0.8)'
+            boxShadow: '0 15px 35px rgba(0, 0, 0, 0.5), inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
           }}
         >
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[9px] sm:text-[10px] font-bold text-stone-400 uppercase tracking-wider">Despesas</span>
-            <div className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-rose-400">
-              <TrendingDown className="w-3.5 h-3.5" />
-            </div>
+          <div className="flex flex-col justify-center min-w-0 pr-2">
+            <span className="text-[9px] sm:text-[10px] md:text-xs font-bold text-stone-400 uppercase tracking-wider truncate block">Despesas</span>
+            <h3 className="text-lg sm:text-2xl md:text-3xl font-black text-white mt-1 truncate">R$ {custosTotais.toFixed(0)}</h3>
+            <p className="text-[10px] text-rose-400 font-medium mt-0.5">{despesas.length} cadastradas</p>
           </div>
-          <div className="text-base sm:text-2xl font-black text-white truncate">R$ {custosTotais.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>
-          <p className="text-[10px] text-rose-400 font-medium mt-1">{despesas.length} cadastradas</p>
+          <div 
+            className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center shrink-0 shadow-lg"
+            style={{
+              background: 'radial-gradient(circle at 30% 30%, #ffffff 0%, #d8e2ec 60%, #9fb3c8 100%)',
+              boxShadow: '0 6px 15px rgba(0, 0, 0, 0.4), inset 0 2px 3px rgba(255, 255, 255, 1), inset 0 -4px 6px rgba(0, 0, 0, 0.25)',
+              border: '1px solid rgba(255, 255, 255, 0.9)'
+            }}
+          >
+            <TrendingDown className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-stone-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]" />
+          </div>
         </div>
 
         {/* 3. Lucro Líquido */}
         <div 
-          className="relative rounded-2xl md:rounded-[2rem] p-4 sm:p-5 flex flex-col justify-between border border-stone-700/50 shadow-lg overflow-hidden"
+          className="relative rounded-3xl md:rounded-[2.5rem] p-5 sm:p-6 md:p-7 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden shadow-xl"
           style={{
             background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
-            boxShadow: '0 12px 30px rgba(0, 0, 0, 0.45), inset 0 1.5px 2px rgba(255, 255, 255, 0.25), inset 0 -2px 4px rgba(0, 0, 0, 0.8)'
+            boxShadow: '0 15px 35px rgba(0, 0, 0, 0.5), inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
           }}
         >
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[9px] sm:text-[10px] font-bold text-stone-400 uppercase tracking-wider">Lucro Líquido</span>
-            <div className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-sky-400">
-              <DollarSign className="w-3.5 h-3.5" />
-            </div>
+          <div className="flex flex-col justify-center min-w-0 pr-2">
+            <span className="text-[9px] sm:text-[10px] md:text-xs font-bold text-stone-400 uppercase tracking-wider truncate block">Lucro Líquido</span>
+            <h3 className={`text-lg sm:text-2xl md:text-3xl font-black mt-1 truncate ${lucroLiquidoReal >= 0 ? 'text-sky-400' : 'text-rose-400'}`}>
+              R$ {lucroLiquidoReal.toFixed(0)}
+            </h3>
+            <p className="text-[10px] text-stone-400 font-medium mt-0.5">Entradas - Saídas</p>
           </div>
-          <div className={`text-base sm:text-2xl font-black truncate ${lucroLiquidoReal >= 0 ? 'text-sky-400' : 'text-rose-400'}`}>
-            R$ {lucroLiquidoReal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+          <div 
+            className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center shrink-0 shadow-lg"
+            style={{
+              background: 'radial-gradient(circle at 30% 30%, #ffffff 0%, #d8e2ec 60%, #9fb3c8 100%)',
+              boxShadow: '0 6px 15px rgba(0, 0, 0, 0.4), inset 0 2px 3px rgba(255, 255, 255, 1), inset 0 -4px 6px rgba(0, 0, 0, 0.25)',
+              border: '1px solid rgba(255, 255, 255, 0.9)'
+            }}
+          >
+            <DollarSign className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-stone-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]" />
           </div>
-          <p className="text-[10px] text-stone-400 font-medium mt-1">Entradas - Saídas</p>
         </div>
 
         {/* 4. Ticket Médio */}
         <div 
-          className="relative rounded-2xl md:rounded-[2rem] p-4 sm:p-5 flex flex-col justify-between border border-stone-700/50 shadow-lg overflow-hidden"
+          className="relative rounded-3xl md:rounded-[2.5rem] p-5 sm:p-6 md:p-7 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden shadow-xl"
           style={{
             background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
-            boxShadow: '0 12px 30px rgba(0, 0, 0, 0.45), inset 0 1.5px 2px rgba(255, 255, 255, 0.25), inset 0 -2px 4px rgba(0, 0, 0, 0.8)'
+            boxShadow: '0 15px 35px rgba(0, 0, 0, 0.5), inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
           }}
         >
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[9px] sm:text-[10px] font-bold text-stone-400 uppercase tracking-wider">Ticket Médio</span>
-            <div className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-stone-300">
-              <PieChart className="w-3.5 h-3.5" />
-            </div>
+          <div className="flex flex-col justify-center min-w-0 pr-2">
+            <span className="text-[9px] sm:text-[10px] md:text-xs font-bold text-stone-400 uppercase tracking-wider truncate block">Ticket Médio</span>
+            <h3 className="text-lg sm:text-2xl md:text-3xl font-black text-white mt-1 truncate">R$ {ticketMedioCalculado.toFixed(0)}</h3>
+            <p className="text-[10px] text-stone-400 font-medium mt-0.5">Média por atendimento</p>
           </div>
-          <div className="text-base sm:text-2xl font-black text-white truncate">R$ {ticketMedioCalculado.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-          <p className="text-[10px] text-stone-400 font-medium mt-1">Média por atendimento</p>
+          <div 
+            className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center shrink-0 shadow-lg"
+            style={{
+              background: 'radial-gradient(circle at 30% 30%, #ffffff 0%, #d8e2ec 60%, #9fb3c8 100%)',
+              boxShadow: '0 6px 15px rgba(0, 0, 0, 0.4), inset 0 2px 3px rgba(255, 255, 255, 1), inset 0 -4px 6px rgba(0, 0, 0, 0.25)',
+              border: '1px solid rgba(255, 255, 255, 0.9)'
+            }}
+          >
+            <PieChart className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-stone-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]" />
+          </div>
         </div>
 
       </div>

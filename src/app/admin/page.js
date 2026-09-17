@@ -1142,7 +1142,6 @@ const handleSaveBarbeiro = async (e) => {
 
       </div>
 
-
     {/* RESUMO FINANCEIRO E ATALHOS */}
     <div className="bg-white p-5 rounded-2xl border border-stone-200/80 shadow-xs space-y-4">
       <h2 className="text-xs font-bold text-stone-900">Balanço de Entradas e Saídas</h2>
