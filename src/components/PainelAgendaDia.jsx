@@ -183,7 +183,7 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
     .reduce((acc, item) => acc + Number(item.valor_total || item.servicos?.preco || 0), 0);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6 pb-24">
+    <div className="max-w-7xl mx-auto px-2 sm:px-0 space-y-6 pb-24">
       
       {/* ERRO FATAL */}
       {erroFatal && (
@@ -192,98 +192,96 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
         </div>
       )}
 
-                  {/* CARDS DE RESUMO DO TOPO (Maiores, Robustos e em Grid de 2 Colunas) */}
-      <div className="grid grid-cols-2 gap-3.5 md:gap-5 mb-6">
-        
-        {/* 1. Card: Agendamentos */}
-        <div 
-          className="relative rounded-3xl md:rounded-[2.5rem] p-5 sm:p-6 md:p-7 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden shadow-xl"
-          style={{
-            background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
-            boxShadow: '0 15px 35px rgba(0, 0, 0, 0.5), inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
-          }}
-        >
-          <div className="flex flex-col justify-center min-w-0 pr-2">
-            <span className="text-[9px] sm:text-[10px] md:text-xs font-bold text-stone-400 uppercase tracking-wider truncate block">Agendamentos</span>
-            <h3 className="text-xl sm:text-2xl md:text-3xl font-black text-white mt-1 truncate">{totalAtendimentosHoje}</h3>
-          </div>
-          <div 
-            className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center shrink-0 shadow-lg"
-            style={{
-              background: 'radial-gradient(circle at 30% 30%, #ffffff 0%, #d8e2ec 60%, #9fb3c8 100%)',
-              boxShadow: '0 6px 15px rgba(0, 0, 0, 0.4), inset 0 2px 3px rgba(255, 255, 255, 1), inset 0 -4px 6px rgba(0, 0, 0, 0.25)',
-              border: '1px solid rgba(255, 255, 255, 0.9)'
-            }}
-          >
-            <Calendar className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-stone-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]" />
-          </div>
-        </div>
+      {/* CARDS DE RESUMO DO TOPO (2 colunas no mobile, 4 colunas em linha única no desktop) */}
+<div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 md:gap-5 mb-6">
+  
+  {/* 1. Card: Agendamentos */}
+  <div 
+    className="relative rounded-3xl md:rounded-[2.5rem] p-5 sm:p-6 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden shadow-xl"
+    style={{
+      background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
+      boxShadow: '0 15px 35px rgba(0, 0, 0, 0.5), inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
+    }}
+  >
+    <div className="flex flex-col justify-center min-w-0 pr-2">
+      <span className="text-[9px] sm:text-[10px] font-bold text-stone-400 uppercase tracking-wider truncate block">Agendamentos</span>
+      <h3 className="text-xl sm:text-2xl font-black text-white mt-1 truncate">{totalAtendimentosHoje}</h3>
+    </div>
+    <div 
+      className="w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center shrink-0 shadow-lg"
+      style={{
+        background: 'radial-gradient(circle at 30% 30%, #ffffff 0%, #d8e2ec 60%, #9fb3c8 100%)',
+        boxShadow: '0 6px 15px rgba(0, 0, 0, 0.4), inset 0 2px 3px rgba(255, 255, 255, 1), inset 0 -4px 6px rgba(0, 0, 0, 0.25)',
+        border: '1px solid rgba(255, 255, 255, 0.9)'
+      }}
+    >
+      <Calendar className="w-5 h-5 sm:w-6 sm:h-6 text-stone-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]" />
+    </div>
+  </div>
 
-        {/* 2. Card: Concluídos */}
-        <div 
-          className="relative rounded-3xl md:rounded-[2.5rem] p-5 sm:p-6 md:p-7 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden shadow-xl"
-          style={{
-            background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
-            boxShadow: '0 15px 35px rgba(0, 0, 0, 0.5), inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
-          }}
-        >
-          <div className="flex flex-col justify-center min-w-0 pr-2">
-            <span className="text-[9px] sm:text-[10px] md:text-xs font-bold text-stone-400 uppercase tracking-wider truncate block">Concluídos</span>
-            <h3 className="text-xl sm:text-2xl md:text-3xl font-black text-white mt-1 truncate">{concluidosHoje}/{totalAtendimentosHoje}</h3>
-          </div>
-          <div 
-            className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center shrink-0 shadow-lg"
-            style={{
-              background: 'radial-gradient(circle at 30% 30%, #ffffff 0%, #d8e2ec 60%, #9fb3c8 100%)',
-              boxShadow: '0 6px 15px rgba(0, 0, 0, 0.4), inset 0 2px 3px rgba(255, 255, 255, 1), inset 0 -4px 6px rgba(0, 0, 0, 0.25)',
-              border: '1px solid rgba(255, 255, 255, 0.9)'
-            }}
-          >
-            <CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-stone-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]" />
-          </div>
-        </div>
+  {/* 2. Card: Concluídos */}
+  <div 
+    className="relative rounded-3xl md:rounded-[2.5rem] p-5 sm:p-6 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden shadow-xl"
+    style={{
+      background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
+      boxShadow: '0 15px 35px rgba(0, 0, 0, 0.5), inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
+    }}
+  >
+    <div className="flex flex-col justify-center min-w-0 pr-2">
+      <span className="text-[9px] sm:text-[10px] font-bold text-stone-400 uppercase tracking-wider truncate block">Concluídos</span>
+      <h3 className="text-xl sm:text-2xl font-black text-white mt-1 truncate">{concluidosHoje}/{totalAtendimentosHoje}</h3>
+    </div>
+    <div 
+      className="w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center shrink-0 shadow-lg"
+      style={{
+        background: 'radial-gradient(circle at 30% 30%, #ffffff 0%, #d8e2ec 60%, #9fb3c8 100%)',
+        boxShadow: '0 6px 15px rgba(0, 0, 0, 0.4), inset 0 2px 3px rgba(255, 255, 255, 1), inset 0 -4px 6px rgba(0, 0, 0, 0.25)',
+        border: '1px solid rgba(255, 255, 255, 0.9)'
+      }}
+    >
+      <CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6 text-stone-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]" />
+    </div>
+  </div>
 
-        {/* 3. Card: Projeção */}
-        <div 
-          className="relative rounded-3xl md:rounded-[2.5rem] p-5 sm:p-6 md:p-7 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden shadow-xl"
-          style={{
-            background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
-            boxShadow: '0 15px 35px rgba(0, 0, 0, 0.5), inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
-          }}
-        >
-          <div className="flex flex-col justify-center min-w-0 pr-2">
-            <span className="text-[9px] sm:text-[10px] md:text-xs font-bold text-stone-400 uppercase tracking-wider truncate block">Projeção</span>
-            <h3 className="text-xl sm:text-2xl md:text-3xl font-black text-white mt-1 truncate">R$ {valorTotalHoje.toFixed(0)}</h3>
-          </div>
-          <div 
-            className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center shrink-0 shadow-lg"
-            style={{
-              background: 'radial-gradient(circle at 30% 30%, #ffffff 0%, #d8e2ec 60%, #9fb3c8 100%)',
-              boxShadow: '0 6px 15px rgba(0, 0, 0, 0.4), inset 0 2px 3px rgba(255, 255, 255, 1), inset 0 -4px 6px rgba(0, 0, 0, 0.25)',
-              border: '1px solid rgba(255, 255, 255, 0.9)'
-            }}
-          >
-            <DollarSign className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-stone-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]" />
-          </div>
-        </div>
+  {/* 3. Card: Projeção */}
+  <div 
+    className="relative rounded-3xl md:rounded-[2.5rem] p-5 sm:p-6 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden shadow-xl"
+    style={{
+      background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
+      boxShadow: '0 15px 35px rgba(0, 0, 0, 0.5), inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
+    }}
+  >
+    <div className="flex flex-col justify-center min-w-0 pr-2">
+      <span className="text-[9px] sm:text-[10px] font-bold text-stone-400 uppercase tracking-wider truncate block">Projeção</span>
+      <h3 className="text-xl sm:text-2xl font-black text-white mt-1 truncate">R$ {valorTotalHoje.toFixed(0)}</h3>
+    </div>
+    <div 
+      className="w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center shrink-0 shadow-lg"
+      style={{
+        background: 'radial-gradient(circle at 30% 30%, #ffffff 0%, #d8e2ec 60%, #9fb3c8 100%)',
+        boxShadow: '0 6px 15px rgba(0, 0, 0, 0.4), inset 0 2px 3px rgba(255, 255, 255, 1), inset 0 -4px 6px rgba(0, 0, 0, 0.25)',
+        border: '1px solid rgba(255, 255, 255, 0.9)'
+      }}
+    >
+      <DollarSign className="w-5 h-5 sm:w-6 sm:h-6 text-stone-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]" />
+    </div>
+  </div>
 
-        {/* 4. Botão Estratégico: Ver Histórico Completo (Mesmo tamanho robusto dos cards) */}
-        <button
-          onClick={() => setModalHistoricoOpen(true)}
-          className="relative rounded-3xl md:rounded-[2.5rem] p-5 sm:p-6 md:p-7 flex items-center justify-between border border-stone-200/80 shadow-xl hover:shadow-2xl bg-white transition-all cursor-pointer group min-w-0 overflow-hidden"
-        >
-          <div className="flex flex-col justify-center min-w-0 pr-2 text-left">
-            <span className="text-[9px] sm:text-[10px] md:text-xs font-extrabold text-stone-400 uppercase tracking-wider truncate block">Registros</span>
-            <span className="text-sm sm:text-lg md:text-xl font-black text-stone-900 mt-1 truncate">Ver Histórico</span>
-          </div>
-          <div className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-full bg-[#222222] text-white flex items-center justify-center shrink-0 shadow-lg group-hover:scale-105 transition-transform">
-            <History className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7" />
-          </div>
-        </button>
+  {/* 4. Botão Estratégico: Ver Histórico */}
+  <button
+    onClick={() => setModalHistoricoOpen(true)}
+    className="relative rounded-3xl md:rounded-[2.5rem] p-5 sm:p-6 flex items-center justify-between border border-stone-200/80 shadow-xl hover:shadow-2xl bg-white transition-all cursor-pointer group min-w-0 overflow-hidden"
+  >
+    <div className="flex flex-col justify-center min-w-0 pr-2 text-left">
+      <span className="text-[9px] sm:text-[10px] font-extrabold text-stone-400 uppercase tracking-wider truncate block">Registros</span>
+      <span className="text-sm sm:text-lg font-black text-stone-900 mt-1 truncate">Ver Histórico</span>
+    </div>
+    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-[#222222] text-white flex items-center justify-center shrink-0 shadow-lg group-hover:scale-105 transition-transform">
+      <History className="w-5 h-5 sm:w-6 sm:h-6" />
+    </div>
+  </button>
 
-      </div>
-
-
+</div>
 
       {/* SEÇÃO PRINCIPAL: LINHA DO TEMPO DOS ATENDIMENTOS DE HOJE */}
       <div 

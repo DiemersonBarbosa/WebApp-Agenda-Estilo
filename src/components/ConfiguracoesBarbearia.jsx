@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Store, Save, Check, Image as ImageIcon, Palette, Layout } from 'lucide-react';
+import { Store, Save, Check, Image as ImageIcon, Palette, Layout, Globe, Sparkles, ExternalLink, Share2, Copy, MessageCircle, Send, X } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
@@ -9,9 +9,33 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
   const [slug, setSlug] = useState(barbearia?.slug || '');
   const [logoUrl, setLogoUrl] = useState(barbearia?.logo_url || '');
   const [capaUrl, setCapaUrl] = useState(barbearia?.capa_url || '');
-  const [corTema, setCorTema] = useState(barbearia?.cor_tema || '#000000');
+  const [corTema, setCorTema] = useState(barbearia?.cor_tema || '#111111');
   const [salvando, setSalvando] = useState(false);
   const [sucesso, setSucesso] = useState(false);
+  
+  // Estado para controlar o modal de compartilhamento
+  const [modalCompartilharOpen, setModalCompartilharOpen] = useState(false);
+  const [copiado, setCopiado] = useState(false);
+
+  const urlCliente = typeof window !== 'undefined' 
+    ? `${window.location.origin}/agendar/${slug || barbearia?.slug || 'barbearia'}`
+    : `https://seuapp.com/agendar/${slug || 'barbearia'}`;
+
+  const handleCopiarLink = () => {
+    navigator.clipboard.writeText(urlCliente);
+    setCopiado(true);
+    setTimeout(() => setCopiado(false), 3000);
+  };
+
+  const handleCompartilharWhatsApp = () => {
+    const texto = encodeURIComponent(`Olá! Agende seu horário na ${nome || 'nossa barbearia'} através do link abaixo: \n\n${urlCliente}`);
+    window.open(`https://api.whatsapp.com/send?text=${texto}`, '_blank');
+  };
+
+  const handleCompartilharTelegram = () => {
+    const texto = encodeURIComponent(`Agende seu horário na ${nome || 'nossa barbearia'}: ${urlCliente}`);
+    window.open(`https://t.me/share/url?url=${urlCliente}&text=${texto}`, '_blank');
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -43,98 +67,273 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
   };
 
   return (
-    <div className="bg-white rounded-3xl border border-stone-200/85 shadow-sm overflow-hidden p-6 max-w-2xl">
-      <div className="flex items-center gap-3 pb-6 border-b border-stone-100 mb-6">
-        <div className="w-10 h-10 rounded-2xl bg-stone-900 text-white flex items-center justify-center">
-          <Store className="w-5 h-5" />
+    <div className="max-w-4xl mx-auto space-y-6 pb-28 px-2 sm:px-0">
+      
+      {/* HEADER DE CAPA E AVATAR */}
+      <div className="bg-white rounded-[2.5rem] border border-stone-200/85 shadow-[0_10px_30px_rgba(0,0,0,0.03)] overflow-hidden">
+        
+        {/* Imagem de Capa */}
+        <div className="relative h-44 sm:h-56 w-full bg-stone-900 overflow-hidden">
+          {capaUrl ? (
+            <img src={capaUrl} alt="Capa" className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-r from-stone-900 via-stone-800 to-stone-900 flex items-center justify-center">
+              <span className="text-xs font-bold text-stone-500 tracking-wider uppercase">Sem imagem de capa cadastrada</span>
+            </div>
+          )}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+          
+          {/* Botão de Compartilhar / Link do Cliente */}
+          <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
+            <button 
+              onClick={() => setModalCompartilharOpen(true)}
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-white/90 hover:bg-white backdrop-blur-md rounded-2xl text-xs font-bold text-stone-900 shadow-lg transition-all cursor-pointer border border-white/40 active:scale-95"
+            >
+              <Share2 className="w-3.5 h-3.5 text-stone-700" />
+              <span>Compartilhar Link</span>
+            </button>
+            <a 
+              href={`/agendar/${slug || 'barbearia'}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center w-9 h-9 bg-white/90 hover:bg-white backdrop-blur-md rounded-2xl text-stone-900 shadow-lg transition-all cursor-pointer border border-white/40"
+              title="Abrir em nova aba"
+            >
+              <ExternalLink className="w-4 h-4 text-stone-700" />
+            </a>
+          </div>
         </div>
-        <div>
-          <h3 className="text-base font-bold text-stone-900">Configurações da Barbearia</h3>
-          <p className="text-xs text-stone-400">Personalize capa, logo, cores e dados do agendamento.</p>
+
+        {/* Avatar Flutuante e Título */}
+        <div className="px-6 pb-8 pt-0 relative flex flex-col items-center text-center">
+          <div className="-mt-16 sm:-mt-20 mb-4 relative z-20">
+            <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-[2rem] bg-white p-1.5 shadow-2xl border border-stone-200/80 overflow-hidden flex items-center justify-center">
+              {logoUrl ? (
+                <img src={logoUrl} alt="Logo" className="w-full h-full object-cover rounded-[1.6rem]" />
+              ) : (
+                <div className="w-full h-full bg-stone-900 text-white rounded-[1.6rem] flex items-center justify-center font-black text-2xl">
+                  {(nome || 'B').charAt(0)}
+                </div>
+              )}
+            </div>
+            <span className="absolute bottom-1 right-1 w-4 h-4 bg-emerald-500 border-2 border-white rounded-full"></span>
+          </div>
+
+          <h2 className="text-xl sm:text-2xl font-black text-stone-900 tracking-tight">{nome || 'Sua Barbearia'}</h2>
+          <p className="text-xs text-stone-500 font-medium mt-1 max-w-md">Personalize a identidade visual, altere links de acesso e configure as preferências da sua unidade.</p>
         </div>
+
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="space-y-1">
-          <label className="text-xs font-semibold text-stone-600">Nome da Barbearia</label>
-          <input
-            type="text"
-            value={nome}
-            onChange={(e) => setNome(e.target.value)}
-            className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2.5 text-xs text-stone-800 focus:outline-none focus:ring-2 focus:ring-stone-900"
-            required
-          />
-        </div>
-
-        <div className="space-y-1">
-          <label className="text-xs font-semibold text-stone-600">Link Personalizado (Slug)</label>
-          <input
-            type="text"
-            value={slug}
-            onChange={(e) => setSlug(e.target.value)}
-            className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2.5 text-xs text-stone-800 focus:outline-none focus:ring-2 focus:ring-stone-900"
-            required
-          />
-          <span className="text-[11px] text-stone-400">URL: seuapp.com/agendar/{slug}</span>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="space-y-1">
-            <label className="text-xs font-semibold text-stone-600 flex items-center gap-1.5">
-              <ImageIcon className="w-3.5 h-3.5" /> URL da Logo / Perfil
-            </label>
-            <input
-              type="url"
-              value={logoUrl}
-              onChange={(e) => setLogoUrl(e.target.value)}
-              placeholder="https://exemplo.com/logo.png"
-              className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2.5 text-xs text-stone-800 focus:outline-none focus:ring-2 focus:ring-stone-900"
-            />
+      {/* FORMULÁRIO DE CONFIGURAÇÕES */}
+      <form onSubmit={handleSubmit} className="space-y-6">
+        
+        {/* BLOCO 1: IDENTIFICAÇÃO DA UNIDADE */}
+        <div className="bg-white rounded-[2.5rem] border border-stone-200/85 shadow-[0_10px_30px_rgba(0,0,0,0.03)] p-6 sm:p-8 space-y-5">
+          <div className="flex items-center gap-3 pb-4 border-b border-stone-100">
+            <div className="w-10 h-10 rounded-2xl bg-[#111111] text-white flex items-center justify-center shadow-md shrink-0">
+              <Store className="w-5 h-5 text-stone-200" />
+            </div>
+            <div>
+              <h3 className="text-sm sm:text-base font-extrabold text-stone-900 tracking-tight">Identidade e Acesso</h3>
+              <p className="text-[11px] text-stone-400">Nome comercial e link exclusivo para o agendamento dos clientes.</p>
+            </div>
           </div>
 
-          <div className="space-y-1">
-            <label className="text-xs font-semibold text-stone-600 flex items-center gap-1.5">
-              <Layout className="w-3.5 h-3.5" /> URL da Imagem de Capa
-            </label>
-            <input
-              type="url"
-              value={capaUrl}
-              onChange={(e) => setCapaUrl(e.target.value)}
-              placeholder="https://exemplo.com/capa.png"
-              className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2.5 text-xs text-stone-800 focus:outline-none focus:ring-2 focus:ring-stone-900"
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-extrabold uppercase tracking-wider text-stone-500 block">Nome da Barbearia</label>
+              <input
+                type="text"
+                value={nome}
+                onChange={(e) => setNome(e.target.value)}
+                className="w-full bg-stone-50/90 border border-stone-200/80 rounded-2xl px-4 py-3.5 text-xs font-bold text-stone-900 focus:outline-none focus:border-stone-900 focus:bg-white transition-all shadow-xs"
+                required
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-extrabold uppercase tracking-wider text-stone-500 block">Link Personalizado (Slug)</label>
+              <input
+                type="text"
+                value={slug}
+                onChange={(e) => setSlug(e.target.value)}
+                className="w-full bg-stone-50/90 border border-stone-200/80 rounded-2xl px-4 py-3.5 text-xs font-bold text-stone-900 focus:outline-none focus:border-stone-900 focus:bg-white transition-all shadow-xs"
+                required
+              />
+              <span className="text-[10px] text-stone-400 font-medium pl-1 block mt-1">URL: seuapp.com/agendar/{slug || 'url'}</span>
+            </div>
           </div>
         </div>
 
-        <div className="space-y-1">
-          <label className="text-xs font-semibold text-stone-600 flex items-center gap-1.5">
-            <Palette className="w-3.5 h-3.5" /> Cor Principal do Tema
-          </label>
-          <div className="flex items-center gap-2">
-            <input
-              type="color"
-              value={corTema}
-              onChange={(e) => setCorTema(e.target.value)}
-              className="w-10 h-10 rounded-xl border border-stone-200 cursor-pointer bg-stone-50 p-1"
-            />
-            <input
-              type="text"
-              value={corTema}
-              onChange={(e) => setCorTema(e.target.value)}
-              className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2.5 text-xs text-stone-800 focus:outline-none focus:ring-2 focus:ring-stone-900 uppercase"
-            />
+        {/* BLOCO 2: MÍDIA E TEMA VISUAL */}
+        <div className="bg-white rounded-[2.5rem] border border-stone-200/85 shadow-[0_10px_30px_rgba(0,0,0,0.03)] p-6 sm:p-8 space-y-5">
+          <div className="flex items-center gap-3 pb-4 border-b border-stone-100">
+            <div className="w-10 h-10 rounded-2xl bg-[#111111] text-white flex items-center justify-center shadow-md shrink-0">
+              <Palette className="w-5 h-5 text-stone-200" />
+            </div>
+            <div>
+              <h3 className="text-sm sm:text-base font-extrabold text-stone-900 tracking-tight">Mídia, Imagens & Cores</h3>
+              <p className="text-[11px] text-stone-400">Insira os links das imagens oficiais e defina a cor principal.</p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-extrabold uppercase tracking-wider text-stone-500 flex items-center gap-1.5">
+                <ImageIcon className="w-3.5 h-3.5 text-stone-400" /> URL da Logo / Perfil
+              </label>
+              <input
+                type="url"
+                value={logoUrl}
+                onChange={(e) => setLogoUrl(e.target.value)}
+                placeholder="https://exemplo.com/logo.png"
+                className="w-full bg-stone-50/90 border border-stone-200/80 rounded-2xl px-4 py-3.5 text-xs font-bold text-stone-900 focus:outline-none focus:border-stone-900 focus:bg-white transition-all shadow-xs"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-extrabold uppercase tracking-wider text-stone-500 flex items-center gap-1.5">
+                <Layout className="w-3.5 h-3.5 text-stone-400" /> URL da Imagem de Capa
+              </label>
+              <input
+                type="url"
+                value={capaUrl}
+                onChange={(e) => setCapaUrl(e.target.value)}
+                placeholder="https://exemplo.com/capa.png"
+                className="w-full bg-stone-50/90 border border-stone-200/80 rounded-2xl px-4 py-3.5 text-xs font-bold text-stone-900 focus:outline-none focus:border-stone-900 focus:bg-white transition-all shadow-xs"
+              />
+            </div>
+
+            <div className="space-y-1.5 pt-1">
+              <label className="text-[10px] font-extrabold uppercase tracking-wider text-stone-500 flex items-center gap-1.5">
+                <Palette className="w-3.5 h-3.5 text-stone-400" /> Cor Principal do Tema
+              </label>
+              <div className="flex items-center gap-3">
+                <div className="relative w-12 h-12 rounded-2xl border border-stone-300 overflow-hidden shadow-xs shrink-0 flex items-center justify-center">
+                  <input
+                    type="color"
+                    value={corTema}
+                    onChange={(e) => setCorTema(e.target.value)}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  />
+                  <div className="w-full h-full" style={{ backgroundColor: corTema }}></div>
+                </div>
+                <input
+                  type="text"
+                  value={corTema}
+                  onChange={(e) => setCorTema(e.target.value)}
+                  className="w-full bg-stone-50/90 border border-stone-200/80 rounded-2xl px-4 py-3.5 text-xs font-bold text-stone-900 focus:outline-none focus:border-stone-900 focus:bg-white transition-all shadow-xs uppercase tracking-wider"
+                />
+              </div>
+            </div>
           </div>
         </div>
 
-        <button
-          type="submit"
-          disabled={salvando}
-          className="w-full bg-stone-900 hover:bg-stone-800 text-white font-bold py-3 rounded-xl transition duration-200 text-xs shadow-md flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 mt-4"
-        >
-          {sucesso ? <Check className="w-4 h-4 text-emerald-400" /> : <Save className="w-4 h-4" />}
-          {salvando ? 'Salvando...' : sucesso ? 'Salvo com Sucesso!' : 'Salvar Alterações'}
-        </button>
+        {/* BOTÃO DE SALVAR */}
+        <div className="pt-2">
+          <button
+            type="submit"
+            disabled={salvando}
+            className="w-full py-4 text-white rounded-[2rem] text-xs font-bold uppercase tracking-wider transition-all active:scale-95 shadow-xl flex items-center justify-center gap-2.5 cursor-pointer disabled:opacity-50"
+            style={{
+              background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
+              boxShadow: '0 12px 30px rgba(0, 0, 0, 0.45), inset 0 1.5px 2px rgba(255, 255, 255, 0.25), inset 0 -2px 4px rgba(0, 0, 0, 0.8)',
+              border: '1px solid rgba(255, 255, 255, 0.15)'
+            }}
+          >
+            {sucesso ? <Check className="w-4 h-4 text-emerald-400" /> : <Save className="w-4 h-4 text-stone-300" />}
+            <span>{salvando ? 'Salvando Alterações...' : sucesso ? 'Alterações Salvas com Sucesso!' : 'Salvar Todas as Alterações'}</span>
+          </button>
+        </div>
+
       </form>
+
+      {/* =========================================================
+          MODAL DE COMPARTILHAMENTO (MÍDIAS SOCIAIS & LINK)
+          ========================================================= */}
+      {modalCompartilharOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white rounded-[2.5rem] border border-stone-200 shadow-2xl w-full max-w-md p-6 sm:p-8 space-y-6 relative">
+            
+            {/* Fechar Modal */}
+            <button 
+              onClick={() => setModalCompartilharOpen(false)}
+              className="absolute top-6 right-6 w-9 h-9 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-600 flex items-center justify-center transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="space-y-1">
+              <span className="text-[10px] font-extrabold uppercase tracking-widest text-stone-400">Divulgação</span>
+              <h3 className="text-lg font-black text-stone-900 tracking-tight">Compartilhar Link do Cliente</h3>
+              <p className="text-xs text-stone-500">Envie o link de agendamento online diretamente para seus clientes.</p>
+            </div>
+
+            {/* Input com o Link */}
+            <div className="flex items-center gap-2 bg-stone-50 border border-stone-200 p-2 rounded-2xl">
+              <input 
+                type="text" 
+                readOnly 
+                value={urlCliente} 
+                className="w-full bg-transparent px-3 text-xs font-bold text-stone-800 outline-none truncate"
+              />
+              <button 
+                onClick={handleCopiarLink}
+                className="px-4 py-2 bg-stone-900 hover:bg-stone-800 text-white rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 cursor-pointer shadow-xs"
+              >
+                {copiado ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                <span>{copiado ? 'Copiado!' : 'Copiar'}</span>
+              </button>
+            </div>
+
+            {/* Opções de Redes Sociais */}
+            <div className="space-y-3 pt-2">
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-stone-400 block">Enviar via Redes Sociais</span>
+              
+              <div className="grid grid-cols-2 gap-3">
+                {/* WhatsApp */}
+                <button
+                  onClick={handleCompartilharWhatsApp}
+                  className="flex items-center gap-3 p-3.5 rounded-2xl bg-emerald-50 hover:bg-emerald-100/80 border border-emerald-200/60 text-emerald-800 transition-all font-bold text-xs cursor-pointer group"
+                >
+                  <div className="w-8 h-8 rounded-xl bg-emerald-500 text-white flex items-center justify-center shadow-xs group-hover:scale-105 transition-transform">
+                    <MessageCircle className="w-4 h-4" />
+                  </div>
+                  <span>WhatsApp</span>
+                </button>
+
+                {/* Telegram */}
+                <button
+                  onClick={handleCompartilharTelegram}
+                  className="flex items-center gap-3 p-3.5 rounded-2xl bg-sky-50 hover:bg-sky-100/80 border border-sky-200/60 text-sky-800 transition-all font-bold text-xs cursor-pointer group"
+                >
+                  <div className="w-8 h-8 rounded-xl bg-sky-500 text-white flex items-center justify-center shadow-xs group-hover:scale-105 transition-transform">
+                    <Send className="w-4 h-4" />
+                  </div>
+                  <span>Telegram</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Ação de Testar Link */}
+            <div className="pt-2 border-t border-stone-100 flex justify-between items-center">
+              <span className="text-[11px] text-stone-400">Deseja testar a página?</span>
+              <a 
+                href={urlCliente}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs font-bold text-stone-900 hover:underline inline-flex items-center gap-1"
+              >
+                <span>Abrir página</span>
+                <ExternalLink className="w-3 h-3" />
+              </a>
+            </div>
+
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

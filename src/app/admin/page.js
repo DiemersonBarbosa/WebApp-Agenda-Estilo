@@ -56,6 +56,8 @@ import RelatoriosPage from './relatorios'; // Ajuste o caminho caso o arquivo es
 import PdvScreen from '@/components/PdvScreen'; 
 import ProdutosScreen from '@/components/ProdutosScreen';
 
+import NotificacoesBell from '@/components/NotificacoesBell'; // Ajuste o caminho se necessário
+
 
 
 
@@ -101,6 +103,21 @@ export default function AdminDashboard() {
 
   const [produtos, setProdutos] = useState([]);
 
+
+  
+
+
+// 2. COLE APENAS ESTE BLOCO LOGO AQUI NO INÍCIO DO COMPONENTE:
+  useEffect(() => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+  }, [activeTab]);
+ 
+
+
+
 // Função para buscar produtos do Supabase
 async function carregarProdutos(barbeariaId) {
   const { data, error } = await supabase
@@ -126,6 +143,19 @@ async function carregarProdutos(barbeariaId) {
   // Sessão e Barbearia
   const [user, setUser] = useState(null);
   const [barbearia, setBarbearia] = useState(null);
+
+
+useEffect(() => {
+  if (!barbearia?.id) return;
+  
+  const intervalo = setInterval(() => {
+    loadDashboardData(barbearia.id);
+  }, 15000);
+
+  return () => clearInterval(intervalo);
+}, [barbearia?.id]);
+
+
 
   // Estados de Assinatura e Teste
   const [diasRestantes, setDiasRestantes] = useState(7);
@@ -977,16 +1007,9 @@ const handleSaveBarbeiro = async (e) => {
 
     {/* Ações Rápidas do Topo (Notificação + Configurações) */}
     <div className="flex items-center gap-2.5">
-      <button 
-        onClick={() => {}} 
-        className="w-10 h-10 rounded-full bg-white border border-stone-200/80 flex items-center justify-center text-stone-700 shadow-xs relative hover:bg-stone-50 transition-colors cursor-pointer"
-        title="Notificações"
-      >
-        <span className="absolute top-2 right-2 w-2 h-2 bg-rose-500 rounded-full animate-pulse"></span>
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-        </svg>
-      </button>
+<NotificacoesBell barbeariaId={barbearia?.id} supabase={supabase} />
+
+      
 
       <button 
         onClick={() => setModalInfoAssinaturaOpen(true)} 
@@ -1598,225 +1621,165 @@ const handleSaveBarbeiro = async (e) => {
 )}
 
       <div className="flex flex-1">
-        {/* BARRA LATERAL */}
-        <aside className="w-64 bg-white border-r border-stone-200/80 p-6 flex flex-col justify-between hidden md:flex">
-          <div className="space-y-8">
-            <div className="flex items-center gap-3">
-              {barbearia?.logo || barbearia?.logo_url || barbearia?.avatar || barbearia?.imagem ? (
-                <img 
-                  src={barbearia.logo || barbearia.logo_url || barbearia.avatar || barbearia.imagem} 
-                  alt={barbearia?.nome || "Barbearia"} 
-                  className="w-10 h-10 rounded-2xl object-cover border border-stone-200 shadow-sm shrink-0"
-                />
-              ) : (
-                <div className="w-10 h-10 rounded-2xl bg-stone-900 text-white flex items-center justify-center shadow-md shrink-0">
-                  <Store className="w-5 h-5" />
-                </div>
-              )}
-              <div>
-                <h1 className="font-bold text-stone-900 text-base leading-none truncate max-w-[130px]" title={barbearia?.nome}>
-                  {barbearia?.nome || 'Minha Barbearia'}
-                </h1>
-                <span className="text-xs text-stone-400 font-medium">Painel Gestor</span>
-              </div>
-            </div>
-
-            <nav className="space-y-1.5">
-
-
-<button
-  onClick={() => setActiveTab('pdv')}
-  className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-semibold ${
-    activeTab === 'pdv' ? 'bg-stone-950 text-white shadow-sm' : 'text-stone-600 hover:bg-stone-100'
-  }`}
+       {/* BARRA LATERAL FIXA & ESTILIZADA - BLACK PIANO */}
+<aside 
+  className="hidden md:flex flex-col w-72 p-6 select-none shrink-0 fixed left-0 top-0 h-screen overflow-y-auto justify-between border-r border-stone-800/80 z-40 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-[#111111] [&::-webkit-scrollbar-thumb]:bg-stone-700 [&::-webkit-scrollbar-thumb]:rounded-full"
+  style={{
+    background: 'linear-gradient(180deg, #181818 0%, #111111 50%, #080808 100%)',
+    boxShadow: '8px 0 30px rgba(0, 0, 0, 0.4), inset -1px 0 0 rgba(255, 255, 255, 0.08)'
+  }}
 >
-  <ShoppingCart className="w-4 h-4" /> PDV
-</button>
+  <div className="space-y-6 w-full">
+    
+    {/* TOPO: PERFIL DA BARBEARIA */}
+    <div className="flex items-center gap-3.5 px-3 py-2.5 bg-white/5 border border-white/10 rounded-2xl backdrop-blur-md shadow-inner">
+      {barbearia?.logo || barbearia?.logo_url || barbearia?.avatar || barbearia?.imagem ? (
+        <img 
+          src={barbearia.logo || barbearia.logo_url || barbearia.avatar || barbearia.imagem} 
+          alt={barbearia?.nome || "Barbearia"} 
+          className="w-11 h-11 rounded-xl object-cover border border-white/20 shadow-sm shrink-0"
+        />
+      ) : (
+        <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-stone-700 to-stone-900 text-white flex items-center justify-center shadow-md border border-white/10 shrink-0">
+          <Store className="w-5 h-5 text-stone-200" />
+        </div>
+      )}
+      <div className="min-w-0 pr-1">
+        <h1 className="font-black text-white text-xs leading-none truncate" title={barbearia?.nome}>
+          {barbearia?.nome || 'Minha Barbearia'}
+        </h1>
+        <span className="text-[9px] font-extrabold text-stone-400 uppercase tracking-widest block mt-1">Painel Gestor</span>
+      </div>
+    </div>
 
+    {/* MENU DE NAVEGAÇÃO (Textos e ícones centralizados em harmonia com o rodapé) */}
+    {/* MENU DE NAVEGAÇÃO (Com a mesma borda e alinhamento dos botões do rodapé) */}
+    <nav className="space-y-1.5 pt-1 w-full">
+      {[
+        { id: 'pdv', label: 'PDV', icon: ShoppingCart },
+        { id: 'produtos', label: 'Produtos & Estoque', icon: ShoppingBag },
+        { id: 'agendamentos', label: 'Agendamentos', icon: CalendarCheck },
+        { id: 'clientes', label: 'Clientes Cadastrados', icon: Users },
+        { id: 'financeiro', label: 'Relatório Financeiro', icon: DollarSign },
+        { id: 'despesas', label: 'Custos & Despesas', icon: TrendingDown },
+        { id: 'servicos', label: 'Serviços & Equipe', icon: Scissors },
+        { id: 'comissoes', label: 'Comissões', icon: Percent },
+        { id: 'configuracoes', label: 'Configurações', icon: Store },
+      ].map((item) => {
+        const IconComponent = item.icon;
+        const isActive = activeTab === item.id;
 
-<button
-  onClick={() => setActiveTab('produtos')}
-  className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-semibold cursor-pointer transition-all ${
-    activeTab === 'produtos' ? 'bg-stone-950 text-white shadow-sm' : 'text-stone-600 hover:bg-stone-100'
-  }`}
->
-  <ShoppingBag className="w-4 h-4" /> Produtos & Estoque
-</button>
-
-
-              <button
-                onClick={() => setActiveTab('agendamentos')}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-semibold transition-all cursor-pointer ${
-                  activeTab === 'agendamentos' ? 'bg-stone-900 text-white shadow-sm' : 'text-stone-600 hover:bg-stone-100'
-                }`}
-              >
-                <CalendarCheck className="w-4 h-4" /> Agendamentos
-              </button>
-
-              <button
-                onClick={() => setActiveTab('clientes')}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-semibold transition-all cursor-pointer ${
-                  activeTab === 'clientes' ? 'bg-stone-900 text-white shadow-sm' : 'text-stone-600 hover:bg-stone-100'
-                }`}
-              >
-                <Users className="w-4 h-4" /> Clientes Cadastrados
-              </button>
-
-              <button
-                onClick={() => setActiveTab('financeiro')}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-semibold transition-all cursor-pointer ${
-                  activeTab === 'financeiro' ? 'bg-stone-900 text-white shadow-sm' : 'text-stone-600 hover:bg-stone-100'
-                }`}
-              >
-                <DollarSign className="w-4 h-4" /> Relatório Financeiro
-              </button>
-
-              <button
-                onClick={() => setActiveTab('despesas')}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-semibold transition-all cursor-pointer ${
-                  activeTab === 'despesas' ? 'bg-stone-900 text-white shadow-sm' : 'text-stone-600 hover:bg-stone-100'
-                }`}
-              >
-                <TrendingDown className="w-4 h-4" /> Custos & Despesas
-              </button>
-
-              <button
-                onClick={() => setActiveTab('servicos')}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-semibold transition-all cursor-pointer ${
-                  activeTab === 'servicos' ? 'bg-stone-900 text-white shadow-sm' : 'text-stone-600 hover:bg-stone-100'
-                }`}
-              >
-                <Scissors className="w-4 h-4" /> Serviços & Equipe
-              </button>
-
-
-<button
-  onClick={() => { setActiveTab('comissoes'); setMobileMenuOpen(false); }}
-  className={`flex items-center space-x-3 w-full p-3 rounded-2xl transition-all ${
-    activeTab === 'comissoes'
-      ? 'bg-stone-900 text-white shadow-sm'
-      : 'bg-stone-50 hover:bg-stone-100 text-stone-700'
-  }`}
->
-  <div className={`p-2 rounded-lg shadow-xs transition-colors ${
-    activeTab === 'comissoes' ? 'bg-stone-800 text-white' : 'bg-white text-stone-700'
-  }`}>
-    <Percent className="w-4 h-4" />
+        return (
+          <button
+            key={item.id}
+            onClick={() => { setActiveTab(item.id); setMobileMenuOpen(false); }}
+            className={`w-full flex items-center justify-center gap-3 px-4 py-3.5 rounded-2xl text-xs font-bold transition-all cursor-pointer border ${
+              isActive 
+                ? 'text-white shadow-xl border-white/20' 
+                : 'text-stone-400 border-white/5 hover:bg-white/5 hover:text-white hover:border-white/10'
+            }`}
+            style={isActive ? {
+              background: 'radial-gradient(circle at 30% 30%, #333333 0%, #1a1a1a 60%, #0d0d0d 100%)',
+              boxShadow: '0 8px 20px rgba(0, 0, 0, 0.6), inset 0 1px 2px rgba(255, 255, 255, 0.25), inset 0 -2px 4px rgba(0, 0, 0, 0.9)',
+            } : {
+              background: 'rgba(255, 255, 255, 0.02)'
+            }}
+          >
+            <IconComponent className={`w-4 h-4 shrink-0 ${isActive ? 'text-stone-200' : 'text-stone-500'}`} />
+            <span className="tracking-tight truncate">{item.label}</span>
+          </button>
+        );
+      })}
+    </nav>
   </div>
-  <span className="text-xs font-bold text-left leading-tight">Comissões</span>
-</button>
 
+  {/* RODAPÉ DA SIDEBAR: AÇÕES RÁPIDAS */}
+  <div className="space-y-2 pt-5 border-t border-stone-800/80 mt-auto w-full">
+    <button
+      onClick={() => setModalInfoAssinaturaOpen(true)}
+      className="w-full flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl text-xs font-extrabold text-stone-200 hover:text-white transition-all cursor-pointer border border-white/10 shadow-md"
+      style={{
+        background: 'linear-gradient(135deg, #252525 0%, #151515 100%)',
+        boxShadow: '0 6px 15px rgba(0, 0, 0, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.2)'
+      }}
+    >
+      <CreditCard className="w-4 h-4 text-emerald-400 shrink-0" /> 
+      <span className="truncate">{barbearia?.status_assinatura === 'ativo' ? 'Assinatura Ativa' : 'Assinar / Renovar'}</span>
+    </button>
 
-<button
-  onClick={() => setActiveTab('configuracoes')}
-  className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-semibold transition-all cursor-pointer ${
-    activeTab === 'configuracoes' ? 'bg-stone-900 text-white shadow-sm' : 'text-stone-600 hover:bg-stone-100'
-  }`}
->
-  <Store className="w-4 h-4" /> Configurações
-</button>
+    <button
+      onClick={() => loadDashboardData(barbearia.id)}
+      className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-2xl border border-white/10 text-xs font-semibold text-stone-400 hover:text-white hover:bg-white/5 transition-all cursor-pointer"
+    >
+      <RefreshCw className="w-4 h-4 shrink-0" /> 
+      <span className="truncate">Atualizar Dados</span>
+    </button>
 
+    <button
+      onClick={handleLogout}
+      className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-2xl border border-rose-500/30 text-xs font-semibold text-rose-400 hover:bg-rose-500/10 transition-all cursor-pointer"
+    >
+      <LogOut className="w-4 h-4 shrink-0" /> 
+      <span className="truncate">Sair do Sistema</span>
+    </button>
+  </div>
+</aside>
 
-            </nav>
-          </div>
+{/* CONTEÚDO PRINCIPAL (Com 'md:ml-72' para empurrar o layout e evitar o corte à esquerda) */}
+<main className="flex-1 md:ml-72 p-4 sm:p-6 md:p-10 pb-24 overflow-y-auto max-w-full">
+  
+  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+    {activeTab === 'configuracoes' && (
+      <div className="flex items-center gap-2"></div>
+    )}
+  </div>
 
-          <div className="space-y-2 pt-4 border-t border-stone-100">
-            <button
-              onClick={() => setModalInfoAssinaturaOpen(true)}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-sky-50 border border-sky-200 text-xs font-bold text-sky-800 hover:bg-sky-100 transition-all cursor-pointer"
-            >
-              <CreditCard className="w-3.5 h-3.5" /> {barbearia?.status_assinatura === 'ativo' ? 'Assinatura Ativa' : 'Assinar / Renovar'}
-            </button>
+  {errorMessage && (
+    <div className="mb-6 bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 rounded-2xl text-xs flex items-center gap-2">
+      <AlertCircle className="w-4 h-4 text-rose-500" /> {errorMessage}
+    </div>
+  )}
 
-            <button
-              onClick={() => loadDashboardData(barbearia.id)}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-stone-200 text-xs font-medium text-stone-600 hover:bg-stone-50 transition-all cursor-pointer"
-            >
-              <RefreshCw className="w-3.5 h-3.5" /> Atualizar Dados
-            </button>
+  {/* CARDS DE INDICADORES */}
+  {activeTab === 'relatorio financeiro' && (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="bg-white p-5 rounded-2xl border border-stone-200/80 shadow-sm">
+        <div className="flex items-center justify-between text-stone-400 mb-3">
+          <span className="text-xs font-medium uppercase tracking-wider">Faturamento</span>
+          <DollarSign className="w-4 h-4 text-emerald-600" />
+        </div>
+        <p className="text-2xl font-extrabold text-stone-900">R$ {totalFaturamento.toFixed(2)}</p>
+        <span className="text-[11px] text-emerald-600 font-medium">Serviços finalizados</span>
+      </div>
 
-            <button
-              onClick={handleLogout}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-rose-200 text-xs font-medium text-rose-600 hover:bg-rose-50 transition-all cursor-pointer"
-            >
-              <LogOut className="w-3.5 h-3.5" /> Sair do Sistema
-            </button>
-          </div>
-        </aside>
+      <div className="bg-white p-5 rounded-2xl border border-stone-200/80 shadow-sm">
+        <div className="flex items-center justify-between text-stone-400 mb-3">
+          <span className="text-xs font-medium uppercase tracking-wider">Despesas</span>
+          <TrendingDown className="w-4 h-4 text-rose-500" />
+        </div>
+        <p className="text-2xl font-extrabold text-stone-900">R$ {totalDespesas.toFixed(2)}</p>
+        <span className="text-[11px] text-rose-600 font-medium">Custos cadastrados</span>
+      </div>
 
-        {/* CONTEÚDO PRINCIPAL */}
-        <main className="flex-1 p-4 sm:p-6 md:p-10 pb-24 overflow-y-auto max-w-full">
+      <div className="bg-white p-5 rounded-2xl border border-stone-200/80 shadow-sm">
+        <div className="flex items-center justify-between text-stone-400 mb-3">
+          <span className="text-xs font-medium uppercase tracking-wider">Lucro Líquido</span>
+          <Wallet className="w-4 h-4 text-indigo-500" />
+        </div>
+        <p className="text-2xl font-extrabold text-stone-900">R$ {lucroLiquido.toFixed(2)}</p>
+        <span className="text-[11px] text-indigo-600 font-medium">Receita - Despesas</span>
+      </div>
 
-
-
-          
-          
-          
-
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-            
-
-
-{activeTab === 'configuracoes' && (
-            <div className="flex items-center gap-2">
-              <a
-                href={`/agendar/${barbearia?.slug}`}
-                target="_blank"
-                rel="noreferrer"
-                className="text-xs font-medium bg-white hover:bg-stone-50 text-stone-700 px-4 py-2.5 rounded-xl border border-stone-200 shadow-sm transition-all"
-              >
-                Link do Cliente ↗
-              </a>
-            </div>)}
-          </div>
-
-          {errorMessage && (
-            <div className="mb-6 bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 rounded-2xl text-xs flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 text-rose-500" /> {errorMessage}
-            </div>
-          )}
-
-          {/* CARDS DE INDICADORES */}
-          {activeTab === 'relatorio financeiro' && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            <div className="bg-white p-5 rounded-2xl border border-stone-200/80 shadow-sm">
-              <div className="flex items-center justify-between text-stone-400 mb-3">
-                <span className="text-xs font-medium uppercase tracking-wider">Faturamento</span>
-                <DollarSign className="w-4 h-4 text-emerald-600" />
-              </div>
-              <p className="text-2xl font-extrabold text-stone-900">R$ {totalFaturamento.toFixed(2)}</p>
-              <span className="text-[11px] text-emerald-600 font-medium">Serviços finalizados</span>
-            </div>
-
-            <div className="bg-white p-5 rounded-2xl border border-stone-200/80 shadow-sm">
-              <div className="flex items-center justify-between text-stone-400 mb-3">
-                <span className="text-xs font-medium uppercase tracking-wider">Despesas</span>
-                <TrendingDown className="w-4 h-4 text-rose-500" />
-              </div>
-              <p className="text-2xl font-extrabold text-stone-900">R$ {totalDespesas.toFixed(2)}</p>
-              <span className="text-[11px] text-rose-600 font-medium">Custos cadastrados</span>
-            </div>
-
-            <div className="bg-white p-5 rounded-2xl border border-stone-200/80 shadow-sm">
-              <div className="flex items-center justify-between text-stone-400 mb-3">
-                <span className="text-xs font-medium uppercase tracking-wider">Lucro Líquido</span>
-                <Wallet className="w-4 h-4 text-indigo-500" />
-              </div>
-              <p className="text-2xl font-extrabold text-stone-900">R$ {lucroLiquido.toFixed(2)}</p>
-              <span className="text-[11px] text-indigo-600 font-medium">Receita - Despesas</span>
-            </div>
-
-            <div className="bg-white p-5 rounded-2xl border border-stone-200/80 shadow-sm">
-              <div className="flex items-center justify-between text-stone-400 mb-3">
-                <span className="text-xs font-medium uppercase tracking-wider">Ticket Médio</span>
-                <TrendingUp className="w-4 h-4 text-stone-600" />
-              </div>
-              <p className="text-2xl font-extrabold text-stone-900">R$ {ticketMedio}</p>
-              <span className="text-[11px] text-stone-400 font-medium">Média por atendimento</span>
-            </div>
-          </div>
-
-          )}
+      <div className="bg-white p-5 rounded-2xl border border-stone-200/80 shadow-sm">
+        <div className="flex items-center justify-between text-stone-400 mb-3">
+          <span className="text-xs font-medium uppercase tracking-wider">Ticket Médio</span>
+          <TrendingUp className="w-4 h-4 text-stone-600" />
+        </div>
+        <p className="text-2xl font-extrabold text-stone-900">R$ {ticketMedio}</p>
+        <span className="text-[11px] text-stone-400 font-medium">Média por atendimento</span>
+      </div>
+    </div>
+  )}
 
           {/* CONTEÚDO DAS ABAS */}
 {/* CONTEÚDO DAS ABAS */}
