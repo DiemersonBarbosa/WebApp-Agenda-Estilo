@@ -947,26 +947,59 @@ const handleSaveBarbeiro = async (e) => {
 {/* =========================================================
     2. CABEÇALHO MOBILE CLEAN (Abaixo do aviso)
     ========================================================= */}
-<header className="w-full bg-white/80 backdrop-blur-md border-b border-stone-200/60 px-4 py-2.5 sticky top-0 z-30 md:hidden shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
-  <div className="max-w-7xl mx-auto flex items-center justify-between">
+{/* CABEÇALHO FLUTUANTE (Estilo Dinâmico / Glassmorphism) */}
+<header className="w-full px-4 pt-3 pb-2 sticky top-0 z-30 md:hidden">
+  <div className="max-w-7xl mx-auto bg-white/70 backdrop-blur-xl border border-white/80 rounded-[2rem] px-4 py-3 flex items-center justify-between shadow-[0_10px_30px_rgba(0,0,0,0.06)]">
+    
+    {/* Perfil & Nome */}
     <div className="flex items-center gap-3 min-w-0">
       {barbearia?.logo || barbearia?.logo_url || barbearia?.avatar || barbearia?.imagem ? (
-        <img 
-          src={barbearia.logo || barbearia.logo_url || barbearia.avatar || barbearia.imagem} 
-          alt="Logo" 
-          className="w-8 h-8 rounded-xl object-cover border border-stone-200 shadow-xs"
-        />
+        <div className="relative">
+          <img 
+            src={barbearia.logo || barbearia.logo_url || barbearia.avatar || barbearia.imagem} 
+            alt="Logo" 
+            className="w-10 h-10 rounded-2xl object-cover border border-white shadow-xs"
+          />
+          <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full"></span>
+        </div>
       ) : (
-        <div className="w-8 h-8 bg-stone-900 text-white rounded-xl flex items-center justify-center font-bold text-xs shadow-xs">
+        <div className="w-10 h-10 bg-stone-900 text-white rounded-2xl flex items-center justify-center font-bold text-xs shadow-xs">
           {(barbearia?.nome || 'B').charAt(0)}
         </div>
       )}
-      <h1 className="font-bold text-stone-900 text-sm tracking-tight truncate">
-        {barbearia?.nome || 'Minha Barbearia'}
-      </h1>
+      <div className="min-w-0">
+        <span className="text-[9px] font-extrabold text-stone-400 uppercase tracking-wider block">Owner & CEO</span>
+        <h1 className="font-black text-stone-900 text-sm tracking-tight truncate">
+          {barbearia?.nome || 'Patyoliiiver'}
+        </h1>
+      </div>
     </div>
+
+    {/* Ações Rápidas do Topo (Notificação + Configurações) */}
+    <div className="flex items-center gap-2">
+      <button 
+        onClick={() => {}} 
+        className="w-9 h-9 rounded-full bg-white border border-stone-200/80 flex items-center justify-center text-stone-700 shadow-xs relative hover:bg-stone-50 transition-colors"
+        title="Notificações"
+      >
+        <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full animate-pulse"></span>
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+        </svg>
+      </button>
+
+      <button 
+        onClick={() => setModalInfoAssinaturaOpen(true)} 
+        className="w-9 h-9 rounded-full bg-white border border-stone-200/80 flex items-center justify-center text-stone-700 shadow-xs hover:bg-stone-50 transition-colors"
+        title="Ajustes"
+      >
+        <Settings className="w-4 h-4" />
+      </button>
+    </div>
+
   </div>
 </header>
+
 
 
 </div>
