@@ -105,41 +105,7 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
   return (
     <div className="max-w-7xl mx-auto space-y-6 pb-28 px-2 sm:px-0">
       
-      {/* Cabeçalho da Barbearia exclusivo para o PDF */}
-      <div className="hidden print:flex items-center gap-3 pb-4 border-b border-stone-200">
-        {barbearia?.logo || barbearia?.logo_url ? (
-          <img 
-            src={barbearia.logo || barbearia.logo_url} 
-            alt="Logo" 
-            className="w-10 h-10 rounded-xl object-cover border border-stone-200"
-          />
-        ) : (
-          <div className="w-10 h-10 bg-stone-900 text-white rounded-xl flex items-center justify-center font-bold">
-            {(barbearia?.nome || 'B').charAt(0)}
-          </div>
-        )}
-        <div>
-          <h2 className="text-base font-bold text-stone-900">{barbearia?.nome || 'Minha Barbearia'}</h2>
-          <p className="text-xs text-stone-500">Relatório Financeiro & Operacional Completo</p>
-        </div>
-      </div>
-
-      {/* Cabeçalho padrão da tela com o Botão de Exportar PDF Discreto e Estratégico */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white/90 p-5 sm:p-6 rounded-[2.5rem] border border-stone-200/80 shadow-[0_4px_20px_rgba(0,0,0,0.03)] backdrop-blur-md">
-        <div>
-          <h3 className="text-base sm:text-lg font-black text-stone-900 tracking-tight">Relatório Financeiro & Operacional</h3>
-          <p className="text-xs text-stone-500 mt-0.5">Visão completa de entradas, saídas, comissões e histórico operacional.</p>
-        </div>
-        
-        {/* Botão Exportar PDF Discreto */}
-        <button 
-          onClick={handleExportarPDF}
-          className="print:hidden inline-flex items-center gap-2 px-4 py-2.5 bg-stone-100 hover:bg-stone-200/80 text-stone-700 rounded-2xl text-xs font-bold transition-all border border-stone-200 cursor-pointer self-start sm:self-auto shadow-xs"
-        >
-          <FileText className="w-4 h-4 text-stone-500" />
-          <span>Exportar PDF</span>
-        </button>
-      </div>
+     
 
       {/* Cards de Indicadores (KPIs) com Estilo Black Piano Degradê & Esferas 3D */}
       <div className="grid grid-cols-2 gap-3.5 md:gap-5 mb-6">
