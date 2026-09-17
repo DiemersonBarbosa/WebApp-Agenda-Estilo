@@ -976,7 +976,7 @@ const handleSaveBarbeiro = async (e) => {
    ABA: VISÃO GERAL & DASHBOARD COMPLETO (MOBILE & DESKTOP)
    ========================================================= */}
 {activeTab === 'visao-geral' && (
-  <div className="space-y-2 pb-24 pt-1">
+  <div className=" pb-24 pt-1">
     
     {/* Cabeçalho da Seção */}
     <div className="bg-white p-5 rounded-2xl border border-stone-200/80 shadow-xs flex flex-col gap-3">
