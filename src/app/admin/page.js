@@ -1918,18 +1918,25 @@ const handleSaveBarbeiro = async (e) => {
 
 
 {activeTab === 'comissoes' && (
-  <div className="bg-white rounded-3xl border border-stone-200/80 shadow-sm p-6 space-y-6">
-    <div className="pb-4 border-b border-stone-100">
-      <h3 className="text-base font-bold text-stone-900">Comissões dos Barbeiros</h3>
-      <p className="text-xs text-stone-400">Defina a porcentagem de comissão padrão para cada profissional da unidade.</p>
+  <div 
+    className="rounded-[2.5rem] border border-stone-200/85 shadow-[0_10px_30px_rgba(0,0,0,0.03)] p-5 sm:p-8 space-y-6 bg-white"
+  >
+    <div className="pb-4 border-b border-stone-200/60 flex items-center gap-3">
+      <div className="w-10 h-10 rounded-2xl bg-[#111111] text-white flex items-center justify-center shadow-md">
+        <Percent className="w-5 h-5 text-stone-200" />
+      </div>
+      <div>
+        <h3 className="text-base sm:text-lg font-black text-stone-900 tracking-tight">Comissões dos Barbeiros</h3>
+        <p className="text-xs text-stone-500 mt-0.5">Defina a porcentagem de comissão padrão para cada profissional da unidade.</p>
+      </div>
     </div>
 
     {barbeiros.length === 0 ? (
-      <div className="p-8 text-center text-stone-400 text-xs">
+      <div className="p-12 text-center text-stone-400 text-xs font-medium">
         Nenhum barbeiro cadastrado no momento para esta unidade.
       </div>
     ) : (
-      <div className="space-y-3">
+      <div className="space-y-3.5">
         {barbeiros
           .filter((barbeiro, index, self) => 
             index === self.findIndex(b => (b.id && b.id === barbeiro.id) || (b.nome && b.nome.toLowerCase() === barbeiro.nome.toLowerCase()))
@@ -1940,71 +1947,73 @@ const handleSaveBarbeiro = async (e) => {
             return (
               <div 
                 key={barbeiro.id} 
-                className="flex items-center justify-between p-4 rounded-2xl border border-stone-100 bg-stone-50/50"
+                className="flex flex-col sm:flex-row sm:items-center justify-between p-4 sm:p-5 rounded-3xl border border-stone-200/70 bg-stone-50/80 hover:bg-stone-50 transition-all gap-4 shadow-xs"
               >
-                <div>
-                  <h4 className="text-xs font-bold text-stone-900">{barbeiro.nome}</h4>
-                  <span className="text-[11px] text-stone-400">
-                    Comissão atual: <strong className="text-emerald-600">{valorAtual}%</strong>
+                <div className="space-y-0.5">
+                  <h4 className="text-xs sm:text-sm font-extrabold text-stone-900">{barbeiro.nome}</h4>
+                  <span className="text-xs text-stone-500 font-medium">
+                    Comissão atual: <strong className="text-stone-900 font-bold">{valorAtual}%</strong>
                   </span>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <input
-                    type="number"
-                    defaultValue={valorAtual}
-                    id={`comissao-${barbeiro.id}`}
-                    className="w-20 px-3 py-1.5 bg-white border border-stone-200 rounded-xl text-xs font-bold text-stone-900 focus:outline-none"
-                  />
-             <button
-  onClick={async () => {
-    const inputReal = document.getElementById(`comissao-${barbeiro.id}`);
-    const novaComissao = Number(inputReal.value);
+                <div className="flex items-center gap-2.5 self-end sm:self-auto">
+                  <div className="relative flex items-center">
+                    <input
+                      type="number"
+                      defaultValue={valorAtual}
+                      id={`comissao-${barbeiro.id}`}
+                      className="w-20 px-3.5 py-2 bg-white border border-stone-300/80 rounded-2xl text-xs font-bold text-stone-900 focus:outline-none focus:border-stone-900 shadow-xs text-center"
+                    />
+                    <span className="absolute right-3 text-xs font-bold text-stone-400 pointer-events-none">%</span>
+                  </div>
 
-    if (isNaN(novaComissao) || novaComissao < 0 || novaComissao > 100) {
-      alert('Insira um valor entre 0 e 100.');
-      return;
-    }
+                  <button
+                    onClick={async () => {
+                      const inputReal = document.getElementById(`comissao-${barbeiro.id}`);
+                      const novaComissao = Number(inputReal.value);
 
-    // Tenta atualizar diretamente pelo ID ou telefone/user_id sem travar na sessão
-    const { data, error } = await supabase
-      .from('barbeiros')
-      .update({ 
-        taxa_comissao: novaComissao, 
-        comissao_padrao: novaComissao 
-      })
-      .eq('id', barbeiro.id)
-      .select();
+                      if (isNaN(novaComissao) || novaComissao < 0 || novaComissao > 100) {
+                        alert('Insira um valor entre 0 e 100.');
+                        return;
+                      }
 
-    if (error) {
-      console.error('Erro detalhado do Supabase:', error);
-      alert('Erro do Banco: ' + error.message);
-    } else if (!data || data.length === 0) {
-      // Fallback: se o id falhou, tenta atualizar usando o user_id ou slug
-      const { data: data2, error: err2 } = await supabase
-        .from('barbeiros')
-        .update({ 
-          taxa_comissao: novaComissao, 
-          comissao_padrao: novaComissao 
-        })
-        .eq('user_id', barbeiro.user_id || '')
-        .select();
+                      const { data, error } = await supabase
+                        .from('barbeiros')
+                        .update({ 
+                          taxa_comissao: novaComissao, 
+                          comissao_padrao: novaComissao 
+                        })
+                        .eq('id', barbeiro.id)
+                        .select();
 
-      if (err2 || !data2 || data2.length === 0) {
-        alert('Erro: O banco recusou a atualização. Verifique as políticas de RLS (Row Level Security) da tabela barbeiros no Supabase.');
-      } else {
-        alert('Comissão atualizada com sucesso!');
-        setBarbeiros(prev => prev.map(b => b.user_id === barbeiro.user_id ? { ...b, taxa_comissao: novaComissao, comissao_padrao: novaComissao } : b));
-      }
-    } else {
-      alert('Comissão atualizada com sucesso!');
-      setBarbeiros(prev => prev.map(b => b.id === barbeiro.id ? { ...b, taxa_comissao: novaComissao, comissao_padrao: novaComissao } : b));
-    }
-  }}
-  className="px-3 py-1.5 bg-emerald-50 border border-emerald-200 text-emerald-600 text-xs font-bold rounded-xl active:scale-95 transition-transform"
->
-  Salvar
-</button>
+                      if (error) {
+                        console.error('Erro detalhado do Supabase:', error);
+                        alert('Erro do Banco: ' + error.message);
+                      } else if (!data || data.length === 0) {
+                        const { data: data2, error: err2 } = await supabase
+                          .from('barbeiros')
+                          .update({ 
+                            taxa_comissao: novaComissao, 
+                            comissao_padrao: novaComissao 
+                          })
+                          .eq('user_id', barbeiro.user_id || '')
+                          .select();
+
+                        if (err2 || !data2 || data2.length === 0) {
+                          alert('Erro: O banco recusou a atualização. Verifique as políticas de RLS (Row Level Security) da tabela barbeiros no Supabase.');
+                        } else {
+                          alert('Comissão atualizada com sucesso!');
+                          setBarbeiros(prev => prev.map(b => b.user_id === barbeiro.user_id ? { ...b, taxa_comissao: novaComissao, comissao_padrao: novaComissao } : b));
+                        }
+                      } else {
+                        alert('Comissão atualizada com sucesso!');
+                        setBarbeiros(prev => prev.map(b => b.id === barbeiro.id ? { ...b, taxa_comissao: novaComissao, comissao_padrao: novaComissao } : b));
+                      }
+                    }}
+                    className="px-5 py-2 bg-[#111111] hover:bg-stone-800 text-white text-xs font-bold rounded-2xl active:scale-95 transition-all shadow-md cursor-pointer"
+                  >
+                    Salvar
+                  </button>
                 </div>
               </div>
             );
