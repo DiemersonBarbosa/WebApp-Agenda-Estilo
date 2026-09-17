@@ -1035,66 +1035,113 @@ const handleSaveBarbeiro = async (e) => {
       </div>
     </div>
 
-    {/* 4 CARDS DE INDICADORES PRINCIPAIS (KPIs) */}
-    <div className="grid grid-cols-2 gap-3">
-      
-      {/* 1. Faturamento */}
-      <div className="bg-white p-4 rounded-2xl border border-stone-200/80 shadow-xs flex flex-col justify-between">
-        <div className="flex items-center justify-between text-stone-400 mb-2">
-          <span className="text-[10px] font-bold uppercase tracking-wider">Faturamento</span>
-          <div className="p-1.5 bg-emerald-50 text-emerald-600 rounded-lg">
-            <DollarSign className="w-3.5 h-3.5" />
+         {/* Cards de Indicadores (KPIs) com Estilo Black Piano Degradê & Esferas 3D */}
+      <div className="grid grid-cols-2 gap-3.5 md:gap-5 mb-6">
+        
+        {/* 1. Faturamento */}
+        <div 
+          className="relative rounded-3xl md:rounded-[2.5rem] p-5 sm:p-6 md:p-7 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden shadow-xl"
+          style={{
+            background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
+            boxShadow: '0 15px 35px rgba(0, 0, 0, 0.5), inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
+          }}
+        >
+          <div className="flex flex-col justify-center min-w-0 pr-2">
+            <span className="text-[9px] sm:text-[10px] md:text-xs font-bold text-stone-400 uppercase tracking-wider truncate block">Faturamento</span>
+            <h3 className="text-lg sm:text-2xl md:text-3xl font-black text-white mt-1 truncate">R$ {faturamentoTotal.toFixed(0)}</h3>
+            <p className="text-[10px] text-emerald-400 font-medium mt-0.5">{atendimentosConcluidos.length} concluídos</p>
+          </div>
+          <div 
+            className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center shrink-0 shadow-lg"
+            style={{
+              background: 'radial-gradient(circle at 30% 30%, #ffffff 0%, #d8e2ec 60%, #9fb3c8 100%)',
+              boxShadow: '0 6px 15px rgba(0, 0, 0, 0.4), inset 0 2px 3px rgba(255, 255, 255, 1), inset 0 -4px 6px rgba(0, 0, 0, 0.25)',
+              border: '1px solid rgba(255, 255, 255, 0.9)'
+            }}
+          >
+            <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-stone-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]" />
           </div>
         </div>
-        <div>
-          <p className="text-lg font-extrabold text-stone-900">R$ {totalFaturamento ? totalFaturamento.toFixed(2) : '0,00'}</p>
-          <span className="text-[10px] text-emerald-600 font-semibold mt-0.5 inline-block">Serviços finalizados</span>
-        </div>
-      </div>
 
-      {/* 2. Clientes Atendidos */}
-      <div className="bg-white p-4 rounded-2xl border border-stone-200/80 shadow-xs flex flex-col justify-between">
-        <div className="flex items-center justify-between text-stone-400 mb-2">
-          <span className="text-[10px] font-bold uppercase tracking-wider">Atendimentos</span>
-          <div className="p-1.5 bg-blue-50 text-blue-600 rounded-lg">
-            <Users className="w-3.5 h-3.5" />
+        {/* 2. Despesas */}
+        <div 
+          className="relative rounded-3xl md:rounded-[2.5rem] p-5 sm:p-6 md:p-7 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden shadow-xl"
+          style={{
+            background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
+            boxShadow: '0 15px 35px rgba(0, 0, 0, 0.5), inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
+          }}
+        >
+          <div className="flex flex-col justify-center min-w-0 pr-2">
+            <span className="text-[9px] sm:text-[10px] md:text-xs font-bold text-stone-400 uppercase tracking-wider truncate block">Despesas</span>
+            <h3 className="text-lg sm:text-2xl md:text-3xl font-black text-white mt-1 truncate">R$ {custosTotais.toFixed(0)}</h3>
+            <p className="text-[10px] text-rose-400 font-medium mt-0.5">{despesas.length} cadastradas</p>
+          </div>
+          <div 
+            className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center shrink-0 shadow-lg"
+            style={{
+              background: 'radial-gradient(circle at 30% 30%, #ffffff 0%, #d8e2ec 60%, #9fb3c8 100%)',
+              boxShadow: '0 6px 15px rgba(0, 0, 0, 0.4), inset 0 2px 3px rgba(255, 255, 255, 1), inset 0 -4px 6px rgba(0, 0, 0, 0.25)',
+              border: '1px solid rgba(255, 255, 255, 0.9)'
+            }}
+          >
+            <TrendingDown className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-stone-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]" />
           </div>
         </div>
-        <div>
-          <p className="text-lg font-extrabold text-stone-900">{clientes?.length || 0}</p>
-          <span className="text-[10px] text-blue-600 font-semibold mt-0.5 inline-block">Total no mês</span>
-        </div>
-      </div>
 
-      {/* 3. Lucro Líquido */}
-      <div className="bg-white p-4 rounded-2xl border border-stone-200/80 shadow-xs flex flex-col justify-between">
-        <div className="flex items-center justify-between text-stone-400 mb-2">
-          <span className="text-[10px] font-bold uppercase tracking-wider">Lucro Líquido</span>
-          <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg">
-            <Wallet className="w-3.5 h-3.5" />
+        {/* 3. Lucro Líquido */}
+        <div 
+          className="relative rounded-3xl md:rounded-[2.5rem] p-5 sm:p-6 md:p-7 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden shadow-xl"
+          style={{
+            background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
+            boxShadow: '0 15px 35px rgba(0, 0, 0, 0.5), inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
+          }}
+        >
+          <div className="flex flex-col justify-center min-w-0 pr-2">
+            <span className="text-[9px] sm:text-[10px] md:text-xs font-bold text-stone-400 uppercase tracking-wider truncate block">Lucro Líquido</span>
+            <h3 className={`text-lg sm:text-2xl md:text-3xl font-black mt-1 truncate ${lucroLiquidoReal >= 0 ? 'text-sky-400' : 'text-rose-400'}`}>
+              R$ {lucroLiquidoReal.toFixed(0)}
+            </h3>
+            <p className="text-[10px] text-stone-400 font-medium mt-0.5">Entradas - Saídas</p>
+          </div>
+          <div 
+            className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center shrink-0 shadow-lg"
+            style={{
+              background: 'radial-gradient(circle at 30% 30%, #ffffff 0%, #d8e2ec 60%, #9fb3c8 100%)',
+              boxShadow: '0 6px 15px rgba(0, 0, 0, 0.4), inset 0 2px 3px rgba(255, 255, 255, 1), inset 0 -4px 6px rgba(0, 0, 0, 0.25)',
+              border: '1px solid rgba(255, 255, 255, 0.9)'
+            }}
+          >
+            <DollarSign className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-stone-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]" />
           </div>
         </div>
-        <div>
-          <p className="text-lg font-extrabold text-stone-900">R$ {lucroLiquido ? lucroLiquido.toFixed(2) : '0,00'}</p>
-          <span className="text-[10px] text-indigo-600 font-semibold mt-0.5 inline-block">Receita - Despesas</span>
-        </div>
-      </div>
 
-      {/* 4. Ticket Médio */}
-      <div className="bg-white p-4 rounded-2xl border border-stone-200/80 shadow-xs flex flex-col justify-between">
-        <div className="flex items-center justify-between text-stone-400 mb-2">
-          <span className="text-[10px] font-bold uppercase tracking-wider">Ticket Médio</span>
-          <div className="p-1.5 bg-amber-50 text-amber-600 rounded-lg">
-            <TrendingUp className="w-3.5 h-3.5" />
+        {/* 4. Ticket Médio */}
+        <div 
+          className="relative rounded-3xl md:rounded-[2.5rem] p-5 sm:p-6 md:p-7 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden shadow-xl"
+          style={{
+            background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
+            boxShadow: '0 15px 35px rgba(0, 0, 0, 0.5), inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
+          }}
+        >
+          <div className="flex flex-col justify-center min-w-0 pr-2">
+            <span className="text-[9px] sm:text-[10px] md:text-xs font-bold text-stone-400 uppercase tracking-wider truncate block">Ticket Médio</span>
+            <h3 className="text-lg sm:text-2xl md:text-3xl font-black text-white mt-1 truncate">R$ {ticketMedioCalculado.toFixed(0)}</h3>
+            <p className="text-[10px] text-stone-400 font-medium mt-0.5">Média por atendimento</p>
+          </div>
+          <div 
+            className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center shrink-0 shadow-lg"
+            style={{
+              background: 'radial-gradient(circle at 30% 30%, #ffffff 0%, #d8e2ec 60%, #9fb3c8 100%)',
+              boxShadow: '0 6px 15px rgba(0, 0, 0, 0.4), inset 0 2px 3px rgba(255, 255, 255, 1), inset 0 -4px 6px rgba(0, 0, 0, 0.25)',
+              border: '1px solid rgba(255, 255, 255, 0.9)'
+            }}
+          >
+            <PieChart className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-stone-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]" />
           </div>
         </div>
-        <div>
-          <p className="text-lg font-extrabold text-stone-900">R$ {ticketMedio || '0,00'}</p>
-          <span className="text-[10px] text-amber-600 font-semibold mt-0.5 inline-block">Média por cliente</span>
-        </div>
+
       </div>
 
-    </div>
 
     {/* RESUMO FINANCEIRO E ATALHOS */}
     <div className="bg-white p-5 rounded-2xl border border-stone-200/80 shadow-xs space-y-4">
