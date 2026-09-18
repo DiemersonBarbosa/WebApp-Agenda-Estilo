@@ -145,15 +145,6 @@ async function carregarProdutos(barbeariaId) {
   const [barbearia, setBarbearia] = useState(null);
 
 
-useEffect(() => {
-  if (!barbearia?.id) return;
-  
-  const intervalo = setInterval(() => {
-    loadDashboardData(barbearia.id);
-  }, 15000);
-
-  return () => clearInterval(intervalo);
-}, [barbearia?.id]);
 
 
 
