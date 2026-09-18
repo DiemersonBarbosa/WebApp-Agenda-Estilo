@@ -1,20 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Bell, Calendar, X, Sparkles } from 'lucide-react';
+import { Bell, Calendar, X, Sparkles, Trash2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 export default function NotificacoesBell({ barbeariaId }) {
-  const [agendamentosHoje, setAgendamentosHoje] = useState([]);
+  const [agendamentos, setAgendamentos] = useState([]);
   const [modalNotifAberto, setModalNotifAberto] = useState(false);
   const [temNovas, setTemNovas] = useState(false);
-
-  const HOJE_ISO = new Date().toISOString().split('T')[0];
-
-  const extrairDataIso = (dataHoraStr) => {
-    if (!dataHoraStr) return '';
-    return String(dataHoraStr).substring(0, 10);
-  };
 
   const carregarNotificacoes = async () => {
     if (!supabase) return;
@@ -33,7 +26,8 @@ export default function NotificacoesBell({ barbeariaId }) {
           clientes:cliente_id (nome),
           servicos:servico_id (nome, preco)
         `)
-        .order('criado_em', { ascending: false });
+        .order('criado_em', { ascending: false })
+        .limit(10); // Traz os últimos 10 agendamentos da barbearia
 
       if (barbeariaId) {
         query = query.eq('barbearia_id', barbeariaId);
@@ -42,10 +36,8 @@ export default function NotificacoesBell({ barbeariaId }) {
       const { data, error } = await query;
 
       if (!error && data) {
-        // Filtra para exibir os agendamentos do dia atual
-        const doDia = data.filter(item => extrairDataIso(item.data_hora || item.criado_em) === HOJE_ISO);
-        setAgendamentosHoje(doDia);
-        if (doDia.length > 0) setTemNovas(true);
+        setAgendamentos(data);
+        if (data.length > 0) setTemNovas(true);
       }
     } catch (err) {
       console.error('Erro ao buscar notificações:', err);
@@ -55,13 +47,18 @@ export default function NotificacoesBell({ barbeariaId }) {
   useEffect(() => {
     carregarNotificacoes();
 
-    // Atualização em segundo plano a cada 10 segundos para garantir dinamismo sem atualizar a página
+    // Atualização em segundo plano a cada 10 segundos
     const intervalo = setInterval(() => {
       carregarNotificacoes();
     }, 10000);
 
     return () => clearInterval(intervalo);
   }, [barbeariaId]);
+
+  const limparNotificacoes = () => {
+    setAgendamentos([]);
+    setTemNovas(false);
+  };
 
   const abrirModal = () => {
     setModalNotifAberto(!modalNotifAberto);
@@ -70,7 +67,7 @@ export default function NotificacoesBell({ barbeariaId }) {
     }
   };
 
-  const qtdNotificacoes = agendamentosHoje.length;
+  const qtdNotificacoes = agendamentos.length;
 
   return (
     <div className="relative">
@@ -101,6 +98,16 @@ export default function NotificacoesBell({ barbeariaId }) {
             </div>
 
             <div className="flex items-center gap-1">
+              {qtdNotificacoes > 0 && (
+                <button
+                  onClick={limparNotificacoes}
+                  className="text-[11px] font-bold text-stone-400 hover:text-rose-600 px-2 py-1 rounded-xl hover:bg-rose-50 transition-colors flex items-center gap-1 cursor-pointer"
+                  title="Limpar notificações"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Limpar</span>
+                </button>
+              )}
               <button 
                 onClick={() => setModalNotifAberto(false)}
                 className="text-stone-400 hover:text-stone-600 p-1 rounded-xl hover:bg-stone-100 transition-colors cursor-pointer"
@@ -112,13 +119,13 @@ export default function NotificacoesBell({ barbeariaId }) {
 
           {/* Lista de Notificações com Estilo de Cartão Mobile */}
           <div className="max-h-80 overflow-y-auto space-y-3 pt-3.5 pr-1">
-            {agendamentosHoje.length === 0 ? (
+            {agendamentos.length === 0 ? (
               <div className="text-center py-12 text-stone-400 text-xs border border-dashed border-stone-200 rounded-3xl bg-stone-50/50 flex flex-col items-center justify-center gap-2">
                 <Sparkles className="w-6 h-6 text-stone-300 animate-bounce" />
                 <span>Nenhuma notificação no momento.</span>
               </div>
             ) : (
-              agendamentosHoje.map((item) => (
+              agendamentos.map((item) => (
                 <div 
                   key={item.id}
                   className="relative p-4 rounded-3xl bg-stone-50/80 border border-stone-200/70 hover:bg-white hover:shadow-md transition-all flex items-start gap-3.5 group overflow-hidden"
@@ -135,7 +142,7 @@ export default function NotificacoesBell({ barbeariaId }) {
                         {item.clientes?.nome || 'Cliente'}
                       </p>
                       <span className="text-[10px] font-bold text-stone-400 bg-white px-2 py-0.5 rounded-md border border-stone-200/60 shadow-2xs">
-                        {item.data_hora ? new Date(item.data_hora).toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'}) : 'Hoje'}
+                        {item.data_hora ? new Date(item.data_hora).toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'}) : '--:--'}
                       </span>
                     </div>
 
