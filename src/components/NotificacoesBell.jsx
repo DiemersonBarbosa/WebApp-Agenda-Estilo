@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Bell, Calendar, X, Sparkles, Trash2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
@@ -8,6 +8,10 @@ export default function NotificacoesBell({ barbeariaId }) {
   const [agendamentosHoje, setAgendamentosHoje] = useState([]);
   const [modalNotifAberto, setModalNotifAberto] = useState(false);
   const [novaNotificacaoToast, setNovaNotificacaoToast] = useState(null);
+
+  // Referência para controlar os IDs já processados e evitar alertas repetidos
+  const idsConhecidosRef = useRef(new Set());
+  const primeiraCargaRef = useRef(true);
 
   const HOJE_ISO = new Date().toISOString().split('T')[0];
 
@@ -43,13 +47,24 @@ export default function NotificacoesBell({ barbeariaId }) {
           return item.data_hora.substring(0, 10) === HOJE_ISO;
         });
 
-        if (doDia.length > agendamentosHoje.length && agendamentosHoje.length > 0) {
-          const ultimoItem = doDia[doDia.length - 1];
-          setNovaNotificacaoToast(ultimoItem);
-          setTimeout(() => {
-            setNovaNotificacaoToast(null);
-          }, 4000);
+        // Se não for a primeira carga, verifica se há novos IDs que ainda não conhecíamos
+        if (!primeiraCargaRef.current) {
+          const novosItens = doDia.filter(item => !idsConhecidosRef.current.has(item.id));
+          
+          if (novosItens.length > 0) {
+            // Pega o mais recente para exibir na prévia flutuante
+            const ultimoNovo = novosItens[novosItens.length - 1];
+            setNovaNotificacaoToast(ultimoNovo);
+            
+            setTimeout(() => {
+              setNovaNotificacaoToast(null);
+            }, 4500); // Exibe por 4.5 segundos
+          }
         }
+
+        // Atualiza o registro dos IDs conhecidos
+        doDia.forEach(item => idsConhecidosRef.current.add(item.id));
+        primeiraCargaRef.current = false;
 
         setAgendamentosHoje(doDia);
       }
@@ -63,7 +78,7 @@ export default function NotificacoesBell({ barbeariaId }) {
 
     const intervalo = setInterval(() => {
       carregarNotificacoesDoDia();
-    }, 15000);
+    }, 10000); // Verifica a cada 10 segundos
 
     return () => clearInterval(intervalo);
   }, [barbeariaId]);
@@ -107,7 +122,7 @@ export default function NotificacoesBell({ barbeariaId }) {
       {/* Prévia Flutuante Temporária na Tela (Toast Black Piano) */}
       {novaNotificacaoToast && (
         <div className="fixed top-5 right-5 z-[9999] w-80 bg-[#121212] text-white px-5 py-4 rounded-2xl shadow-2xl border border-stone-800 flex items-center gap-3.5 animate-in slide-in-from-top-5 duration-300">
-          <div className="w-10 h-10 rounded-xl bg-stone-800 text-emerald-400 flex items-center justify-center shrink-0 border border-stone-700">
+          <div className="w-10 h-10 rounded-xl bg-stone-900 text-emerald-400 flex items-center justify-center shrink-0 border border-stone-800">
             <Bell className="w-5 h-5 animate-bounce" />
           </div>
           <div className="flex-1 min-w-0">
@@ -119,7 +134,7 @@ export default function NotificacoesBell({ barbeariaId }) {
         </div>
       )}
 
-      {/* Dropdown Alinhado perfeitamente e com identidade Black Piano */}
+      {/* Dropdown Black Piano */}
       {modalNotifAberto && (
         <>
           <div 
