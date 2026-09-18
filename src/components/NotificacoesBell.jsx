@@ -7,7 +7,6 @@ import { supabase } from '@/lib/supabase';
 export default function NotificacoesBell({ barbeariaId }) {
   const [agendamentosHoje, setAgendamentosHoje] = useState([]);
   const [modalNotifAberto, setModalNotifAberto] = useState(false);
-  const [limpoPeloUsuario, setLimpoPeloUsuario] = useState(false);
 
   const HOJE_ISO = new Date().toISOString().split('T')[0];
 
@@ -29,9 +28,11 @@ export default function NotificacoesBell({ barbeariaId }) {
           status,
           valor_total,
           barbearia_id,
+          lido,
           clientes:cliente_id (nome),
           servicos:servico_id (nome, preco)
         `)
+        .eq('lido', false) // Traz apenas os que ainda não foram limpos online
         .order('data_hora', { ascending: true });
 
       if (barbeariaId) {
@@ -41,7 +42,10 @@ export default function NotificacoesBell({ barbeariaId }) {
       const { data, error } = await query;
 
       if (!error && data) {
-        const doDia = data.filter(item => extrairDataIso(item.data_hora) === HOJE_ISO);
+        const doDia = data.filter(item => {
+          if (!item.data_hora) return false;
+          return item.data_hora.substring(0, 10) === HOJE_ISO;
+        });
         setAgendamentosHoje(doDia);
       }
     } catch (err) {
@@ -54,18 +58,32 @@ export default function NotificacoesBell({ barbeariaId }) {
 
     const intervalo = setInterval(() => {
       carregarNotificacoesDoDia();
-    }, 10000);
+    }, 15000);
 
     return () => clearInterval(intervalo);
   }, [barbeariaId]);
 
-  const limparNotificacoes = () => {
-    setLimpoPeloUsuario(true);
+  const limparNotificacoesOnline = async () => {
+    if (!supabase || agendamentosHoje.length === 0) return;
+
+    const idsParaMarcarComoLidos = agendamentosHoje.map(item => item.id);
+
+    try {
+      // Atualiza diretamente na base de dados para que fiquem marcados como lidos na nuvem
+      const { error } = await supabase
+        .from('agendamentos')
+        .update({ lido: true })
+        .in('id', idsParaMarcarComoLidos);
+
+      if (!error) {
+        setAgendamentosHoje([]); // Esvazia a lista imediatamente na tela
+      }
+    } catch (err) {
+      console.error('Erro ao limpar notificações online:', err);
+    }
   };
 
-  // Se o usuário limpou nesta sessão, mostra vazio. Se chegar um novo agendamento, atualiza a lista.
-  const listaExibida = limpoPeloUsuario ? [] : agendamentosHoje;
-  const naoLidas = listaExibida.length;
+  const naoLidas = agendamentosHoje.length;
 
   return (
     <div className="relative">
@@ -76,7 +94,7 @@ export default function NotificacoesBell({ barbeariaId }) {
         title="Notificações de Agendamentos"
       >
         <Bell className="w-5 h-5 text-stone-800 group-hover:rotate-12 transition-transform" />
-        {naoLidas > 0 && !limpoPeloUsuario && (
+        {naoLidas > 0 && (
           <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-rose-500 rounded-full ring-2 ring-white animate-pulse"></span>
         )}
       </button>
@@ -98,9 +116,9 @@ export default function NotificacoesBell({ barbeariaId }) {
             <div className="flex items-center gap-1">
               {naoLidas > 0 && (
                 <button
-                  onClick={limparNotificacoes}
+                  onClick={limparNotificacoesOnline}
                   className="text-[11px] font-bold text-stone-400 hover:text-rose-600 px-2 py-1 rounded-xl hover:bg-rose-50 transition-colors flex items-center gap-1 cursor-pointer"
-                  title="Limpar notificações"
+                  title="Limpar notificações online"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                   <span>Limpar</span>
@@ -117,13 +135,13 @@ export default function NotificacoesBell({ barbeariaId }) {
 
           {/* Lista em formato de cartões mobile */}
           <div className="max-h-80 overflow-y-auto space-y-3 pt-3.5 pr-1">
-            {listaExibida.length === 0 ? (
+            {agendamentosHoje.length === 0 ? (
               <div className="text-center py-12 text-stone-400 text-xs border border-dashed border-stone-200 rounded-3xl bg-stone-50/50 flex flex-col items-center justify-center gap-2">
                 <Sparkles className="w-6 h-6 text-stone-300 animate-bounce" />
                 <span>Nenhuma notificação no momento.</span>
               </div>
             ) : (
-              listaExibida.map((item) => (
+              agendamentosHoje.map((item) => (
                 <div 
                   key={item.id}
                   className="relative p-4 rounded-3xl bg-stone-50/80 border border-stone-200/70 hover:bg-white hover:shadow-md transition-all flex items-start gap-3.5 group overflow-hidden"
