@@ -8,6 +8,10 @@ import {
   ShoppingBag, MessageCircleCheck, LogOut, History, X, Search, Filter 
 } from 'lucide-react';
 
+
+import NotificacoesBell from '@/components/NotificacoesBell';
+
+
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
