@@ -101,7 +101,7 @@ export default function NotificacoesBell({ barbeariaId }) {
   const naoLidas = agendamentosHoje.length;
 
   return (
-    <div className="relative">
+    <div className="relative inline-block">
       
       {/* Botão do Sininho */}
       <button
@@ -130,7 +130,7 @@ export default function NotificacoesBell({ barbeariaId }) {
         </div>
       )}
 
-      {/* Painel Dropdown: Ocupa toda a largura, encostado no header e com abertura suave */}
+      {/* Painel Dropdown corrigido: fixo ocupando a largura da tela logo abaixo do header */}
       {modalNotifAberto && (
         <>
           <div 
@@ -138,7 +138,7 @@ export default function NotificacoesBell({ barbeariaId }) {
             className="fixed inset-0 z-40 bg-stone-950/20 backdrop-blur-2xs"
           />
 
-          <div className="absolute left-0 right-0 top-full mt-2 w-full bg-white text-stone-900 shadow-2xl border-b border-stone-200 p-4 sm:p-6 z-50 animate-in slide-in-from-top-2 fade-in duration-200">
+          <div className="fixed left-0 right-0 top-[73px] w-full bg-white text-stone-900 shadow-2xl border-b border-stone-200 p-4 sm:p-6 z-50 animate-in slide-in-from-top-2 fade-in duration-200">
             
             <div className="max-w-4xl mx-auto">
               {/* Cabeçalho */}
