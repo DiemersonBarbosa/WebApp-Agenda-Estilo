@@ -1,47 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Bell, Calendar, X } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
 
-export default function NotificacoesBell() {
-  const [agendamentos, setAgendamentos] = useState([]);
+export default function NotificacoesBell({ agendamentos = [] }) {
   const [modalNotifAberto, setModalNotifAberto] = useState(false);
-
-  // Busca direta e bruta na tabela de agendamentos (sem filtros restritivos)
-  const buscarAgendamentos = async () => {
-    if (!supabase) return;
-
-    try {
-      const { data, error } = await supabase
-        .from('agendamentos')
-        .select('*')
-        .order('criado_em', { ascending: false })
-        .limit(10);
-
-      if (error) {
-        console.error('Erro ao buscar no Supabase:', error);
-      }
-
-      if (data) {
-        console.log('Agendamentos encontrados pelo sininho:', data);
-        setAgendamentos(data);
-      }
-    } catch (err) {
-      console.error('Erro:', err);
-    }
-  };
-
-  useEffect(() => {
-    buscarAgendamentos();
-
-    // Polling a cada 10 segundos para atualizar o sininho
-    const intervalo = setInterval(() => {
-      buscarAgendamentos();
-    }, 10000);
-
-    return () => clearInterval(intervalo);
-  }, []);
 
   const naoLidas = agendamentos.length;
 
@@ -74,7 +37,7 @@ export default function NotificacoesBell() {
           <div className="max-h-80 overflow-y-auto space-y-2.5 pt-3.5 pr-1">
             {agendamentos.length === 0 ? (
               <div className="text-center py-10 text-stone-400 text-xs border border-dashed border-stone-200 rounded-3xl">
-                Nenhum agendamento encontrado na tabela.
+                Nenhum agendamento recente.
               </div>
             ) : (
               agendamentos.map((item) => (
@@ -87,13 +50,13 @@ export default function NotificacoesBell() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-extrabold text-stone-900 text-xs truncate">
-                      {item.cliente_nome || 'Cliente Teste'}
+                      {item.clientes?.nome || item.cliente_nome || 'Cliente'}
                     </p>
                     <p className="text-[11px] text-stone-600 font-medium mt-0.5">
-                      Serviço: <strong className="text-stone-900">{item.servico_nome || 'Corte'}</strong>
+                      Serviço: <strong className="text-stone-900">{item.servicos?.nome || 'Atendimento'}</strong>
                     </p>
                     <span className="text-[10px] text-stone-400 block mt-1">
-                      Horário: {item.horario || item.data_hora}
+                      Horário: {item.data_hora ? new Date(item.data_hora).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : item.horario}
                     </span>
                   </div>
                 </div>
