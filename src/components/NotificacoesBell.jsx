@@ -130,15 +130,15 @@ export default function NotificacoesBell({ barbeariaId }) {
         </div>
       )}
 
-      {/* Painel Dropdown corrigido: fixo ocupando a largura da tela logo abaixo do header */}
+      {/* Painel Dropdown com animação de descida fluida (transition-all duration-300) e bordas inferiores arredondadas */}
       {modalNotifAberto && (
         <>
           <div 
             onClick={() => setModalNotifAberto(false)}
-            className="fixed inset-0 z-40 bg-stone-950/20 backdrop-blur-2xs"
+            className="fixed inset-0 z-40 bg-stone-950/20 backdrop-blur-2xs transition-opacity duration-300"
           />
 
-          <div className="fixed left-0 right-0 top-[73px] w-full bg-white text-stone-900 shadow-2xl border-b border-stone-200 p-4 sm:p-6 z-50 animate-in slide-in-from-top-2 fade-in duration-200">
+          <div className="fixed left-0 right-0 top-[73px] w-full bg-white text-stone-900 shadow-2xl border-b border-stone-200 rounded-b-3xl p-4 sm:p-6 z-50 transition-all duration-300 ease-out transform translate-y-0 opacity-100 animate-in slide-in-from-top-4 fade-in">
             
             <div className="max-w-4xl mx-auto">
               {/* Cabeçalho */}
@@ -171,7 +171,7 @@ export default function NotificacoesBell({ barbeariaId }) {
                 </div>
               </div>
 
-              {/* Lista Clean em grade ou linha fluida */}
+              {/* Lista Clean de Notificações */}
               <div className="max-h-80 overflow-y-auto space-y-2.5 pt-3.5 pr-1">
                 {agendamentosHoje.length === 0 ? (
                   <div className="text-center py-10 text-stone-400 text-xs border border-dashed border-stone-200 rounded-2xl bg-stone-50/50 flex flex-col items-center justify-center gap-2">
