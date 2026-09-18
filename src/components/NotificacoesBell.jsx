@@ -14,6 +14,7 @@ export default function NotificacoesBell({ agendamentos = [] }) {
       <button
         onClick={() => setModalNotifAberto(!modalNotifAberto)}
         className="relative w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-white border border-stone-200/80 flex items-center justify-center text-stone-700 hover:bg-stone-50 transition-all shadow-xs cursor-pointer"
+        title="Notificações de Agendamentos"
       >
         <Bell className="w-5 h-5 text-stone-800" />
         {naoLidas > 0 && (
@@ -37,7 +38,7 @@ export default function NotificacoesBell({ agendamentos = [] }) {
           <div className="max-h-80 overflow-y-auto space-y-2.5 pt-3.5 pr-1">
             {agendamentos.length === 0 ? (
               <div className="text-center py-10 text-stone-400 text-xs border border-dashed border-stone-200 rounded-3xl">
-                Nenhum agendamento recente.
+                Nenhum agendamento recente para hoje.
               </div>
             ) : (
               agendamentos.map((item) => (
