@@ -1,10 +1,44 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Bell, Calendar, X } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 
-export default function NotificacoesBell({ agendamentos = [] }) {
+export default function NotificacoesBell({ barbeariaId }) {
+  const [agendamentos, setAgendamentos] = useState([]);
   const [modalNotifAberto, setModalNotifAberto] = useState(false);
+
+  // Função isolada para buscar apenas os agendamentos da barbearia
+  const buscarAgendamentosSilencioso = async () => {
+    if (!supabase || !barbeariaId) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('agendamentos')
+        .select('*')
+        .eq('barbearia_id', barbeariaId)
+        .order('criado_em', { ascending: false })
+        .limit(10);
+
+      if (!error && data) {
+        setAgendamentos(data);
+      }
+    } catch (err) {
+      console.error('Erro ao buscar notificações:', err);
+    }
+  };
+
+  useEffect(() => {
+    // Busca inicial ao abrir a página
+    buscarAgendamentosSilencioso();
+
+    // Polling silencioso apenas para o sininho (roda a cada 15s sem recarregar a página)
+    const intervalo = setInterval(() => {
+      buscarAgendamentosSilencioso();
+    }, 15000);
+
+    return () => clearInterval(intervalo);
+  }, [barbeariaId]);
 
   const naoLidas = agendamentos.length;
 
