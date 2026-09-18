@@ -11,11 +11,6 @@ export default function NotificacoesBell({ barbeariaId }) {
 
   const HOJE_ISO = new Date().toISOString().split('T')[0];
 
-  const extrairDataIso = (dataHoraStr) => {
-    if (!dataHoraStr) return '';
-    return String(dataHoraStr).substring(0, 10);
-  };
-
   const carregarNotificacoesDoDia = async () => {
     if (!supabase) return;
 
@@ -48,13 +43,12 @@ export default function NotificacoesBell({ barbeariaId }) {
           return item.data_hora.substring(0, 10) === HOJE_ISO;
         });
 
-        // Deteta se chegou um novo item para disparar a prévia flutuante temporária
         if (doDia.length > agendamentosHoje.length && agendamentosHoje.length > 0) {
           const ultimoItem = doDia[doDia.length - 1];
           setNovaNotificacaoToast(ultimoItem);
           setTimeout(() => {
             setNovaNotificacaoToast(null);
-          }, 4000); // Desaparece após 4 segundos
+          }, 4000);
         }
 
         setAgendamentosHoje(doDia);
@@ -96,7 +90,7 @@ export default function NotificacoesBell({ barbeariaId }) {
   const naoLidas = agendamentosHoje.length;
 
   return (
-    <div className="relative flex items-center justify-center">
+    <div className="relative inline-block text-left">
       
       {/* Botão do Sininho */}
       <button
@@ -110,7 +104,7 @@ export default function NotificacoesBell({ barbeariaId }) {
         )}
       </button>
 
-      {/* Prévia Flutuante Temporária na Tela (Toast estilo Smartphone) */}
+      {/* Prévia Flutuante Temporária na Tela (Toast) */}
       {novaNotificacaoToast && (
         <div className="fixed top-5 left-1/2 -translate-x-1/2 z-[100] w-[90%] max-w-md bg-stone-900/95 text-white backdrop-blur-xl px-5 py-3.5 rounded-3xl shadow-2xl border border-stone-700 flex items-center gap-3.5 animate-in slide-in-from-top-5 duration-300">
           <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/30">
@@ -125,16 +119,15 @@ export default function NotificacoesBell({ barbeariaId }) {
         </div>
       )}
 
-      {/* Dropdown Centralizado e Estilizado */}
+      {/* Dropdown perfeitamente posicionado e alinhado à direita */}
       {modalNotifAberto && (
         <>
-          {/* Backdrop suave para focar no balão centralizado */}
           <div 
             onClick={() => setModalNotifAberto(false)}
-            className="fixed inset-0 bg-stone-950/20 backdrop-blur-xs z-40"
+            className="fixed inset-0 bg-stone-950/10 backdrop-blur-2xs z-40"
           />
 
-          <div className="absolute top-14 left-1/2 -translate-x-1/2 sm:left-auto sm:right-0 sm:translate-x-0 w-[92vw] max-w-sm bg-white/95 backdrop-blur-2xl rounded-[2.5rem] shadow-2xl border border-stone-200/90 p-5 sm:p-6 z-50 animate-in fade-in zoom-in-95 duration-150">
+          <div className="absolute right-0 mt-3 w-[88vw] sm:w-96 bg-white/95 backdrop-blur-2xl rounded-[2.5rem] shadow-2xl border border-stone-200/90 p-5 sm:p-6 z-50 animate-in fade-in zoom-in-95 duration-150">
             
             {/* Cabeçalho */}
             <div className="flex items-center justify-between pb-3.5 border-b border-stone-100">
