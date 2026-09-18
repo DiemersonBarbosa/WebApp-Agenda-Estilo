@@ -1,84 +1,30 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Bell, Calendar, X, Sparkles, Trash2 } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
 
-export default function NotificacoesBell({ barbeariaId }) {
-  const [agendamentos, setAgendamentos] = useState([]);
+export default function NotificacoesBell({ agendamentos = [] }) {
   const [modalNotifAberto, setModalNotifAberto] = useState(false);
-  const [temNovas, setTemNovas] = useState(false);
+  const [listaAtiva, setListaAtiva] = useState(null);
 
-  const carregarNotificacoes = async () => {
-    if (!supabase) return;
-
-    try {
-      let query = supabase
-        .from('agendamentos')
-        .select(`
-          id,
-          cliente_id,
-          data_hora,
-          status,
-          valor_total,
-          barbearia_id,
-          criado_em,
-          clientes:cliente_id (nome),
-          servicos:servico_id (nome, preco)
-        `)
-        .order('criado_em', { ascending: false })
-        .limit(10); // Traz os últimos 10 agendamentos da barbearia
-
-      if (barbeariaId) {
-        query = query.eq('barbearia_id', barbeariaId);
-      }
-
-      const { data, error } = await query;
-
-      if (!error && data) {
-        setAgendamentos(data);
-        if (data.length > 0) setTemNovas(true);
-      }
-    } catch (err) {
-      console.error('Erro ao buscar notificações:', err);
-    }
-  };
-
-  useEffect(() => {
-    carregarNotificacoes();
-
-    // Atualização em segundo plano a cada 10 segundos
-    const intervalo = setInterval(() => {
-      carregarNotificacoes();
-    }, 10000);
-
-    return () => clearInterval(intervalo);
-  }, [barbeariaId]);
+  // Usa os agendamentos passados por props, garantindo que se mantenham dinâmicos
+  const dadosParaExibir = listaAtiva !== null ? listaAtiva : agendamentos;
+  const qtdNotificacoes = dadosParaExibir.length;
 
   const limparNotificacoes = () => {
-    setAgendamentos([]);
-    setTemNovas(false);
+    setListaAtiva([]);
   };
-
-  const abrirModal = () => {
-    setModalNotifAberto(!modalNotifAberto);
-    if (!modalNotifAberto) {
-      setTemNovas(false);
-    }
-  };
-
-  const qtdNotificacoes = agendamentos.length;
 
   return (
     <div className="relative">
       {/* Botão do Sininho Estilo Smartphone */}
       <button
-        onClick={abrirModal}
+        onClick={() => setModalNotifAberto(!modalNotifAberto)}
         className="relative w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-white border border-stone-200/85 flex items-center justify-center text-stone-700 hover:bg-stone-50 transition-all shadow-xs cursor-pointer group"
         title="Notificações"
       >
         <Bell className="w-5 h-5 text-stone-800 group-hover:rotate-12 transition-transform" />
-        {temNovas && qtdNotificacoes > 0 && (
+        {qtdNotificacoes > 0 && (
           <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-rose-500 rounded-full ring-2 ring-white animate-pulse"></span>
         )}
       </button>
@@ -119,13 +65,13 @@ export default function NotificacoesBell({ barbeariaId }) {
 
           {/* Lista de Notificações com Estilo de Cartão Mobile */}
           <div className="max-h-80 overflow-y-auto space-y-3 pt-3.5 pr-1">
-            {agendamentos.length === 0 ? (
+            {dadosParaExibir.length === 0 ? (
               <div className="text-center py-12 text-stone-400 text-xs border border-dashed border-stone-200 rounded-3xl bg-stone-50/50 flex flex-col items-center justify-center gap-2">
                 <Sparkles className="w-6 h-6 text-stone-300 animate-bounce" />
                 <span>Nenhuma notificação no momento.</span>
               </div>
             ) : (
-              agendamentos.map((item) => (
+              dadosParaExibir.map((item) => (
                 <div 
                   key={item.id}
                   className="relative p-4 rounded-3xl bg-stone-50/80 border border-stone-200/70 hover:bg-white hover:shadow-md transition-all flex items-start gap-3.5 group overflow-hidden"
@@ -139,7 +85,7 @@ export default function NotificacoesBell({ barbeariaId }) {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
                       <p className="font-black text-stone-900 text-xs tracking-tight truncate">
-                        {item.clientes?.nome || 'Cliente'}
+                        {item.clientes?.nome || item.cliente_nome || 'Cliente'}
                       </p>
                       <span className="text-[10px] font-bold text-stone-400 bg-white px-2 py-0.5 rounded-md border border-stone-200/60 shadow-2xs">
                         {item.data_hora ? new Date(item.data_hora).toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'}) : '--:--'}
