@@ -4,41 +4,44 @@ import { useState, useEffect } from 'react';
 import { Bell, Calendar, X } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
-export default function NotificacoesBell({ barbeariaId }) {
+export default function NotificacoesBell() {
   const [agendamentos, setAgendamentos] = useState([]);
   const [modalNotifAberto, setModalNotifAberto] = useState(false);
 
-  // Função isolada para buscar apenas os agendamentos da barbearia
-  const buscarAgendamentosSilencioso = async () => {
-    if (!supabase || !barbeariaId) return;
+  // Busca direta e bruta na tabela de agendamentos (sem filtros restritivos)
+  const buscarAgendamentos = async () => {
+    if (!supabase) return;
 
     try {
       const { data, error } = await supabase
         .from('agendamentos')
         .select('*')
-        .eq('barbearia_id', barbeariaId)
         .order('criado_em', { ascending: false })
         .limit(10);
 
-      if (!error && data) {
+      if (error) {
+        console.error('Erro ao buscar no Supabase:', error);
+      }
+
+      if (data) {
+        console.log('Agendamentos encontrados pelo sininho:', data);
         setAgendamentos(data);
       }
     } catch (err) {
-      console.error('Erro ao buscar notificações:', err);
+      console.error('Erro:', err);
     }
   };
 
   useEffect(() => {
-    // Busca inicial ao abrir a página
-    buscarAgendamentosSilencioso();
+    buscarAgendamentos();
 
-    // Polling silencioso apenas para o sininho (roda a cada 15s sem recarregar a página)
+    // Polling a cada 10 segundos para atualizar o sininho
     const intervalo = setInterval(() => {
-      buscarAgendamentosSilencioso();
-    }, 15000);
+      buscarAgendamentos();
+    }, 10000);
 
     return () => clearInterval(intervalo);
-  }, [barbeariaId]);
+  }, []);
 
   const naoLidas = agendamentos.length;
 
@@ -71,7 +74,7 @@ export default function NotificacoesBell({ barbeariaId }) {
           <div className="max-h-80 overflow-y-auto space-y-2.5 pt-3.5 pr-1">
             {agendamentos.length === 0 ? (
               <div className="text-center py-10 text-stone-400 text-xs border border-dashed border-stone-200 rounded-3xl">
-                Nenhum agendamento recente.
+                Nenhum agendamento encontrado na tabela.
               </div>
             ) : (
               agendamentos.map((item) => (
@@ -84,11 +87,14 @@ export default function NotificacoesBell({ barbeariaId }) {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-extrabold text-stone-900 text-xs truncate">
-                      {item.cliente_nome || item.clientes?.nome || 'Cliente'}
+                      {item.cliente_nome || 'Cliente Teste'}
                     </p>
                     <p className="text-[11px] text-stone-600 font-medium mt-0.5">
-                      Horário: <strong className="text-stone-900">{item.horario || item.data_hora}</strong>
+                      Serviço: <strong className="text-stone-900">{item.servico_nome || 'Corte'}</strong>
                     </p>
+                    <span className="text-[10px] text-stone-400 block mt-1">
+                      Horário: {item.horario || item.data_hora}
+                    </span>
                   </div>
                 </div>
               ))
