@@ -115,46 +115,46 @@ export default function NotificacoesBell({ barbeariaId }) {
         )}
       </button>
 
-      {/* Prévia Flutuante (Toast Black Piano Elegante) */}
+      {/* Prévia Flutuante (Toast Black Piano Clean) */}
       {novaNotificacaoToast && (
-        <div className="fixed top-5 right-5 z-[9999] w-84 bg-[#111111] text-white px-5 py-4 rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.4)] border border-stone-800 flex items-center gap-3.5 animate-in slide-in-from-top-5 duration-300">
-          <div className="w-10 h-10 rounded-2xl bg-stone-900 text-emerald-400 flex items-center justify-center shrink-0 border border-stone-800 shadow-xs">
-            <Bell className="w-5 h-5 animate-bounce" />
+        <div className="fixed top-5 right-5 z-[9999] w-80 bg-[#0d0d0d] text-white px-5 py-4 rounded-xl shadow-2xl border border-stone-800 flex items-center gap-3.5 animate-in slide-in-from-top-5 duration-300">
+          <div className="w-9 h-9 rounded-lg bg-stone-900 text-emerald-400 flex items-center justify-center shrink-0 border border-stone-800">
+            <Bell className="w-4 h-4 animate-bounce" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-[10px] font-black uppercase tracking-wider text-emerald-400">Novo Agendamento</p>
-            <p className="text-xs font-extrabold truncate mt-0.5 text-stone-100">
+            <p className="text-[9px] font-black uppercase tracking-wider text-emerald-400">Novo Agendamento</p>
+            <p className="text-xs font-semibold truncate mt-0.5 text-stone-200">
               {novaNotificacaoToast.clientes?.nome || 'Cliente'} - {novaNotificacaoToast.servicos?.nome || 'Serviço'}
             </p>
           </div>
         </div>
       )}
 
-      {/* Dropdown Black Piano (Estilo sofisticado combinando com os cards escuros da interface) */}
+      {/* Dropdown Quadrado, Clean e Estilizado Black Piano */}
       {modalNotifAberto && (
         <>
           <div 
             onClick={() => setModalNotifAberto(false)}
-            className="fixed inset-0 z-40 bg-stone-950/20 backdrop-blur-3xs"
+            className="fixed inset-0 z-40 bg-stone-950/20 backdrop-blur-2xs"
           />
 
-          <div className="absolute right-0 mt-3 w-88 sm:w-96 bg-[#111111] text-stone-100 rounded-[2.5rem] shadow-[0_25px_60px_rgba(0,0,0,0.5)] border border-stone-800 p-5 sm:p-6 z-50 animate-in fade-in zoom-in-95 duration-150">
+          <div className="absolute right-0 mt-3 w-88 sm:w-96 bg-[#0d0d0d] text-stone-100 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.6)] border border-stone-800 p-5 z-50 animate-in slide-in-from-top-2 fade-in duration-200">
             
-            {/* Cabeçalho */}
-            <div className="flex items-center justify-between pb-3.5 border-b border-stone-800/80">
+            {/* Cabeçalho Clean */}
+            <div className="flex items-center justify-between pb-3.5 border-b border-stone-800">
               <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.6)]"></span>
-                <h3 className="font-black text-white text-xs uppercase tracking-wider">Atendimentos de Hoje</h3>
-                <span className="text-[10px] bg-stone-900 text-stone-300 font-extrabold px-2.5 py-0.5 rounded-full border border-stone-800">
+                <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                <h3 className="font-extrabold text-white text-[11px] uppercase tracking-widest">Notificações</h3>
+                <span className="text-[10px] bg-stone-900 text-stone-300 font-bold px-2 py-0.5 rounded border border-stone-800">
                   {naoLidas}
                 </span>
               </div>
 
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-2">
                 {naoLidas > 0 && (
                   <button
                     onClick={limparNotificacoesOnline}
-                    className="text-[11px] font-bold text-stone-400 hover:text-rose-400 px-2.5 py-1 rounded-xl hover:bg-stone-900 transition-colors flex items-center gap-1 cursor-pointer"
+                    className="text-[11px] font-medium text-stone-400 hover:text-rose-400 px-2.5 py-1 rounded-lg hover:bg-stone-900 transition-colors flex items-center gap-1 cursor-pointer"
                     title="Limpar notificações online"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
@@ -163,49 +163,49 @@ export default function NotificacoesBell({ barbeariaId }) {
                 )}
                 <button 
                   onClick={() => setModalNotifAberto(false)}
-                  className="text-stone-400 hover:text-white p-1.5 rounded-xl hover:bg-stone-900 transition-colors cursor-pointer"
+                  className="text-stone-400 hover:text-white p-1 rounded-lg hover:bg-stone-900 transition-colors cursor-pointer"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
             </div>
 
-            {/* Lista com cartões internos Black Piano refinados */}
-            <div className="max-h-80 overflow-y-auto space-y-3 pt-3.5 pr-1">
+            {/* Lista Clean com Cartões Quadrados */}
+            <div className="max-h-80 overflow-y-auto space-y-2.5 pt-3.5 pr-1">
               {agendamentosHoje.length === 0 ? (
-                <div className="text-center py-12 text-stone-500 text-xs border border-dashed border-stone-800 rounded-[2rem] bg-stone-900/40 flex flex-col items-center justify-center gap-2">
-                  <Sparkles className="w-6 h-6 text-stone-600 animate-bounce" />
+                <div className="text-center py-10 text-stone-500 text-xs border border-dashed border-stone-800/80 rounded-xl bg-stone-950/40 flex flex-col items-center justify-center gap-2">
+                  <Sparkles className="w-5 h-5 text-stone-600 animate-bounce" />
                   <span>Nenhuma notificação no momento.</span>
                 </div>
               ) : (
                 agendamentosHoje.map((item) => (
                   <div 
                     key={item.id}
-                    className="relative p-4 rounded-[1.75rem] bg-[#18181b] border border-stone-800/80 hover:border-stone-700 transition-all flex items-start gap-3.5 group overflow-hidden shadow-sm"
+                    className="relative p-3.5 rounded-xl bg-[#141414] border border-stone-800/80 hover:border-stone-700 transition-all flex items-start gap-3 group"
                   >
-                    {/* Detalhe lateral verde elegante */}
-                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500 rounded-l-full"></div>
+                    {/* Linha lateral indicativa */}
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500 rounded-l"></div>
 
-                    <div className="w-9 h-9 rounded-2xl bg-stone-900 text-emerald-400 flex items-center justify-center shrink-0 border border-stone-800 shadow-2xs">
-                      <Calendar className="w-4 h-4" />
+                    <div className="w-8 h-8 rounded-lg bg-stone-900 text-emerald-400 flex items-center justify-center shrink-0 border border-stone-800">
+                      <Calendar className="w-3.5 h-3.5" />
                     </div>
 
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
-                        <p className="font-black text-white text-xs tracking-tight truncate">
+                        <p className="font-bold text-white text-xs tracking-tight truncate">
                           {item.clientes?.nome || 'Cliente'}
                         </p>
-                        <span className="text-[10px] font-extrabold text-stone-400 bg-stone-900 px-2 py-0.5 rounded-md border border-stone-800 shadow-2xs">
+                        <span className="text-[10px] font-medium text-stone-400 bg-stone-900 px-1.5 py-0.5 rounded border border-stone-800">
                           {item.data_hora ? new Date(item.data_hora).toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'}) : '--:--'}
                         </span>
                       </div>
 
-                      <p className="text-[11px] text-stone-400 font-medium mt-1 truncate">
-                        {item.servicos?.nome || 'Serviço'} • <strong className="text-stone-200 font-bold">R$ {Number(item.valor_total || item.servicos?.preco || 0).toFixed(2)}</strong>
+                      <p className="text-[11px] text-stone-400 mt-0.5 truncate">
+                        {item.servicos?.nome || 'Serviço'} • <strong className="text-stone-200 font-semibold">R$ {Number(item.valor_total || item.servicos?.preco || 0).toFixed(2)}</strong>
                       </p>
 
                       <div className="mt-2 flex items-center gap-2">
-                        <span className="inline-flex items-center text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-800/40 tracking-wider">
+                        <span className="inline-flex items-center text-[9px] font-bold uppercase px-2 py-0.5 rounded bg-emerald-950/80 text-emerald-400 border border-emerald-800/40 tracking-wide">
                           {item.status || 'Agendado'}
                         </span>
                       </div>
