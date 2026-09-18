@@ -6,7 +6,18 @@ import { Bell, Calendar, X } from 'lucide-react';
 export default function NotificacoesBell({ agendamentos = [] }) {
   const [modalNotifAberto, setModalNotifAberto] = useState(false);
 
-  const naoLidas = agendamentos.length;
+  // DADOS DE TESTE FORÇADOS (Se isso aparecer, o componente está renderizando certo)
+  const listaParaExibir = agendamentos.length > 0 ? agendamentos : [
+    {
+      id: 'teste-1',
+      cliente_nome: 'Cliente de Teste Forçado',
+      servicos: { nome: 'Corte de Cabelo' },
+      valor_total: 45.00,
+      data_hora: '2026-09-17T08:00:00'
+    }
+  ];
+
+  const naoLidas = listaParaExibir.length;
 
   return (
     <div className="relative">
@@ -36,33 +47,27 @@ export default function NotificacoesBell({ agendamentos = [] }) {
           </div>
 
           <div className="max-h-80 overflow-y-auto space-y-2.5 pt-3.5 pr-1">
-            {agendamentos.length === 0 ? (
-              <div className="text-center py-10 text-stone-400 text-xs border border-dashed border-stone-200 rounded-3xl">
-                Nenhum agendamento para hoje.
-              </div>
-            ) : (
-              agendamentos.map((item) => (
-                <div 
-                  key={item.id}
-                  className="p-3.5 rounded-2xl bg-stone-50 border border-stone-200/60 flex items-start gap-3 hover:bg-stone-100/60 transition-colors"
-                >
-                  <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 border border-emerald-100">
-                    <Calendar className="w-4 h-4" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-extrabold text-stone-900 text-xs truncate">
-                      {item.clientes?.nome || item.cliente_nome || 'Cliente'}
-                    </p>
-                    <p className="text-[11px] text-stone-600 font-medium mt-0.5">
-                      {item.servicos?.nome || 'Serviço'} • <strong className="text-stone-900">R$ {Number(item.valor_total || item.servicos?.preco || 0).toFixed(2)}</strong>
-                    </p>
-                    <span className="text-[10px] text-stone-400 block mt-1">
-                      Horário: {item.data_hora ? new Date(item.data_hora).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : item.horario}
-                    </span>
-                  </div>
+            {listaParaExibir.map((item) => (
+              <div 
+                key={item.id}
+                className="p-3.5 rounded-2xl bg-stone-50 border border-stone-200/60 flex items-start gap-3 hover:bg-stone-100/60 transition-colors"
+              >
+                <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 border border-emerald-100">
+                  <Calendar className="w-4 h-4" />
                 </div>
-              ))
-            )}
+                <div className="flex-1 min-w-0">
+                  <p className="font-extrabold text-stone-900 text-xs truncate">
+                    {item.clientes?.nome || item.cliente_nome || 'Cliente'}
+                  </p>
+                  <p className="text-[11px] text-stone-600 font-medium mt-0.5">
+                    {item.servicos?.nome || 'Serviço'} • <strong className="text-stone-900">R$ {Number(item.valor_total || item.servicos?.preco || 0).toFixed(2)}</strong>
+                  </p>
+                  <span className="text-[10px] text-stone-400 block mt-1">
+                    Horário: {item.data_hora ? new Date(item.data_hora).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : item.horario}
+                  </span>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}
