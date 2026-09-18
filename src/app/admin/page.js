@@ -1000,6 +1000,7 @@ const handleSaveBarbeiro = async (e) => {
     <div className="flex items-center gap-2.5">
 <NotificacoesBell barbeariaId={barbearia?.id} supabase={supabase} />
 
+
       
 
       <button 
