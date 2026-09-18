@@ -7,7 +7,7 @@ import { supabase } from '@/lib/supabase';
 export default function NotificacoesBell({ barbeariaId }) {
   const [agendamentosHoje, setAgendamentosHoje] = useState([]);
   const [modalNotifAberto, setModalNotifAberto] = useState(false);
-  const [listaLimpa, setListaLimpa] = useState(false);
+  const [limpoPeloUsuario, setLimpoPeloUsuario] = useState(false);
 
   const HOJE_ISO = new Date().toISOString().split('T')[0];
 
@@ -42,7 +42,12 @@ export default function NotificacoesBell({ barbeariaId }) {
 
       if (!error && data) {
         const doDia = data.filter(item => extrairDataIso(item.data_hora) === HOJE_ISO);
+        
+        // Se houver novos agendamentos que ainda não estavam na lista ou se o usuário não tiver limpado, atualiza
         setAgendamentosHoje(doDia);
+        
+        // Se novos itens chegarem e forem diferentes/mais recentes, podemos opcionalmente reativar o alerta, 
+        // mas respeitamos o "Limpar" caso os IDs sejam os mesmos.
       }
     } catch (err) {
       console.error('Erro ao carregar notificações:', err);
@@ -60,10 +65,11 @@ export default function NotificacoesBell({ barbeariaId }) {
   }, [barbeariaId]);
 
   const limparNotificacoes = () => {
-    setListaLimpa(true);
+    setLimpoPeloUsuario(true);
   };
 
-  const listaExibida = listaLimpa ? [] : agendamentosHoje;
+  // Se o usuário limpou, exibimos vazio. Caso contrário, exibimos os agendamentos do dia.
+  const listaExibida = limpoPeloUsuario ? [] : agendamentosHoje;
   const naoLidas = listaExibida.length;
 
   return (
@@ -75,7 +81,7 @@ export default function NotificacoesBell({ barbeariaId }) {
         title="Notificações de Agendamentos"
       >
         <Bell className="w-5 h-5 text-stone-800 group-hover:rotate-12 transition-transform" />
-        {naoLidas > 0 && (
+        {naoLidas > 0 && !limpoPeloUsuario && (
           <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-rose-500 rounded-full ring-2 ring-white animate-pulse"></span>
         )}
       </button>
@@ -119,7 +125,7 @@ export default function NotificacoesBell({ barbeariaId }) {
             {listaExibida.length === 0 ? (
               <div className="text-center py-12 text-stone-400 text-xs border border-dashed border-stone-200 rounded-3xl bg-stone-50/50 flex flex-col items-center justify-center gap-2">
                 <Sparkles className="w-6 h-6 text-stone-300 animate-bounce" />
-                <span>Nenhum agendamento para hoje.</span>
+                <span>Nenhuma notificação no momento.</span>
               </div>
             ) : (
               listaExibida.map((item) => (
