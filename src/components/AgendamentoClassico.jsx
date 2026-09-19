@@ -38,7 +38,6 @@ export default function AgendamentoClassico({ barbeariaId }) {
     : 'bg-gradient-to-br from-[#0c0d10] via-[#050507] to-[#000000] border-white/10 text-white shadow-[0_30px_90px_rgba(0,0,0,0.9)]';
 
   const estiloInput = isClean ? 'bg-white border-slate-300 text-slate-900 placeholder-slate-400' : 'bg-black/60 border-white/10 text-white placeholder-slate-500';
-  const estiloCardItem = isClean ? 'bg-white/80 border-slate-200 hover:border-sky-500 text-slate-800' : 'bg-black/50 border-white/10 hover:border-white/30 text-white';
 
   useEffect(() => {
     async function carregarDados() {
@@ -110,7 +109,7 @@ export default function AgendamentoClassico({ barbeariaId }) {
   const handleVerificarTelefone = async (e) => {
     e.preventDefault();
     if (telefone.length < 8) {
-      setErro('Por favor, informe um número de telemóvel válido.');
+      setErro('Por favor, informe um número de celular válido.');
       return;
     }
     setErro(null);
@@ -165,7 +164,7 @@ export default function AgendamentoClassico({ barbeariaId }) {
       setClienteId(novoCli.id);
       setEtapa('servico');
     } catch (err) {
-      setErro('Erro ao registar cliente.');
+      setErro('Erro ao cadastrar cliente.');
     } finally {
       setLoading(false);
     }
@@ -264,7 +263,7 @@ export default function AgendamentoClassico({ barbeariaId }) {
         {etapa === 'telefone' && (
           <form onSubmit={handleVerificarTelefone} className="space-y-4">
             <div className="space-y-1.5">
-              <label className={`text-[10px] font-extrabold uppercase tracking-wider block ${isClean ? 'text-slate-600' : 'text-slate-400'}`}>Informe o seu telemóvel / WhatsApp</label>
+              <label className={`text-[10px] font-extrabold uppercase tracking-wider block ${isClean ? 'text-slate-600' : 'text-slate-400'}`}>Informe o seu celular / WhatsApp</label>
               <input
                 type="tel"
                 required
@@ -314,7 +313,7 @@ export default function AgendamentoClassico({ barbeariaId }) {
         {etapa === 'menu_inicial' && (
           <div className="space-y-4">
             <div className={`p-4 rounded-2xl border backdrop-blur-md text-center ${isClean ? 'bg-white border-slate-200 text-slate-900' : 'bg-black/50 border-white/10 text-white'}`}>
-              <p className="text-xs font-bold">Olá, {nome}! Detetamos agendamentos ativos na sua conta.</p>
+              <p className="text-xs font-bold">Olá, {nome}! Notamos que você tem agendamentos ativos.</p>
             </div>
             <div className="grid grid-cols-1 gap-2.5">
               <button
@@ -376,69 +375,103 @@ export default function AgendamentoClassico({ barbeariaId }) {
           </div>
         )}
 
+        {/* ESCOLHA DE SERVIÇO EM GRID (LADO A LADO) */}
         {etapa === 'servico' && (
           <div className="space-y-3">
             <h3 className={`text-xs font-black uppercase tracking-wider ${isClean ? 'text-slate-600' : 'text-slate-400'}`}>1. Escolha o Serviço</h3>
-            <div className="grid grid-cols-1 gap-2.5 max-h-[300px] overflow-y-auto">
+            <div className="grid grid-cols-2 gap-3 max-h-[320px] overflow-y-auto pr-1">
               {servicos.map((s) => (
                 <button
                   key={s.id}
                   onClick={() => { setServicoEscolhido(s); setEtapa('barbeiro'); }}
-                  className={`p-3.5 rounded-2xl border text-left flex justify-between items-center transition-all cursor-pointer backdrop-blur-md ${estiloCardItem}`}
+                  className={`p-4 rounded-3xl border text-left flex flex-col justify-between transition-all cursor-pointer backdrop-blur-xl hover:scale-[1.02] shadow-lg ${
+                    isClean ? 'bg-white/80 border-slate-200 hover:border-sky-500 text-slate-900' : 'bg-gradient-to-br from-black/80 via-black/50 to-stone-900/60 border-white/10 hover:border-white/30 text-white'
+                  }`}
                 >
-                  <div>
-                    <p className={`text-xs font-bold ${isClean ? 'text-slate-900' : 'text-white'}`}>{s.nome}</p>
-                    <p className={`text-[10px] ${isClean ? 'text-slate-500' : 'text-slate-400'}`}>{s.duracao_minutos || 30} minutos</p>
+                  <div className="w-8 h-8 rounded-xl flex items-center justify-center mb-3 shadow-inner" style={{ backgroundColor: `${corTema}25`, color: corTema }}>
+                    <Scissors className="w-4 h-4" />
                   </div>
-                  <span className="text-xs font-black" style={{ color: corTema }}>R$ {Number(s.preco).toFixed(2)}</span>
+                  <div>
+                    <p className="text-xs font-extrabold tracking-tight">{s.nome}</p>
+                    <p className={`text-[10px] mt-0.5 ${isClean ? 'text-slate-500' : 'text-slate-400'}`}>{s.duracao_minutos || 30} min</p>
+                  </div>
+                  <div className="mt-3 pt-2 border-t border-white/5 flex items-center justify-between">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase">Preço</span>
+                    <span className="text-xs font-black" style={{ color: corTema }}>R$ {Number(s.preco).toFixed(2)}</span>
+                  </div>
                 </button>
               ))}
             </div>
           </div>
         )}
 
+        {/* ESCOLHA DE PROFISSIONAL EM GRID (LADO A LADO) COM FOTOS QUADRADAS */}
         {etapa === 'barbeiro' && (
           <div className="space-y-3">
             <h3 className={`text-xs font-black uppercase tracking-wider ${isClean ? 'text-slate-600' : 'text-slate-400'}`}>2. Escolha o Profissional</h3>
-            <div className="grid grid-cols-1 gap-2.5">
-              {barbeiros.map((b) => (
-                <button
-                  key={b.id}
-                  onClick={() => { setBarbeiroEscolhido(b); setEtapa('data'); }}
-                  className={`p-3.5 rounded-2xl border text-left flex items-center gap-3 transition-all cursor-pointer backdrop-blur-md ${estiloCardItem}`}
-                >
-                  {b.foto ? (
-                    <img src={b.foto} alt={b.nome} className="w-9 h-9 rounded-full object-cover border border-white/20" />
-                  ) : (
-                    <div className="w-9 h-9 rounded-full text-white flex items-center justify-center font-bold text-xs" style={{ backgroundColor: corTema }}>
-                      {b.nome?.charAt(0)}
+            <div className="grid grid-cols-2 gap-3">
+              {barbeiros.map((b) => {
+                const foto = b.foto || b.avatar || b.imagem;
+                return (
+                  <button
+                    key={b.id}
+                    onClick={() => { setBarbeiroEscolhido(b); setEtapa('data'); }}
+                    className={`p-3.5 rounded-3xl border text-left flex flex-col items-center text-center transition-all cursor-pointer backdrop-blur-xl hover:scale-[1.02] shadow-lg ${
+                      isClean ? 'bg-white/80 border-slate-200 hover:border-sky-500' : 'bg-gradient-to-br from-black/80 via-black/50 to-stone-900/60 border-white/10 hover:border-white/30'
+                    }`}
+                  >
+                    <div className="w-20 h-20 rounded-2xl overflow-hidden border-2 mb-3 shadow-2xl relative" style={{ borderColor: `${corTema}66` }}>
+                      {foto ? (
+                        <img src={foto} alt={b.nome} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full text-white flex items-center justify-center font-black text-lg" style={{ backgroundColor: corTema }}>
+                          {b.nome?.charAt(0)}
+                        </div>
+                      )}
                     </div>
-                  )}
-                  <p className={`text-xs font-bold ${isClean ? 'text-slate-900' : 'text-white'}`}>{b.nome}</p>
-                </button>
-              ))}
+                    <p className={`text-xs font-black tracking-tight line-clamp-1 ${isClean ? 'text-slate-900' : 'text-white'}`}>{b.nome}</p>
+                    <span className="text-[9px] font-semibold mt-0.5 px-2 py-0.5 rounded-full border" style={{ backgroundColor: `${corTema}15`, color: corTema, borderColor: `${corTema}33` }}>
+                      Profissional
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}
 
+        {/* CALENDÁRIO PROFISSIONAL INTEGRADO */}
         {etapa === 'data' && (
-          <div className="space-y-3">
-            <h3 className={`text-xs font-black uppercase tracking-wider ${isClean ? 'text-slate-600' : 'text-slate-400'}`}>3. Escolha a Data</h3>
-            <input 
-              type="date"
-              required
-              value={dataEscolhida}
-              onChange={(e) => setDataEscolhida(e.target.value)}
-              className={`w-full p-3.5 rounded-2xl border text-xs focus:outline-none backdrop-blur-md ${isClean ? 'bg-white border-slate-300 text-slate-900' : 'bg-black/50 border-white/10 text-white [color-scheme:dark]'}`}
-            />
-            <button
-              disabled={!dataEscolhida}
-              onClick={() => setEtapa('horario')}
-              className="w-full py-3.5 rounded-2xl text-white font-black text-xs uppercase tracking-widest cursor-pointer shadow-lg disabled:opacity-50"
-              style={{ backgroundColor: corTema }}
-            >
-              Avançar para Horários
-            </button>
+          <div className={`p-5 rounded-3xl border backdrop-blur-xl space-y-4 shadow-xl ${isClean ? 'bg-white/90 border-slate-200' : 'bg-gradient-to-br from-black/80 via-black/60 to-stone-900 border-white/15'}`}>
+            <div className="flex items-center gap-2 pb-3 border-b border-white/10">
+              <div className="w-7 h-7 rounded-xl flex items-center justify-center shadow" style={{ backgroundColor: `${corTema}20`, color: corTema }}>
+                <CalendarIcon className="w-4 h-4" />
+              </div>
+              <span className="text-xs font-black uppercase tracking-wider">3. Escolha a Data do Atendimento</span>
+            </div>
+
+            <div className="space-y-3">
+              <input 
+                type="date"
+                required
+                min={new Date().toISOString().split('T')[0]}
+                value={dataEscolhida}
+                onChange={(e) => setDataEscolhida(e.target.value)}
+                className={`w-full p-4 rounded-2xl border text-xs font-bold focus:outline-none backdrop-blur-md cursor-pointer shadow-inner ${
+                  isClean ? 'bg-slate-50 border-slate-300 text-slate-900' : 'bg-black/90 border-white/20 text-white [color-scheme:dark]'
+                }`}
+                style={{ borderColor: dataEscolhida ? corTema : undefined }}
+              />
+              <button
+                disabled={!dataEscolhida}
+                onClick={() => setEtapa('horario')}
+                className="w-full py-3.5 rounded-2xl text-white font-black text-xs uppercase tracking-widest cursor-pointer shadow-lg disabled:opacity-40 transition-all hover:brightness-110 flex items-center justify-center gap-2"
+                style={{ backgroundColor: corTema }}
+              >
+                <span>Avançar para Horários</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         )}
 
@@ -468,11 +501,15 @@ export default function AgendamentoClassico({ barbeariaId }) {
         )}
 
         {etapa === 'editar_data' && (
-          <div className="space-y-3">
-            <h3 className={`text-xs font-black uppercase tracking-wider ${isClean ? 'text-slate-600' : 'text-slate-400'}`}>Nova Data</h3>
+          <div className={`p-4 rounded-3xl border backdrop-blur-xl space-y-3 ${isClean ? 'bg-white border-slate-200' : 'bg-black/60 border-white/10'}`}>
+            <div className="flex items-center gap-2 pb-2 border-b border-white/10">
+              <CalendarIcon className="w-4 h-4" style={{ color: corTema }} />
+              <span className="text-xs font-black uppercase tracking-wider">Nova Data</span>
+            </div>
             <input 
               type="date"
               required
+              min={new Date().toISOString().split('T')[0]}
               value={dataEscolhida}
               onChange={(e) => setDataEscolhida(e.target.value)}
               className={`w-full p-3.5 rounded-2xl border text-xs ${isClean ? 'bg-white border-slate-300 text-slate-900' : 'bg-black/50 border-white/10 text-white [color-scheme:dark]'}`}
