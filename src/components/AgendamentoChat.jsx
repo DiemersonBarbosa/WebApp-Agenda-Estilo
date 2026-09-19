@@ -43,7 +43,17 @@ export default function AgendamentoChat({ barbeariaId }) {
     }
   }, [mensagens, estaDigitando]);
 
-  const corTema = barbearia?.cor_tema || '#10b981';
+  // Define cores com base no tema escolhido ('clean' = azul claro elegante / 'dark' = verde esmeralda dark)
+  const isClean = barbearia?.cor_tema === 'clean';
+  const corTema = isClean ? '#0ea5e9' : '#10b981';
+  const estiloFundoContainer = isClean 
+    ? 'bg-gradient-to-br from-[#f8fafc] via-[#f1f5f9] to-[#e2e8f0] border-slate-300 text-slate-900 shadow-[0_30px_90px_rgba(0,0,0,0.15)]' 
+    : 'bg-gradient-to-br from-[#0c0d10] via-[#050507] to-[#000000] border-white/10 text-white shadow-[0_30px_90px_rgba(0,0,0,0.9)]';
+
+  const estiloHeader = isClean ? 'bg-white/90 border-slate-200 text-slate-900' : 'bg-[#050507]/90 border-white/10 text-white';
+  const estiloBotMsg = isClean ? 'bg-white border border-slate-200 text-slate-800 shadow-sm' : 'bg-black/60 border border-white/10 text-slate-200 shadow-inner';
+  const estiloInput = isClean ? 'bg-white border-slate-300 text-slate-900 placeholder-slate-400' : 'bg-black/80 border-white/10 text-white placeholder-slate-500';
+  const estiloCardItem = isClean ? 'bg-white/80 border-slate-200 hover:border-sky-500 text-slate-800' : 'bg-black/50 border-white/10 hover:border-emerald-500 text-white';
 
   const adicionarMensagemBotComDelay = (textoResposta, proximaEtapa = null) => {
     setEstaDigitando(true);
@@ -313,12 +323,12 @@ export default function AgendamentoChat({ barbeariaId }) {
   };
 
   return (
-    <div className="w-full max-w-xl mx-auto rounded-[2.5rem] bg-gradient-to-br from-[#0c0d10] via-[#050507] to-[#000000] border border-white/10 shadow-[0_30px_90px_rgba(0,0,0,0.9)] text-white overflow-hidden relative backdrop-blur-2xl flex flex-col h-[650px]">
+    <div className={`w-full max-w-xl mx-auto rounded-[2.5rem] border overflow-hidden relative backdrop-blur-2xl flex flex-col h-[650px] ${estiloFundoContainer}`}>
       
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-4/5 h-[3px] z-30" style={{ background: `linear-gradient(to right, transparent, ${corTema}, transparent)` }}></div>
 
       {/* HEADER FIXO */}
-      <div className="shrink-0 z-20 bg-[#050507]/90 backdrop-blur-xl border-b border-white/10">
+      <div className={`shrink-0 z-20 backdrop-blur-xl border-b ${estiloHeader}`}>
         <div className="relative h-28 w-full bg-stone-900 overflow-hidden">
           {barbearia?.capa_url ? (
             <img src={barbearia.capa_url} alt="Capa" className="w-full h-full object-cover" />
@@ -341,7 +351,7 @@ export default function AgendamentoChat({ barbeariaId }) {
             )}
           </div>
           <div>
-            <h2 className="text-sm font-black text-white tracking-tight">{barbearia?.nome}</h2>
+            <h2 className={`text-sm font-black tracking-tight ${isClean ? 'text-slate-900' : 'text-white'}`}>{barbearia?.nome}</h2>
             <p className="text-[10px] font-semibold uppercase tracking-wider flex items-center gap-1 mt-0.5" style={{ color: corTema }}>
               <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: corTema }}></span>
               Assistente Virtual Inteligente
@@ -366,7 +376,7 @@ export default function AgendamentoChat({ barbeariaId }) {
               className={`p-3.5 rounded-3xl text-xs leading-relaxed max-w-[80%] backdrop-blur-md ${
                 msg.remetente === 'usuario' 
                   ? 'text-slate-950 font-bold rounded-tr-sm shadow-lg' 
-                  : 'bg-black/60 border border-white/10 text-slate-200 rounded-tl-sm shadow-inner'
+                  : estiloBotMsg
               }`}
               style={msg.remetente === 'usuario' ? { backgroundColor: corTema, boxShadow: `0 5px 20px ${corTema}40` } : {}}
             >
@@ -380,7 +390,7 @@ export default function AgendamentoChat({ barbeariaId }) {
             <div className="w-7 h-7 rounded-xl border flex items-center justify-center shrink-0 shadow-sm mt-1" style={{ backgroundColor: `${corTema}20`, borderColor: `${corTema}50`, color: corTema }}>
               <Bot className="w-3.5 h-3.5" />
             </div>
-            <div className="p-4 rounded-3xl rounded-tl-sm bg-black/60 border border-white/10 flex items-center gap-1.5 backdrop-blur-md shadow-inner">
+            <div className={`p-4 rounded-3xl rounded-tl-sm border flex items-center gap-1.5 backdrop-blur-md shadow-inner ${isClean ? 'bg-white border-slate-200' : 'bg-black/60 border-white/10'}`}>
               <div className="w-1.5 h-1.5 rounded-full animate-bounce [animation-delay:-0.3s]" style={{ backgroundColor: corTema }}></div>
               <div className="w-1.5 h-1.5 rounded-full animate-bounce [animation-delay:-0.15s]" style={{ backgroundColor: corTema }}></div>
               <div className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ backgroundColor: corTema }}></div>
@@ -392,17 +402,17 @@ export default function AgendamentoChat({ barbeariaId }) {
           <div className="grid grid-cols-1 gap-2 pt-2">
             <button
               onClick={() => escolherOpcaoMenu('novo')}
-              className="p-3.5 rounded-2xl border text-left flex items-center justify-between transition-all cursor-pointer backdrop-blur-md"
-              style={{ backgroundColor: `${corTema}15`, borderColor: `${corTema}40` }}
+              className="p-3.5 rounded-2xl border text-left flex items-center justify-between transition-all cursor-pointer backdrop-blur-md font-bold text-xs"
+              style={{ backgroundColor: `${corTema}15`, borderColor: `${corTema}40`, color: isClean ? '#0f172a' : '#ffffff' }}
             >
-              <span className="text-xs font-bold text-white">Fazer novo agendamento</span>
+              <span>Fazer novo agendamento</span>
               <ArrowRight className="w-4 h-4" style={{ color: corTema }} />
             </button>
             <button
               onClick={() => escolherOpcaoMenu('gerenciar')}
-              className="p-3.5 rounded-2xl bg-black/50 border border-white/10 hover:border-white/20 text-left flex items-center justify-between transition-all cursor-pointer backdrop-blur-md"
+              className={`p-3.5 rounded-2xl border text-left flex items-center justify-between transition-all cursor-pointer backdrop-blur-md font-bold text-xs ${isClean ? 'bg-white border-slate-200 text-slate-800' : 'bg-black/50 border-white/10 text-white'}`}
             >
-              <span className="text-xs font-bold text-white">Ver / Gerenciar meus agendamentos</span>
+              <span>Ver / Gerenciar meus agendamentos</span>
               <Calendar className="w-4 h-4 text-slate-400" />
             </button>
           </div>
@@ -419,23 +429,23 @@ export default function AgendamentoChat({ barbeariaId }) {
                   timeStyle: 'short'
                 });
                 return (
-                  <div key={ag.id} className="p-4 rounded-2xl bg-black/60 border border-white/10 flex items-center justify-between gap-3 backdrop-blur-md">
+                  <div key={ag.id} className={`p-4 rounded-2xl border flex items-center justify-between gap-3 backdrop-blur-md ${isClean ? 'bg-white border-slate-200' : 'bg-black/60 border-white/10'}`}>
                     <div>
-                      <p className="text-xs font-bold text-white">{ag.servicos?.nome || 'Serviço'}</p>
+                      <p className={`text-xs font-bold ${isClean ? 'text-slate-900' : 'text-white'}`}>{ag.servicos?.nome || 'Serviço'}</p>
                       <p className="text-[10px] font-medium" style={{ color: corTema }}>Profissional: {ag.barbeiros?.nome || 'Barbeiro'}</p>
-                      <p className="text-[10px] text-slate-300 mt-0.5">📅 {dataFormatada}</p>
+                      <p className={`text-[10px] mt-0.5 ${isClean ? 'text-slate-600' : 'text-slate-300'}`}>📅 {dataFormatada}</p>
                     </div>
                     <div className="flex items-center gap-1.5 shrink-0">
                       <button
                         onClick={() => iniciarEdicao(ag)}
-                        className="px-3 py-2 rounded-xl bg-sky-500/20 hover:bg-sky-500/30 border border-sky-500/40 text-sky-400 text-[10px] font-bold transition-all flex items-center gap-1 cursor-pointer"
+                        className="px-3 py-2 rounded-xl bg-sky-500/20 hover:bg-sky-500/30 border border-sky-500/40 text-sky-500 text-[10px] font-bold transition-all flex items-center gap-1 cursor-pointer"
                       >
                         <Edit3 className="w-3.5 h-3.5" />
                         <span>Editar</span>
                       </button>
                       <button
                         onClick={() => cancelarAgendamento(ag.id)}
-                        className="px-3 py-2 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/40 text-rose-400 text-[10px] font-bold transition-all flex items-center gap-1 cursor-pointer"
+                        className="px-3 py-2 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/40 text-rose-500 text-[10px] font-bold transition-all flex items-center gap-1 cursor-pointer"
                       >
                         <XCircle className="w-3.5 h-3.5" />
                         <span>Cancelar</span>
@@ -465,11 +475,11 @@ export default function AgendamentoChat({ barbeariaId }) {
               required
               value={dataEscolhida}
               onChange={(e) => setDataEscolhida(e.target.value)}
-              className="w-full p-3.5 rounded-2xl bg-black/50 border border-white/10 text-xs text-white focus:outline-none [color-scheme:dark] backdrop-blur-md"
+              className={`w-full p-3.5 rounded-2xl border text-xs focus:outline-none backdrop-blur-md ${isClean ? 'bg-white border-slate-300 text-slate-900' : 'bg-black/50 border-white/10 text-white [color-scheme:dark]'}`}
             />
             <button
               type="submit"
-              className="w-full py-3.5 rounded-2xl text-slate-950 font-black text-xs uppercase tracking-widest cursor-pointer shadow-lg flex items-center justify-center gap-2"
+              className="w-full py-3.5 rounded-2xl text-white font-black text-xs uppercase tracking-widest cursor-pointer shadow-lg flex items-center justify-center gap-2"
               style={{ backgroundColor: corTema }}
             >
               <span>Avançar para Horários</span>
@@ -489,8 +499,8 @@ export default function AgendamentoChat({ barbeariaId }) {
                   onClick={() => salvarEdicaoHorario(h)}
                   className={`py-2.5 rounded-xl text-xs font-black border transition-all backdrop-blur-md ${
                     ocupado
-                      ? 'bg-black/20 text-slate-600 border-white/5 line-through opacity-40 cursor-not-allowed'
-                      : 'bg-black/50 text-white border-white/10 cursor-pointer'
+                      ? 'bg-slate-500/10 text-slate-400 border-slate-200 line-through opacity-40 cursor-not-allowed'
+                      : isClean ? 'bg-white text-slate-800 border-slate-300 cursor-pointer' : 'bg-black/50 text-white border-white/10 cursor-pointer'
                   }`}
                 >
                   {h}
@@ -506,11 +516,11 @@ export default function AgendamentoChat({ barbeariaId }) {
               <button
                 key={s.id}
                 onClick={() => selecionarServico(s)}
-                className="p-3.5 rounded-2xl bg-black/50 border border-white/10 text-left flex justify-between items-center transition-all cursor-pointer backdrop-blur-md group"
+                className={`p-3.5 rounded-2xl border text-left flex justify-between items-center transition-all cursor-pointer backdrop-blur-md group ${estiloCardItem}`}
               >
                 <div>
-                  <p className="text-xs font-bold text-white transition-colors">{s.nome}</p>
-                  <p className="text-[10px] text-slate-400">{s.duracao_minutos || 30} minutos</p>
+                  <p className={`text-xs font-bold ${isClean ? 'text-slate-900' : 'text-white'}`}>{s.nome}</p>
+                  <p className={`text-[10px] ${isClean ? 'text-slate-500' : 'text-slate-400'}`}>{s.duracao_minutos || 30} minutos</p>
                 </div>
                 <span className="text-xs font-black" style={{ color: corTema }}>R$ {Number(s.preco).toFixed(2)}</span>
               </button>
@@ -526,7 +536,7 @@ export default function AgendamentoChat({ barbeariaId }) {
                 <button
                   key={b.id}
                   onClick={() => selecionarBarbeiro(b)}
-                  className="p-3.5 rounded-2xl bg-black/50 border border-white/10 text-left flex items-center gap-3 transition-all cursor-pointer backdrop-blur-md group"
+                  className={`p-3.5 rounded-2xl border text-left flex items-center gap-3 transition-all cursor-pointer backdrop-blur-md group ${estiloCardItem}`}
                 >
                   {foto ? (
                     <img src={foto} alt={b.nome} className="w-9 h-9 rounded-full object-cover border border-white/20" />
@@ -535,7 +545,7 @@ export default function AgendamentoChat({ barbeariaId }) {
                       {b.nome?.charAt(0)}
                     </div>
                   )}
-                  <p className="text-xs font-bold text-white">{b.nome}</p>
+                  <p className={`text-xs font-bold ${isClean ? 'text-slate-900' : 'text-white'}`}>{b.nome}</p>
                 </button>
               );
             })}
@@ -549,11 +559,11 @@ export default function AgendamentoChat({ barbeariaId }) {
               required
               value={dataEscolhida}
               onChange={(e) => setDataEscolhida(e.target.value)}
-              className="w-full p-3.5 rounded-2xl bg-black/50 border border-white/10 text-xs text-white focus:outline-none [color-scheme:dark] backdrop-blur-md"
+              className={`w-full p-3.5 rounded-2xl border text-xs focus:outline-none backdrop-blur-md ${isClean ? 'bg-white border-slate-300 text-slate-900' : 'bg-black/50 border-white/10 text-white [color-scheme:dark]'}`}
             />
             <button
               type="submit"
-              className="w-full py-3.5 rounded-2xl text-slate-950 font-black text-xs uppercase tracking-widest cursor-pointer shadow-lg flex items-center justify-center gap-2"
+              className="w-full py-3.5 rounded-2xl text-white font-black text-xs uppercase tracking-widest cursor-pointer shadow-lg flex items-center justify-center gap-2"
               style={{ backgroundColor: corTema }}
             >
               <span>Avançar para Horários</span>
@@ -574,10 +584,10 @@ export default function AgendamentoChat({ barbeariaId }) {
                   onClick={() => selecionarHorario(h)}
                   className={`py-2.5 rounded-xl text-xs font-black border transition-all backdrop-blur-md ${
                     ocupado
-                      ? 'bg-black/20 text-slate-600 border-white/5 line-through opacity-40 cursor-not-allowed'
+                      ? 'bg-slate-500/10 text-slate-400 border-slate-200 line-through opacity-40 cursor-not-allowed'
                       : selecionado
-                      ? 'text-slate-950 shadow-lg scale-105'
-                      : 'bg-black/50 text-white border-white/10 cursor-pointer'
+                      ? 'text-white shadow-lg scale-105'
+                      : isClean ? 'bg-white text-slate-800 border-slate-300 cursor-pointer' : 'bg-black/50 text-white border-white/10 cursor-pointer'
                   }`}
                   style={selecionado ? { backgroundColor: corTema, borderColor: corTema } : {}}
                 >
@@ -589,19 +599,19 @@ export default function AgendamentoChat({ barbeariaId }) {
         )}
 
         {etapa === 'resumo' && !estaDigitando && (
-          <div className="p-4 rounded-2xl bg-black/60 border space-y-2.5 backdrop-blur-md mt-2" style={{ borderColor: `${corTema}66` }}>
+          <div className={`p-4 rounded-2xl border space-y-2.5 backdrop-blur-md mt-2 ${isClean ? 'bg-white border-sky-500/40 text-slate-800' : 'bg-black/60 border-emerald-500/40 text-slate-200'}`} style={{ borderColor: `${corTema}66` }}>
             <h4 className="text-xs font-black uppercase tracking-wider" style={{ color: corTema }}>Resumo do Agendamento</h4>
-            <div className="space-y-1 text-xs text-slate-200">
-              <p>✂️ <strong className="text-white">Serviço:</strong> {servicoEscolhido?.nome} (R$ {Number(servicoEscolhido?.preco || 0).toFixed(2)})</p>
-              <p>👤 <strong className="text-white">Profissional:</strong> {barbeiroEscolhido?.nome}</p>
-              <p>📅 <strong className="text-white">Data:</strong> {dataEscolhida.split('-').reverse().join('/')}</p>
-              <p>⏰ <strong className="text-white">Horário:</strong> {horaEscolhida}</p>
-              <p>👤 <strong className="text-white">Cliente:</strong> {nome} ({telefone})</p>
+            <div className="space-y-1 text-xs">
+              <p>✂️ <strong className={isClean ? 'text-slate-950' : 'text-white'}>Serviço:</strong> {servicoEscolhido?.nome} (R$ {Number(servicoEscolhido?.preco || 0).toFixed(2)})</p>
+              <p>👤 <strong className={isClean ? 'text-slate-950' : 'text-white'}>Profissional:</strong> {barbeiroEscolhido?.nome}</p>
+              <p>📅 <strong className={isClean ? 'text-slate-950' : 'text-white'}>Data:</strong> {dataEscolhida.split('-').reverse().join('/')}</p>
+              <p>⏰ <strong className={isClean ? 'text-slate-950' : 'text-white'}>Horário:</strong> {horaEscolhida}</p>
+              <p>👤 <strong className={isClean ? 'text-slate-950' : 'text-white'}>Cliente:</strong> {nome} ({telefone})</p>
             </div>
             <button
               disabled={loading}
               onClick={confirmarAgendamentoFinal}
-              className="w-full mt-3 py-3 rounded-xl text-slate-950 font-black text-xs uppercase tracking-widest cursor-pointer shadow-lg hover:brightness-110 transition-all"
+              className="w-full mt-3 py-3 rounded-xl text-white font-black text-xs uppercase tracking-widest cursor-pointer shadow-lg hover:brightness-110 transition-all"
               style={{ backgroundColor: corTema }}
             >
               {loading ? 'A confirmar...' : 'Confirmar Agendamento'}
@@ -611,7 +621,7 @@ export default function AgendamentoChat({ barbeariaId }) {
 
         {etapa === 'sucesso' && !estaDigitando && (
           <div className="pt-2 text-center space-y-3">
-            <div className="w-12 h-12 rounded-2xl text-slate-950 flex items-center justify-center mx-auto shadow-lg" style={{ backgroundColor: corTema }}>
+            <div className="w-12 h-12 rounded-2xl text-white flex items-center justify-center mx-auto shadow-lg" style={{ backgroundColor: corTema }}>
               <CheckCircle2 className="w-6 h-6" />
             </div>
             <div className="grid grid-cols-1 gap-2 pt-2">
@@ -620,7 +630,7 @@ export default function AgendamentoChat({ barbeariaId }) {
                   setEtapa('servico');
                   setMensagens((prev) => [...prev, { remetente: 'bot', texto: 'Vamos lá! Escolha o serviço para o novo agendamento:' }]);
                 }}
-                className="w-full py-3 rounded-2xl text-slate-950 font-bold text-xs transition-all cursor-pointer shadow-md"
+                className="w-full py-3 rounded-2xl text-white font-bold text-xs transition-all cursor-pointer shadow-md"
                 style={{ backgroundColor: corTema }}
               >
                 Fazer Novo Agendamento
@@ -631,7 +641,7 @@ export default function AgendamentoChat({ barbeariaId }) {
                   setEtapa('gerenciar');
                   setMensagens((prev) => [...prev, { remetente: 'bot', texto: 'Aqui estão os seus agendamentos ativos:' }]);
                 }}
-                className="w-full py-3 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs transition-all cursor-pointer border border-white/10"
+                className={`w-full py-3 rounded-2xl font-bold text-xs transition-all cursor-pointer border ${isClean ? 'bg-slate-100 border-slate-300 text-slate-800' : 'bg-white/10 hover:bg-white/20 text-white border-white/10'}`}
               >
                 Ver Meus Agendamentos
               </button>
@@ -641,24 +651,24 @@ export default function AgendamentoChat({ barbeariaId }) {
       </div>
 
       {erro && (
-        <div className="mx-6 mb-2 p-3 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs flex items-center gap-2 backdrop-blur-md shrink-0">
+        <div className="mx-6 mb-2 p-3 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-500 text-xs flex items-center gap-2 backdrop-blur-md shrink-0">
           <AlertCircle className="w-4 h-4 shrink-0" />
           <span>{erro}</span>
         </div>
       )}
 
       {(etapa === 'telefone' || etapa === 'nome') && !estaDigitando && (
-        <form onSubmit={handleEnviarResposta} className="p-4 sm:p-5 border-t border-white/10 bg-black/60 backdrop-blur-xl flex items-center gap-2 shrink-0">
+        <form onSubmit={handleEnviarResposta} className={`p-4 sm:p-5 border-t backdrop-blur-xl flex items-center gap-2 shrink-0 ${isClean ? 'bg-white/80 border-slate-200' : 'bg-black/60 border-white/10'}`}>
           <input
             type={etapa === 'telefone' ? 'tel' : 'text'}
             placeholder={etapa === 'telefone' ? 'Digite seu telemóvel...' : 'Digite seu nome completo...'}
             value={inputTexto}
             onChange={(e) => setInputTexto(e.target.value)}
-            className="w-full bg-black/80 border border-white/10 rounded-2xl px-4 py-3.5 text-xs text-white placeholder-slate-500 focus:outline-none shadow-inner"
+            className={`w-full rounded-2xl px-4 py-3.5 text-xs focus:outline-none shadow-inner ${estiloInput}`}
           />
           <button
             type="submit"
-            className="w-12 h-12 rounded-2xl text-slate-950 flex items-center justify-center shadow-lg shrink-0 cursor-pointer hover:scale-105 transition-transform"
+            className="w-12 h-12 rounded-2xl text-white flex items-center justify-center shadow-lg shrink-0 cursor-pointer hover:scale-105 transition-transform"
             style={{ backgroundColor: corTema }}
           >
             <Send className="w-4 h-4" />
