@@ -16,8 +16,7 @@ export default function AgendamentoChat({ barbeariaId }) {
   const [barbeiros, setBarbeiros] = useState([]);
   const [horariosOcupados, setHorariosOcupados] = useState([]);
 
-  // Estados do fluxo do Chatbot
-  const [etapa, setEtapa] = useState('telefone'); // telefone, nome, menu_inicial, gerenciar, editar_data, editar_horario, servico, barbeiro, data, horario, resumo, sucesso
+  const [etapa, setEtapa] = useState('telefone');
   const [telefone, setTelefone] = useState('');
   const [nome, setNome] = useState('');
   const [clienteId, setClienteId] = useState(null);
@@ -31,19 +30,35 @@ export default function AgendamentoChat({ barbeariaId }) {
 
   const [inputTexto, setInputTexto] = useState('');
   const [mensagens, setMensagens] = useState([]);
+  const [estaDigitando, setEstaDigitando] = useState(false);
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState(null);
 
   const chatContainerRef = useRef(null);
+  const inicializadoRef = useRef(false);
 
   useEffect(() => {
     if (chatContainerRef.current) {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
-  }, [mensagens]);
+  }, [mensagens, estaDigitando]);
+
+  const corTema = barbearia?.cor_tema || '#10b981';
+
+  const adicionarMensagemBotComDelay = (textoResposta, proximaEtapa = null) => {
+    setEstaDigitando(true);
+    setTimeout(() => {
+      setEstaDigitando(false);
+      setMensagens((prev) => [...prev, { remetente: 'bot', texto: textoResposta }]);
+      if (proximaEtapa) setEtapa(proximaEtapa);
+    }, 800);
+  };
 
   useEffect(() => {
     async function carregarDados() {
+      if (inicializadoRef.current) return;
+      inicializadoRef.current = true;
+
       try {
         const { data: barb } = await supabase
           .from('barbearias')
@@ -61,12 +76,7 @@ export default function AgendamentoChat({ barbeariaId }) {
         setServicos(resServicos.data || []);
         setBarbeiros(resBarbeiros.data || []);
 
-        setMensagens([
-          {
-            remetente: 'bot',
-            texto: 'Olá! Seja muito bem-vindo. Para começarmos, por favor, informe o seu telemóvel/WhatsApp:'
-          }
-        ]);
+        adicionarMensagemBotComDelay('Olá! Seja muito bem-vindo. Para começarmos, por favor, informe o seu telemóvel/WhatsApp:');
       } catch (err) {
         console.error('Erro ao carregar dados do chat:', err);
       }
@@ -105,6 +115,18 @@ export default function AgendamentoChat({ barbeariaId }) {
     buscarOcupados();
   }, [barbeiroEscolhido, agendamentoEmEdicao, dataEscolhida, etapa]);
 
+  const atualizarAgendamentosAtivos = async (cliId) => {
+    const { data: agsAtivos } = await supabase
+      .from('agendamentos')
+      .select('*, servicos(nome), barbeiros(nome)')
+      .eq('cliente_id', cliId)
+      .neq('status', 'cancelado')
+      .gte('data_hora', new Date().toISOString());
+
+    setAgendamentosCliente(agsAtivos || []);
+    return agsAtivos || [];
+  };
+
   const handleEnviarResposta = async (e) => {
     e.preventDefault();
     if (!inputTexto.trim() && !['servico', 'barbeiro', 'horario', 'menu_inicial', 'gerenciar', 'resumo'].includes(etapa)) return;
@@ -136,34 +158,15 @@ export default function AgendamentoChat({ barbeariaId }) {
           setClienteId(cliExistente.id);
           setNome(cliExistente.nome);
 
-          const { data: agsAtivos } = await supabase
-            .from('agendamentos')
-            .select('*, servicos(nome), barbeiros(nome)')
-            .eq('cliente_id', cliExistente.id)
-            .neq('status', 'cancelado')
-            .gte('data_hora', new Date().toISOString());
+          const agsAtivos = await atualizarAgendamentosAtivos(cliExistente.id);
 
-          setAgendamentosCliente(agsAtivos || []);
-
-          if (agsAtivos && agsAtivos.length > 0) {
-            setEtapa('menu_inicial');
-            setMensagens((prev) => [
-              ...prev,
-              { remetente: 'bot', texto: `Que bom vê-lo novamente, ${cliExistente.nome}! Detetamos que já tem agendamentos ativos. O que deseja fazer?` }
-            ]);
+          if (agsAtivos.length > 0) {
+            adicionarMensagemBotComDelay(`Que bom vê-lo novamente, ${cliExistente.nome}! Detetamos que já tem agendamentos ativos. O que deseja fazer?`, 'menu_inicial');
           } else {
-            setEtapa('servico');
-            setMensagens((prev) => [
-              ...prev,
-              { remetente: 'bot', texto: `Que bom vê-lo novamente, ${cliExistente.nome}! Qual serviço deseja realizar hoje?` }
-            ]);
+            adicionarMensagemBotComDelay(`Que bom vê-lo novamente, ${cliExistente.nome}! Qual serviço deseja realizar hoje?`, 'servico');
           }
         } else {
-          setEtapa('nome');
-          setMensagens((prev) => [
-            ...prev,
-            { remetente: 'bot', texto: 'Não encontramos o seu registo. Como podemos chamá-lo? Por favor, informe o seu nome completo:' }
-          ]);
+          adicionarMensagemBotComDelay('Não encontramos o seu registo. Como podemos chamá-lo? Por favor, informe o seu nome completo:', 'nome');
         }
       } catch (err) {
         setErro('Erro ao verificar cliente.');
@@ -185,11 +188,7 @@ export default function AgendamentoChat({ barbeariaId }) {
         if (errCli) throw errCli;
         setClienteId(novoCli.id);
 
-        setEtapa('servico');
-        setMensagens((prev) => [
-          ...prev,
-          { remetente: 'bot', texto: `Prazer em conhecê-lo, ${valorInput}! Agora, escolha um dos nossos serviços abaixo:` }
-        ]);
+        adicionarMensagemBotComDelay(`Prazer em conhecê-lo, ${valorInput}! Agora, escolha um dos nossos serviços abaixo:`, 'servico');
       } catch (err) {
         setErro('Erro ao registar cliente.');
       }
@@ -198,19 +197,12 @@ export default function AgendamentoChat({ barbeariaId }) {
 
   const escolherOpcaoMenu = (opcao) => {
     if (opcao === 'novo') {
-      setMensagens((prev) => [
-        ...prev,
-        { remetente: 'usuario', texto: 'Fazer novo agendamento' },
-        { remetente: 'bot', texto: 'Perfeito! Escolha o serviço que deseja realizar:' }
-      ]);
-      setEtapa('servico');
+      setMensagens((prev) => [...prev, { remetente: 'usuario', texto: 'Fazer novo agendamento' }]);
+      adicionarMensagemBotComDelay('Perfeito! Escolha o serviço que deseja realizar:', 'servico');
     } else if (opcao === 'gerenciar') {
-      setMensagens((prev) => [
-        ...prev,
-        { remetente: 'usuario', texto: 'Gerenciar meus agendamentos' },
-        { remetente: 'bot', texto: 'Aqui estão os seus agendamentos ativos:' }
-      ]);
-      setEtapa('gerenciar');
+      setMensagens((prev) => [...prev, { remetente: 'usuario', texto: 'Ver meus agendamentos' }]);
+      atualizarAgendamentosAtivos(clienteId);
+      adicionarMensagemBotComDelay('Aqui estão os seus agendamentos ativos:', 'gerenciar');
     }
   };
 
@@ -223,12 +215,8 @@ export default function AgendamentoChat({ barbeariaId }) {
 
       if (error) throw error;
 
-      setAgendamentosCliente((prev) => prev.filter((ag) => ag.id !== agId));
-      setMensagens((prev) => [
-        ...prev,
-        { remetente: 'bot', texto: 'O agendamento foi cancelado com sucesso. Deseja marcar um novo horário ou gerenciar outros?' }
-      ]);
-      setEtapa('menu_inicial');
+      await atualizarAgendamentosAtivos(clienteId);
+      adicionarMensagemBotComDelay('O agendamento foi cancelado com sucesso. Deseja marcar um novo horário ou gerenciar outros?', 'menu_inicial');
     } catch (err) {
       setErro('Erro ao cancelar agendamento.');
     }
@@ -236,24 +224,16 @@ export default function AgendamentoChat({ barbeariaId }) {
 
   const iniciarEdicao = (ag) => {
     setAgendamentoEmEdicao(ag);
-    setEtapa('editar_data');
-    setMensagens((prev) => [
-      ...prev,
-      { remetente: 'usuario', texto: `Editar agendamento de ${ag.servicos?.nome || 'Serviço'}` },
-      { remetente: 'bot', texto: 'Selecione a nova data para o seu atendimento:' }
-    ]);
+    setMensagens((prev) => [...prev, { remetente: 'usuario', texto: `Editar agendamento de ${ag.servicos?.nome || 'Serviço'}` }]);
+    adicionarMensagemBotComDelay('Selecione a nova data para o seu atendimento:', 'editar_data');
   };
 
   const confirmarNovaDataEdicao = (e) => {
     e.preventDefault();
     if (!dataEscolhida) return;
 
-    setEtapa('editar_horario');
-    setMensagens((prev) => [
-      ...prev,
-      { remetente: 'usuario', texto: dataEscolhida.split('-').reverse().join('/') },
-      { remetente: 'bot', texto: 'Agora, selecione o novo horário disponível:' }
-    ]);
+    setMensagens((prev) => [...prev, { remetente: 'usuario', texto: dataEscolhida.split('-').reverse().join('/') }]);
+    adicionarMensagemBotComDelay('Agora, selecione o novo horário disponível:', 'editar_horario');
   };
 
   const salvarEdicaoHorario = async (hora) => {
@@ -268,12 +248,9 @@ export default function AgendamentoChat({ barbeariaId }) {
 
       if (error) throw error;
 
-      setEtapa('sucesso');
-      setMensagens((prev) => [
-        ...prev,
-        { remetente: 'usuario', texto: hora },
-        { remetente: 'bot', texto: `Agendamento atualizado com sucesso para ${dataEscolhida.split('-').reverse().join('/')} às ${hora}!` }
-      ]);
+      await atualizarAgendamentosAtivos(clienteId);
+      setMensagens((prev) => [...prev, { remetente: 'usuario', texto: hora }]);
+      adicionarMensagemBotComDelay(`Agendamento atualizado com sucesso para ${dataEscolhida.split('-').reverse().join('/')} às ${hora}!`, 'sucesso');
     } catch (err) {
       setErro('Erro ao atualizar agendamento.');
     } finally {
@@ -283,44 +260,28 @@ export default function AgendamentoChat({ barbeariaId }) {
 
   const selecionarServico = (servico) => {
     setServicoEscolhido(servico);
-    setMensagens((prev) => [
-      ...prev,
-      { remetente: 'usuario', texto: `${servico.nome} - R$ ${Number(servico.preco).toFixed(2)}` },
-      { remetente: 'bot', texto: `Perfeito! Escolheu ${servico.nome}. Agora, selecione o profissional de sua preferência:` }
-    ]);
-    setEtapa('barbeiro');
+    setMensagens((prev) => [...prev, { remetente: 'usuario', texto: `${servico.nome} - R$ ${Number(servico.preco).toFixed(2)}` }]);
+    adicionarMensagemBotComDelay(`Perfeito! Escolheu ${servico.nome}. Agora, selecione o profissional de sua preferência:`, 'barbeiro');
   };
 
   const selecionarBarbeiro = (barbeiro) => {
     setBarbeiroEscolhido(barbeiro);
-    setMensagens((prev) => [
-      ...prev,
-      { remetente: 'usuario', texto: barbeiro.nome },
-      { remetente: 'bot', texto: `Ótima escolha! O atendimento será com ${barbeiro.nome}. Para qual data deseja agendar?` }
-    ]);
-    setEtapa('data');
+    setMensagens((prev) => [...prev, { remetente: 'usuario', texto: barbeiro.nome }]);
+    adicionarMensagemBotComDelay(`Ótima escolha! O atendimento será com ${barbeiro.nome}. Para qual data deseja agendar?`, 'data');
   };
 
   const confirmarData = (e) => {
     e.preventDefault();
     if (!dataEscolhida) return;
 
-    setMensagens((prev) => [
-      ...prev,
-      { remetente: 'usuario', texto: dataEscolhida.split('-').reverse().join('/') },
-      { remetente: 'bot', texto: `Data definida. Escolha um horário disponível:` }
-    ]);
-    setEtapa('horario');
+    setMensagens((prev) => [...prev, { remetente: 'usuario', texto: dataEscolhida.split('-').reverse().join('/') }]);
+    adicionarMensagemBotComDelay('Data definida. Escolha um horário disponível:', 'horario');
   };
 
   const selecionarHorario = (hora) => {
     setHoraEscolhida(hora);
-    setEtapa('resumo');
-    setMensagens((prev) => [
-      ...prev,
-      { remetente: 'usuario', texto: hora },
-      { remetente: 'bot', texto: 'Por favor, confira o resumo do seu agendamento abaixo antes de confirmar:' }
-    ]);
+    setMensagens((prev) => [...prev, { remetente: 'usuario', texto: hora }]);
+    adicionarMensagemBotComDelay('Por favor, confira o resumo do seu agendamento abaixo antes de confirmar:', 'resumo');
   };
 
   const confirmarAgendamentoFinal = async () => {
@@ -341,12 +302,9 @@ export default function AgendamentoChat({ barbeariaId }) {
 
       if (errAg) throw errAg;
 
-      setEtapa('sucesso');
-      setMensagens((prev) => [
-        ...prev,
-        { remetente: 'usuario', texto: 'Confirmar Agendamento' },
-        { remetente: 'bot', texto: `Tudo pronto! O seu agendamento foi confirmado com sucesso para ${dataEscolhida.split('-').reverse().join('/')} às ${horaEscolhida}. Aguardamos a sua visita!` }
-      ]);
+      await atualizarAgendamentosAtivos(clienteId);
+      setMensagens((prev) => [...prev, { remetente: 'usuario', texto: 'Confirmar Agendamento' }]);
+      adicionarMensagemBotComDelay(`Tudo pronto! O seu agendamento foi confirmado com sucesso para ${dataEscolhida.split('-').reverse().join('/')} às ${horaEscolhida}. Aguardamos a sua visita!`, 'sucesso');
     } catch (err) {
       setErro('Erro ao concluir agendamento. Tente novamente.');
     } finally {
@@ -357,9 +315,9 @@ export default function AgendamentoChat({ barbeariaId }) {
   return (
     <div className="w-full max-w-xl mx-auto rounded-[2.5rem] bg-gradient-to-br from-[#0c0d10] via-[#050507] to-[#000000] border border-white/10 shadow-[0_30px_90px_rgba(0,0,0,0.9)] text-white overflow-hidden relative backdrop-blur-2xl flex flex-col h-[650px]">
       
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-4/5 h-[3px] bg-gradient-to-r from-transparent via-emerald-500 to-transparent z-30"></div>
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-4/5 h-[3px] z-30" style={{ background: `linear-gradient(to right, transparent, ${corTema}, transparent)` }}></div>
 
-      {/* ================= HEADER FIXO (CAPA E LOGO) ================= */}
+      {/* HEADER FIXO */}
       <div className="shrink-0 z-20 bg-[#050507]/90 backdrop-blur-xl border-b border-white/10">
         <div className="relative h-28 w-full bg-stone-900 overflow-hidden">
           {barbearia?.capa_url ? (
@@ -384,15 +342,15 @@ export default function AgendamentoChat({ barbeariaId }) {
           </div>
           <div>
             <h2 className="text-sm font-black text-white tracking-tight">{barbearia?.nome}</h2>
-            <p className="text-[10px] text-emerald-400 font-semibold uppercase tracking-wider flex items-center gap-1 mt-0.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            <p className="text-[10px] font-semibold uppercase tracking-wider flex items-center gap-1 mt-0.5" style={{ color: corTema }}>
+              <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: corTema }}></span>
               Assistente Virtual Inteligente
             </p>
           </div>
         </div>
       </div>
 
-      {/* ================= ÁREA DE CONVERSA COM SCROLL ================= */}
+      {/* ÁREA DE CONVERSA */}
       <div ref={chatContainerRef} className="flex-1 p-6 space-y-4 overflow-y-auto">
         {mensagens.map((msg, index) => (
           <div 
@@ -400,44 +358,57 @@ export default function AgendamentoChat({ barbeariaId }) {
             className={`flex items-start gap-2.5 ${msg.remetente === 'usuario' ? 'flex-row-reverse' : 'flex-row'}`}
           >
             {msg.remetente === 'bot' && (
-              <div className="w-7 h-7 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 flex items-center justify-center shrink-0 shadow-sm mt-1">
+              <div className="w-7 h-7 rounded-xl border flex items-center justify-center shrink-0 shadow-sm mt-1" style={{ backgroundColor: `${corTema}20`, borderColor: `${corTema}50`, color: corTema }}>
                 <Bot className="w-3.5 h-3.5" />
               </div>
             )}
             <div 
               className={`p-3.5 rounded-3xl text-xs leading-relaxed max-w-[80%] backdrop-blur-md ${
                 msg.remetente === 'usuario' 
-                  ? 'bg-emerald-500 text-slate-950 font-bold rounded-tr-sm shadow-[0_5px_20px_rgba(16,185,129,0.3)]' 
+                  ? 'text-slate-950 font-bold rounded-tr-sm shadow-lg' 
                   : 'bg-black/60 border border-white/10 text-slate-200 rounded-tl-sm shadow-inner'
               }`}
+              style={msg.remetente === 'usuario' ? { backgroundColor: corTema, boxShadow: `0 5px 20px ${corTema}40` } : {}}
             >
               {msg.texto}
             </div>
           </div>
         ))}
 
-        {/* MENU INICIAL */}
-        {etapa === 'menu_inicial' && (
+        {estaDigitando && (
+          <div className="flex items-start gap-2.5 flex-row animate-fade-in">
+            <div className="w-7 h-7 rounded-xl border flex items-center justify-center shrink-0 shadow-sm mt-1" style={{ backgroundColor: `${corTema}20`, borderColor: `${corTema}50`, color: corTema }}>
+              <Bot className="w-3.5 h-3.5" />
+            </div>
+            <div className="p-4 rounded-3xl rounded-tl-sm bg-black/60 border border-white/10 flex items-center gap-1.5 backdrop-blur-md shadow-inner">
+              <div className="w-1.5 h-1.5 rounded-full animate-bounce [animation-delay:-0.3s]" style={{ backgroundColor: corTema }}></div>
+              <div className="w-1.5 h-1.5 rounded-full animate-bounce [animation-delay:-0.15s]" style={{ backgroundColor: corTema }}></div>
+              <div className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ backgroundColor: corTema }}></div>
+            </div>
+          </div>
+        )}
+
+        {etapa === 'menu_inicial' && !estaDigitando && (
           <div className="grid grid-cols-1 gap-2 pt-2">
             <button
               onClick={() => escolherOpcaoMenu('novo')}
-              className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/40 hover:bg-emerald-500/20 text-left flex items-center justify-between transition-all cursor-pointer backdrop-blur-md"
+              className="p-3.5 rounded-2xl border text-left flex items-center justify-between transition-all cursor-pointer backdrop-blur-md"
+              style={{ backgroundColor: `${corTema}15`, borderColor: `${corTema}40` }}
             >
               <span className="text-xs font-bold text-white">Fazer novo agendamento</span>
-              <ArrowRight className="w-4 h-4 text-emerald-400" />
+              <ArrowRight className="w-4 h-4" style={{ color: corTema }} />
             </button>
             <button
               onClick={() => escolherOpcaoMenu('gerenciar')}
               className="p-3.5 rounded-2xl bg-black/50 border border-white/10 hover:border-white/20 text-left flex items-center justify-between transition-all cursor-pointer backdrop-blur-md"
             >
-              <span className="text-xs font-bold text-white">Gerenciar / Cancelar meus agendamentos</span>
+              <span className="text-xs font-bold text-white">Ver / Gerenciar meus agendamentos</span>
               <Calendar className="w-4 h-4 text-slate-400" />
             </button>
           </div>
         )}
 
-        {/* LISTA DE AGENDAMENTOS */}
-        {etapa === 'gerenciar' && (
+        {etapa === 'gerenciar' && !estaDigitando && (
           <div className="space-y-3 pt-2">
             {agendamentosCliente.length === 0 ? (
               <p className="text-xs text-slate-400 italic text-center py-2">Não tem agendamentos ativos no momento.</p>
@@ -451,7 +422,7 @@ export default function AgendamentoChat({ barbeariaId }) {
                   <div key={ag.id} className="p-4 rounded-2xl bg-black/60 border border-white/10 flex items-center justify-between gap-3 backdrop-blur-md">
                     <div>
                       <p className="text-xs font-bold text-white">{ag.servicos?.nome || 'Serviço'}</p>
-                      <p className="text-[10px] text-emerald-400 font-medium">Profissional: {ag.barbeiros?.nome || 'Barbeiro'}</p>
+                      <p className="text-[10px] font-medium" style={{ color: corTema }}>Profissional: {ag.barbeiros?.nome || 'Barbeiro'}</p>
                       <p className="text-[10px] text-slate-300 mt-0.5">📅 {dataFormatada}</p>
                     </div>
                     <div className="flex items-center gap-1.5 shrink-0">
@@ -479,26 +450,27 @@ export default function AgendamentoChat({ barbeariaId }) {
                 setEtapa('servico');
                 setMensagens((prev) => [...prev, { remetente: 'bot', texto: 'Perfeito, vamos prosseguir com o novo agendamento. Escolha o serviço:' }]);
               }}
-              className="w-full py-3 rounded-2xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-bold hover:bg-emerald-500/30 transition-all cursor-pointer mt-2"
+              className="w-full py-3 rounded-2xl border text-xs font-bold transition-all cursor-pointer mt-2"
+              style={{ backgroundColor: `${corTema}20`, color: corTema, borderColor: `${corTema}40` }}
             >
               Fazer novo agendamento
             </button>
           </div>
         )}
 
-        {/* EDITAR DATA */}
-        {etapa === 'editar_data' && (
+        {etapa === 'editar_data' && !estaDigitando && (
           <form onSubmit={confirmarNovaDataEdicao} className="pt-2 space-y-3">
             <input 
               type="date"
               required
               value={dataEscolhida}
               onChange={(e) => setDataEscolhida(e.target.value)}
-              className="w-full p-3.5 rounded-2xl bg-black/50 border border-white/10 text-xs text-white focus:outline-none focus:border-emerald-500 [color-scheme:dark] backdrop-blur-md"
+              className="w-full p-3.5 rounded-2xl bg-black/50 border border-white/10 text-xs text-white focus:outline-none [color-scheme:dark] backdrop-blur-md"
             />
             <button
               type="submit"
-              className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 text-slate-950 font-black text-xs uppercase tracking-widest cursor-pointer shadow-lg flex items-center justify-center gap-2"
+              className="w-full py-3.5 rounded-2xl text-slate-950 font-black text-xs uppercase tracking-widest cursor-pointer shadow-lg flex items-center justify-center gap-2"
+              style={{ backgroundColor: corTema }}
             >
               <span>Avançar para Horários</span>
               <ArrowRight className="w-4 h-4" />
@@ -506,8 +478,7 @@ export default function AgendamentoChat({ barbeariaId }) {
           </form>
         )}
 
-        {/* EDITAR HORÁRIO */}
-        {etapa === 'editar_horario' && (
+        {etapa === 'editar_horario' && !estaDigitando && (
           <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 pt-2">
             {HORARIOS_DISPONIVEIS.map((h) => {
               const ocupado = horariosOcupados.includes(h);
@@ -519,7 +490,7 @@ export default function AgendamentoChat({ barbeariaId }) {
                   className={`py-2.5 rounded-xl text-xs font-black border transition-all backdrop-blur-md ${
                     ocupado
                       ? 'bg-black/20 text-slate-600 border-white/5 line-through opacity-40 cursor-not-allowed'
-                      : 'bg-black/50 text-white border-white/10 hover:border-emerald-500 cursor-pointer'
+                      : 'bg-black/50 text-white border-white/10 cursor-pointer'
                   }`}
                 >
                   {h}
@@ -529,27 +500,25 @@ export default function AgendamentoChat({ barbeariaId }) {
           </div>
         )}
 
-        {/* SERVIÇO */}
-        {etapa === 'servico' && (
+        {etapa === 'servico' && !estaDigitando && (
           <div className="grid grid-cols-1 gap-2 pt-2">
             {servicos.map((s) => (
               <button
                 key={s.id}
                 onClick={() => selecionarServico(s)}
-                className="p-3.5 rounded-2xl bg-black/50 border border-white/10 hover:border-emerald-500 text-left flex justify-between items-center transition-all cursor-pointer backdrop-blur-md group"
+                className="p-3.5 rounded-2xl bg-black/50 border border-white/10 text-left flex justify-between items-center transition-all cursor-pointer backdrop-blur-md group"
               >
                 <div>
-                  <p className="text-xs font-bold text-white group-hover:text-emerald-400 transition-colors">{s.nome}</p>
+                  <p className="text-xs font-bold text-white transition-colors">{s.nome}</p>
                   <p className="text-[10px] text-slate-400">{s.duracao_minutos || 30} minutos</p>
                 </div>
-                <span className="text-xs font-black text-emerald-400">R$ {Number(s.preco).toFixed(2)}</span>
+                <span className="text-xs font-black" style={{ color: corTema }}>R$ {Number(s.preco).toFixed(2)}</span>
               </button>
             ))}
           </div>
         )}
 
-        {/* BARBEIRO */}
-        {etapa === 'barbeiro' && (
+        {etapa === 'barbeiro' && !estaDigitando && (
           <div className="grid grid-cols-1 gap-2 pt-2">
             {barbeiros.map((b) => {
               const foto = b.foto || b.avatar || b.imagem;
@@ -557,35 +526,35 @@ export default function AgendamentoChat({ barbeariaId }) {
                 <button
                   key={b.id}
                   onClick={() => selecionarBarbeiro(b)}
-                  className="p-3.5 rounded-2xl bg-black/50 border border-white/10 hover:border-emerald-500 text-left flex items-center gap-3 transition-all cursor-pointer backdrop-blur-md group"
+                  className="p-3.5 rounded-2xl bg-black/50 border border-white/10 text-left flex items-center gap-3 transition-all cursor-pointer backdrop-blur-md group"
                 >
                   {foto ? (
                     <img src={foto} alt={b.nome} className="w-9 h-9 rounded-full object-cover border border-white/20" />
                   ) : (
-                    <div className="w-9 h-9 rounded-full bg-white/10 text-emerald-400 flex items-center justify-center font-bold text-xs border border-white/15">
+                    <div className="w-9 h-9 rounded-full text-white flex items-center justify-center font-bold text-xs border border-white/15" style={{ backgroundColor: corTema }}>
                       {b.nome?.charAt(0)}
                     </div>
                   )}
-                  <p className="text-xs font-bold text-white group-hover:text-emerald-400 transition-colors">{b.nome}</p>
+                  <p className="text-xs font-bold text-white">{b.nome}</p>
                 </button>
               );
             })}
           </div>
         )}
 
-        {/* DATA */}
-        {etapa === 'data' && (
+        {etapa === 'data' && !estaDigitando && (
           <form onSubmit={confirmarData} className="pt-2 space-y-3">
             <input 
               type="date"
               required
               value={dataEscolhida}
               onChange={(e) => setDataEscolhida(e.target.value)}
-              className="w-full p-3.5 rounded-2xl bg-black/50 border border-white/10 text-xs text-white focus:outline-none focus:border-emerald-500 [color-scheme:dark] backdrop-blur-md"
+              className="w-full p-3.5 rounded-2xl bg-black/50 border border-white/10 text-xs text-white focus:outline-none [color-scheme:dark] backdrop-blur-md"
             />
             <button
               type="submit"
-              className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 text-slate-950 font-black text-xs uppercase tracking-widest cursor-pointer shadow-lg flex items-center justify-center gap-2"
+              className="w-full py-3.5 rounded-2xl text-slate-950 font-black text-xs uppercase tracking-widest cursor-pointer shadow-lg flex items-center justify-center gap-2"
+              style={{ backgroundColor: corTema }}
             >
               <span>Avançar para Horários</span>
               <ArrowRight className="w-4 h-4" />
@@ -593,11 +562,11 @@ export default function AgendamentoChat({ barbeariaId }) {
           </form>
         )}
 
-        {/* HORÁRIO */}
-        {etapa === 'horario' && (
+        {etapa === 'horario' && !estaDigitando && (
           <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 pt-2">
             {HORARIOS_DISPONIVEIS.map((h) => {
               const ocupado = horariosOcupados.includes(h);
+              const selecionado = horaEscolhida === h;
               return (
                 <button
                   key={h}
@@ -606,8 +575,11 @@ export default function AgendamentoChat({ barbeariaId }) {
                   className={`py-2.5 rounded-xl text-xs font-black border transition-all backdrop-blur-md ${
                     ocupado
                       ? 'bg-black/20 text-slate-600 border-white/5 line-through opacity-40 cursor-not-allowed'
-                      : 'bg-black/50 text-white border-white/10 hover:border-emerald-500 cursor-pointer'
+                      : selecionado
+                      ? 'text-slate-950 shadow-lg scale-105'
+                      : 'bg-black/50 text-white border-white/10 cursor-pointer'
                   }`}
+                  style={selecionado ? { backgroundColor: corTema, borderColor: corTema } : {}}
                 >
                   {h}
                 </button>
@@ -616,10 +588,9 @@ export default function AgendamentoChat({ barbeariaId }) {
           </div>
         )}
 
-        {/* RESUMO ANTES DE CONFIRMAR */}
-        {etapa === 'resumo' && (
-          <div className="p-4 rounded-2xl bg-black/60 border border-emerald-500/40 space-y-2.5 backdrop-blur-md mt-2">
-            <h4 className="text-xs font-black text-emerald-400 uppercase tracking-wider">Resumo do Agendamento</h4>
+        {etapa === 'resumo' && !estaDigitando && (
+          <div className="p-4 rounded-2xl bg-black/60 border space-y-2.5 backdrop-blur-md mt-2" style={{ borderColor: `${corTema}66` }}>
+            <h4 className="text-xs font-black uppercase tracking-wider" style={{ color: corTema }}>Resumo do Agendamento</h4>
             <div className="space-y-1 text-xs text-slate-200">
               <p>✂️ <strong className="text-white">Serviço:</strong> {servicoEscolhido?.nome} (R$ {Number(servicoEscolhido?.preco || 0).toFixed(2)})</p>
               <p>👤 <strong className="text-white">Profissional:</strong> {barbeiroEscolhido?.nome}</p>
@@ -630,29 +601,45 @@ export default function AgendamentoChat({ barbeariaId }) {
             <button
               disabled={loading}
               onClick={confirmarAgendamentoFinal}
-              className="w-full mt-3 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 text-slate-950 font-black text-xs uppercase tracking-widest cursor-pointer shadow-lg hover:brightness-110 transition-all"
+              className="w-full mt-3 py-3 rounded-xl text-slate-950 font-black text-xs uppercase tracking-widest cursor-pointer shadow-lg hover:brightness-110 transition-all"
+              style={{ backgroundColor: corTema }}
             >
               {loading ? 'A confirmar...' : 'Confirmar Agendamento'}
             </button>
           </div>
         )}
 
-        {etapa === 'sucesso' && (
+        {etapa === 'sucesso' && !estaDigitando && (
           <div className="pt-2 text-center space-y-3">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-500 text-slate-950 flex items-center justify-center mx-auto shadow-lg shadow-emerald-500/30">
+            <div className="w-12 h-12 rounded-2xl text-slate-950 flex items-center justify-center mx-auto shadow-lg" style={{ backgroundColor: corTema }}>
               <CheckCircle2 className="w-6 h-6" />
             </div>
-            <button
-              onClick={() => window.location.reload()}
-              className="w-full py-3 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs transition-all cursor-pointer border border-white/10"
-            >
-              Fazer Novo Agendamento
-            </button>
+            <div className="grid grid-cols-1 gap-2 pt-2">
+              <button
+                onClick={() => {
+                  setEtapa('servico');
+                  setMensagens((prev) => [...prev, { remetente: 'bot', texto: 'Vamos lá! Escolha o serviço para o novo agendamento:' }]);
+                }}
+                className="w-full py-3 rounded-2xl text-slate-950 font-bold text-xs transition-all cursor-pointer shadow-md"
+                style={{ backgroundColor: corTema }}
+              >
+                Fazer Novo Agendamento
+              </button>
+              <button
+                onClick={() => {
+                  atualizarAgendamentosAtivos(clienteId);
+                  setEtapa('gerenciar');
+                  setMensagens((prev) => [...prev, { remetente: 'bot', texto: 'Aqui estão os seus agendamentos ativos:' }]);
+                }}
+                className="w-full py-3 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs transition-all cursor-pointer border border-white/10"
+              >
+                Ver Meus Agendamentos
+              </button>
+            </div>
           </div>
         )}
       </div>
 
-      {/* ERROS */}
       {erro && (
         <div className="mx-6 mb-2 p-3 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs flex items-center gap-2 backdrop-blur-md shrink-0">
           <AlertCircle className="w-4 h-4 shrink-0" />
@@ -660,19 +647,19 @@ export default function AgendamentoChat({ barbeariaId }) {
         </div>
       )}
 
-      {/* INPUT DE TEXTO */}
-      {(etapa === 'telefone' || etapa === 'nome') && (
+      {(etapa === 'telefone' || etapa === 'nome') && !estaDigitando && (
         <form onSubmit={handleEnviarResposta} className="p-4 sm:p-5 border-t border-white/10 bg-black/60 backdrop-blur-xl flex items-center gap-2 shrink-0">
           <input
             type={etapa === 'telefone' ? 'tel' : 'text'}
             placeholder={etapa === 'telefone' ? 'Digite seu telemóvel...' : 'Digite seu nome completo...'}
             value={inputTexto}
             onChange={(e) => setInputTexto(e.target.value)}
-            className="w-full bg-black/80 border border-white/10 rounded-2xl px-4 py-3.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 shadow-inner"
+            className="w-full bg-black/80 border border-white/10 rounded-2xl px-4 py-3.5 text-xs text-white placeholder-slate-500 focus:outline-none shadow-inner"
           />
           <button
             type="submit"
-            className="w-12 h-12 rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 text-slate-950 flex items-center justify-center shadow-lg shrink-0 cursor-pointer hover:scale-105 transition-transform"
+            className="w-12 h-12 rounded-2xl text-slate-950 flex items-center justify-center shadow-lg shrink-0 cursor-pointer hover:scale-105 transition-transform"
+            style={{ backgroundColor: corTema }}
           >
             <Send className="w-4 h-4" />
           </button>

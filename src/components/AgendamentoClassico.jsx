@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { CheckCircle, AlertCircle, Clock } from 'lucide-react';
+import { Calendar as CalendarIcon, Clock, Scissors, User, CheckCircle2, AlertCircle, ArrowRight, XCircle, Edit3 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 const HORARIOS_DISPONIVEIS = [
@@ -11,196 +11,223 @@ const HORARIOS_DISPONIVEIS = [
 ];
 
 export default function AgendamentoClassico({ barbeariaId }) {
-  const [data, setData] = useState('');
-  const [hora, setHora] = useState('');
-
   const [barbearia, setBarbearia] = useState(null);
   const [servicos, setServicos] = useState([]);
   const [barbeiros, setBarbeiros] = useState([]);
   const [horariosOcupados, setHorariosOcupados] = useState([]);
 
-  const [selectedServico, setSelectedServico] = useState(null);
-  const [selectedBarbeiro, setSelectedBarbeiro] = useState(null);
-  const [nomeCliente, setNomeCliente] = useState('');
-  const [telefoneCliente, setTelefoneCliente] = useState('');
+  const [etapa, setEtapa] = useState('telefone');
+  const [telefone, setTelefone] = useState('');
+  const [nome, setNome] = useState('');
+  const [clienteId, setClienteId] = useState(null);
+  const [agendamentosCliente, setAgendamentosCliente] = useState([]);
 
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [success, setSuccess] = useState(false);
-  const [error, setError] = useState(null);
+  const [agendamentoEmEdicao, setAgendamentoEmEdicao] = useState(null);
+  const [servicoEscolhido, setServicoEscolhido] = useState(null);
+  const [barbeiroEscolhido, setBarbeiroEscolhido] = useState(null);
+  const [dataEscolhida, setDataEscolhida] = useState('');
+  const [horaEscolhida, setHoraEscolhida] = useState('');
+
+  const [loading, setLoading] = useState(false);
+  const [erro, setErro] = useState(null);
+
+  const corTema = barbearia?.cor_tema || '#10b981';
 
   useEffect(() => {
-    async function loadBarbeariaData() {
+    async function carregarDados() {
       try {
-        const { data: barb, error: barbErr } = await supabase
+        const { data: barb } = await supabase
           .from('barbearias')
           .select('*')
           .eq('id', barbeariaId)
           .single();
 
-        if (barbErr || !barb) throw new Error('Barbearia não encontrada.');
-
-        setBarbearia(barb);
+        if (barb) setBarbearia(barb);
 
         const [resServicos, resBarbeiros] = await Promise.all([
-          supabase.from('servicos').select('*').eq('barbearia_id', barb.id),
-          supabase.from('barbeiros').select('*').eq('barbearia_id', barb.id)
+          supabase.from('servicos').select('*').eq('barbearia_id', barbeariaId),
+          supabase.from('barbeiros').select('*').eq('barbearia_id', barbeariaId)
         ]);
 
         setServicos(resServicos.data || []);
         setBarbeiros(resBarbeiros.data || []);
       } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
+        console.error('Erro ao carregar dados:', err);
       }
     }
-
-    if (barbeariaId) loadBarbeariaData();
+    if (barbeariaId) carregarDados();
   }, [barbeariaId]);
 
   useEffect(() => {
-    async function buscarHorariosOcupados() {
-      if (!selectedBarbeiro || !data) {
-        setHorariosOcupados([]);
-        return;
-      }
+    async function buscarOcupados() {
+      const barbIdParaConsulta = etapa.startsWith('editar') ? agendamentoEmEdicao?.barbeiro_id : barbeiroEscolhido?.id;
+      if (!barbIdParaConsulta || !dataEscolhida) return;
 
       try {
-        const inicioDia = `${data}T00:00:00`;
-        const fimDia = `${data}T23:59:59`;
+        const inicio = `${dataEscolhida}T00:00:00`;
+        const fim = `${dataEscolhida}T23:59:59`;
 
-        const { data: agendamentos, error } = await supabase
+        const { data } = await supabase
           .from('agendamentos')
           .select('data_hora')
-          .eq('barbeiro_id', selectedBarbeiro)
+          .eq('barbeiro_id', barbIdParaConsulta)
           .neq('status', 'cancelado')
-          .gte('data_hora', new Date(inicioDia).toISOString())
-          .lte('data_hora', new Date(fimDia).toISOString());
+          .gte('data_hora', new Date(inicio).toISOString())
+          .lte('data_hora', new Date(fim).toISOString());
 
-        if (error) throw error;
-
-        const ocupados = (agendamentos || []).map((ag) => {
+        const ocupados = (data || []).map((ag) => {
           const d = new Date(ag.data_hora);
-          const horas = String(d.getHours()).padStart(2, '0');
-          const minutos = String(d.getMinutes()).padStart(2, '0');
-          return `${horas}:${minutos}`;
+          return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
         });
 
         setHorariosOcupados(ocupados);
       } catch (err) {
-        console.error('Erro ao buscar horários ocupados:', err);
+        console.error('Erro horários:', err);
       }
     }
+    buscarOcupados();
+  }, [barbeiroEscolhido, agendamentoEmEdicao, dataEscolhida, etapa]);
 
-    buscarHorariosOcupados();
-  }, [selectedBarbeiro, data]);
+  const atualizarAgendamentosAtivos = async (cliId) => {
+    const { data: agsAtivos } = await supabase
+      .from('agendamentos')
+      .select('*, servicos(nome), barbeiros(nome)')
+      .eq('cliente_id', cliId)
+      .neq('status', 'cancelado')
+      .gte('data_hora', new Date().toISOString());
 
-  const handleSubmit = async (e) => {
+    setAgendamentosCliente(agsAtivos || []);
+    return agsAtivos || [];
+  };
+
+  const handleVerificarTelefone = async (e) => {
     e.preventDefault();
-    setSubmitting(true);
-    setError(null);
+    if (telefone.length < 8) {
+      setErro('Por favor, informe um número de telemóvel válido.');
+      return;
+    }
+    setErro(null);
+    setLoading(true);
 
     try {
-      if (!selectedServico || !selectedBarbeiro) {
-        throw new Error('Selecione um serviço e um profissional.');
-      }
-
-      if (!data || !hora) {
-        throw new Error('Selecione a data e o horário do agendamento.');
-      }
-
-      const dataHoraIso = new Date(`${data}T${hora}:00`).toISOString();
-
-      const { data: conflito } = await supabase
-        .from('agendamentos')
-        .select('id')
-        .eq('barbeiro_id', selectedBarbeiro)
-        .eq('data_hora', dataHoraIso)
-        .neq('status', 'cancelado')
-        .maybeSingle();
-
-      if (conflito) {
-        throw new Error('Este horário acabou de ser ocupado para este profissional. Por favor, escolha outro horário.');
-      }
-
-      let clienteId;
-      const { data: existingClient } = await supabase
+      const { data: cliExistente } = await supabase
         .from('clientes')
-        .select('id')
-        .eq('barbearia_id', barbearia.id)
-        .eq('telefone', telefoneCliente)
+        .select('id, nome')
+        .eq('barbearia_id', barbeariaId)
+        .eq('telefone', telefone)
         .maybeSingle();
 
-      if (existingClient) {
-        clienteId = existingClient.id;
+      if (cliExistente) {
+        setClienteId(cliExistente.id);
+        setNome(cliExistente.nome);
+
+        const agsAtivos = await atualizarAgendamentosAtivos(cliExistente.id);
+
+        if (agsAtivos.length > 0) {
+          setEtapa('menu_inicial');
+        } else {
+          setEtapa('servico');
+        }
       } else {
-        const { data: newClient, error: clientErr } = await supabase
-          .from('clientes')
-          .insert([{ barbearia_id: barbearia.id, nome: nomeCliente, telefone: telefoneCliente }])
-          .select('id')
-          .single();
-
-        if (clientErr) throw clientErr;
-        clienteId = newClient.id;
+        setEtapa('nome');
       }
-
-      const { error: agendamentoErr } = await supabase.from('agendamentos').insert([
-        {
-          barbearia_id: barbearia.id,
-          cliente_id: clienteId,
-          barbeiro_id: selectedBarbeiro,
-          servico_id: selectedServico.id,
-          valor_total: selectedServico.preco,
-          data_hora: dataHoraIso,
-          status: 'agendado',
-        },
-      ]);
-
-      if (agendamentoErr) throw agendamentoErr;
-
-      setSuccess(true);
     } catch (err) {
-      setError(err.message || 'Erro ao agendar atendimento.');
+      setErro('Erro ao verificar cliente.');
     } finally {
-      setSubmitting(false);
+      setLoading(false);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center p-8">
-        <p className="text-xs text-stone-400 font-semibold uppercase tracking-wider">Carregando informações...</p>
-      </div>
-    );
-  }
+  const handleCadastrarNome = async (e) => {
+    e.preventDefault();
+    if (nome.length < 2) {
+      setErro('Por favor, informe um nome válido.');
+      return;
+    }
+    setErro(null);
+    setLoading(true);
 
-  if (success) {
-    return (
-      <div className="bg-gradient-to-br from-[#0c0d10] via-[#050507] to-[#000000] p-8 rounded-[2.5rem] border border-white/10 shadow-2xl text-center space-y-4 max-w-xl w-full mx-auto text-white backdrop-blur-2xl">
-        <CheckCircle className="w-12 h-12 text-emerald-400 mx-auto" />
-        <h2 className="text-xl font-black">Agendamento Concluído!</h2>
-        <p className="text-xs text-slate-300">Seu horário na {barbearia?.nome} foi reservado com sucesso.</p>
-        <button
-          onClick={() => window.location.reload()}
-          className="w-full bg-gradient-to-r from-emerald-500 to-emerald-600 text-slate-950 text-xs font-black uppercase tracking-wider py-3.5 rounded-2xl shadow-lg cursor-pointer hover:brightness-110 transition-all border border-emerald-400/30"
-        >
-          Fazer Novo Agendamento
-        </button>
-      </div>
-    );
-  }
+    try {
+      const { data: novoCli, error: errCli } = await supabase
+        .from('clientes')
+        .insert([{ barbearia_id: barbeariaId, nome, telefone }])
+        .select('id')
+        .single();
 
-  const corTema = barbearia?.cor_tema || '#10b981';
+      if (errCli) throw errCli;
+      setClienteId(novoCli.id);
+      setEtapa('servico');
+    } catch (err) {
+      setErro('Erro ao registar cliente.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const cancelarAgendamento = async (agId) => {
+    try {
+      const { error } = await supabase
+        .from('agendamentos')
+        .update({ status: 'cancelado' })
+        .eq('id', agId);
+
+      if (error) throw error;
+      await atualizarAgendamentosAtivos(clienteId);
+    } catch (err) {
+      setErro('Erro ao cancelar agendamento.');
+    }
+  };
+
+  const confirmarEdicaoHorario = async (hora) => {
+    setLoading(true);
+    try {
+      const dataHoraIso = new Date(`${dataEscolhida}T${hora}:00`).toISOString();
+      const { error } = await supabase
+        .from('agendamentos')
+        .update({ data_hora: dataHoraIso })
+        .eq('id', agendamentoEmEdicao.id);
+
+      if (error) throw error;
+      await atualizarAgendamentosAtivos(clienteId);
+      setEtapa('sucesso');
+    } catch (err) {
+      setErro('Erro ao atualizar agendamento.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const confirmarAgendamentoFinal = async () => {
+    setLoading(true);
+    try {
+      const dataHoraIso = new Date(`${dataEscolhida}T${horaEscolhida}:00`).toISOString();
+      const { error } = await supabase.from('agendamentos').insert([{
+        barbearia_id: barbeariaId,
+        cliente_id: clienteId,
+        barbeiro_id: barbeiroEscolhido.id,
+        servico_id: servicoEscolhido.id,
+        valor_total: servicoEscolhido.preco,
+        data_hora: dataHoraIso,
+        status: 'agendado',
+        lido: false
+      }]);
+
+      if (error) throw error;
+      await atualizarAgendamentosAtivos(clienteId);
+      setEtapa('sucesso');
+    } catch (err) {
+      setErro('Erro ao concluir agendamento.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="w-full max-w-xl mx-auto rounded-[2.5rem] bg-gradient-to-br from-[#0c0d10] via-[#050507] to-[#000000] border border-white/10 shadow-[0_30px_90px_rgba(0,0,0,0.9)] text-white overflow-hidden relative backdrop-blur-2xl">
       
-      {/* Efeito de luz superior */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-4/5 h-[3px] bg-gradient-to-r from-transparent via-emerald-500 to-transparent z-20"></div>
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-4/5 h-[3px] z-30" style={{ background: `linear-gradient(to right, transparent, ${corTema}, transparent)` }}></div>
 
-      {/* CAPA DA BARBEARIA */}
-      <div className="relative h-40 w-full bg-stone-900 overflow-hidden">
+      <div className="relative h-32 w-full bg-stone-900 overflow-hidden">
         {barbearia?.capa_url ? (
           <img src={barbearia.capa_url} alt="Capa" className="w-full h-full object-cover" />
         ) : (
@@ -208,161 +235,221 @@ export default function AgendamentoClassico({ barbeariaId }) {
             <span className="text-[10px] font-bold text-stone-500 tracking-wider uppercase">Capa da Unidade</span>
           </div>
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
+        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent"></div>
       </div>
 
-      {/* CONTEÚDO E FORMULÁRIO */}
-      <div className="p-6 sm:p-8 pt-0 relative space-y-6">
-        
-        {/* LOGO / FOTO DE PERFIL FLUTUANTE */}
-        <div className="flex flex-col items-center text-center -mt-16 mb-2 relative z-10">
-          <div className="w-24 h-24 rounded-[2rem] bg-black/80 p-1.5 shadow-2xl border border-white/20 overflow-hidden flex items-center justify-center backdrop-blur-xl mb-3">
-            {barbearia?.logo_url ? (
-              <img src={barbearia.logo_url} alt={barbearia.nome} className="w-full h-full object-cover rounded-[1.5rem]" />
-            ) : (
-              <div className="w-full h-full bg-gradient-to-br from-stone-800 to-black text-white rounded-[1.5rem] flex items-center justify-center font-black text-xl">
-                {barbearia?.nome?.charAt(0) || 'B'}
-              </div>
-            )}
-          </div>
-          <h2 className="text-lg sm:text-xl font-black text-white tracking-tight">{barbearia?.nome}</h2>
-          <p className="text-xs text-slate-400 font-medium mt-0.5">Escolha o serviço e o profissional de sua preferência.</p>
+      <div className="px-6 pb-4 pt-0 relative flex flex-col items-center text-center -mt-10 mb-2 z-10">
+        <div className="w-20 h-20 rounded-[1.8rem] bg-black/80 p-1 shadow-2xl border border-white/20 overflow-hidden flex items-center justify-center backdrop-blur-xl mb-2">
+          {barbearia?.logo_url ? (
+            <img src={barbearia.logo_url} alt={barbearia.nome} className="w-full h-full object-cover rounded-[1.4rem]" />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-stone-800 to-black text-white rounded-[1.4rem] flex items-center justify-center font-black text-lg">
+              {barbearia?.nome?.charAt(0) || 'B'}
+            </div>
+          )}
         </div>
+        <h2 className="text-base font-black text-white tracking-tight">{barbearia?.nome}</h2>
+        <p className="text-[10px] font-semibold uppercase tracking-wider mt-0.5" style={{ color: corTema }}>Agendamento Online Clássico</p>
+      </div>
 
-        {error && <p className="text-xs text-rose-400 bg-rose-500/10 border border-rose-500/30 p-3 rounded-2xl">{error}</p>}
+      <div className="p-6 sm:p-8 pt-0 space-y-5">
 
-        <form onSubmit={handleSubmit} className="space-y-5">
-          
-          {/* Serviços */}
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">Selecione o Serviço</label>
-            <div className="space-y-2">
-              {servicos.map((s) => {
-                const isSelected = selectedServico?.id === s.id;
-                return (
-                  <button
-                    type="button"
-                    key={s.id}
-                    onClick={() => setSelectedServico(s)}
-                    className={`w-full p-3.5 rounded-2xl border text-left flex justify-between items-center transition-all cursor-pointer backdrop-blur-md ${
-                      isSelected
-                        ? 'bg-emerald-500/20 border-emerald-500 text-white shadow-lg'
-                        : 'border-white/10 bg-black/40 text-slate-200 hover:border-white/20'
-                    }`}
-                  >
-                    <div>
-                      <p className="text-xs font-bold">{s.nome}</p>
-                      <p className="text-[10px] text-slate-400">{s.duracao_minutos || 30} minutos</p>
-                    </div>
-                    <span className="text-xs font-black text-emerald-400">R$ {Number(s.preco).toFixed(2)}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Profissionais */}
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">Selecione o Profissional</label>
-            <div className="grid grid-cols-1 gap-2">
-              {barbeiros.map((b) => {
-                const isSelected = String(selectedBarbeiro) === String(b.id);
-                const fotoBarbeiro = b.foto || b.avatar || b.imagem || b.logo;
-
-                return (
-                  <button
-                    type="button"
-                    key={b.id}
-                    onClick={() => setSelectedBarbeiro(b.id)}
-                    className={`w-full p-3.5 rounded-2xl border text-left flex items-center gap-3 transition-all cursor-pointer backdrop-blur-md ${
-                      isSelected
-                        ? 'bg-emerald-500/20 border-emerald-500 text-white shadow-lg'
-                        : 'border-white/10 bg-black/40 text-slate-200 hover:border-white/20'
-                    }`}
-                  >
-                    {fotoBarbeiro ? (
-                      <img 
-                        src={fotoBarbeiro} 
-                        alt={b.nome} 
-                        className="w-10 h-10 rounded-full object-cover border border-white/20 shrink-0"
-                      />
-                    ) : (
-                      <div className="w-10 h-10 rounded-full bg-white/10 text-emerald-400 flex items-center justify-center font-bold text-xs shrink-0 border border-white/15">
-                        {b.nome?.charAt(0).toUpperCase()}
-                      </div>
-                    )}
-                    <div className="overflow-hidden">
-                      <p className="text-xs font-bold truncate">{b.nome}</p>
-                      <p className="text-[10px] text-slate-400 truncate">Profissional Disponível</p>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Nome e Telefone */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1">Seu Nome</label>
+        {etapa === 'telefone' && (
+          <form onSubmit={handleVerificarTelefone} className="space-y-4">
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">Informe o seu telemóvel / WhatsApp</label>
               <input
-                type="text"
-                required
-                placeholder="Ex: João Silva"
-                value={nomeCliente}
-                onChange={(e) => setNomeCliente(e.target.value)}
-                className="w-full p-3.5 rounded-2xl bg-black/40 border border-white/10 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 backdrop-blur-md"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1">WhatsApp</label>
-              <input
-                type="text"
+                type="tel"
                 required
                 placeholder="(00) 00000-0000"
-                value={telefoneCliente}
-                onChange={(e) => setTelefoneCliente(e.target.value)}
-                className="w-full p-3.5 rounded-2xl bg-black/40 border border-white/10 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 backdrop-blur-md"
+                value={telefone}
+                onChange={(e) => setTelefone(e.target.value)}
+                className="w-full bg-black/60 border border-white/10 rounded-2xl px-4 py-3.5 text-xs font-bold text-white focus:outline-none shadow-inner backdrop-blur-md"
               />
             </div>
-          </div>
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-3.5 rounded-2xl text-slate-950 font-black text-xs uppercase tracking-widest cursor-pointer shadow-lg flex items-center justify-center gap-2 transition-all hover:brightness-110"
+              style={{ backgroundColor: corTema }}
+            >
+              <span>Continuar</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </form>
+        )}
 
-          {/* Seleção de Data */}
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1">Data do Agendamento</label>
+        {etapa === 'nome' && (
+          <form onSubmit={handleCadastrarNome} className="space-y-4">
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">Primeira vez por aqui? Digite seu nome completo:</label>
+              <input
+                type="text"
+                required
+                placeholder="Seu Nome Completo"
+                value={nome}
+                onChange={(e) => setNome(e.target.value)}
+                className="w-full bg-black/60 border border-white/10 rounded-2xl px-4 py-3.5 text-xs font-bold text-white focus:outline-none shadow-inner backdrop-blur-md"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-3.5 rounded-2xl text-slate-950 font-black text-xs uppercase tracking-widest cursor-pointer shadow-lg flex items-center justify-center gap-2 transition-all hover:brightness-110"
+              style={{ backgroundColor: corTema }}
+            >
+              <span>Avançar para Serviços</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </form>
+        )}
+
+        {etapa === 'menu_inicial' && (
+          <div className="space-y-4">
+            <div className="p-4 rounded-2xl bg-black/50 border border-white/10 backdrop-blur-md text-center">
+              <p className="text-xs font-bold text-white">Olá, {nome}! Detetamos agendamentos ativos na sua conta.</p>
+            </div>
+            <div className="grid grid-cols-1 gap-2.5">
+              <button
+                onClick={() => setEtapa('servico')}
+                className="p-3.5 rounded-2xl border text-left flex items-center justify-between transition-all cursor-pointer backdrop-blur-md font-bold text-xs text-white"
+                style={{ backgroundColor: `${corTema}15`, borderColor: `${corTema}40` }}
+              >
+                <span>Fazer novo agendamento</span>
+                <ArrowRight className="w-4 h-4" style={{ color: corTema }} />
+              </button>
+              <button
+                onClick={() => { atualizarAgendamentosAtivos(clienteId); setEtapa('gerenciar'); }}
+                className="p-3.5 rounded-2xl bg-black/50 border border-white/10 hover:border-white/20 text-left flex items-center justify-between transition-all cursor-pointer backdrop-blur-md font-bold text-xs text-white"
+              >
+                <span>Ver / Gerenciar meus agendamentos</span>
+                <CalendarIcon className="w-4 h-4 text-slate-400" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {etapa === 'gerenciar' && (
+          <div className="space-y-3">
+            <h3 className="text-xs font-black uppercase tracking-wider text-slate-400">Seus Agendamentos Ativos</h3>
+            {agendamentosCliente.length === 0 ? (
+              <p className="text-xs text-slate-400 italic text-center py-2">Nenhum agendamento ativo.</p>
+            ) : (
+              agendamentosCliente.map((ag) => (
+                <div key={ag.id} className="p-4 rounded-2xl bg-black/60 border border-white/10 flex items-center justify-between gap-3 backdrop-blur-md">
+                  <div>
+                    <p className="text-xs font-bold text-white">{ag.servicos?.nome}</p>
+                    <p className="text-[10px] font-medium" style={{ color: corTema }}>{ag.barbeiros?.nome}</p>
+                    <p className="text-[10px] text-slate-300 mt-0.5">📅 {new Date(ag.data_hora).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</p>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => { setAgendamentoEmEdicao(ag); setEtapa('editar_data'); }}
+                      className="px-3 py-2 rounded-xl bg-sky-500/20 border border-sky-500/40 text-sky-400 text-[10px] font-bold cursor-pointer"
+                    >
+                      Editar
+                    </button>
+                    <button
+                      onClick={() => cancelarAgendamento(ag.id)}
+                      className="px-3 py-2 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-400 text-[10px] font-bold cursor-pointer"
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+            <button
+              onClick={() => setEtapa('servico')}
+              className="w-full py-3 rounded-2xl border text-xs font-bold cursor-pointer mt-2"
+              style={{ backgroundColor: `${corTema}20`, color: corTema, borderColor: `${corTema}40` }}
+            >
+              Fazer novo agendamento
+            </button>
+          </div>
+        )}
+
+        {etapa === 'servico' && (
+          <div className="space-y-3">
+            <h3 className="text-xs font-black uppercase tracking-wider text-slate-400">1. Escolha o Serviço</h3>
+            <div className="grid grid-cols-1 gap-2.5 max-h-[300px] overflow-y-auto">
+              {servicos.map((s) => (
+                <button
+                  key={s.id}
+                  onClick={() => { setServicoEscolhido(s); setEtapa('barbeiro'); }}
+                  className="p-3.5 rounded-2xl bg-black/50 border border-white/10 hover:border-white/30 text-left flex justify-between items-center transition-all cursor-pointer backdrop-blur-md"
+                >
+                  <div>
+                    <p className="text-xs font-bold text-white">{s.nome}</p>
+                    <p className="text-[10px] text-slate-400">{s.duracao_minutos || 30} minutos</p>
+                  </div>
+                  <span className="text-xs font-black" style={{ color: corTema }}>R$ {Number(s.preco).toFixed(2)}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {etapa === 'barbeiro' && (
+          <div className="space-y-3">
+            <h3 className="text-xs font-black uppercase tracking-wider text-slate-400">2. Escolha o Profissional</h3>
+            <div className="grid grid-cols-1 gap-2.5">
+              {barbeiros.map((b) => (
+                <button
+                  key={b.id}
+                  onClick={() => { setBarbeiroEscolhido(b); setEtapa('data'); }}
+                  className="p-3.5 rounded-2xl bg-black/50 border border-white/10 hover:border-white/30 text-left flex items-center gap-3 transition-all cursor-pointer backdrop-blur-md"
+                >
+                  {b.foto ? (
+                    <img src={b.foto} alt={b.nome} className="w-9 h-9 rounded-full object-cover border border-white/20" />
+                  ) : (
+                    <div className="w-9 h-9 rounded-full text-white flex items-center justify-center font-bold text-xs" style={{ backgroundColor: corTema }}>
+                      {b.nome?.charAt(0)}
+                    </div>
+                  )}
+                  <p className="text-xs font-bold text-white">{b.nome}</p>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {etapa === 'data' && (
+          <div className="space-y-3">
+            <h3 className="text-xs font-black uppercase tracking-wider text-slate-400">3. Escolha a Data</h3>
             <input 
-              type="date" 
-              value={data} 
-              onChange={(e) => setData(e.target.value)}
-              className="w-full p-3.5 rounded-2xl bg-black/40 border border-white/10 text-xs font-semibold text-white focus:outline-none focus:border-emerald-500 [color-scheme:dark] backdrop-blur-md"
+              type="date"
               required
+              value={dataEscolhida}
+              onChange={(e) => setDataEscolhida(e.target.value)}
+              className="w-full p-3.5 rounded-2xl bg-black/50 border border-white/10 text-xs text-white focus:outline-none [color-scheme:dark] backdrop-blur-md"
             />
+            <button
+              disabled={!dataEscolhida}
+              onClick={() => setEtapa('horario')}
+              className="w-full py-3.5 rounded-2xl text-slate-950 font-black text-xs uppercase tracking-widest cursor-pointer shadow-lg disabled:opacity-50"
+              style={{ backgroundColor: corTema }}
+            >
+              Avançar para Horários
+            </button>
           </div>
+        )}
 
-          {/* Seleção de Horário */}
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2 flex items-center justify-between">
-              <span className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5 text-emerald-400" /> Escolha o Horário</span>
-              {!selectedBarbeiro && <span className="text-[10px] text-amber-400 font-medium">Selecione o profissional primeiro</span>}
-            </label>
-
-            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+        {etapa === 'horario' && (
+          <div className="space-y-3">
+            <h3 className="text-xs font-black uppercase tracking-wider text-slate-400">4. Escolha o Horário</h3>
+            <div className="grid grid-cols-3 gap-2 max-h-[250px] overflow-y-auto">
               {HORARIOS_DISPONIVEIS.map((h) => {
-                const isOcupado = horariosOcupados.includes(h);
-                const isSelected = hora === h;
-
+                const ocupado = horariosOcupados.includes(h);
                 return (
                   <button
-                    type="button"
                     key={h}
-                    disabled={isOcupado || !selectedBarbeiro}
-                    onClick={() => setHora(h)}
-                    className={`py-2.5 rounded-xl text-xs font-black border transition-all backdrop-blur-md ${
-                      isOcupado
-                        ? 'bg-black/20 text-slate-600 border-white/5 cursor-not-allowed line-through opacity-40'
-                        : isSelected
-                        ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-slate-950 border-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.4)] scale-105'
-                        : 'bg-black/40 text-white border-white/10 hover:border-emerald-500 cursor-pointer'
+                    disabled={ocupado}
+                    onClick={() => { setHoraEscolhida(h); setEtapa('resumo'); }}
+                    className={`py-2.5 rounded-xl text-xs font-black border transition-all ${
+                      ocupado 
+                        ? 'bg-black/20 text-slate-600 border-white/5 line-through opacity-40 cursor-not-allowed' 
+                        : 'bg-black/50 text-white border-white/10 cursor-pointer hover:border-white/30'
                     }`}
                   >
                     {h}
@@ -371,17 +458,102 @@ export default function AgendamentoClassico({ barbeariaId }) {
               })}
             </div>
           </div>
+        )}
 
-          <button
-            type="submit"
-            disabled={submitting}
-            className="w-full py-4 rounded-2xl bg-gradient-to-r from-emerald-500 via-emerald-400 to-emerald-600 text-slate-950 font-black text-xs uppercase tracking-widest hover:brightness-110 transition-all shadow-[0_15px_35px_rgba(16,185,129,0.35)] cursor-pointer disabled:opacity-50 mt-2 border border-emerald-300/40"
-          >
-            {submitting ? 'A confirmar...' : 'Confirmar Agendamento'}
-          </button>
+        {etapa === 'editar_data' && (
+          <div className="space-y-3">
+            <h3 className="text-xs font-black uppercase tracking-wider text-slate-400">Nova Data</h3>
+            <input 
+              type="date"
+              required
+              value={dataEscolhida}
+              onChange={(e) => setDataEscolhida(e.target.value)}
+              className="w-full p-3.5 rounded-2xl bg-black/50 border border-white/10 text-xs text-white [color-scheme:dark]"
+            />
+            <button
+              disabled={!dataEscolhida}
+              onClick={() => setEtapa('editar_horario')}
+              className="w-full py-3.5 rounded-2xl text-slate-950 font-black text-xs uppercase"
+              style={{ backgroundColor: corTema }}
+            >
+              Escolher Horário
+            </button>
+          </div>
+        )}
 
-        </form>
+        {etapa === 'editar_horario' && (
+          <div className="space-y-3">
+            <h3 className="text-xs font-black uppercase tracking-wider text-slate-400">Novo Horário</h3>
+            <div className="grid grid-cols-3 gap-2">
+              {HORARIOS_DISPONIVEIS.map((h) => (
+                <button
+                  key={h}
+                  disabled={horariosOcupados.includes(h) || loading}
+                  onClick={() => confirmarEdicaoHorario(h)}
+                  className="py-2.5 rounded-xl text-xs font-black bg-black/50 text-white border border-white/10 cursor-pointer"
+                >
+                  {h}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {etapa === 'resumo' && (
+          <div className="p-4 rounded-2xl bg-black/60 border space-y-3 backdrop-blur-md" style={{ borderColor: `${corTema}66` }}>
+            <h4 className="text-xs font-black uppercase tracking-wider" style={{ color: corTema }}>Resumo do Agendamento</h4>
+            <div className="space-y-1 text-xs text-slate-200">
+              <p>✂️ <strong className="text-white">Serviço:</strong> {servicoEscolhido?.nome} (R$ {Number(servicoEscolhido?.preco || 0).toFixed(2)})</p>
+              <p>👤 <strong className="text-white">Profissional:</strong> {barbeiroEscolhido?.nome}</p>
+              <p>📅 <strong className="text-white">Data:</strong> {dataEscolhida.split('-').reverse().join('/')}</p>
+              <p>⏰ <strong className="text-white">Horário:</strong> {horaEscolhida}</p>
+              <p>👤 <strong className="text-white">Cliente:</strong> {nome} ({telefone})</p>
+            </div>
+            <button
+              disabled={loading}
+              onClick={confirmarAgendamentoFinal}
+              className="w-full mt-2 py-3.5 rounded-xl text-slate-950 font-black text-xs uppercase tracking-widest cursor-pointer shadow-lg hover:brightness-110"
+              style={{ backgroundColor: corTema }}
+            >
+              {loading ? 'A confirmar...' : 'Confirmar Agendamento'}
+            </button>
+          </div>
+        )}
+
+        {etapa === 'sucesso' && (
+          <div className="py-4 text-center space-y-3">
+            <div className="w-12 h-12 rounded-2xl text-slate-950 flex items-center justify-center mx-auto shadow-lg" style={{ backgroundColor: corTema }}>
+              <CheckCircle2 className="w-6 h-6" />
+            </div>
+            <h3 className="text-sm font-black text-white">Agendamento Concluído!</h3>
+            <p className="text-xs text-slate-400">O seu horário foi registado com sucesso. Aguardamos a sua visita!</p>
+            
+            <div className="grid grid-cols-1 gap-2 pt-2">
+              <button
+                onClick={() => setEtapa('servico')}
+                className="w-full py-3 rounded-2xl text-slate-950 font-bold text-xs transition-all cursor-pointer shadow-md"
+                style={{ backgroundColor: corTema }}
+              >
+                Fazer Novo Agendamento
+              </button>
+              <button
+                onClick={() => { atualizarAgendamentosAtivos(clienteId); setEtapa('gerenciar'); }}
+                className="w-full py-3 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs transition-all cursor-pointer border border-white/10"
+              >
+                Ver Meus Agendamentos
+              </button>
+            </div>
+          </div>
+        )}
+
       </div>
+
+      {erro && (
+        <div className="mx-6 mb-4 p-3 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          <span>{erro}</span>
+        </div>
+      )}
 
     </div>
   );

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Store, Save, Check, Image as ImageIcon, Palette, Layout, Globe, Sparkles, ExternalLink, Share2, Copy, MessageCircle, Send, X, MessageSquare, Bot, Grid } from 'lucide-react';
+import { Store, Save, Check, Image as ImageIcon, Palette, Layout, ExternalLink, Share2, Copy, MessageCircle, Send, X, MessageSquare, Bot, Grid } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
@@ -9,9 +9,8 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
   const [slug, setSlug] = useState(barbearia?.slug || '');
   const [logoUrl, setLogoUrl] = useState(barbearia?.logo_url || '');
   const [capaUrl, setCapaUrl] = useState(barbearia?.capa_url || '');
-  const [corTema, setCorTema] = useState(barbearia?.cor_tema || '#111111');
+  const [corTema, setCorTema] = useState(barbearia?.cor_tema || '#10b981');
   
-  // Lê o valor atual salvo no banco, verificando todas as colunas possíveis
   const [modoAtendimento, setModoAtendimento] = useState(
     barbearia?.tipo_atendimento || barbearia?.modo_agendamento || barbearia?.modo_chatbot || 'conversacional'
   );
@@ -48,7 +47,6 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
     setSucesso(false);
 
     try {
-      // Atualiza ambas as colunas para o mesmo valor exato ('conversacional' ou 'classico')
       const { error } = await supabase
         .from('barbearias')
         .update({ 
@@ -56,9 +54,9 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
           slug, 
           logo_url: logoUrl, 
           capa_url: capaUrl,
-          cor_tema: corTema,
+          cor_tema: corTema, // <-- Salva a cor personalizada no banco
           tipo_atendimento: modoAtendimento,
-          modo_agendamento: modoAtendimento // Garante que a outra coluna também recebe o valor atualizado
+          modo_agendamento: modoAtendimento
         })
         .eq('id', barbearia.id);
 
@@ -79,8 +77,6 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
       
       {/* HEADER DE CAPA E AVATAR */}
       <div className="bg-gradient-to-br from-[#0c0d10] via-[#050507] to-[#000000] rounded-[2.5rem] border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.8)] overflow-hidden backdrop-blur-2xl">
-        
-        {/* Imagem de Capa */}
         <div className="relative h-44 sm:h-56 w-full bg-stone-900 overflow-hidden">
           {capaUrl ? (
             <img src={capaUrl} alt="Capa" className="w-full h-full object-cover" />
@@ -91,13 +87,12 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
           
-          {/* Botão de Compartilhar / Link do Cliente */}
           <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
             <button 
               onClick={() => setModalCompartilharOpen(true)}
               className="inline-flex items-center gap-1.5 px-4 py-2 bg-black/40 hover:bg-black/60 backdrop-blur-md rounded-2xl text-xs font-bold text-white shadow-lg transition-all cursor-pointer border border-white/15 active:scale-95"
             >
-              <Share2 className="w-3.5 h-3.5 text-emerald-400" />
+              <Share2 className="w-3.5 h-3.5" style={{ color: corTema }} />
               <span>Compartilhar Link</span>
             </button>
             <a 
@@ -107,12 +102,11 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
               className="inline-flex items-center justify-center w-9 h-9 bg-black/40 hover:bg-black/60 backdrop-blur-md rounded-2xl text-white shadow-lg transition-all cursor-pointer border border-white/15"
               title="Abrir em nova aba"
             >
-              <ExternalLink className="w-4 h-4 text-emerald-400" />
+              <ExternalLink className="w-4 h-4" style={{ color: corTema }} />
             </a>
           </div>
         </div>
 
-        {/* Avatar Flutuante e Título */}
         <div className="px-6 pb-8 pt-0 relative flex flex-col items-center text-center">
           <div className="-mt-16 sm:-mt-20 mb-4 relative z-20">
             <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-[2rem] bg-black/60 p-1.5 shadow-2xl border border-white/20 overflow-hidden flex items-center justify-center backdrop-blur-xl">
@@ -124,22 +118,21 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                 </div>
               )}
             </div>
-            <span className="absolute bottom-1 right-1 w-4 h-4 bg-emerald-500 border-2 border-black rounded-full shadow-[0_0_10px_#10b981]"></span>
+            <span className="absolute bottom-1 right-1 w-4 h-4 border-2 border-black rounded-full shadow-[0_0_10px]" style={{ backgroundColor: corTema }}></span>
           </div>
 
           <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">{nome || 'Sua Barbearia'}</h2>
           <p className="text-xs text-slate-400 font-medium mt-1 max-w-md">Personalize a identidade visual, altere links de acesso e configure as preferências da sua unidade.</p>
         </div>
-
       </div>
 
       {/* FORMULÁRIO DE CONFIGURAÇÕES */}
       <form onSubmit={handleSubmit} className="space-y-6">
         
-        {/* BLOCO 1: IDENTIFICAÇÃO DA UNIDADE */}
+        {/* BLOCO 1: IDENTIFICAÇÃO */}
         <div className="bg-gradient-to-br from-[#0c0d10] via-[#050507] to-[#000000] rounded-[2.5rem] border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.8)] p-6 sm:p-8 space-y-5 backdrop-blur-2xl">
           <div className="flex items-center gap-3 pb-4 border-b border-white/10">
-            <div className="w-10 h-10 rounded-2xl bg-white/5 text-emerald-400 flex items-center justify-center border border-white/10 shadow-md shrink-0">
+            <div className="w-10 h-10 rounded-2xl bg-white/5 flex items-center justify-center border border-white/10 shadow-md shrink-0" style={{ color: corTema }}>
               <Store className="w-5 h-5" />
             </div>
             <div>
@@ -155,7 +148,8 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                 type="text"
                 value={nome}
                 onChange={(e) => setNome(e.target.value)}
-                className="w-full bg-black/40 border border-white/10 rounded-2xl px-4 py-3.5 text-xs font-bold text-white focus:outline-none focus:border-emerald-500 transition-all shadow-inner backdrop-blur-md"
+                className="w-full bg-black/40 border border-white/10 rounded-2xl px-4 py-3.5 text-xs font-bold text-white focus:outline-none transition-all shadow-inner backdrop-blur-md"
+                style={{ '--tw-border-opacity': '1' }}
                 required
               />
             </div>
@@ -166,7 +160,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                 type="text"
                 value={slug}
                 onChange={(e) => setSlug(e.target.value)}
-                className="w-full bg-black/40 border border-white/10 rounded-2xl px-4 py-3.5 text-xs font-bold text-white focus:outline-none focus:border-emerald-500 transition-all shadow-inner backdrop-blur-md"
+                className="w-full bg-black/40 border border-white/10 rounded-2xl px-4 py-3.5 text-xs font-bold text-white focus:outline-none transition-all shadow-inner backdrop-blur-md"
                 required
               />
               <span className="text-[10px] text-slate-400 font-medium pl-1 block mt-1">URL: seuapp.com/agendar/{slug || 'url'}</span>
@@ -177,7 +171,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
         {/* BLOCO 2: MÍDIA E TEMA VISUAL */}
         <div className="bg-gradient-to-br from-[#0c0d10] via-[#050507] to-[#000000] rounded-[2.5rem] border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.8)] p-6 sm:p-8 space-y-5 backdrop-blur-2xl">
           <div className="flex items-center gap-3 pb-4 border-b border-white/10">
-            <div className="w-10 h-10 rounded-2xl bg-white/5 text-emerald-400 flex items-center justify-center border border-white/10 shadow-md shrink-0">
+            <div className="w-10 h-10 rounded-2xl bg-white/5 flex items-center justify-center border border-white/10 shadow-md shrink-0" style={{ color: corTema }}>
               <Palette className="w-5 h-5" />
             </div>
             <div>
@@ -189,33 +183,33 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
           <div className="space-y-4">
             <div className="space-y-1.5">
               <label className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                <ImageIcon className="w-3.5 h-3.5 text-emerald-400" /> URL da Logo / Perfil
+                <ImageIcon className="w-3.5 h-3.5" style={{ color: corTema }} /> URL da Logo / Perfil
               </label>
               <input
                 type="url"
                 value={logoUrl}
                 onChange={(e) => setLogoUrl(e.target.value)}
                 placeholder="https://exemplo.com/logo.png"
-                className="w-full bg-black/40 border border-white/10 rounded-2xl px-4 py-3.5 text-xs font-bold text-white focus:outline-none focus:border-emerald-500 transition-all shadow-inner backdrop-blur-md"
+                className="w-full bg-black/40 border border-white/10 rounded-2xl px-4 py-3.5 text-xs font-bold text-white focus:outline-none transition-all shadow-inner backdrop-blur-md"
               />
             </div>
 
             <div className="space-y-1.5">
               <label className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                <Layout className="w-3.5 h-3.5 text-emerald-400" /> URL da Imagem de Capa
+                <Layout className="w-3.5 h-3.5" style={{ color: corTema }} /> URL da Imagem de Capa
               </label>
               <input
                 type="url"
                 value={capaUrl}
                 onChange={(e) => setCapaUrl(e.target.value)}
                 placeholder="https://exemplo.com/capa.png"
-                className="w-full bg-black/40 border border-white/10 rounded-2xl px-4 py-3.5 text-xs font-bold text-white focus:outline-none focus:border-emerald-500 transition-all shadow-inner backdrop-blur-md"
+                className="w-full bg-black/40 border border-white/10 rounded-2xl px-4 py-3.5 text-xs font-bold text-white focus:outline-none transition-all shadow-inner backdrop-blur-md"
               />
             </div>
 
             <div className="space-y-1.5 pt-1">
               <label className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                <Palette className="w-3.5 h-3.5 text-emerald-400" /> Cor Principal do Tema
+                <Palette className="w-3.5 h-3.5" style={{ color: corTema }} /> Cor Principal do Tema
               </label>
               <div className="flex items-center gap-3">
                 <div className="relative w-12 h-12 rounded-2xl border border-white/20 overflow-hidden shadow-inner shrink-0 flex items-center justify-center">
@@ -231,17 +225,17 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                   type="text"
                   value={corTema}
                   onChange={(e) => setCorTema(e.target.value)}
-                  className="w-full bg-black/40 border border-white/10 rounded-2xl px-4 py-3.5 text-xs font-bold text-white focus:outline-none focus:border-emerald-500 transition-all shadow-inner uppercase tracking-wider backdrop-blur-md"
+                  className="w-full bg-black/40 border border-white/10 rounded-2xl px-4 py-3.5 text-xs font-bold text-white focus:outline-none transition-all shadow-inner uppercase tracking-wider backdrop-blur-md"
                 />
               </div>
             </div>
           </div>
         </div>
 
-        {/* BLOCO 3: MODO DE AGENDAMENTO (COM SUPORTE A BLACK PIANO E VIDRO) */}
+        {/* BLOCO 3: EXPERIÊNCIA DO CLIENTE */}
         <div className="bg-gradient-to-br from-[#0c0d10] via-[#050507] to-[#000000] rounded-[2.5rem] border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.8)] p-6 sm:p-8 space-y-5 backdrop-blur-2xl">
           <div className="flex items-center gap-3 pb-4 border-b border-white/10">
-            <div className="w-10 h-10 rounded-2xl bg-white/5 text-emerald-400 flex items-center justify-center border border-white/10 shadow-md shrink-0">
+            <div className="w-10 h-10 rounded-2xl bg-white/5 flex items-center justify-center border border-white/10 shadow-md shrink-0" style={{ color: corTema }}>
               <MessageSquare className="w-5 h-5" />
             </div>
             <div>
@@ -250,24 +244,22 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
             </div>
           </div>
 
-          {/* Seletor visual interativo */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
-            
-            {/* Modo Conversacional */}
             <div 
               onClick={() => setModoAtendimento('conversacional')}
               className={`p-5 rounded-3xl border transition-all cursor-pointer flex flex-col justify-between backdrop-blur-xl ${
                 modoAtendimento === 'conversacional'
-                  ? 'bg-emerald-500/10 border-emerald-500/60 shadow-[0_0_25px_rgba(16,185,129,0.15)]'
+                  ? 'border-opacity-100 shadow-lg'
                   : 'bg-black/40 border-white/10 hover:border-white/20'
               }`}
+              style={modoAtendimento === 'conversacional' ? { backgroundColor: `${corTema}15`, borderColor: corTema } : {}}
             >
               <div className="flex items-center justify-between mb-4">
-                <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${modoAtendimento === 'conversacional' ? 'bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-500/30' : 'bg-white/5 text-slate-400 border border-white/10'}`}>
+                <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${modoAtendimento === 'conversacional' ? 'text-slate-950 shadow-lg' : 'bg-white/5 text-slate-400 border border-white/10'}`} style={modoAtendimento === 'conversacional' ? { backgroundColor: corTema } : {}}>
                   <Bot className="w-5 h-5" />
                 </div>
                 {modoAtendimento === 'conversacional' && (
-                  <span className="text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-3 py-1 rounded-full flex items-center gap-1 shadow-sm">
+                  <span className="text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-full flex items-center gap-1 shadow-sm border" style={{ backgroundColor: `${corTema}33`, color: corTema, borderColor: `${corTema}66` }}>
                     <Check className="w-3 h-3" /> Ativo
                   </span>
                 )}
@@ -278,21 +270,21 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
               </div>
             </div>
 
-            {/* Modo Clássico */}
             <div 
               onClick={() => setModoAtendimento('classico')}
               className={`p-5 rounded-3xl border transition-all cursor-pointer flex flex-col justify-between backdrop-blur-xl ${
                 modoAtendimento === 'classico'
-                  ? 'bg-emerald-500/10 border-emerald-500/60 shadow-[0_0_25px_rgba(16,185,129,0.15)]'
+                  ? 'border-opacity-100 shadow-lg'
                   : 'bg-black/40 border-white/10 hover:border-white/20'
               }`}
+              style={modoAtendimento === 'classico' ? { backgroundColor: `${corTema}15`, borderColor: corTema } : {}}
             >
               <div className="flex items-center justify-between mb-4">
-                <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${modoAtendimento === 'classico' ? 'bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-500/30' : 'bg-white/5 text-slate-400 border border-white/10'}`}>
+                <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${modoAtendimento === 'classico' ? 'text-slate-950 shadow-lg' : 'bg-white/5 text-slate-400 border border-white/10'}`} style={modoAtendimento === 'classico' ? { backgroundColor: corTema } : {}}>
                   <Grid className="w-5 h-5" />
                 </div>
                 {modoAtendimento === 'classico' && (
-                  <span className="text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-3 py-1 rounded-full flex items-center gap-1 shadow-sm">
+                  <span className="text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-full flex items-center gap-1 shadow-sm border" style={{ backgroundColor: `${corTema}33`, color: corTema, borderColor: `${corTema}66` }}>
                     <Check className="w-3 h-3" /> Ativo
                   </span>
                 )}
@@ -302,7 +294,6 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                 <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">Layout tradicional em grelha / passos diretos para seleção rápida.</p>
               </div>
             </div>
-
           </div>
         </div>
 
@@ -318,16 +309,14 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
               border: '1px solid rgba(255, 255, 255, 0.15)'
             }}
           >
-            {sucesso ? <Check className="w-4 h-4 text-emerald-400" /> : <Save className="w-4 h-4 text-emerald-400" />}
+            {sucesso ? <Check className="w-4 h-4" style={{ color: corTema }} /> : <Save className="w-4 h-4" style={{ color: corTema }} />}
             <span>{salvando ? 'A salvar alterações...' : sucesso ? 'Alterações salvas com sucesso!' : 'Salvar Todas as Alterações'}</span>
           </button>
         </div>
 
       </form>
 
-      {/* =========================================================
-          MODAL DE COMPARTILHAMENTO
-         ========================================================= */}
+      {/* MODAL DE COMPARTILHAMENTO */}
       {modalCompartilharOpen && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-fade-in">
           <div className="bg-gradient-to-br from-[#0c0d10] via-[#050507] to-[#000000] border border-white/15 rounded-[2.5rem] shadow-2xl w-full max-w-md p-6 sm:p-8 space-y-6 relative backdrop-blur-2xl text-white">
@@ -340,7 +329,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
             </button>
 
             <div className="space-y-1">
-              <span className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-400">Divulgação</span>
+              <span className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: corTema }}>Divulgação</span>
               <h3 className="text-lg font-black text-white tracking-tight">Compartilhar Link do Cliente</h3>
               <p className="text-xs text-slate-400">Envie o link de agendamento online diretamente para seus clientes.</p>
             </div>
@@ -354,7 +343,8 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
               />
               <button 
                 onClick={handleCopiarLink}
-                className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 rounded-xl text-xs font-extrabold transition-all shrink-0 flex items-center gap-1.5 cursor-pointer shadow-md"
+                className="px-4 py-2 text-slate-950 rounded-xl text-xs font-extrabold transition-all shrink-0 flex items-center gap-1.5 cursor-pointer shadow-md"
+                style={{ backgroundColor: corTema }}
               >
                 {copiado ? <Check className="w-3.5 h-3.5 text-slate-950" /> : <Copy className="w-3.5 h-3.5" />}
                 <span>{copiado ? 'Copiado!' : 'Copiar'}</span>
@@ -393,7 +383,8 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                 href={urlCliente}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-xs font-bold text-emerald-400 hover:underline inline-flex items-center gap-1"
+                className="text-xs font-bold hover:underline inline-flex items-center gap-1"
+                style={{ color: corTema }}
               >
                 <span>Abrir página</span>
                 <ExternalLink className="w-3 h-3" />
