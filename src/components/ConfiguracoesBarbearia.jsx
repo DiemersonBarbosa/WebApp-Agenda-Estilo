@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Store, Save, Check, ExternalLink, Share2, Copy, MessageCircle, Send, X, MessageSquare, Bot, Grid, Palette, Moon, BellRing } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Store, Save, Check, ExternalLink, Share2, Copy, MessageCircle, Send, X, MessageSquare, Bot, Grid, Palette, Moon, BellRing, Clock, Sliders, CalendarOff, Trash2, Plus } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
@@ -16,17 +16,110 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
     barbearia?.tipo_atendimento || barbearia?.modo_agendamento || barbearia?.modo_chatbot || 'conversacional'
   );
 
+  // Estados do Modal de Horários & Exceções
+  const [modalHorariosOpen, setModalHorariosOpen] = useState(false);
+  const [permiteAgendamentos, setPermiteAgendamentos] = useState(barbearia?.permite_agendamentos ?? true);
+  const [horariosSemana, setHorariosSemana] = useState(barbearia?.horarios || {
+    segunda: { ativo: true, abertura: '09:00', fechamento: '19:00', pausaInicio: '12:00', pausaFim: '13:00' },
+    terca: { ativo: true, abertura: '09:00', fechamento: '19:00', pausaInicio: '12:00', pausaFim: '13:00' },
+    quarta: { ativo: true, abertura: '09:00', fechamento: '19:00', pausaInicio: '12:00', pausaFim: '13:00' },
+    quinta: { ativo: true, abertura: '09:00', fechamento: '19:00', pausaInicio: '12:00', pausaFim: '13:00' },
+    sexta: { ativo: true, abertura: '09:00', fechamento: '19:00', pausaInicio: '12:00', pausaFim: '13:00' },
+    sabado: { ativo: true, abertura: '09:00', fechamento: '18:00', pausaInicio: '12:00', pausaFim: '13:00' },
+    domingo: { ativo: false, abertura: '09:00', fechamento: '14:00', pausaInicio: '', pausaFim: '' },
+  });
+
+  // Estados para gerenciar folgas/feriados específicos
+  const [listaBloqueios, setListaBloqueios] = useState([]);
+  const [novaDataBloqueio, setNovaDataBloqueio] = useState('');
+  const [novoMotivoBloqueio, setNovoMotivoBloqueio] = useState('');
+  const [carregandoBloqueios, setCarregandoBloqueios] = useState(false);
+
   const [salvando, setSalvando] = useState(false);
   const [sucesso, setSucesso] = useState(false);
   const [modalCompartilharOpen, setModalCompartilharOpen] = useState(false);
   const [copiado, setCopiado] = useState(false);
 
-  // Cor de destaque fixa em preto corporativo
+  const diasLabels = {
+    segunda: 'Segunda-feira',
+    terca: 'Terça-feira',
+    quarta: 'Quarta-feira',
+    quinta: 'Quinta-feira',
+    sexta: 'Sexta-feira',
+    sabado: 'Sábado',
+    domingo: 'Domingo'
+  };
+
   const corDestaqueAtiva = '#09090b';
 
   const urlCliente = typeof window !== 'undefined' 
     ? `${window.location.origin}/agendar/${slug || barbearia?.slug || 'barbearia'}`
     : `https://seuapp.com/agendar/${slug || 'barbearia'}`;
+
+  // Buscar bloqueios salvos no Supabase ao abrir o modal
+  useEffect(() => {
+    async function buscarBloqueios() {
+      if (!barbearia?.id) return;
+      try {
+        setCarregandoBloqueios(true);
+        const { data, error } = await supabase
+          .from('bloqueios_agenda')
+          .select('*')
+          .eq('barbearia_id', barbearia.id)
+          .order('data_bloqueio', { ascending: true });
+
+        if (!error && data) {
+          setListaBloqueios(data);
+        }
+      } catch (err) {
+        console.error('Erro ao buscar bloqueios:', err);
+      } finally {
+        setCarregandoBloqueios(false);
+      }
+    }
+
+    if (modalHorariosOpen) {
+      buscarBloqueios();
+    }
+  }, [modalHorariosOpen, barbearia?.id]);
+
+  const handleAdicionarBloqueio = async () => {
+    if (!novaDataBloqueio) return;
+    try {
+      const { data, error } = await supabase
+        .from('bloqueios_agenda')
+        .insert([{
+          barbearia_id: barbearia.id,
+          data_bloqueio: novaDataBloqueio,
+          motivo: novoMotivoBloqueio || 'Feriado / Folga'
+        }])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setListaBloqueios(prev => [...prev, data]);
+      setNovaDataBloqueio('');
+      setNovoMotivoBloqueio('');
+    } catch (err) {
+      alert('Erro ao adicionar bloqueio: ' + err.message);
+    }
+  };
+
+  const handleRemoverBloqueio = async (idBloqueio) => {
+    try {
+      const { error } = await supabase
+        .from('bloqueios_agenda')
+        .delete()
+        .eq('id', idBloqueio);
+
+      if (error) throw error;
+
+      setListaBloqueios(prev => prev.filter(b => b.id !== idBloqueio));
+    } catch (err) {
+      alert('Erro ao remover bloqueio: ' + err.message);
+    }
+  };
 
   const handleCopiarLink = () => {
     navigator.clipboard.writeText(urlCliente);
@@ -42,6 +135,20 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
   const handleCompartilharTelegram = () => {
     const texto = encodeURIComponent(`Agende seu horário na ${nome || 'nossa barbearia'}: ${urlCliente}`);
     window.open(`https://t.me/share/url?url=${urlCliente}&text=${texto}`, '_blank');
+  };
+
+  const handleToggleDia = (dia) => {
+    setHorariosSemana(prev => ({
+      ...prev,
+      [dia]: { ...prev[dia], ativo: !prev[dia].ativo }
+    }));
+  };
+
+  const handleChangeHorario = (dia, campo, valor) => {
+    setHorariosSemana(prev => ({
+      ...prev,
+      [dia]: { ...prev[dia], [campo]: valor }
+    }));
   };
 
   const handleSubmit = async (e) => {
@@ -60,7 +167,9 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
           cor_tema: temaVisual,
           tipo_atendimento: modoAtendimento,
           modo_agendamento: modoAtendimento,
-          whatsapp_notificacoes: whatsappNotificacoes
+          whatsapp_notificacoes: whatsappNotificacoes,
+          permite_agendamentos: permiteAgendamentos,
+          horarios: horariosSemana
         })
         .eq('id', barbearia.id);
 
@@ -81,10 +190,8 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
       
       <form onSubmit={handleSubmit} className="space-y-6">
         
-        {/* BLOCO ÚNICO CONTÍNUO */}
         <div className="rounded-[2.5rem] bg-white border border-slate-200 shadow-xl overflow-hidden">
           
-          {/* TOPO: CAPA E PERFIL ESCUROS (BLACK PIANO) */}
           <div className="relative h-44 sm:h-52 w-full bg-[#090a0f] overflow-hidden border-b border-white/10">
             {capaUrl ? (
               <img src={capaUrl} alt="Capa" className="w-full h-full object-cover opacity-90" />
@@ -137,10 +244,8 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
             </div>
           </div>
 
-          {/* CONTEÚDO DO FORMULÁRIO (ESTILO CLEAN / CLARO) */}
           <div className="px-6 sm:px-8 pb-8 space-y-8 bg-white text-slate-900">
             
-            {/* SEÇÃO 1: IDENTIDADE E ACESSO */}
             <div className="space-y-4">
               <div className="flex items-center gap-2.5 border-b border-slate-100 pb-2">
                 <Store className="w-4 h-4 text-slate-700" />
@@ -175,7 +280,28 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
               </div>
             </div>
 
-            {/* SEÇÃO 2: MÍDIA & IDENTIDADE VISUAL */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2.5 border-b border-slate-100 pb-2">
+                <Clock className="w-4 h-4 text-slate-700" />
+                <h2 className="text-xs font-bold uppercase tracking-wider text-slate-800">Horários & Expediente</h2>
+              </div>
+
+              <div className="bg-slate-50 rounded-2xl border border-slate-200 p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
+                <div className="space-y-1">
+                  <h4 className="font-bold text-slate-900 text-xs">Gestão de Horários, Pausas e Feriados</h4>
+                  <p className="text-[11px] text-slate-500">Configure os dias de funcionamento, abertura, fechamento, pausas e bloqueios de datas específicas.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setModalHorariosOpen(true)}
+                  className="px-4 py-2.5 bg-slate-900 hover:bg-black text-white rounded-xl text-xs font-bold transition-all shadow cursor-pointer flex items-center gap-2 shrink-0"
+                >
+                  <Clock className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Configurar Horários</span>
+                </button>
+              </div>
+            </div>
+
             <div className="space-y-4">
               <div className="flex items-center gap-2.5 border-b border-slate-100 pb-2">
                 <Palette className="w-4 h-4 text-slate-700" />
@@ -206,7 +332,6 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                 </div>
               </div>
 
-              {/* SELETOR DE TEMAS */}
               <div className="space-y-2 pt-1">
                 <label className="text-xs font-bold text-slate-700 block">Padrão de Cores e Estilo Visual</label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
@@ -257,7 +382,6 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
               </div>
             </div>
 
-            {/* SEÇÃO 3: EXPERIÊNCIA DE ATENDIMENTO */}
             <div className="space-y-4">
               <div className="flex items-center gap-2.5 border-b border-slate-100 pb-2">
                 <MessageSquare className="w-4 h-4 text-slate-700" />
@@ -310,14 +434,13 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                   </div>
                   <div>
                     <h4 className="font-bold text-slate-900 text-xs">Modo Clássico</h4>
-                    <p className="text-[10px] text-slate-500 mt-0.5">Layout tradicional em grade para seleção rápida.</p>
+                    <p className="text-[10px] text-slate-500 mt-0.5">Layout tradicional en grade para seleção rápida.</p>
                   </div>
                 </div>
 
               </div>
             </div>
 
-            {/* SEÇÃO 4: NOTIFICAÇÕES WHATSAPP */}
             <div className="space-y-4 pt-2">
               <div className="flex items-center gap-2.5 border-b border-slate-100 pb-2">
                 <BellRing className="w-4 h-4 text-slate-700" />
@@ -340,7 +463,6 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
           </div>
         </div>
 
-        {/* BOTÃO DE SALVAR */}
         <div className="pt-2">
           <button
             type="submit"
@@ -354,7 +476,236 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
 
       </form>
 
-      {/* MODAL DE COMPARTILHAMENTO */}
+      {/* =========================================================
+          MODAL DE CONFIGURAÇÃO DE HORÁRIOS & BLOQUEIOS DE DATAS
+          ========================================================= */}
+      {modalHorariosOpen && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white border border-slate-200 rounded-[2.5rem] shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden relative text-slate-900">
+            
+            <div className="flex items-center justify-between p-6 sm:p-8 border-b border-slate-100 shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-slate-900 text-white flex items-center justify-center shadow">
+                  <Clock className="w-5 h-5 text-emerald-400" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">Horários & Expediente</h3>
+                  <p className="text-xs text-slate-500">Defina expediente semanal, pausas e bloqueio de feriados/viagens.</p>
+                </div>
+              </div>
+              <button 
+                type="button"
+                onClick={() => setModalHorariosOpen(false)}
+                className="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-900 flex items-center justify-center transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-6 sm:p-8 space-y-6">
+              
+              {/* Controle Geral de Novos Agendamentos */}
+              <div className="bg-slate-50 rounded-2xl border border-slate-200 p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Sliders className="w-4 h-4 text-slate-800" />
+                    <h4 className="font-bold text-slate-900 text-xs">Novos Agendamentos Online</h4>
+                  </div>
+                  <p className="text-[11px] text-slate-500">
+                    {permiteAgendamentos 
+                      ? 'O sistema está aceitando novos agendamentos normalmente.' 
+                      : 'Os agendamentos estão pausados para novos horários.'}
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setPermiteAgendamentos(!permiteAgendamentos)}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 shrink-0 shadow-sm ${
+                    permiteAgendamentos 
+                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100' 
+                      : 'bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100'
+                  }`}
+                >
+                  {permiteAgendamentos ? (
+                    <>
+                      <Check className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>Ativo (Aceitando)</span>
+                    </>
+                  ) : (
+                    <>
+                      <X className="w-3.5 h-3.5 text-rose-600" />
+                      <span>Desativado (Pausado)</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* SEÇÃO DE BLOQUEIO DE DATAS ESPECÍFICAS (FERIADOS / FÉRIAS / VIAGENS) */}
+              <div className="bg-slate-50 rounded-2xl border border-slate-200 p-4 sm:p-5 space-y-4 shadow-sm">
+                <div className="flex items-center gap-2">
+                  <CalendarOff className="w-4 h-4 text-rose-600" />
+                  <h4 className="font-bold text-slate-900 text-xs uppercase tracking-wider">Bloqueio de Datas Específicas (Feriados / Viagens)</h4>
+                </div>
+                <p className="text-[11px] text-slate-500">Adicione datas em que o estabelecimento estará fechado para impedir agendamentos online.</p>
+
+                <div className="flex flex-col sm:flex-row gap-2 pt-1">
+                  <input 
+                    type="date"
+                    value={novaDataBloqueio}
+                    onChange={(e) => setNovaDataBloqueio(e.target.value)}
+                    className="bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 focus:outline-none cursor-pointer flex-1"
+                  />
+                  <input 
+                    type="text"
+                    placeholder="Motivo (Ex: Feriado, Viagem...)"
+                    value={novoMotivoBloqueio}
+                    onChange={(e) => setNovoMotivoBloqueio(e.target.value)}
+                    className="bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-medium text-slate-900 focus:outline-none flex-1"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAdicionarBloqueio}
+                    disabled={!novaDataBloqueio}
+                    className="px-4 py-2 bg-slate-900 hover:bg-black text-white rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-40 shadow-sm shrink-0"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Bloquear Data</span>
+                  </button>
+                </div>
+
+                {/* Lista de Datas Bloqueadas */}
+                <div className="space-y-2 pt-2">
+                  {carregandoBloqueios ? (
+                    <p className="text-[11px] text-slate-400 italic">Carregando bloqueios...</p>
+                  ) : listaBloqueios.length === 0 ? (
+                    <p className="text-[11px] text-slate-400 italic">Nenhuma data bloqueada cadastrada.</p>
+                  ) : (
+                    <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+                      {listaBloqueios.map((bloqueio) => {
+                        const dataFmt = bloqueio.data_bloqueio.split('-').reverse().join('/');
+                        return (
+                          <div key={bloqueio.id} className="flex items-center justify-between bg-white border border-slate-200 px-3.5 py-2 rounded-xl shadow-xs text-xs">
+                            <div className="flex items-center gap-2">
+                              <span className="font-black text-slate-900">📅 {dataFmt}</span>
+                              <span className="text-slate-400">•</span>
+                              <span className="text-slate-600 font-medium">{bloqueio.motivo}</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoverBloqueio(bloqueio.id)}
+                              className="text-rose-600 hover:text-rose-800 p-1 rounded-lg hover:bg-rose-50 transition-colors cursor-pointer"
+                              title="Remover bloqueio"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Lista de Dias da Semana */}
+              <div className="space-y-3">
+                <h4 className="font-bold text-slate-900 text-xs uppercase tracking-wider">Expediente Semanal & Pausas</h4>
+
+                <div className="space-y-2.5">
+                  {Object.keys(horariosSemana).map((diaKey) => {
+                    const diaConfig = horariosSemana[diaKey];
+                    return (
+                      <div 
+                        key={diaKey}
+                        className={`p-3.5 rounded-2xl border transition-all flex flex-col md:flex-row md:items-center justify-between gap-3 ${
+                          diaConfig.ativo ? 'bg-slate-50 border-slate-200' : 'bg-slate-100/60 border-slate-200/50 opacity-60'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between md:w-40 shrink-0">
+                          <span className="font-bold text-slate-900 text-xs capitalize">
+                            {diasLabels[diaKey]}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleToggleDia(diaKey)}
+                            className={`text-[10px] font-bold px-2.5 py-1 rounded-lg transition-colors cursor-pointer ${
+                              diaConfig.ativo 
+                                ? 'bg-slate-900 text-white' 
+                                : 'bg-slate-200 text-slate-600'
+                            }`}
+                          >
+                            {diaConfig.ativo ? 'Aberto' : 'Fechado'}
+                          </button>
+                        </div>
+
+                        {diaConfig.ativo ? (
+                          <div className="flex flex-wrap items-center gap-2 flex-1 justify-end text-xs">
+                            
+                            <div className="flex items-center gap-1 bg-white px-2.5 py-1 rounded-xl border border-slate-200 shadow-inner">
+                              <span className="text-[9px] font-bold text-slate-400 uppercase">Abertura:</span>
+                              <input 
+                                type="time"
+                                value={diaConfig.abertura}
+                                onChange={(e) => handleChangeHorario(diaKey, 'abertura', e.target.value)}
+                                className="bg-transparent font-bold text-slate-900 focus:outline-none cursor-pointer"
+                              />
+                            </div>
+
+                            <div className="flex items-center gap-1 bg-white px-2.5 py-1 rounded-xl border border-slate-200 shadow-inner">
+                              <span className="text-[9px] font-bold text-slate-400 uppercase">Fechamento:</span>
+                              <input 
+                                type="time"
+                                value={diaConfig.fechamento}
+                                onChange={(e) => handleChangeHorario(diaKey, 'fechamento', e.target.value)}
+                                className="bg-transparent font-bold text-slate-900 focus:outline-none cursor-pointer"
+                              />
+                            </div>
+
+                            <div className="flex items-center gap-1 bg-white px-2.5 py-1 rounded-xl border border-slate-200 shadow-inner">
+                              <span className="text-[9px] font-bold text-slate-400 uppercase">Pausa:</span>
+                              <input 
+                                type="time"
+                                value={diaConfig.pausaInicio}
+                                onChange={(e) => handleChangeHorario(diaKey, 'pausaInicio', e.target.value)}
+                                className="bg-transparent font-bold text-slate-900 focus:outline-none cursor-pointer"
+                              />
+                              <span className="text-slate-400">-</span>
+                              <input 
+                                type="time"
+                                value={diaConfig.pausaFim}
+                                onChange={(e) => handleChangeHorario(diaKey, 'pausaFim', e.target.value)}
+                                className="bg-transparent font-bold text-slate-900 focus:outline-none cursor-pointer"
+                              />
+                            </div>
+
+                          </div>
+                        ) : (
+                          <div className="text-xs text-slate-400 italic font-medium py-1">
+                            Estabelecimento fechado neste dia.
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+            </div>
+
+            <div className="p-6 sm:p-8 border-t border-slate-100 flex items-center justify-end gap-3 shrink-0 bg-slate-50">
+              <button
+                type="button"
+                onClick={() => setModalHorariosOpen(false)}
+                className="px-5 py-2.5 bg-white border border-slate-200 hover:bg-slate-100 rounded-xl text-xs font-bold text-slate-700 transition-colors cursor-pointer shadow-sm"
+              >
+                Concluir / Fechar
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
       {modalCompartilharOpen && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-fade-in">
           <div className="bg-white border border-slate-200 rounded-3xl shadow-2xl w-full max-w-md p-6 sm:p-8 space-y-6 relative text-slate-900">
