@@ -34,7 +34,8 @@ import {
   BadgePercent,
   MessageCircleCheck,
   ShoppingCart,
-  ShoppingBag
+  ShoppingBag,
+  Award
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
@@ -57,6 +58,13 @@ import PdvScreen from '@/components/PdvScreen';
 import ProdutosScreen from '@/components/ProdutosScreen';
 
 import NotificacoesBell from '@/components/NotificacoesBell'; // Ajuste o caminho se necessário
+
+
+// Exemplo de importação no topo da sua página admin/configurações
+import AdminModoAgendamento from '@/components/AdminModoAgendamento';
+
+
+import FidelizacaoAdmin from '@/components/FidelizacaoAdmin'; // Ajuste o caminho caso sua pasta de componentes tenha outro nome
 
 
 
@@ -1261,6 +1269,20 @@ const handleSaveBarbeiro = async (e) => {
           <span className="text-[10px]">Ajustes</span>
         </button>
 
+
+<button
+  onClick={() => setActiveTab('fidelizacao')}
+  className={`flex items-center gap-2.5 px-4 py-3 rounded-2xl text-xs font-bold transition-all cursor-pointer ${
+    activeTab === 'fidelizacao' 
+      ? 'bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/20' 
+      : 'text-slate-400 hover:text-white hover:bg-slate-900/60'
+  }`}
+>
+  <Award className="w-4 h-4" />
+  <span>Fidelização</span>
+</button>
+
+
       </nav>
 
     </main>
@@ -1357,7 +1379,7 @@ const handleSaveBarbeiro = async (e) => {
   {[
     { id: 'financeiro', label: 'Financeiro', icon: TrendingUp, action: () => setActiveTab('financeiro') },
     { id: 'agendamentos', label: 'Agenda', icon: Calendar, action: () => setActiveTab('agendamentos') },
-    { id: 'clientes', label: 'Clientes', icon: Users, action: () => setActiveTab('clientes') },
+    { id: 'fidelidade', label: 'Fidelizacao', icon: Award, action: () => setActiveTab('fidelidade') },
     { id: 'configuracoes', label: 'Configurações', icon: Settings, action: () => setActiveTab('configuracoes') },
     { id: 'despesas', label: 'Despesas', icon: TrendingDown, action: () => setActiveTab('despesas') },
     { id: 'comissoes', label: 'Comissões', icon: Percent, action: () => setActiveTab('comissoes') },
@@ -1613,45 +1635,47 @@ const handleSaveBarbeiro = async (e) => {
 )}
 
       <div className="flex flex-1">
-       {/* BARRA LATERAL FIXA & ESTILIZADA - BLACK PIANO */}
+   {/* BARRA LATERAL FIXA & UNIFICADA - ESTILO CLEAN COM DETALHE BLACK PIANO */}
 <aside 
-  className="hidden md:flex flex-col w-72 p-6 select-none shrink-0 fixed left-0 top-0 h-screen overflow-y-auto justify-between border-r border-stone-800/80 z-40 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-[#111111] [&::-webkit-scrollbar-thumb]:bg-stone-700 [&::-webkit-scrollbar-thumb]:rounded-full"
+  className="hidden md:flex flex-col w-72 p-5 select-none shrink-0 fixed left-0 top-0 h-screen overflow-y-auto justify-between border-r border-slate-200 z-40 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-slate-50 [&::-webkit-scrollbar-thumb]:bg-slate-300 [&::-webkit-scrollbar-thumb]:rounded-full"
   style={{
-    background: 'linear-gradient(180deg, #181818 0%, #111111 50%, #080808 100%)',
-    boxShadow: '8px 0 30px rgba(0, 0, 0, 0.4), inset -1px 0 0 rgba(255, 255, 255, 0.08)'
+    background: '#ffffff',
+    boxShadow: '10px 0 40px rgba(0, 0, 0, 0.03), inset -1px 0 0 rgba(0, 0, 0, 0.05)'
   }}
 >
-  <div className="space-y-6 w-full">
+  <div className="space-y-5 w-full">
     
     {/* TOPO: PERFIL DA BARBEARIA */}
-    <div className="flex items-center gap-3.5 px-3 py-2.5 bg-white/5 border border-white/10 rounded-2xl backdrop-blur-md shadow-inner">
+    <div 
+      className="flex items-center gap-3.5 px-4 py-3.5 rounded-2xl border border-slate-200/80 shadow-sm relative overflow-hidden bg-slate-50"
+    >
       {barbearia?.logo || barbearia?.logo_url || barbearia?.avatar || barbearia?.imagem ? (
         <img 
           src={barbearia.logo || barbearia.logo_url || barbearia.avatar || barbearia.imagem} 
           alt={barbearia?.nome || "Barbearia"} 
-          className="w-11 h-11 rounded-xl object-cover border border-white/20 shadow-sm shrink-0"
+          className="w-10 h-10 rounded-xl object-cover border border-slate-200 shadow-sm shrink-0"
         />
       ) : (
-        <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-stone-700 to-stone-900 text-white flex items-center justify-center shadow-md border border-white/10 shrink-0">
-          <Store className="w-5 h-5 text-stone-200" />
+        <div className="w-10 h-10 rounded-xl bg-stone-900 text-white flex items-center justify-center shadow-md border border-stone-800 shrink-0">
+          <Store className="w-5 h-5 text-slate-300" />
         </div>
       )}
       <div className="min-w-0 pr-1">
-        <h1 className="font-black text-white text-xs leading-none truncate" title={barbearia?.nome}>
+        <h1 className="font-black text-slate-900 text-xs leading-tight truncate" title={barbearia?.nome}>
           {barbearia?.nome || 'Minha Barbearia'}
         </h1>
-        <span className="text-[9px] font-extrabold text-stone-400 uppercase tracking-widest block mt-1">Painel Gestor</span>
+        <span className="text-[9px] font-extrabold text-slate-500 uppercase tracking-widest block mt-0.5">Painel Gestor</span>
       </div>
     </div>
 
-    {/* MENU DE NAVEGAÇÃO (Textos e ícones centralizados em harmonia com o rodapé) */}
-    {/* MENU DE NAVEGAÇÃO (Com a mesma borda e alinhamento dos botões do rodapé) */}
+    {/* MENU DE NAVEGAÇÃO */}
     <nav className="space-y-1.5 pt-1 w-full">
       {[
         { id: 'pdv', label: 'PDV', icon: ShoppingCart },
         { id: 'produtos', label: 'Produtos & Estoque', icon: ShoppingBag },
         { id: 'agendamentos', label: 'Agendamentos', icon: CalendarCheck },
         { id: 'clientes', label: 'Clientes Cadastrados', icon: Users },
+        { id: 'fidelidade', label: 'Fidelização', icon: Award },
         { id: 'financeiro', label: 'Relatório Financeiro', icon: DollarSign },
         { id: 'despesas', label: 'Custos & Despesas', icon: TrendingDown },
         { id: 'servicos', label: 'Serviços & Equipe', icon: Scissors },
@@ -1665,19 +1689,25 @@ const handleSaveBarbeiro = async (e) => {
           <button
             key={item.id}
             onClick={() => { setActiveTab(item.id); setMobileMenuOpen(false); }}
-            className={`w-full flex items-center justify-center gap-3 px-4 py-3.5 rounded-2xl text-xs font-bold transition-all cursor-pointer border ${
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-bold transition-all cursor-pointer border ${
               isActive 
-                ? 'text-white shadow-xl border-white/20' 
-                : 'text-stone-400 border-white/5 hover:bg-white/5 hover:text-white hover:border-white/10'
+                ? 'text-white shadow-xl border-stone-800 scale-[1.02]' 
+                : 'text-slate-600 border-slate-200/60 hover:bg-slate-100 hover:text-slate-900 hover:border-slate-300'
             }`}
             style={isActive ? {
-              background: 'radial-gradient(circle at 30% 30%, #333333 0%, #1a1a1a 60%, #0d0d0d 100%)',
-              boxShadow: '0 8px 20px rgba(0, 0, 0, 0.6), inset 0 1px 2px rgba(255, 255, 255, 0.25), inset 0 -2px 4px rgba(0, 0, 0, 0.9)',
+              background: 'linear-gradient(135deg, #18181b 0%, #09090b 50%, #000000 100%)',
+              boxShadow: '0 10px 25px rgba(0, 0, 0, 0.2), inset 0 1px 2px rgba(255, 255, 255, 0.15)',
             } : {
-              background: 'rgba(255, 255, 255, 0.02)'
+              background: '#f8fafc'
             }}
           >
-            <IconComponent className={`w-4 h-4 shrink-0 ${isActive ? 'text-stone-200' : 'text-stone-500'}`} />
+            <div className={`w-7 h-7 rounded-xl flex items-center justify-center shrink-0 border transition-all ${
+              isActive 
+                ? 'bg-white/10 border-white/20 text-white shadow-inner' 
+                : 'bg-white border-slate-200 text-slate-500 shadow-sm'
+            }`}>
+              <IconComponent className="w-4 h-4 shrink-0" />
+            </div>
             <span className="tracking-tight truncate">{item.label}</span>
           </button>
         );
@@ -1686,37 +1716,36 @@ const handleSaveBarbeiro = async (e) => {
   </div>
 
   {/* RODAPÉ DA SIDEBAR: AÇÕES RÁPIDAS */}
-  <div className="space-y-2 pt-5 border-t border-stone-800/80 mt-auto w-full">
+  <div className="space-y-2 pt-4 border-t border-slate-200 mt-auto w-full">
     <button
       onClick={() => setModalInfoAssinaturaOpen(true)}
-      className="w-full flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl text-xs font-extrabold text-stone-200 hover:text-white transition-all cursor-pointer border border-white/10 shadow-md"
+      className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-2xl text-xs font-extrabold text-white transition-all cursor-pointer border border-stone-800 shadow-md"
       style={{
-        background: 'linear-gradient(135deg, #252525 0%, #151515 100%)',
-        boxShadow: '0 6px 15px rgba(0, 0, 0, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.2)'
+        background: 'linear-gradient(135deg, #18181b 0%, #09090b 100%)',
+        boxShadow: '0 6px 15px rgba(0, 0, 0, 0.15), inset 0 1px 1px rgba(255, 255, 255, 0.1)'
       }}
     >
-      <CreditCard className="w-4 h-4 text-emerald-400 shrink-0" /> 
+      <CreditCard className="w-4 h-4 text-slate-300 shrink-0" /> 
       <span className="truncate">{barbearia?.status_assinatura === 'ativo' ? 'Assinatura Ativa' : 'Assinar / Renovar'}</span>
     </button>
 
     <button
       onClick={() => loadDashboardData(barbearia.id)}
-      className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-2xl border border-white/10 text-xs font-semibold text-stone-400 hover:text-white hover:bg-white/5 transition-all cursor-pointer"
+      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl border border-slate-200 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-all cursor-pointer shadow-sm bg-slate-50"
     >
-      <RefreshCw className="w-4 h-4 shrink-0" /> 
+      <RefreshCw className="w-4 h-4 shrink-0 text-slate-400" /> 
       <span className="truncate">Atualizar Dados</span>
     </button>
 
     <button
       onClick={handleLogout}
-      className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-2xl border border-rose-500/30 text-xs font-semibold text-rose-400 hover:bg-rose-500/10 transition-all cursor-pointer"
+      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl border border-rose-200 text-xs font-semibold text-rose-600 hover:bg-rose-50 transition-all cursor-pointer shadow-sm bg-rose-50/50"
     >
-      <LogOut className="w-4 h-4 shrink-0" /> 
+      <LogOut className="w-4 h-4 shrink-0 text-rose-500" /> 
       <span className="truncate">Sair do Sistema</span>
     </button>
   </div>
 </aside>
-
 {/* CONTEÚDO PRINCIPAL (Com 'md:ml-72' para empurrar o layout e evitar o corte à esquerda) */}
 <main className="flex-1 md:ml-72 p-4 sm:p-6 md:p-10 pb-24 overflow-y-auto max-w-full">
   
@@ -1862,6 +1891,13 @@ const handleSaveBarbeiro = async (e) => {
               )}
             </div>
           )}
+{activeTab === 'fidelidade' && (
+  <FidelizacaoAdmin
+    barbeariaId={barbearia?.id}
+    supabase={supabase}
+  />
+)}
+
 
           {activeTab === 'financeiro' && (
   <RelatoriosPage 
