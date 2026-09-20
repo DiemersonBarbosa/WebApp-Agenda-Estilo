@@ -228,7 +228,7 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
       </div>
 
       {/* =========================================================
-          BLOCO ÚNICO INTEGRADO: FILTRO, ABAS E CONTEÚDO
+          BLOCO ÚNICO INTEGRADO: FILTRO DISTRIBUÍDO, ABAS E CONTEÚDO
           ========================================================= */}
       <div 
         className="relative rounded-[2.5rem] p-5 sm:p-8 border border-white/80 overflow-hidden shadow-sm space-y-6"
@@ -238,21 +238,22 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
         }}
       >
         
-        {/* Topo com Título e Seletor de Mês */}
+        {/* Topo com Título e Filtro de Mês/Ano Distribuído (Sem cortes) */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-5 border-b border-stone-300/60 gap-3">
           <h2 className="text-lg sm:text-xl font-extrabold text-stone-900 flex items-center gap-3 tracking-tight">
             <span className="w-3 h-3 bg-[#111111] rounded-full shadow-[0_0_8px_rgba(17,17,17,0.4)]"></span>
-            Relatórios Financeiros
+            Relatório Financeiro
           </h2>
           
-          <div className="flex items-center gap-2">
-            <div className="inline-flex items-center gap-2 bg-white px-4 py-2 rounded-2xl text-xs font-bold text-stone-700 border border-stone-200 shadow-xs">
-              <Calendar className="w-3.5 h-3.5 text-stone-500" />
+          {/* Seletor com largura total em mobile e botão Atual alinhado à direita */}
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
+            <div className="inline-flex items-center gap-2 bg-white px-4 py-2.5 rounded-2xl text-xs font-bold text-stone-700 border border-stone-200 shadow-xs flex-1 sm:flex-initial">
+              <Calendar className="w-4 h-4 text-stone-500 shrink-0" />
               <input 
                 type="month"
                 value={filtroMes}
                 onChange={(e) => setFiltroMes(e.target.value)}
-                className="bg-transparent text-xs font-black text-stone-900 focus:outline-none cursor-pointer"
+                className="bg-transparent text-xs font-black text-stone-900 focus:outline-none cursor-pointer w-full"
               />
             </div>
             <button
@@ -262,7 +263,7 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
                 const mes = String(hoje.getMonth() + 1).padStart(2, '0');
                 setFiltroMes(`${ano}-${mes}`);
               }}
-              className="px-3.5 py-2 bg-white hover:bg-stone-50 text-stone-700 border border-stone-200 rounded-2xl text-xs font-bold transition-all shadow-xs cursor-pointer"
+              className="px-4 py-2.5 bg-white hover:bg-stone-50 text-stone-700 border border-stone-200 rounded-2xl text-xs font-bold transition-all shadow-xs cursor-pointer shrink-0"
             >
               Atual
             </button>
