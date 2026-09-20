@@ -42,13 +42,24 @@ export default async function PaginaAgendamentoCliente({ params }) {
   
   const modoClassico = tipoAtendimento === 'classico' || modoAgendamento === 'classico' || modoAgendamento === 'class';
 
-  return (
-    <main className="min-h-screen bg-gradient-to-b from-[#050507] via-[#090a0f] to-[#020203] py-10 px-4 relative overflow-hidden flex flex-col items-center justify-center">
-      
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-3xl h-72 bg-emerald-500/10 blur-[120px] pointer-events-none"></div>
+  // Verifica se o tema da barbearia é o clean
+  const isClean = barbearia.cor_tema === 'clean';
 
-      {/* Renderização limpa e direta do componente ativo (sem títulos externos duplicados) */}
-      <div className="w-full relative z-10 flex justify-center">
+  // Define dinamicamente o fundo da página inteira
+  const estiloFundoPagina = isClean 
+    ? 'bg-[#f8fafc] text-slate-800' 
+    : 'bg-[#050507] text-white';
+
+  const estiloTextoRodape = isClean ? 'text-slate-400' : 'text-slate-600';
+  const corLuzFundo = isClean ? 'bg-emerald-600/5' : 'bg-emerald-500/10';
+
+  return (
+    <main className={`min-h-screen ${estiloFundoPagina} py-8 px-4 relative overflow-x-hidden flex flex-col items-center justify-between`}>
+      
+      <div className={`absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-3xl h-72 ${corLuzFundo} blur-[120px] pointer-events-none`}></div>
+
+      {/* Componente principal de agendamento centralizado */}
+      <div className="w-full relative z-10 flex justify-center my-auto">
         {modoClassico ? (
           <AgendamentoClassico barbeariaId={barbearia.id} />
         ) : (
@@ -56,11 +67,7 @@ export default async function PaginaAgendamentoCliente({ params }) {
         )}
       </div>
 
-      <div className="mt-8 text-center relative z-10">
-        <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-widest">
-          Desenvolvido com tecnologia exclusiva
-        </p>
-      </div>
+      
 
     </main>
   );
