@@ -107,15 +107,15 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
       
      
 
-      {/* Cards de Indicadores (KPIs) com Estilo Black Piano Degradê & Esferas 3D */}
+      {/* Cards de Indicadores (KPIs) sem sombra */}
       <div className="grid grid-cols-2 gap-3.5 md:gap-5 mb-6">
         
         {/* 1. Faturamento */}
         <div 
-          className="relative rounded-3xl md:rounded-[2.5rem] p-5 sm:p-6 md:p-7 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden shadow-xl"
+          className="relative rounded-3xl md:rounded-[2.5rem] p-5 sm:p-6 md:p-7 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden"
           style={{
             background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
-            boxShadow: '0 15px 35px rgba(0, 0, 0, 0.5), inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
+            boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
           }}
         >
           <div className="flex flex-col justify-center min-w-0 pr-2">
@@ -124,10 +124,10 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
             <p className="text-[10px] text-emerald-400 font-medium mt-0.5">{atendimentosConcluidos.length} concluídos</p>
           </div>
           <div 
-            className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center shrink-0 shadow-lg"
+            className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center shrink-0"
             style={{
               background: 'radial-gradient(circle at 30% 30%, #ffffff 0%, #d8e2ec 60%, #9fb3c8 100%)',
-              boxShadow: '0 6px 15px rgba(0, 0, 0, 0.4), inset 0 2px 3px rgba(255, 255, 255, 1), inset 0 -4px 6px rgba(0, 0, 0, 0.25)',
+              boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 1), inset 0 -4px 6px rgba(0, 0, 0, 0.25)',
               border: '1px solid rgba(255, 255, 255, 0.9)'
             }}
           >
@@ -137,10 +137,10 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
 
         {/* 2. Despesas */}
         <div 
-          className="relative rounded-3xl md:rounded-[2.5rem] p-5 sm:p-6 md:p-7 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden shadow-xl"
+          className="relative rounded-3xl md:rounded-[2.5rem] p-5 sm:p-6 md:p-7 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden"
           style={{
             background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
-            boxShadow: '0 15px 35px rgba(0, 0, 0, 0.5), inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
+            boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
           }}
         >
           <div className="flex flex-col justify-center min-w-0 pr-2">
@@ -149,10 +149,10 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
             <p className="text-[10px] text-rose-400 font-medium mt-0.5">{despesas.length} cadastradas</p>
           </div>
           <div 
-            className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center shrink-0 shadow-lg"
+            className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center shrink-0"
             style={{
               background: 'radial-gradient(circle at 30% 30%, #ffffff 0%, #d8e2ec 60%, #9fb3c8 100%)',
-              boxShadow: '0 6px 15px rgba(0, 0, 0, 0.4), inset 0 2px 3px rgba(255, 255, 255, 1), inset 0 -4px 6px rgba(0, 0, 0, 0.25)',
+              boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 1), inset 0 -4px 6px rgba(0, 0, 0, 0.25)',
               border: '1px solid rgba(255, 255, 255, 0.9)'
             }}
           >
@@ -162,10 +162,10 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
 
         {/* 3. Lucro Líquido */}
         <div 
-          className="relative rounded-3xl md:rounded-[2.5rem] p-5 sm:p-6 md:p-7 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden shadow-xl"
+          className="relative rounded-3xl md:rounded-[2.5rem] p-5 sm:p-6 md:p-7 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden"
           style={{
             background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
-            boxShadow: '0 15px 35px rgba(0, 0, 0, 0.5), inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
+            boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
           }}
         >
           <div className="flex flex-col justify-center min-w-0 pr-2">
@@ -176,10 +176,10 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
             <p className="text-[10px] text-stone-400 font-medium mt-0.5">Entradas - Saídas</p>
           </div>
           <div 
-            className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center shrink-0 shadow-lg"
+            className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center shrink-0"
             style={{
               background: 'radial-gradient(circle at 30% 30%, #ffffff 0%, #d8e2ec 60%, #9fb3c8 100%)',
-              boxShadow: '0 6px 15px rgba(0, 0, 0, 0.4), inset 0 2px 3px rgba(255, 255, 255, 1), inset 0 -4px 6px rgba(0, 0, 0, 0.25)',
+              boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 1), inset 0 -4px 6px rgba(0, 0, 0, 0.25)',
               border: '1px solid rgba(255, 255, 255, 0.9)'
             }}
           >
@@ -189,10 +189,10 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
 
         {/* 4. Ticket Médio */}
         <div 
-          className="relative rounded-3xl md:rounded-[2.5rem] p-5 sm:p-6 md:p-7 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden shadow-xl"
+          className="relative rounded-3xl md:rounded-[2.5rem] p-5 sm:p-6 md:p-7 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden"
           style={{
             background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
-            boxShadow: '0 15px 35px rgba(0, 0, 0, 0.5), inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
+            boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
           }}
         >
           <div className="flex flex-col justify-center min-w-0 pr-2">
@@ -201,10 +201,10 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
             <p className="text-[10px] text-stone-400 font-medium mt-0.5">Média por atendimento</p>
           </div>
           <div 
-            className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center shrink-0 shadow-lg"
+            className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center shrink-0"
             style={{
               background: 'radial-gradient(circle at 30% 30%, #ffffff 0%, #d8e2ec 60%, #9fb3c8 100%)',
-              boxShadow: '0 6px 15px rgba(0, 0, 0, 0.4), inset 0 2px 3px rgba(255, 255, 255, 1), inset 0 -4px 6px rgba(0, 0, 0, 0.25)',
+              boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 1), inset 0 -4px 6px rgba(0, 0, 0, 0.25)',
               border: '1px solid rgba(255, 255, 255, 0.9)'
             }}
           >
@@ -217,7 +217,7 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
       {/* =========================================================
           SEÇÃO 1: ATENDIMENTOS REALIZADOS
           ========================================================= */}
-      <div className="bg-white rounded-[2.5rem] border border-stone-200/85 shadow-[0_10px_30px_rgba(0,0,0,0.03)] p-5 sm:p-8 space-y-4">
+      <div className="bg-white rounded-[2.5rem] border border-stone-200/85 p-5 sm:p-8 space-y-4">
         <h4 className="font-extrabold text-stone-900 text-sm sm:text-base tracking-tight flex items-center gap-2.5">
           <span className="w-2.5 h-2.5 rounded-full bg-[#111111]"></span>
           Atendimentos Realizados
@@ -229,7 +229,7 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
             {/* Cards em dispositivos móveis */}
             <div className="print:hidden sm:hidden space-y-3">
               {atendimentosConcluidos.map((item, index) => (
-                <div key={index} className="p-4 rounded-2xl bg-stone-50/80 border border-stone-200/60 space-y-2 shadow-xs">
+                <div key={index} className="p-4 rounded-2xl bg-stone-50/80 border border-stone-200/60 space-y-2">
                   <div className="flex justify-between items-start">
                     <div>
                       <span className="font-bold text-stone-900 text-xs block">{getNomeCliente(item)}</span>
@@ -277,7 +277,7 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
       {/* =========================================================
           SEÇÃO 2: COMISSÕES
           ========================================================= */}
-      <div className="bg-white rounded-[2.5rem] border border-stone-200/85 shadow-[0_10px_30px_rgba(0,0,0,0.03)] p-5 sm:p-8 space-y-4">
+      <div className="bg-white rounded-[2.5rem] border border-stone-200/85 p-5 sm:p-8 space-y-4">
         <h4 className="font-extrabold text-stone-900 text-sm sm:text-base tracking-tight flex items-center gap-2.5">
           <span className="w-2.5 h-2.5 rounded-full bg-[#111111]"></span>
           Resumo de Comissões por Profissional
@@ -287,7 +287,7 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
             {comissoesPorBarbeiro.map((barb, idx) => (
-              <div key={idx} className="bg-stone-50/80 p-5 rounded-3xl border border-stone-200/70 space-y-3 shadow-xs">
+              <div key={idx} className="bg-stone-50/80 p-5 rounded-3xl border border-stone-200/70 space-y-3">
                 <div className="flex justify-between items-center">
                   <span className="font-bold text-stone-900 text-sm">{barb.nome}</span>
                   <span className="text-[10px] bg-stone-200/70 px-2.5 py-1 rounded-xl font-bold text-stone-700">{barb.quantidade} atendimentos</span>
@@ -311,7 +311,7 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
       {/* =========================================================
           SEÇÃO 3: DESPESAS
           ========================================================= */}
-      <div className="bg-white rounded-[2.5rem] border border-stone-200/85 shadow-[0_10px_30px_rgba(0,0,0,0.03)] p-5 sm:p-8 space-y-4">
+      <div className="bg-white rounded-[2.5rem] border border-stone-200/85 p-5 sm:p-8 space-y-4">
         <h4 className="font-extrabold text-stone-900 text-sm sm:text-base tracking-tight flex items-center gap-2.5">
           <span className="w-2.5 h-2.5 rounded-full bg-[#111111]"></span>
           Detalhamento de Custos e Despesas
@@ -323,7 +323,7 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
             {/* Cards em dispositivos móveis */}
             <div className="print:hidden sm:hidden space-y-3">
               {despesas.map((item, index) => (
-                <div key={index} className="p-4 rounded-2xl bg-stone-50/80 border border-stone-200/60 flex justify-between items-center shadow-xs">
+                <div key={index} className="p-4 rounded-2xl bg-stone-50/80 border border-stone-200/60 flex justify-between items-center">
                   <div>
                     <span className="font-bold text-stone-900 text-xs block">{item.descricao || item.nome || 'Despesa'}</span>
                     <span className="text-[10px] text-stone-500 font-medium">{item.categoria || 'Geral'} • {item.data ? new Date(item.data).toLocaleDateString('pt-BR') : 'N/A'}</span>
@@ -363,7 +363,7 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
       {/* =========================================================
           SEÇÃO 4: CANCELADOS
           ========================================================= */}
-      <div className="bg-white rounded-[2.5rem] border border-stone-200/85 shadow-[0_10px_30px_rgba(0,0,0,0.03)] p-5 sm:p-8 space-y-4">
+      <div className="bg-white rounded-[2.5rem] border border-stone-200/85 p-5 sm:p-8 space-y-4">
         <h4 className="font-extrabold text-stone-900 text-sm sm:text-base tracking-tight flex items-center gap-2.5">
           <span className="w-2.5 h-2.5 rounded-full bg-[#111111]"></span>
           Histórico de Agendamentos Cancelados
@@ -375,7 +375,7 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
             {/* Cards em dispositivos móveis */}
             <div className="print:hidden sm:hidden space-y-3">
               {atendimentosCancelados.map((item, index) => (
-                <div key={index} className="p-4 rounded-2xl bg-stone-50/80 border border-stone-200/60 space-y-2 shadow-xs">
+                <div key={index} className="p-4 rounded-2xl bg-stone-50/80 border border-stone-200/60 space-y-2">
                   <div className="flex justify-between items-start">
                     <div>
                       <span className="font-bold text-stone-900 text-xs block">{getNomeCliente(item)}</span>
