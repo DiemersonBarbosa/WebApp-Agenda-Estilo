@@ -40,15 +40,16 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
   const [modalCompartilharOpen, setModalCompartilharOpen] = useState(false);
   const [copiado, setCopiado] = useState(false);
 
-  const diasLabels = {
-    segunda: 'Segunda-feira',
-    terca: 'Terça-feira',
-    quarta: 'Quarta-feira',
-    quinta: 'Quinta-feira',
-    sexta: 'Sexta-feira',
-    sabado: 'Sábado',
-    domingo: 'Domingo'
-  };
+  // Ordem fixa da semana: Começa na Segunda e termina no Domingo
+  const ordemDiasSemana = [
+    { key: 'segunda', label: 'Segunda-feira' },
+    { key: 'terca', label: 'Terça-feira' },
+    { key: 'quarta', label: 'Quarta-feira' },
+    { key: 'quinta', label: 'Quinta-feira' },
+    { key: 'sexta', label: 'Sexta-feira' },
+    { key: 'sabado', label: 'Sábado' },
+    { key: 'domingo', label: 'Domingo' }
+  ];
 
   const corDestaqueAtiva = '#09090b';
 
@@ -434,7 +435,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                   </div>
                   <div>
                     <h4 className="font-bold text-slate-900 text-xs">Modo Clássico</h4>
-                    <p className="text-[10px] text-slate-500 mt-0.5">Layout tradicional en grade para seleção rápida.</p>
+                    <p className="text-[10px] text-slate-500 mt-0.5">Layout tradicional em grade para seleção rápida.</p>
                   </div>
                 </div>
 
@@ -607,13 +608,13 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                 </div>
               </div>
 
-              {/* Lista de Dias da Semana */}
+              {/* Lista de Dias da Semana (Ordenada de Segunda a Domingo) */}
               <div className="space-y-3">
                 <h4 className="font-bold text-slate-900 text-xs uppercase tracking-wider">Expediente Semanal & Pausas</h4>
 
                 <div className="space-y-2.5">
-                  {Object.keys(horariosSemana).map((diaKey) => {
-                    const diaConfig = horariosSemana[diaKey];
+                  {ordemDiasSemana.map(({ key: diaKey, label }) => {
+                    const diaConfig = horariosSemana[diaKey] || { ativo: false, abertura: '09:00', fechamento: '19:00', pausaInicio: '', pausaFim: '' };
                     return (
                       <div 
                         key={diaKey}
@@ -623,7 +624,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                       >
                         <div className="flex items-center justify-between md:w-40 shrink-0">
                           <span className="font-bold text-slate-900 text-xs capitalize">
-                            {diasLabels[diaKey]}
+                            {label}
                           </span>
                           <button
                             type="button"
