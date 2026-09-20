@@ -43,31 +43,28 @@ export default async function PaginaAgendamentoCliente({ params }) {
   const modoClassico = tipoAtendimento === 'classico' || modoAgendamento === 'classico' || modoAgendamento === 'class';
 
   // Verifica se o tema da barbearia é o clean
-  const isClean = barbearia.cor_tema === 'clean';
+  const isClean = barbearia.cor_tema === 'clean' || barbearia.cor_tema === '#10b981';
 
   // Define dinamicamente o fundo da página inteira
   const estiloFundoPagina = isClean 
-    ? 'bg-[#f8fafc] text-slate-800' 
+    ? 'bg-[#f8fafc] text-slate-900' 
     : 'bg-[#050507] text-white';
 
-  const estiloTextoRodape = isClean ? 'text-slate-400' : 'text-slate-600';
   const corLuzFundo = isClean ? 'bg-emerald-600/5' : 'bg-emerald-500/10';
 
   return (
-    <main className={`min-h-screen ${estiloFundoPagina} py-8 px-4 relative overflow-x-hidden flex flex-col items-center justify-between`}>
+    <main className={`min-h-screen ${estiloFundoPagina} py-8 px-4 relative overflow-x-hidden flex flex-col items-center justify-between transition-colors duration-0`}>
       
       <div className={`absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-3xl h-72 ${corLuzFundo} blur-[120px] pointer-events-none`}></div>
 
-      {/* Componente principal de agendamento centralizado */}
+      {/* Componente principal de agendamento centralizado (repassando a propriedade de tema se necessário) */}
       <div className="w-full relative z-10 flex justify-center my-auto">
         {modoClassico ? (
-          <AgendamentoClassico barbeariaId={barbearia.id} />
+          <AgendamentoClassico barbeariaId={barbearia.id} tema={isClean ? 'clean' : 'dark'} />
         ) : (
-          <AgendamentoChat barbeariaId={barbearia.id} />
+          <AgendamentoChat barbeariaId={barbearia.id} tema={isClean ? 'clean' : 'dark'} />
         )}
       </div>
-
-      
 
     </main>
   );

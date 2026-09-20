@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Store, Save, Check, ExternalLink, Share2, Copy, MessageCircle, Send, X, MessageSquare, Bot, Grid, Palette, Moon } from 'lucide-react';
+import { Store, Save, Check, ExternalLink, Share2, Copy, MessageCircle, Send, X, MessageSquare, Bot, Grid, Palette, Moon, BellRing } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
@@ -9,6 +9,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
   const [slug, setSlug] = useState(barbearia?.slug || '');
   const [logoUrl, setLogoUrl] = useState(barbearia?.logo_url || '');
   const [capaUrl, setCapaUrl] = useState(barbearia?.capa_url || '');
+  const [whatsappNotificacoes, setWhatsappNotificacoes] = useState(barbearia?.whatsapp_notificacoes || '');
   
   const [temaVisual, setTemaVisual] = useState(barbearia?.cor_tema === '#10b981' || barbearia?.cor_tema === 'clean' ? 'clean' : 'dark');
   const [modoAtendimento, setModoAtendimento] = useState(
@@ -58,7 +59,8 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
           capa_url: capaUrl,
           cor_tema: temaVisual,
           tipo_atendimento: modoAtendimento,
-          modo_agendamento: modoAtendimento
+          modo_agendamento: modoAtendimento,
+          whatsapp_notificacoes: whatsappNotificacoes
         })
         .eq('id', barbearia.id);
 
@@ -229,7 +231,6 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                     </div>
                   </div>
 
-                  {/* Modo Dark com ícone de lua/preto refinado */}
                   <div 
                     onClick={() => setTemaVisual('dark')}
                     className={`p-4 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between shadow-sm ${
@@ -316,10 +317,30 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
               </div>
             </div>
 
+            {/* SEÇÃO 4: NOTIFICAÇÕES WHATSAPP */}
+            <div className="space-y-4 pt-2">
+              <div className="flex items-center gap-2.5 border-b border-slate-100 pb-2">
+                <BellRing className="w-4 h-4 text-slate-700" />
+                <h2 className="text-xs font-bold uppercase tracking-wider text-slate-800">Notificações e Alertas</h2>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700 block">WhatsApp para Alertas de Agendamento</label>
+                <input
+                  type="text"
+                  value={whatsappNotificacoes}
+                  onChange={(e) => setWhatsappNotificacoes(e.target.value)}
+                  placeholder="Ex: 5541999999999"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 text-xs font-bold text-slate-900 focus:outline-none focus:border-slate-500 transition-all shadow-inner"
+                />
+                <p className="text-[10px] text-slate-500">Informe o número com DDD e DDI (ex: 5541999999999) para receber os avisos automáticos na barra de notificações do celular.</p>
+              </div>
+            </div>
+
           </div>
         </div>
 
-        {/* BOTÃO DE SALVAR (AGORA EM PRETO BLACK PIANO) */}
+        {/* BOTÃO DE SALVAR */}
         <div className="pt-2">
           <button
             type="submit"
