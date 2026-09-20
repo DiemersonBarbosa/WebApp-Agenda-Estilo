@@ -228,21 +228,33 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
       </div>
 
       {/* =========================================================
-          SEÇÃO DE FILTRO E ABAS (SEM BORDA EXTERNA / FLUIDO)
+          BLOCO ÚNICO INTEGRADO: FILTRO, ABAS E CONTEÚDO
           ========================================================= */}
-      <div className="space-y-4 pt-1">
+      <div 
+        className="relative rounded-[2.5rem] p-5 sm:p-8 border border-white/80 overflow-hidden shadow-sm space-y-6"
+        style={{
+          background: 'linear-gradient(135deg, #f7f9f8 0%, #edf1f0 50%, #e2e8e6 100%)',
+          boxShadow: '0 20px 40px rgba(0, 0, 0, 0.08), inset 0 2px 4px rgba(255, 255, 255, 0.9), inset 0 -3px 6px rgba(0, 0, 0, 0.05)'
+        }}
+      >
         
-        {/* Seletor de Mês Minimalista e Centralizado */}
-        <div className="flex items-center justify-center">
-          <div className="inline-flex items-center gap-2.5 bg-white border border-stone-200/90 px-4 py-2.5 rounded-full shadow-xs">
-            <Calendar className="w-4 h-4 text-stone-500 shrink-0" />
-            <span className="text-xs font-bold text-stone-500 uppercase tracking-wider">Mês:</span>
-            <input 
-              type="month"
-              value={filtroMes}
-              onChange={(e) => setFiltroMes(e.target.value)}
-              className="bg-transparent text-xs font-black text-stone-900 focus:outline-none cursor-pointer"
-            />
+        {/* Topo com Título e Seletor de Mês */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-5 border-b border-stone-300/60 gap-3">
+          <h2 className="text-lg sm:text-xl font-extrabold text-stone-900 flex items-center gap-3 tracking-tight">
+            <span className="w-3 h-3 bg-[#111111] rounded-full shadow-[0_0_8px_rgba(17,17,17,0.4)]"></span>
+            Relatórios Financeiros
+          </h2>
+          
+          <div className="flex items-center gap-2">
+            <div className="inline-flex items-center gap-2 bg-white px-4 py-2 rounded-2xl text-xs font-bold text-stone-700 border border-stone-200 shadow-xs">
+              <Calendar className="w-3.5 h-3.5 text-stone-500" />
+              <input 
+                type="month"
+                value={filtroMes}
+                onChange={(e) => setFiltroMes(e.target.value)}
+                className="bg-transparent text-xs font-black text-stone-900 focus:outline-none cursor-pointer"
+              />
+            </div>
             <button
               onClick={() => {
                 const hoje = new Date();
@@ -250,275 +262,294 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
                 const mes = String(hoje.getMonth() + 1).padStart(2, '0');
                 setFiltroMes(`${ano}-${mes}`);
               }}
-              className="ml-1 text-[10px] font-extrabold text-stone-600 hover:text-stone-900 bg-stone-100 hover:bg-stone-200 px-3 py-1 rounded-full transition-colors cursor-pointer"
+              className="px-3.5 py-2 bg-white hover:bg-stone-50 text-stone-700 border border-stone-200 rounded-2xl text-xs font-bold transition-all shadow-xs cursor-pointer"
             >
               Atual
             </button>
           </div>
         </div>
 
-        {/* 4 Abas de Navegação Estilizadas em Pílulas */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+        {/* 4 Botões de Abas Integrados */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           
           {/* Aba 1: Atendimentos */}
           <button
             onClick={() => setSecaoAtiva('atendimentos')}
-            className={`flex items-center justify-center gap-2 py-3 px-4 rounded-2xl transition-all cursor-pointer ${
+            className={`py-3 px-4 rounded-2xl transition-all cursor-pointer flex items-center justify-center gap-2 text-xs font-bold ${
               secaoAtiva === 'atendimentos'
-                ? 'bg-[#111111] text-white shadow-md'
-                : 'bg-white hover:bg-stone-50 text-stone-700 border border-stone-200/80 shadow-xs'
+                ? 'text-white border border-stone-700/50 shadow-sm'
+                : 'bg-white/90 hover:bg-white text-stone-700 border border-stone-200/80 shadow-xs'
             }`}
+            style={secaoAtiva === 'atendimentos' ? {
+              background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
+              boxShadow: 'inset 0 1px 2px rgba(255, 255, 255, 0.2)'
+            } : {}}
           >
-            <CheckCircle2 className={`w-4 h-4 ${secaoAtiva === 'atendimentos' ? 'text-emerald-400' : 'text-stone-500'}`} />
-            <span className="text-xs font-black truncate">Atendimentos</span>
+            <CheckCircle2 className={`w-4 h-4 shrink-0 ${secaoAtiva === 'atendimentos' ? 'text-emerald-400' : 'text-stone-500'}`} />
+            <span className="truncate">Atendimentos</span>
           </button>
 
           {/* Aba 2: Comissões */}
           <button
             onClick={() => setSecaoAtiva('comissoes')}
-            className={`flex items-center justify-center gap-2 py-3 px-4 rounded-2xl transition-all cursor-pointer ${
+            className={`py-3 px-4 rounded-2xl transition-all cursor-pointer flex items-center justify-center gap-2 text-xs font-bold ${
               secaoAtiva === 'comissoes'
-                ? 'bg-[#111111] text-white shadow-md'
-                : 'bg-white hover:bg-stone-50 text-stone-700 border border-stone-200/80 shadow-xs'
+                ? 'text-white border border-stone-700/50 shadow-sm'
+                : 'bg-white/90 hover:bg-white text-stone-700 border border-stone-200/80 shadow-xs'
             }`}
+            style={secaoAtiva === 'comissoes' ? {
+              background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
+              boxShadow: 'inset 0 1px 2px rgba(255, 255, 255, 0.2)'
+            } : {}}
           >
-            <Percent className={`w-4 h-4 ${secaoAtiva === 'comissoes' ? 'text-emerald-400' : 'text-stone-500'}`} />
-            <span className="text-xs font-black truncate">Comissões</span>
+            <Percent className={`w-4 h-4 shrink-0 ${secaoAtiva === 'comissoes' ? 'text-emerald-400' : 'text-stone-500'}`} />
+            <span className="truncate">Comissões</span>
           </button>
 
           {/* Aba 3: Despesas */}
           <button
             onClick={() => setSecaoAtiva('despesas')}
-            className={`flex items-center justify-center gap-2 py-3 px-4 rounded-2xl transition-all cursor-pointer ${
+            className={`py-3 px-4 rounded-2xl transition-all cursor-pointer flex items-center justify-center gap-2 text-xs font-bold ${
               secaoAtiva === 'despesas'
-                ? 'bg-[#111111] text-white shadow-md'
-                : 'bg-white hover:bg-stone-50 text-stone-700 border border-stone-200/80 shadow-xs'
+                ? 'text-white border border-stone-700/50 shadow-sm'
+                : 'bg-white/90 hover:bg-white text-stone-700 border border-stone-200/80 shadow-xs'
             }`}
+            style={secaoAtiva === 'despesas' ? {
+              background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
+              boxShadow: 'inset 0 1px 2px rgba(255, 255, 255, 0.2)'
+            } : {}}
           >
-            <Receipt className={`w-4 h-4 ${secaoAtiva === 'despesas' ? 'text-rose-400' : 'text-stone-500'}`} />
-            <span className="text-xs font-black truncate">Despesas</span>
+            <Receipt className={`w-4 h-4 shrink-0 ${secaoAtiva === 'despesas' ? 'text-rose-400' : 'text-stone-500'}`} />
+            <span className="truncate">Despesas</span>
           </button>
 
           {/* Aba 4: Cancelados */}
           <button
             onClick={() => setSecaoAtiva('cancelados')}
-            className={`flex items-center justify-center gap-2 py-3 px-4 rounded-2xl transition-all cursor-pointer ${
+            className={`py-3 px-4 rounded-2xl transition-all cursor-pointer flex items-center justify-center gap-2 text-xs font-bold ${
               secaoAtiva === 'cancelados'
-                ? 'bg-[#111111] text-white shadow-md'
-                : 'bg-white hover:bg-stone-50 text-stone-700 border border-stone-200/80 shadow-xs'
+                ? 'text-white border border-stone-700/50 shadow-sm'
+                : 'bg-white/90 hover:bg-white text-stone-700 border border-stone-200/80 shadow-xs'
             }`}
+            style={secaoAtiva === 'cancelados' ? {
+              background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
+              boxShadow: 'inset 0 1px 2px rgba(255, 255, 255, 0.2)'
+            } : {}}
           >
-            <XCircle className={`w-4 h-4 ${secaoAtiva === 'cancelados' ? 'text-amber-400' : 'text-stone-500'}`} />
-            <span className="text-xs font-black truncate">Cancelados</span>
+            <XCircle className={`w-4 h-4 shrink-0 ${secaoAtiva === 'cancelados' ? 'text-amber-400' : 'text-stone-500'}`} />
+            <span className="truncate">Cancelados</span>
           </button>
 
         </div>
 
-      </div>
-
-      {/* =========================================================
-          EXIBIÇÃO DE CONTEÚDO CONFORME A ABA SELECIONADA
-          ========================================================= */}
-      
-      {/* 1. ATENDIMENTOS REALIZADOS */}
-      {(secaoAtiva === 'atendimentos') && (
-        <div className="bg-white rounded-[2.5rem] border border-stone-200/85 p-5 sm:p-8 space-y-4 shadow-xs animate-fadeIn">
-          <h4 className="font-extrabold text-stone-900 text-sm sm:text-base tracking-tight flex items-center gap-2.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#111111]"></span>
-            Atendimentos Realizados no Mês
-          </h4>
-          {atendimentosConcluidos.length === 0 ? (
-            <p className="text-xs text-stone-400 py-8 text-center">Nenhum atendimento concluído registrado neste mês.</p>
-          ) : (
-            <>
-              <div className="print:hidden sm:hidden space-y-3">
-                {atendimentosConcluidos.map((item, index) => (
-                  <div key={index} className="p-4 rounded-2xl bg-stone-50/80 border border-stone-200/60 space-y-2">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <span className="font-bold text-stone-900 text-xs block">{getNomeCliente(item)}</span>
-                        <span className="text-[11px] text-stone-500">{getNomeServico(item)}</span>
-                      </div>
-                      <span className="font-black text-emerald-600 text-xs">R$ {getValorServico(item).toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between items-center pt-2 border-t border-stone-200/60 text-[11px] text-stone-500 font-medium">
-                      <span>👤 {getNomeBarbeiro(item)}</span>
-                      <span>📅 {item.data_hora ? new Date(item.data_hora).toLocaleDateString('pt-BR') : 'N/A'}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="hidden print:block sm:block overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-stone-100/70 text-stone-600 uppercase font-bold border-b border-stone-200">
-                    <tr>
-                      <th className="p-3.5 rounded-l-xl">Cliente</th>
-                      <th className="p-3.5">Serviço</th>
-                      <th className="p-3.5">Profissional</th>
-                      <th className="p-3.5">Data</th>
-                      <th className="p-3.5 text-right rounded-r-xl">Valor</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-stone-100">
+        {/* =========================================================
+            CONTEÚDO DINÂMICO DENTRO DO MESMO BLOCO
+            ========================================================= */}
+        <div className="pt-2 animate-fadeIn">
+          
+          {/* 1. ATENDIMENTOS REALIZADOS */}
+          {(secaoAtiva === 'atendimentos') && (
+            <div className="bg-white rounded-[2rem] border border-stone-200/90 p-5 sm:p-6 space-y-4 shadow-xs">
+              <h3 className="font-extrabold text-stone-900 text-sm sm:text-base tracking-tight flex items-center gap-2.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                Atendimentos Realizados
+              </h3>
+              {atendimentosConcluidos.length === 0 ? (
+                <p className="text-xs text-stone-400 py-8 text-center">Nenhum atendimento concluído registrado neste mês.</p>
+              ) : (
+                <>
+                  <div className="print:hidden sm:hidden space-y-3">
                     {atendimentosConcluidos.map((item, index) => (
-                      <tr key={index} className="hover:bg-stone-50/70 transition-colors">
-                        <td className="p-3.5 font-bold text-stone-900">{getNomeCliente(item)}</td>
-                        <td className="p-3.5 text-stone-600">{getNomeServico(item)}</td>
-                        <td className="p-3.5 text-stone-600">{getNomeBarbeiro(item)}</td>
-                        <td className="p-3.5 text-stone-500">{item.data_hora ? new Date(item.data_hora).toLocaleDateString('pt-BR') : 'N/A'}</td>
-                        <td className="p-3.5 text-right font-extrabold text-emerald-600">R$ {getValorServico(item).toFixed(2)}</td>
-                      </tr>
+                      <div key={index} className="p-4 rounded-2xl bg-stone-50 border border-stone-200/70 space-y-2">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <span className="font-bold text-stone-900 text-xs block">{getNomeCliente(item)}</span>
+                            <span className="text-[11px] text-stone-500">{getNomeServico(item)}</span>
+                          </div>
+                          <span className="font-black text-emerald-600 text-xs">R$ {getValorServico(item).toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between items-center pt-2 border-t border-stone-200/60 text-[11px] text-stone-500 font-medium">
+                          <span>👤 {getNomeBarbeiro(item)}</span>
+                          <span>📅 {item.data_hora ? new Date(item.data_hora).toLocaleDateString('pt-BR') : 'N/A'}</span>
+                        </div>
+                      </div>
                     ))}
-                  </tbody>
-                </table>
-              </div>
-            </>
-          )}
-        </div>
-      )}
+                  </div>
 
-      {/* 2. COMISSÕES */}
-      {(secaoAtiva === 'comissoes') && (
-        <div className="bg-white rounded-[2.5rem] border border-stone-200/85 p-5 sm:p-8 space-y-4 shadow-xs animate-fadeIn">
-          <h4 className="font-extrabold text-stone-900 text-sm sm:text-base tracking-tight flex items-center gap-2.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#111111]"></span>
-            Resumo de Comissões por Profissional (No Mês)
-          </h4>
-          {comissoesPorBarbeiro.length === 0 ? (
-            <p className="text-xs text-stone-400 py-8 text-center">Nenhum dado de comissão disponível neste mês.</p>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
-              {comissoesPorBarbeiro.map((barb, idx) => (
-                <div key={idx} className="bg-stone-50/80 p-5 rounded-3xl border border-stone-200/70 space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="font-bold text-stone-900 text-sm">{barb.nome}</span>
-                    <span className="text-[10px] bg-stone-200/70 px-2.5 py-1 rounded-xl font-bold text-stone-700">{barb.quantidade} atendimentos</span>
+                  <div className="hidden print:block sm:block overflow-x-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-stone-100 text-stone-600 uppercase font-bold border-b border-stone-200">
+                        <tr>
+                          <th className="p-3.5 rounded-l-xl">Cliente</th>
+                          <th className="p-3.5">Serviço</th>
+                          <th className="p-3.5">Profissional</th>
+                          <th className="p-3.5">Data</th>
+                          <th className="p-3.5 text-right rounded-r-xl">Valor</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-stone-100">
+                        {atendimentosConcluidos.map((item, index) => (
+                          <tr key={index} className="hover:bg-stone-50/70 transition-colors">
+                            <td className="p-3.5 font-bold text-stone-900">{getNomeCliente(item)}</td>
+                            <td className="p-3.5 text-stone-600">{getNomeServico(item)}</td>
+                            <td className="p-3.5 text-stone-600">{getNomeBarbeiro(item)}</td>
+                            <td className="p-3.5 text-stone-500">{item.data_hora ? new Date(item.data_hora).toLocaleDateString('pt-BR') : 'N/A'}</td>
+                            <td className="p-3.5 text-right font-extrabold text-emerald-600">R$ {getValorServico(item).toFixed(2)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
-                  <div className="space-y-2 text-xs pt-1 border-t border-stone-200/60">
-                    <div className="flex justify-between text-stone-500">
-                      <span>Faturamento gerado:</span>
-                      <span className="font-semibold text-stone-800">R$ {barb.faturamento.toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between text-stone-500">
-                      <span>Comissão ({Math.round(barb.taxa * 100)}%):</span>
-                      <span className="font-extrabold text-emerald-600">R$ {barb.comissaoEstimada.toFixed(2)}</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
+                </>
+              )}
             </div>
           )}
-        </div>
-      )}
 
-      {/* 3. DESPESAS */}
-      {(secaoAtiva === 'despesas') && (
-        <div className="bg-white rounded-[2.5rem] border border-stone-200/85 p-5 sm:p-8 space-y-4 shadow-xs animate-fadeIn">
-          <h4 className="font-extrabold text-stone-900 text-sm sm:text-base tracking-tight flex items-center gap-2.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#111111]"></span>
-            Detalhamento de Custos e Despesas (No Mês)
-          </h4>
-          {despesasFiltradas.length === 0 ? (
-            <p className="text-xs text-stone-400 py-8 text-center">Nenhuma despesa cadastrada neste mês.</p>
-          ) : (
-            <>
-              <div className="print:hidden sm:hidden space-y-3">
-                {despesasFiltradas.map((item, index) => (
-                  <div key={index} className="p-4 rounded-2xl bg-stone-50/80 border border-stone-200/60 flex justify-between items-center">
-                    <div>
-                      <span className="font-bold text-stone-900 text-xs block">{item.descricao || item.nome || 'Despesa'}</span>
-                      <span className="text-[10px] text-stone-500 font-medium">{item.categoria || 'Geral'} • {item.data ? new Date(item.data).toLocaleDateString('pt-BR') : 'N/A'}</span>
-                    </div>
-                    <span className="font-black text-rose-600 text-xs">R$ {Number(item.valor || 0).toFixed(2)}</span>
-                  </div>
-                ))}
-              </div>
-
-              <div className="hidden print:block sm:block overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-stone-100/70 text-stone-600 uppercase font-bold border-b border-stone-200">
-                    <tr>
-                      <th className="p-3.5 rounded-l-xl">Descrição</th>
-                      <th className="p-3.5">Categoria</th>
-                      <th className="p-3.5">Data</th>
-                      <th className="p-3.5 text-right rounded-r-xl">Valor</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-stone-100">
-                    {despesasFiltradas.map((item, index) => (
-                      <tr key={index} className="hover:bg-stone-50/70 transition-colors">
-                        <td className="p-3.5 font-bold text-stone-900">{item.descricao || item.nome || 'Despesa'}</td>
-                        <td className="p-3.5 text-stone-600">{item.categoria || 'Geral'}</td>
-                        <td className="p-3.5 text-stone-500">{item.data ? new Date(item.data).toLocaleDateString('pt-BR') : 'N/A'}</td>
-                        <td className="p-3.5 text-right font-extrabold text-rose-600">R$ {Number(item.valor || 0).toFixed(2)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </>
-          )}
-        </div>
-      )}
-
-      {/* 4. CANCELADOS */}
-      {(secaoAtiva === 'cancelados') && (
-        <div className="bg-white rounded-[2.5rem] border border-stone-200/85 p-5 sm:p-8 space-y-4 shadow-xs animate-fadeIn">
-          <h4 className="font-extrabold text-stone-900 text-sm sm:text-base tracking-tight flex items-center gap-2.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#111111]"></span>
-            Histórico de Agendamentos Cancelados (No Mês)
-          </h4>
-          {atendimentosCancelados.length === 0 ? (
-            <p className="text-xs text-stone-400 py-8 text-center">Nenhum agendamento cancelado neste mês.</p>
-          ) : (
-            <>
-              <div className="print:hidden sm:hidden space-y-3">
-                {atendimentosCancelados.map((item, index) => (
-                  <div key={index} className="p-4 rounded-2xl bg-stone-50/80 border border-stone-200/60 space-y-2">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <span className="font-bold text-stone-900 text-xs block">{getNomeCliente(item)}</span>
-                        <span className="text-[11px] text-stone-500">{getNomeServico(item)}</span>
+          {/* 2. COMISSÕES */}
+          {(secaoAtiva === 'comissoes') && (
+            <div className="bg-white rounded-[2rem] border border-stone-200/90 p-5 sm:p-6 space-y-4 shadow-xs">
+              <h3 className="font-extrabold text-stone-900 text-sm sm:text-base tracking-tight flex items-center gap-2.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                Resumo de Comissões por Profissional
+              </h3>
+              {comissoesPorBarbeiro.length === 0 ? (
+                <p className="text-xs text-stone-400 py-8 text-center">Nenhum dado de comissão disponível neste mês.</p>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                  {comissoesPorBarbeiro.map((barb, idx) => (
+                    <div key={idx} className="bg-stone-50 p-5 rounded-2xl border border-stone-200/70 space-y-3 shadow-xs">
+                      <div className="flex justify-between items-center">
+                        <span className="font-bold text-stone-900 text-sm">{barb.nome}</span>
+                        <span className="text-[10px] bg-stone-200/70 px-2.5 py-1 rounded-xl font-bold text-stone-700">{barb.quantidade} atendimentos</span>
                       </div>
-                      <span className="font-bold text-stone-400 text-xs line-through">R$ {getValorServico(item).toFixed(2)}</span>
+                      <div className="space-y-2 text-xs pt-1 border-t border-stone-200/60">
+                        <div className="flex justify-between text-stone-500">
+                          <span>Faturamento gerado:</span>
+                          <span className="font-semibold text-stone-800">R$ {barb.faturamento.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between text-stone-500">
+                          <span>Comissão ({Math.round(barb.taxa * 100)}%):</span>
+                          <span className="font-extrabold text-emerald-600">R$ {barb.comissaoEstimada.toFixed(2)}</span>
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex justify-between items-center pt-2 border-t border-stone-200/60 text-[11px] text-stone-500 font-medium">
-                      <span>👤 {getNomeBarbeiro(item)}</span>
-                      <span>📅 {item.data_hora ? new Date(item.data_hora).toLocaleDateString('pt-BR') : 'N/A'}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="hidden print:block sm:block overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-stone-100/70 text-stone-600 uppercase font-bold border-b border-stone-200">
-                    <tr>
-                      <th className="p-3.5 rounded-l-xl">Cliente</th>
-                      <th className="p-3.5">Serviço</th>
-                      <th className="p-3.5">Profissional</th>
-                      <th className="p-3.5">Data</th>
-                      <th className="p-3.5 text-right rounded-r-xl">Valor Perdido</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-stone-100">
-                    {atendimentosCancelados.map((item, index) => (
-                      <tr key={index} className="hover:bg-stone-50/70 transition-colors">
-                        <td className="p-3.5 font-bold text-stone-900">{getNomeCliente(item)}</td>
-                        <td className="p-3.5 text-stone-600">{getNomeServico(item)}</td>
-                        <td className="p-3.5 text-stone-600">{getNomeBarbeiro(item)}</td>
-                        <td className="p-3.5 text-stone-500">{item.data_hora ? new Date(item.data_hora).toLocaleDateString('pt-BR') : 'N/A'}</td>
-                        <td className="p-3.5 text-right font-bold text-stone-400 line-through">R$ {getValorServico(item).toFixed(2)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </>
+                  ))}
+                </div>
+              )}
+            </div>
           )}
+
+          {/* 3. DESPESAS */}
+          {(secaoAtiva === 'despesas') && (
+            <div className="bg-white rounded-[2rem] border border-stone-200/90 p-5 sm:p-6 space-y-4 shadow-xs">
+              <h3 className="font-extrabold text-stone-900 text-sm sm:text-base tracking-tight flex items-center gap-2.5">
+                <span className="w-2 h-2 rounded-full bg-rose-500"></span>
+                Detalhamento de Custos e Despesas
+              </h3>
+              {despesasFiltradas.length === 0 ? (
+                <p className="text-xs text-stone-400 py-8 text-center">Nenhuma despesa cadastrada neste mês.</p>
+              ) : (
+                <>
+                  <div className="print:hidden sm:hidden space-y-3">
+                    {despesasFiltradas.map((item, index) => (
+                      <div key={index} className="p-4 rounded-2xl bg-stone-50 border border-stone-200/70 flex justify-between items-center">
+                        <div>
+                          <span className="font-bold text-stone-900 text-xs block">{item.descricao || item.nome || 'Despesa'}</span>
+                          <span className="text-[10px] text-stone-500 font-medium">{item.categoria || 'Geral'} • {item.data ? new Date(item.data).toLocaleDateString('pt-BR') : 'N/A'}</span>
+                        </div>
+                        <span className="font-black text-rose-600 text-xs">R$ {Number(item.valor || 0).toFixed(2)}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="hidden print:block sm:block overflow-x-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-stone-100 text-stone-600 uppercase font-bold border-b border-stone-200">
+                        <tr>
+                          <th className="p-3.5 rounded-l-xl">Descrição</th>
+                          <th className="p-3.5">Categoria</th>
+                          <th className="p-3.5">Data</th>
+                          <th className="p-3.5 text-right rounded-r-xl">Valor</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-stone-100">
+                        {despesasFiltradas.map((item, index) => (
+                          <tr key={index} className="hover:bg-stone-50/70 transition-colors">
+                            <td className="p-3.5 font-bold text-stone-900">{item.descricao || item.nome || 'Despesa'}</td>
+                            <td className="p-3.5 text-stone-600">{item.categoria || 'Geral'}</td>
+                            <td className="p-3.5 text-stone-500">{item.data ? new Date(item.data).toLocaleDateString('pt-BR') : 'N/A'}</td>
+                            <td className="p-3.5 text-right font-extrabold text-rose-600">R$ {Number(item.valor || 0).toFixed(2)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
+          {/* 4. CANCELADOS */}
+          {(secaoAtiva === 'cancelados') && (
+            <div className="bg-white rounded-[2rem] border border-stone-200/90 p-5 sm:p-6 space-y-4 shadow-xs">
+              <h3 className="font-extrabold text-stone-900 text-sm sm:text-base tracking-tight flex items-center gap-2.5">
+                <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                Histórico de Agendamentos Cancelados
+              </h3>
+              {atendimentosCancelados.length === 0 ? (
+                <p className="text-xs text-stone-400 py-8 text-center">Nenhum agendamento cancelado neste mês.</p>
+              ) : (
+                <>
+                  <div className="print:hidden sm:hidden space-y-3">
+                    {atendimentosCancelados.map((item, index) => (
+                      <div key={index} className="p-4 rounded-2xl bg-stone-50 border border-stone-200/70 space-y-2">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <span className="font-bold text-stone-900 text-xs block">{getNomeCliente(item)}</span>
+                            <span className="text-[11px] text-stone-500">{getNomeServico(item)}</span>
+                          </div>
+                          <span className="font-bold text-stone-400 text-xs line-through">R$ {getValorServico(item).toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between items-center pt-2 border-t border-stone-200/60 text-[11px] text-stone-500 font-medium">
+                          <span>👤 {getNomeBarbeiro(item)}</span>
+                          <span>📅 {item.data_hora ? new Date(item.data_hora).toLocaleDateString('pt-BR') : 'N/A'}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="hidden print:block sm:block overflow-x-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-stone-100 text-stone-600 uppercase font-bold border-b border-stone-200">
+                        <tr>
+                          <th className="p-3.5 rounded-l-xl">Cliente</th>
+                          <th className="p-3.5">Serviço</th>
+                          <th className="p-3.5">Profissional</th>
+                          <th className="p-3.5">Data</th>
+                          <th className="p-3.5 text-right rounded-r-xl">Valor Perdido</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-stone-100">
+                        {atendimentosCancelados.map((item, index) => (
+                          <tr key={index} className="hover:bg-stone-50/70 transition-colors">
+                            <td className="p-3.5 font-bold text-stone-900">{getNomeCliente(item)}</td>
+                            <td className="p-3.5 text-stone-600">{getNomeServico(item)}</td>
+                            <td className="p-3.5 text-stone-600">{getNomeBarbeiro(item)}</td>
+                            <td className="p-3.5 text-stone-500">{item.data_hora ? new Date(item.data_hora).toLocaleDateString('pt-BR') : 'N/A'}</td>
+                            <td className="p-3.5 text-right font-bold text-stone-400 line-through">R$ {getValorServico(item).toFixed(2)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
         </div>
-      )}
+
+      </div>
 
     </div>
   );
