@@ -5,7 +5,7 @@ import { createClient } from '@supabase/supabase-js';
 import { 
   Calendar, CheckCircle2, DollarSign, TrendingUp, TrendingDown, 
   Users, Settings, Percent, Scissors, ClipboardPenLine, ShoppingCart, 
-  ShoppingBag, MessageCircleCheck, LogOut, History, X, Search, Filter 
+  ShoppingBag, MessageCircleCheck, LogOut, History, X, Search, Filter, Clock, Trash2 
 } from 'lucide-react';
 
 
@@ -186,6 +186,11 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
     .filter(i => i.status !== 'cancelado')
     .reduce((acc, item) => acc + Number(item.valor_total || item.servicos?.preco || 0), 0);
 
+  const agendamentosPendentesHoje = agendamentosHoje.filter(item => {
+    const status = (item.status || 'agendado').toLowerCase();
+    return status !== 'concluido' && status !== 'cancelado';
+  });
+
   return (
     <div className="max-w-7xl mx-auto px-2 sm:px-0 space-y-6 pb-24">
       
@@ -196,7 +201,7 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
         </div>
       )}
 
-      {/* CARDS DE RESUMO DO TOPO (2 colunas no mobile, 4 colunas em linha única no desktop) */}
+      {/* CARDS DE RESUMO DO TOPO */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 md:gap-5 mb-6">
         
         {/* 1. Card: Agendamentos */}
@@ -274,7 +279,7 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
         {/* 4. Botão Estratégico: Ver Histórico */}
         <button
           onClick={() => setModalHistoricoOpen(true)}
-          className="relative rounded-3xl md:rounded-[2.5rem] p-5 sm:p-6 flex items-center justify-between border border-stone-200/80 bg-white transition-all cursor-pointer group min-w-0 overflow-hidden"
+          className="relative rounded-3xl md:rounded-[2.5rem] p-5 sm:p-6 flex items-center justify-between border border-stone-200/80 bg-white transition-all cursor-pointer group min-w-0 overflow-hidden shadow-sm"
         >
           <div className="flex flex-col justify-center min-w-0 pr-2 text-left">
             <span className="text-[9px] sm:text-[10px] font-extrabold text-stone-400 uppercase tracking-wider truncate block">Registros</span>
@@ -287,9 +292,9 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
 
       </div>
 
-      {/* SEÇÃO PRINCIPAL: LINHA DO TEMPO DOS ATENDIMENTOS DE HOJE */}
+      {/* SEÇÃO PRINCIPAL: LISTA MODERNA DE AGENDAMENTOS PENDENTES */}
       <div 
-        className="relative rounded-[2.5rem] p-5 sm:p-8 border border-white/80"
+        className="relative rounded-[2.5rem] p-5 sm:p-8 border border-white/80 overflow-hidden shadow-sm"
         style={{
           background: 'linear-gradient(135deg, #f7f9f8 0%, #edf1f0 50%, #e2e8e6 100%)',
           boxShadow: '0 20px 40px rgba(0, 0, 0, 0.08), inset 0 2px 4px rgba(255, 255, 255, 0.9), inset 0 -3px 6px rgba(0, 0, 0, 0.05)'
@@ -297,20 +302,15 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
       >
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-5 border-b border-stone-300/60 gap-3">
           <h2 className="text-lg sm:text-xl font-extrabold text-stone-900 flex items-center gap-3 tracking-tight">
-            <span className="w-3 h-3 bg-[#102a43] rounded-full shadow-[0_0_8px_rgba(16,42,67,0.4)]"></span>
-            Linha do Tempo • Atendimentos de Hoje
-            <span className="text-xs sm:text-sm font-bold text-stone-600 bg-white/80 px-3 py-0.5 rounded-full border border-stone-200">
-              {agendamentosHoje.length}
+            <span className="w-3 h-3 bg-[#111111] rounded-full shadow-[0_0_8px_rgba(17,17,17,0.4)]"></span>
+            Agenda • Pendentes de Hoje
+            <span className="text-xs sm:text-sm font-bold text-stone-700 bg-white px-3 py-0.5 rounded-full border border-stone-200 shadow-xs">
+              {agendamentosPendentesHoje.length}
             </span>
           </h2>
           
           <div 
-            className="inline-flex items-center px-4 py-2 rounded-xl text-xs font-bold text-stone-700 self-start sm:self-auto"
-            style={{
-              background: 'radial-gradient(circle at 30% 30%, #ffffff 0%, #eceeee 70%, #d8dedb 100%)',
-              boxShadow: '0 6px 15px rgba(0, 0, 0, 0.1), inset 0 2px 2px rgba(255, 255, 255, 1), inset 0 -3px 4px rgba(0, 0, 0, 0.12)',
-              border: '1px solid rgba(255, 255, 255, 0.9)'
-            }}
+            className="inline-flex items-center px-4 py-2 rounded-2xl text-xs font-bold text-stone-700 self-start sm:self-auto bg-white border border-stone-200 shadow-xs"
           >
             {new Date().toLocaleDateString('pt-BR')}
           </div>
@@ -320,91 +320,102 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
           <div className="flex justify-center items-center py-16">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-stone-900"></div>
           </div>
-        ) : agendamentosHoje.length === 0 ? (
+        ) : agendamentosPendentesHoje.length === 0 ? (
           <div className="text-center py-16 text-stone-400 text-sm font-medium">
-            Nenhum atendimento agendado para hoje.
+            Nenhum atendimento pendente para hoje. Todos foram concluídos ou cancelados!
           </div>
         ) : (
-          <div className="relative mt-8 pl-1 sm:pl-2 space-y-6 before:absolute before:left-[35px] sm:before:left-[39px] before:top-4 before:bottom-4 before:w-0.5 before:bg-stone-300/60">
-            {agendamentosHoje.map((item) => (
-              <div key={item.id} className="relative flex items-center gap-3 sm:gap-5 group">
+          <div className="mt-6 space-y-4">
+            {agendamentosPendentesHoje.map((item) => (
+              <div 
+                key={item.id} 
+                className="w-full bg-white border border-stone-200/90 rounded-[2.2rem] p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_10px_30px_rgba(0,0,0,0.07)] transition-all flex flex-col justify-between gap-4"
+              >
                 
-                {/* Marcador de Hora 3D na Linha do Tempo */}
-                <div className="relative z-10 flex-shrink-0">
-                  <div 
-                    className="w-[64px] h-[32px] sm:w-[70px] sm:h-[34px] rounded-xl text-white flex items-center justify-center font-bold text-[11px] sm:text-xs tracking-wider border border-white/20"
-                    style={{
-                      background: 'linear-gradient(135deg, #102a43 0%, #0b1d2d 100%)',
-                      boxShadow: '0 6px 15px rgba(11, 29, 45, 0.3), inset 0 1px 2px rgba(255, 255, 255, 0.3), inset 0 -2px 3px rgba(0, 0, 0, 0.4)'
-                    }}
-                  >
-                    {extrairHoraMinuto(item.data_hora)}
+                {/* Topo do Card: Badge de Horário Escuro & Valor */}
+                <div className="flex items-start justify-between gap-3">
+                  <div className="space-y-1.5 min-w-0">
+                    <div 
+                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-2xl text-xs font-black text-white border border-stone-700/50"
+                      style={{
+                        background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
+                        boxShadow: 'inset 0 1px 2px rgba(255, 255, 255, 0.2)'
+                      }}
+                    >
+                      <Clock className="w-3.5 h-3.5 text-stone-300" />
+                      <span>{extrairHoraMinuto(item.data_hora)}</span>
+                    </div>
+                    <h3 className="font-black text-stone-900 text-base sm:text-lg tracking-tight truncate pt-1">
+                      {item.clientes?.nome || 'Cliente não identificado'}
+                    </h3>
+                  </div>
+
+                  <div className="text-right shrink-0">
+                    <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider block">Valor</span>
+                    <span className="text-stone-900 font-black text-sm sm:text-base bg-stone-100 px-3.5 py-1.5 rounded-2xl border border-stone-200/60 inline-block mt-0.5">
+                      R$ {Number(item.valor_total || item.servicos?.preco || 0).toFixed(2)}
+                    </span>
                   </div>
                 </div>
 
-                {/* Cartão do Atendimento com Estilo 3D */}
-                <div className="flex-1 bg-white/90 border border-stone-200/80 rounded-3xl p-5 shadow-[0_4px_15px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_25px_rgba(0,0,0,0.06)] transition-all flex flex-col justify-between">
-                  <div>
-                    <div className="flex justify-between items-start gap-3">
-                      <h3 className="font-bold text-stone-900 text-base truncate">
-                        {item.clientes?.nome || 'Cliente não identificado'}
-                      </h3>
-                      <span className="text-stone-900 font-bold text-sm bg-stone-100 px-3 py-1 rounded-2xl border border-stone-200/60">
-                        R$ {Number(item.valor_total || item.servicos?.preco || 0).toFixed(2)}
-                      </span>
-                    </div>
-                    
-                    <div className="mt-3 space-y-2 text-xs text-stone-600">
-                      <p className="flex items-center gap-2.5 font-medium text-stone-800">
-                        <span className="w-1.5 h-1.5 rounded-full bg-stone-400"></span>
-                        {item.servicos?.nome || 'Serviço não especificado'}
-                      </p>
-                      <p className="flex items-center gap-2.5 text-stone-500">
-                        Profissional: <span className="text-stone-800 font-medium">{item.barbeiros?.nome || 'Não atribuído'}</span>
-                      </p>
-                    </div>
+                {/* Detalhes do Serviço & Profissional */}
+                <div className="bg-stone-50 rounded-2xl p-4 border border-stone-200/70 space-y-1.5 text-xs">
+                  <div className="flex items-center gap-2 font-bold text-stone-900 text-sm">
+                    <span className="w-2 h-2 rounded-full bg-stone-900"></span>
+                    <span>{item.servicos?.nome || 'Serviço não especificado'}</span>
                   </div>
+                  <div className="text-stone-500 pl-4 font-medium">
+                    Profissional: <span className="text-stone-800 font-bold">{item.barbeiros?.nome || 'Não atribuído'}</span>
+                  </div>
+                </div>
 
-                  <div className="mt-4 pt-3 border-t border-stone-100 flex items-center justify-between gap-2">
-                    <span className={`text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider ${
-                      item.status === 'concluido' ? 'bg-[#102a43] text-white' :
-                      item.status === 'cancelado' ? 'bg-red-100 text-red-800' : 'bg-stone-200 text-stone-700'
-                    }`}>
+                {/* Rodapé do Card: Status e Botões de Ação Unificados ao Estilo do App */}
+                <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 border-t border-stone-100">
+                  <div className="flex items-center justify-between sm:justify-start">
+                    <span className="text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider bg-stone-100 text-stone-700 border border-stone-200">
                       {item.status || 'agendado'}
                     </span>
+                  </div>
 
-                    <div className="flex items-center gap-1">
-                      <button 
-                        onClick={() => concluirAgendamento(item.id)}
-                        disabled={processandoId === item.id}
-                        className="p-2 text-[#102a43] hover:bg-sky-50 rounded-2xl transition-colors disabled:opacity-50 cursor-pointer"
-                        title="Concluir Atendimento"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.75" d="M4.5 12.75l6 6 9-13.5" />
-                        </svg>
-                      </button>
-                      <button 
-                        onClick={() => cancelarAgendamento(item.id)}
-                        disabled={processandoId === item.id}
-                        className="p-2 text-amber-600 hover:bg-amber-50 rounded-2xl transition-colors disabled:opacity-50 cursor-pointer"
-                        title="Cancelar Atendimento"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.75" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
-                      <button 
-                        onClick={() => excluirAgendamento(item.id)}
-                        disabled={processandoId === item.id}
-                        className="p-2 text-red-500 hover:bg-red-50 rounded-2xl transition-colors disabled:opacity-50 cursor-pointer"
-                        title="Excluir Registro"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.75" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
-                        </svg>
-                      </button>
-                    </div>
+                  <div className="grid grid-cols-3 sm:flex items-center gap-2">
+                    
+                    {/* Botão Concluir (Padrão Escuro Principal do App) */}
+                    <button 
+                      onClick={() => concluirAgendamento(item.id)}
+                      disabled={processandoId === item.id}
+                      className="px-4 py-2.5 text-white rounded-2xl transition-all disabled:opacity-50 cursor-pointer flex items-center justify-center gap-1.5 text-xs font-bold shadow-sm"
+                      style={{
+                        background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
+                        boxShadow: 'inset 0 1px 2px rgba(255, 255, 255, 0.2)'
+                      }}
+                      title="Concluir"
+                    >
+                      <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+                      <span className="truncate">Concluir</span>
+                    </button>
+
+                    {/* Botão Cancelar */}
+                    <button 
+                      onClick={() => cancelarAgendamento(item.id)}
+                      disabled={processandoId === item.id}
+                      className="px-4 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 border border-stone-200 rounded-2xl transition-all disabled:opacity-50 cursor-pointer flex items-center justify-center gap-1.5 text-xs font-bold shadow-xs"
+                      title="Cancelar"
+                    >
+                      <X className="w-4 h-4 shrink-0 text-stone-500" />
+                      <span className="truncate">Cancelar</span>
+                    </button>
+
+                    {/* Botão Excluir */}
+                    <button 
+                      onClick={() => excluirAgendamento(item.id)}
+                      disabled={processandoId === item.id}
+                      className="px-3.5 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 rounded-2xl transition-all disabled:opacity-50 cursor-pointer flex items-center justify-center gap-1 text-xs font-bold shadow-xs"
+                      title="Excluir"
+                    >
+                      <Trash2 className="w-4 h-4 shrink-0" />
+                      <span className="hidden sm:inline">Excluir</span>
+                    </button>
+
                   </div>
                 </div>
 
@@ -420,7 +431,7 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
           onClick={() => setModalHistoricoOpen(true)}
           className="w-full sm:w-auto px-8 py-4 bg-white border border-stone-200/80 shadow-[0_10px_25px_rgba(0,0,0,0.04)] hover:shadow-[0_15px_30px_rgba(0,0,0,0.08)] rounded-2xl text-xs font-bold text-stone-700 hover:bg-stone-50 transition-all flex items-center justify-center gap-3 mx-auto tracking-widest uppercase cursor-pointer group"
         >
-          <div className="w-8 h-8 rounded-xl bg-[#102a43] text-white flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
+          <div className="w-8 h-8 rounded-xl bg-[#222222] text-white flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
             <History className="w-4 h-4" />
           </div>
           <span>Ver Histórico Completo & Outros Dias</span>
@@ -433,19 +444,16 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
       {modalHistoricoOpen && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
           
-          {/* Backdrop Escuro com Blur */}
           <div 
             onClick={() => setModalHistoricoOpen(false)}
             className="fixed inset-0 bg-stone-950/50 backdrop-blur-sm transition-opacity"
           />
 
-          {/* Janela do Modal */}
           <div className="relative w-full max-w-3xl max-h-[85vh] bg-stone-100 rounded-[2.5rem] p-6 sm:p-8 shadow-2xl border border-white/80 z-10 flex flex-col overflow-hidden">
             
-            {/* Cabeçalho do Modal */}
             <div className="flex items-center justify-between pb-5 border-b border-stone-300/60">
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-2xl bg-[#102a43] text-white flex items-center justify-center shadow-md">
+                <div className="w-10 h-10 rounded-2xl bg-[#222222] text-white flex items-center justify-center shadow-md">
                   <History className="w-5 h-5" />
                 </div>
                 <div>
@@ -461,10 +469,7 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
               </button>
             </div>
 
-            {/* Barra de Filtros (Data + Status) */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 py-4 border-b border-stone-300/40">
-              
-              {/* Filtro por Data */}
               <div className="flex flex-col space-y-1">
                 <label className="text-[10px] font-bold uppercase tracking-wider text-stone-500">Filtrar por Data:</label>
                 <div className="relative flex items-center">
@@ -485,7 +490,6 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
                 </div>
               </div>
 
-              {/* Filtro por Status */}
               <div className="flex flex-col space-y-1">
                 <label className="text-[10px] font-bold uppercase tracking-wider text-stone-500">Filtrar por Status:</label>
                 <select 
@@ -499,10 +503,8 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
                   <option value="cancelado">Cancelados</option>
                 </select>
               </div>
-
             </div>
 
-            {/* Lista de Registros no Modal (Com Scroll) */}
             <div className="flex-1 overflow-y-auto py-4 space-y-3 pr-1">
               {todosAgendamentos.length === 0 ? (
                 <div className="text-center py-16 text-stone-400 text-sm">
@@ -520,7 +522,7 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
                             {item.clientes?.nome || 'Cliente'}
                           </span>
                           <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase ${
-                            item.status === 'concluido' ? 'bg-[#102a43] text-white' :
+                            item.status === 'concluido' ? 'bg-[#222222] text-white' :
                             item.status === 'cancelado' ? 'bg-red-100 text-red-800' : 'bg-stone-200 text-stone-800'
                           }`}>
                             {item.status || 'agendado'}
@@ -552,11 +554,10 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
               )}
             </div>
 
-            {/* Rodapé do Modal */}
             <div className="pt-4 border-t border-stone-300/60 flex justify-end">
               <button
                 onClick={() => setModalHistoricoOpen(false)}
-                className="px-6 py-2.5 bg-stone-900 text-white rounded-xl text-xs font-bold hover:bg-stone-800 transition-colors cursor-pointer shadow-md"
+                className="px-6 py-2.5 bg-[#222222] text-white rounded-xl text-xs font-bold hover:bg-stone-800 transition-colors cursor-pointer shadow-md"
               >
                 Fechar
               </button>
