@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Store, Save, Check, ExternalLink, Share2, Copy, MessageCircle, Send, X, MessageSquare, Bot, Grid, Palette, Moon, BellRing, Clock, Sliders, CalendarOff, Trash2, Plus } from 'lucide-react';
+import { Store, Save, Check, ExternalLink, Share2, Copy, MessageCircle, Send, X, MessageSquare, Bot, Grid, Palette, Moon, BellRing, Clock, Sliders, CalendarOff, Trash2, Plus, Upload, Image as ImageIcon } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
@@ -15,6 +15,10 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
   const [modoAtendimento, setModoAtendimento] = useState(
     barbearia?.tipo_atendimento || barbearia?.modo_agendamento || barbearia?.modo_chatbot || 'conversacional'
   );
+
+  // Estados de Upload
+  const [enviandoLogo, setEnviandoLogo] = useState(false);
+  const [enviandoCapa, setEnviandoCapa] = useState(false);
 
   // Estados do Modal de Horários & Exceções
   const [modalHorariosOpen, setModalHorariosOpen] = useState(false);
@@ -56,6 +60,46 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
   const urlCliente = typeof window !== 'undefined' 
     ? `${window.location.origin}/agendar/${slug || barbearia?.slug || 'barbearia'}`
     : `https://seuapp.com/agendar/${slug || 'barbearia'}`;
+
+  // Função auxiliar para upload de imagens no Supabase Storage
+  const handleUploadImagem = async (e, tipo) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const isLogo = tipo === 'logo';
+    if (isLogo) setEnviandoLogo(true);
+    else setEnviandoCapa(true);
+
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${barbearia?.id}-${tipo}-${Date.now()}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      // Certifique-se de que o bucket 'barbearias' (ou o nome do seu bucket) existe no seu Supabase Storage
+      const { error: uploadError } = await supabase.storage
+        .from('barbearias')
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: publicURLData } = supabase.storage
+        .from('barbearias')
+        .getPublicUrl(filePath);
+
+      const urlPublica = publicURLData.publicUrl;
+
+      if (isLogo) {
+        setLogoUrl(urlPublica);
+      } else {
+        setCapaUrl(urlPublica);
+      }
+    } catch (err) {
+      alert('Erro ao fazer upload da imagem: ' + (err.message || err));
+    } finally {
+      if (isLogo) setEnviandoLogo(false);
+      else setEnviandoCapa(false);
+    }
+  };
 
   // Buscar bloqueios salvos no Supabase ao abrir o modal
   useEffect(() => {
@@ -306,31 +350,79 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
             <div className="space-y-4">
               <div className="flex items-center gap-2.5 border-b border-slate-100 pb-2">
                 <Palette className="w-4 h-4 text-slate-700" />
-                <h2 className="text-xs font-bold uppercase tracking-wider text-slate-800">Mídia & Identidade Visual</h2>
+                <h2 className="text-xs font-bold uppercase tracking-wider text-slate-800">Mídia & Identidade Visual (Upload)</h2>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-700 block">URL da Logo / Perfil</label>
-                  <input
-                    type="url"
-                    value={logoUrl}
-                    onChange={(e) => setLogoUrl(e.target.value)}
-                    placeholder="https://exemplo.com/logo.png"
-                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 text-xs font-medium text-slate-900 focus:outline-none focus:border-slate-500 transition-all shadow-inner"
-                  />
+                
+                {/* Upload Logo / Perfil */}
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-700 block">Logo / Foto de Perfil</label>
+                  <label className="border-2 border-dashed border-slate-300 hover:border-slate-500 rounded-2xl p-4 flex flex-col items-center justify-center gap-2 bg-slate-50 cursor-pointer transition-all text-center">
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      onChange={(e) => handleUploadImagem(e, 'logo')} 
+                      className="hidden" 
+                    />
+                    {enviandoLogo ? (
+                      <span className="text-xs font-bold text-slate-500 animate-pulse">Enviando logo...</span>
+                    ) : logoUrl ? (
+                      <div className="flex items-center gap-3 w-full">
+                        <img src={logoUrl} alt="Logo Preview" className="w-12 h-12 rounded-xl object-cover border" />
+                        <div className="text-left overflow-hidden">
+                          <p className="text-xs font-bold text-slate-900 truncate">Logo carregada</p>
+                          <span className="text-[10px] text-emerald-600 font-bold">Clique para alterar</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="w-10 h-10 rounded-xl bg-slate-200 text-slate-700 flex items-center justify-center shadow-inner">
+                          <Upload className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-slate-800">Clique para enviar a Logo</p>
+                          <span className="text-[10px] text-slate-400">PNG, JPG ou WEBP</span>
+                        </div>
+                      </>
+                    )}
+                  </label>
                 </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-700 block">URL da Imagem de Capa</label>
-                  <input
-                    type="url"
-                    value={capaUrl}
-                    onChange={(e) => setCapaUrl(e.target.value)}
-                    placeholder="https://exemplo.com/capa.png"
-                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 text-xs font-medium text-slate-900 focus:outline-none focus:border-slate-500 transition-all shadow-inner"
-                  />
+                {/* Upload Imagem de Capa */}
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-700 block">Imagem de Capa</label>
+                  <label className="border-2 border-dashed border-slate-300 hover:border-slate-500 rounded-2xl p-4 flex flex-col items-center justify-center gap-2 bg-slate-50 cursor-pointer transition-all text-center">
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      onChange={(e) => handleUploadImagem(e, 'capa')} 
+                      className="hidden" 
+                    />
+                    {enviandoCapa ? (
+                      <span className="text-xs font-bold text-slate-500 animate-pulse">Enviando capa...</span>
+                    ) : capaUrl ? (
+                      <div className="flex items-center gap-3 w-full">
+                        <img src={capaUrl} alt="Capa Preview" className="w-16 h-10 rounded-lg object-cover border" />
+                        <div className="text-left overflow-hidden">
+                          <p className="text-xs font-bold text-slate-900 truncate">Capa carregada</p>
+                          <span className="text-[10px] text-emerald-600 font-bold">Clique para alterar</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="w-10 h-10 rounded-xl bg-slate-200 text-slate-700 flex items-center justify-center shadow-inner">
+                          <ImageIcon className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-slate-800">Clique para enviar a Capa</p>
+                          <span className="text-[10px] text-slate-400">PNG, JPG ou WEBP</span>
+                        </div>
+                      </>
+                    )}
+                  </label>
                 </div>
+
               </div>
 
               <div className="space-y-2 pt-1">
