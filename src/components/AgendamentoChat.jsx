@@ -221,7 +221,7 @@ export default function AgendamentoChat({ barbeariaId }) {
         .select('*, servicos(nome), barbeiros(nome)')
         .eq('cliente_id', cliId)
         .neq('status', 'cancelado')
-        .gte('data_hora', new Date().toISOString());
+        .order('data_hora', { ascending: true });
 
       setAgendamentosCliente(agsAtivos || []);
 
@@ -577,6 +577,8 @@ export default function AgendamentoChat({ barbeariaId }) {
               ) : (
                 agendamentosCliente.map((ag) => {
                   const dataFormatada = new Date(ag.data_hora).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+                  const isConcluido = ag.status === 'concluido';
+
                   return (
                     <div key={ag.id} className={`p-4 rounded-2xl border flex items-center justify-between gap-3 backdrop-blur-md ${isClean ? 'bg-slate-50 border-slate-200' : 'bg-stone-900 border-white/10'}`}>
                       <div>
@@ -584,15 +586,25 @@ export default function AgendamentoChat({ barbeariaId }) {
                         <p className="text-[10px] font-medium" style={{ color: corTema }}>Profissional: {ag.barbeiros?.nome || 'Barbeiro'}</p>
                         <p className={`text-[10px] mt-0.5 ${isClean ? 'text-slate-600' : 'text-slate-300'}`}>📅 {dataFormatada}</p>
                       </div>
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <button onClick={() => iniciarEdicao(ag)} className="px-3 py-2 rounded-xl bg-sky-500/20 hover:bg-sky-500/30 border border-sky-500/40 text-sky-500 text-[10px] font-bold transition-all flex items-center gap-1 cursor-pointer">
-                          <Edit3 className="w-3.5 h-3.5" />
-                          <span>Editar</span>
-                        </button>
-                        <button onClick={() => cancelarAgendamento(ag.id)} className="px-3 py-2 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/40 text-rose-500 text-[10px] font-bold transition-all flex items-center gap-1 cursor-pointer">
-                          <XCircle className="w-3.5 h-3.5" />
-                          <span>Cancelar</span>
-                        </button>
+
+                      {/* Alinhado à direita: Exibe o selo de concluído ou os botões de ação */}
+                      <div className="flex items-center gap-1.5 shrink-0 ml-auto">
+                        {isConcluido ? (
+                          <span className="text-[9px] font-extrabold uppercase px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 shadow-sm">
+                            Concluído
+                          </span>
+                        ) : (
+                          <>
+                            <button onClick={() => iniciarEdicao(ag)} className="px-3 py-2 rounded-xl bg-sky-500/20 hover:bg-sky-500/30 border border-sky-500/40 text-sky-500 text-[10px] font-bold transition-all flex items-center gap-1 cursor-pointer">
+                              <Edit3 className="w-3.5 h-3.5" />
+                              <span>Editar</span>
+                            </button>
+                            <button onClick={() => cancelarAgendamento(ag.id)} className="px-3 py-2 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/40 text-rose-500 text-[10px] font-bold transition-all flex items-center gap-1 cursor-pointer">
+                              <XCircle className="w-3.5 h-3.5" />
+                              <span>Cancelar</span>
+                            </button>
+                          </>
+                        )}
                       </div>
                     </div>
                   );
