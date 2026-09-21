@@ -489,7 +489,8 @@ export default function AgendamentoChat({ barbeariaId }) {
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-4/5 h-[3px] z-30" style={{ background: `linear-gradient(to right, transparent, ${corTema}, transparent)` }}></div>
 
         <div className={`shrink-0 z-20 backdrop-blur-xl border-b ${estiloHeader}`}>
-          <div className={`relative h-24 sm:h-28 w-full overflow-hidden ${isClean ? 'bg-slate-200' : 'bg-stone-900'}`}>
+          {/* Capa maior (ajustada de h-24 sm:h-28 para h-32 sm:h-40) */}
+          <div className={`relative h-32 sm:h-40 w-full overflow-hidden ${isClean ? 'bg-slate-200' : 'bg-stone-900'}`}>
             {barbearia?.capa_url ? (
               <img src={barbearia.capa_url} alt="Capa" className="w-full h-full object-cover" />
             ) : (
@@ -500,18 +501,19 @@ export default function AgendamentoChat({ barbeariaId }) {
             <div className={`absolute inset-0 ${isClean ? 'bg-gradient-to-t from-white/95 via-white/40 to-transparent' : 'bg-gradient-to-t from-black/95 via-black/50 to-transparent'}`}></div>
           </div>
 
-          <div className="px-5 pb-3 pt-0 relative flex items-center gap-3.5 -mt-7">
-            <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-2xl p-1 shadow-2xl border overflow-hidden flex items-center justify-center shrink-0 backdrop-blur-xl ${isClean ? 'bg-white border-slate-200 shadow-md' : 'bg-black border-white/20'}`}>
+          {/* Foto de perfil maior (ajustada para w-16 h-16 sm:w-20 sm:h-20 e margem -mt-10) */}
+          <div className="px-5 pb-3.5 pt-0 relative flex items-center gap-4 -mt-10 sm:-mt-12">
+            <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-2xl p-1 shadow-2xl border-2 overflow-hidden flex items-center justify-center shrink-0 backdrop-blur-xl ${isClean ? 'bg-white border-slate-200 shadow-md' : 'bg-black border-white/30'}`}>
               {barbearia?.logo_url ? (
                 <img src={barbearia.logo_url} alt={barbearia.nome} className="w-full h-full object-cover rounded-xl" />
               ) : (
-                <div className="w-full h-full bg-gradient-to-br from-stone-800 to-black text-white rounded-xl flex items-center justify-center font-black text-sm">
+                <div className="w-full h-full bg-gradient-to-br from-stone-800 to-black text-white rounded-xl flex items-center justify-center font-black text-lg">
                   {barbearia?.nome?.charAt(0) || 'B'}
                 </div>
               )}
             </div>
-            <div>
-              <h2 className={`text-sm font-black tracking-tight ${isClean ? 'text-slate-900' : 'text-white'}`}>{barbearia?.nome}</h2>
+            <div className="pt-2">
+              <h2 className={`text-base sm:text-lg font-black tracking-tight ${isClean ? 'text-slate-900' : 'text-white'}`}>{barbearia?.nome}</h2>
               <p className="text-[10px] font-semibold uppercase tracking-wider flex items-center gap-1 mt-0.5" style={{ color: corTema }}>
                 <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: corTema }}></span>
                 Assistente Virtual Inteligente
