@@ -61,7 +61,53 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
     ? `${window.location.origin}/agendar/${slug || barbearia?.slug || 'barbearia'}`
     : `https://seuapp.com/agendar/${slug || 'barbearia'}`;
 
-  // Função auxiliar para upload de imagens no Supabase Storage
+  // Função auxiliar para redimensionar e compactar a imagem antes do upload
+  const comprimirImagem = (file, larguraMaxima = 1200, qualidade = 0.82) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target.result;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+
+          if (width > larguraMaxima) {
+            height = Math.round((height * larguraMaxima) / width);
+            width = larguraMaxima;
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+
+          canvas.toBlob(
+            (blob) => {
+              if (!blob) {
+                reject(new Error('Falha ao comprimir imagem.'));
+                return;
+              }
+              const arquivoComprimido = new File([blob], file.name.replace(/\.[^/.]+$/, '') + '.jpg', {
+                type: 'image/jpeg',
+                lastModified: Date.now(),
+              });
+              resolve(arquivoComprimido);
+            },
+            'image/jpeg',
+            qualidade
+          );
+        };
+        img.onerror = (error) => reject(error);
+      };
+      reader.onerror = (error) => reject(error);
+    });
+  };
+
+  // Função de Upload com Otimização automática
   const handleUploadImagem = async (e, tipo) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -71,14 +117,15 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
     else setEnviandoCapa(true);
 
     try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${barbearia?.id}-${tipo}-${Date.now()}.${fileExt}`;
+      const larguraMax = isLogo ? 500 : 1200;
+      const arquivoOtimizado = await comprimirImagem(file, larguraMax, 0.82);
+
+      const fileName = `${barbearia?.id}-${tipo}-${Date.now()}.jpg`;
       const filePath = `${fileName}`;
 
-      // Certifique-se de que o bucket 'barbearias' (ou o nome do seu bucket) existe no seu Supabase Storage
       const { error: uploadError } = await supabase.storage
         .from('barbearias')
-        .upload(filePath, file, { upsert: true });
+        .upload(filePath, arquivoOtimizado, { upsert: true });
 
       if (uploadError) throw uploadError;
 
