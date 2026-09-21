@@ -54,7 +54,6 @@ export default function AgendamentoChat({ barbeariaId }) {
   const estiloBotMsg = isClean ? 'bg-slate-100 border border-slate-200 text-slate-800 shadow-sm' : 'bg-stone-900 border border-white/10 text-slate-200 shadow-inner';
   const estiloInput = isClean ? 'bg-slate-100 border-slate-300 text-slate-900 placeholder-slate-400' : 'bg-stone-900 border-white/10 text-white placeholder-slate-500';
 
-  // Gerador de dias do mês (ocultando dias passados e exibindo apenas a partir de hoje no mês atual)
   const gerarDiasDoMes = () => {
     const ano = dataAtualNavegacao.getFullYear();
     const mes = dataAtualNavegacao.getMonth();
@@ -489,8 +488,7 @@ export default function AgendamentoChat({ barbeariaId }) {
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-4/5 h-[3px] z-30" style={{ background: `linear-gradient(to right, transparent, ${corTema}, transparent)` }}></div>
 
         <div className={`shrink-0 z-20 backdrop-blur-xl border-b ${estiloHeader}`}>
-          {/* Capa maior (ajustada de h-24 sm:h-28 para h-32 sm:h-40) */}
-          <div className={`relative h-32 sm:h-40 w-full overflow-hidden ${isClean ? 'bg-slate-200' : 'bg-stone-900'}`}>
+          <div className={`relative h-40 sm:h-48 w-full overflow-hidden ${isClean ? 'bg-slate-200' : 'bg-stone-900'}`}>
             {barbearia?.capa_url ? (
               <img src={barbearia.capa_url} alt="Capa" className="w-full h-full object-cover" />
             ) : (
@@ -501,18 +499,17 @@ export default function AgendamentoChat({ barbeariaId }) {
             <div className={`absolute inset-0 ${isClean ? 'bg-gradient-to-t from-white/95 via-white/40 to-transparent' : 'bg-gradient-to-t from-black/95 via-black/50 to-transparent'}`}></div>
           </div>
 
-          {/* Foto de perfil maior (ajustada para w-16 h-16 sm:w-20 sm:h-20 e margem -mt-10) */}
-          <div className="px-5 pb-3.5 pt-0 relative flex items-center gap-4 -mt-10 sm:-mt-12">
-            <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-2xl p-1 shadow-2xl border-2 overflow-hidden flex items-center justify-center shrink-0 backdrop-blur-xl ${isClean ? 'bg-white border-slate-200 shadow-md' : 'bg-black border-white/30'}`}>
+          <div className="px-5 pb-4 pt-0 relative flex items-center gap-4 -mt-12 sm:-mt-14">
+            <div className={`w-20 h-20 sm:w-24 sm:h-24 rounded-3xl p-1.5 shadow-2xl border-2 overflow-hidden flex items-center justify-center shrink-0 backdrop-blur-xl ${isClean ? 'bg-white border-slate-200 shadow-md' : 'bg-black border-white/30'}`}>
               {barbearia?.logo_url ? (
-                <img src={barbearia.logo_url} alt={barbearia.nome} className="w-full h-full object-cover rounded-xl" />
+                <img src={barbearia.logo_url} alt={barbearia.nome} className="w-full h-full object-cover rounded-2xl" />
               ) : (
-                <div className="w-full h-full bg-gradient-to-br from-stone-800 to-black text-white rounded-xl flex items-center justify-center font-black text-lg">
+                <div className="w-full h-full bg-gradient-to-br from-stone-800 to-black text-white rounded-2xl flex items-center justify-center font-black text-xl">
                   {barbearia?.nome?.charAt(0) || 'B'}
                 </div>
               )}
             </div>
-            <div className="pt-2">
+            <div className="pt-3">
               <h2 className={`text-base sm:text-lg font-black tracking-tight ${isClean ? 'text-slate-900' : 'text-white'}`}>{barbearia?.nome}</h2>
               <p className="text-[10px] font-semibold uppercase tracking-wider flex items-center gap-1 mt-0.5" style={{ color: corTema }}>
                 <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: corTema }}></span>
@@ -609,7 +606,6 @@ export default function AgendamentoChat({ barbeariaId }) {
             </div>
           )}
 
-          {/* CALENDÁRIO COM FILTRO DE MÊS E DIAS ANTERIORES OCULTOS */}
           {(etapa === 'data' || etapa === 'editar_data') && !estaDigitando && (
             <div className={`p-5 rounded-3xl border backdrop-blur-xl space-y-4 shadow-xl ${isClean ? 'bg-slate-50 border-slate-200 text-slate-900' : 'bg-stone-900 border-white/15 text-white'}`}>
               
@@ -621,7 +617,6 @@ export default function AgendamentoChat({ barbeariaId }) {
                   <span className="text-xs font-black uppercase tracking-wider">Selecione o Dia</span>
                 </div>
 
-                {/* Navegador de Meses */}
                 <div className="flex items-center gap-1.5">
                   <button 
                     onClick={voltarMes}
@@ -643,7 +638,6 @@ export default function AgendamentoChat({ barbeariaId }) {
                 </div>
               </div>
 
-              {/* Grade de Dias (Apenas de hoje em diante para o mês atual) */}
               <div className="grid grid-cols-3 sm:grid-cols-4 gap-2.5 max-h-64 overflow-y-auto pr-1">
                 {gerarDiasDoMes().map((diaObj) => {
                   const selecionado = dataEscolhida === diaObj.dataIso;
@@ -674,14 +668,17 @@ export default function AgendamentoChat({ barbeariaId }) {
 
           {etapa === 'editar_horario' && !estaDigitando && (
             <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 pt-2">
-              {horariosDisponiveisAtuais.map((h) => {
-                const ocupado = horariosOcupados.includes(h);
-                return (
-                  <button key={h} disabled={ocupado || loading} onClick={() => salvarEdicaoHorario(h)} className={`py-2.5 rounded-xl text-xs font-black border transition-all backdrop-blur-md ${ocupado ? 'bg-slate-500/10 text-slate-400 border-slate-200 line-through opacity-40 cursor-not-allowed' : isClean ? 'bg-slate-100 text-slate-800 border-slate-300 cursor-pointer hover:border-emerald-700' : 'bg-stone-900 text-white border-white/10 cursor-pointer hover:border-white/30'}`}>
-                    {h}
-                  </button>
-                );
-              })}
+              {horariosDisponiveisAtuais.filter(h => !horariosOcupados.includes(h)).length === 0 ? (
+                <p className="text-xs text-rose-500 font-semibold italic text-center col-span-full py-4">⚠️ Nenhum horário disponível nesta data.</p>
+              ) : (
+                horariosDisponiveisAtuais
+                  .filter(h => !horariosOcupados.includes(h))
+                  .map((h) => (
+                    <button key={h} disabled={loading} onClick={() => salvarEdicaoHorario(h)} className={`py-2.5 rounded-xl text-xs font-black border transition-all backdrop-blur-md cursor-pointer ${isClean ? 'bg-slate-100 text-slate-800 border-slate-300 hover:border-emerald-700' : 'bg-stone-900 text-white border-white/10 hover:border-white/30'}`}>
+                      {h}
+                    </button>
+                  ))
+              )}
             </div>
           )}
 
@@ -732,30 +729,29 @@ export default function AgendamentoChat({ barbeariaId }) {
 
           {etapa === 'horario' && !estaDigitando && (
             <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 pt-2">
-              {horariosDisponiveisAtuais.length === 0 ? (
-                <p className="text-xs text-rose-500 font-semibold italic text-center col-span-full py-4">⚠️ Esta data está bloqueada (Feriado ou Folga).</p>
+              {horariosDisponiveisAtuais.filter(h => !horariosOcupados.includes(h)).length === 0 ? (
+                <p className="text-xs text-rose-500 font-semibold italic text-center col-span-full py-4">⚠️ Nenhum horário disponível nesta data (Agenda cheia ou estabelecimento fechado).</p>
               ) : (
-                horariosDisponiveisAtuais.map((h) => {
-                  const ocupado = horariosOcupados.includes(h);
-                  const selecionado = horaEscolhida === h;
-                  return (
-                    <button
-                      key={h}
-                      disabled={ocupado || loading}
-                      onClick={() => selecionarHorario(h)}
-                      className={`py-2.5 rounded-xl text-xs font-black border transition-all backdrop-blur-md ${
-                        ocupado
-                          ? 'bg-slate-500/10 text-slate-400 border-slate-200 line-through opacity-40 cursor-not-allowed'
-                          : selecionado
-                          ? 'text-white shadow-lg scale-105'
-                          : isClean ? 'bg-slate-100 text-slate-800 border-slate-300 cursor-pointer hover:border-emerald-700' : 'bg-stone-900 text-white border-white/10 cursor-pointer hover:border-white/30'
-                      }`}
-                      style={selecionado ? { backgroundColor: corTema, borderColor: corTema } : {}}
-                    >
-                      {h}
-                    </button>
-                  );
-                })
+                horariosDisponiveisAtuais
+                  .filter(h => !horariosOcupados.includes(h))
+                  .map((h) => {
+                    const selecionado = horaEscolhida === h;
+                    return (
+                      <button
+                        key={h}
+                        disabled={loading}
+                        onClick={() => selecionarHorario(h)}
+                        className={`py-2.5 rounded-xl text-xs font-black border transition-all backdrop-blur-md cursor-pointer ${
+                          selecionado
+                            ? 'text-white shadow-lg scale-105'
+                            : isClean ? 'bg-slate-100 text-slate-800 border-slate-300 hover:border-emerald-700' : 'bg-stone-900 text-white border-white/10 hover:border-white/30'
+                        }`}
+                        style={selecionado ? { backgroundColor: corTema, borderColor: corTema } : {}}
+                      >
+                        {h}
+                      </button>
+                    );
+                  })
               )}
             </div>
           )}
