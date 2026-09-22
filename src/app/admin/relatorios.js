@@ -227,9 +227,7 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
 
       </div>
 
-      {/* =========================================================
-          BLOCO ÚNICO INTEGRADO: FILTRO DISTRIBUÍDO, ABAS E CONTEÚDO
-          ========================================================= */}
+      {/* BLOCO ÚNICO INTEGRADO */}
       <div 
         className="relative rounded-[2.5rem] p-5 sm:p-8 border border-white/80 overflow-hidden shadow-sm space-y-6"
         style={{
@@ -238,14 +236,13 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
         }}
       >
         
-        {/* Topo com Título e Filtro de Mês/Ano Distribuído (Sem cortes) */}
+        {/* Topo com Título e Filtro de Mês/Ano */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-5 border-b border-stone-300/60 gap-3">
           <h2 className="text-lg sm:text-xl font-extrabold text-stone-900 flex items-center gap-3 tracking-tight">
             <span className="w-3 h-3 bg-[#111111] rounded-full shadow-[0_0_8px_rgba(17,17,17,0.4)]"></span>
             Relatório Financeiro
           </h2>
           
-          {/* Seletor com largura total em mobile e botão Atual alinhado à direita */}
           <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
             <div className="inline-flex items-center gap-2 bg-white px-4 py-2.5 rounded-2xl text-xs font-bold text-stone-700 border border-stone-200 shadow-xs flex-1 sm:flex-initial">
               <Calendar className="w-4 h-4 text-stone-500 shrink-0" />
@@ -270,15 +267,15 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
           </div>
         </div>
 
-        {/* 4 Botões de Abas Integrados */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        {/* ABAS EM FORMATO DE SLIDE HORIZONTAL COM BOTÕES MAIORES */}
+        <div className="flex overflow-x-auto pb-2 gap-3 no-scrollbar scroll-smooth">
           
           {/* Aba 1: Atendimentos */}
           <button
             onClick={() => setSecaoAtiva('atendimentos')}
-            className={`py-3 px-4 rounded-2xl transition-all cursor-pointer flex items-center justify-center gap-2 text-xs font-bold ${
+            className={`py-3.5 px-6 rounded-2xl transition-all cursor-pointer flex items-center justify-center gap-2.5 text-xs font-bold shrink-0 min-w-[150px] ${
               secaoAtiva === 'atendimentos'
-                ? 'text-white border border-stone-700/50 shadow-sm'
+                ? 'text-white border border-stone-700/50 shadow-md scale-[1.02]'
                 : 'bg-white/90 hover:bg-white text-stone-700 border border-stone-200/80 shadow-xs'
             }`}
             style={secaoAtiva === 'atendimentos' ? {
@@ -287,15 +284,15 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
             } : {}}
           >
             <CheckCircle2 className={`w-4 h-4 shrink-0 ${secaoAtiva === 'atendimentos' ? 'text-emerald-400' : 'text-stone-500'}`} />
-            <span className="truncate">Atendimentos</span>
+            <span>Atendimentos</span>
           </button>
 
           {/* Aba 2: Comissões */}
           <button
             onClick={() => setSecaoAtiva('comissoes')}
-            className={`py-3 px-4 rounded-2xl transition-all cursor-pointer flex items-center justify-center gap-2 text-xs font-bold ${
+            className={`py-3.5 px-6 rounded-2xl transition-all cursor-pointer flex items-center justify-center gap-2.5 text-xs font-bold shrink-0 min-w-[150px] ${
               secaoAtiva === 'comissoes'
-                ? 'text-white border border-stone-700/50 shadow-sm'
+                ? 'text-white border border-stone-700/50 shadow-md scale-[1.02]'
                 : 'bg-white/90 hover:bg-white text-stone-700 border border-stone-200/80 shadow-xs'
             }`}
             style={secaoAtiva === 'comissoes' ? {
@@ -304,15 +301,15 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
             } : {}}
           >
             <Percent className={`w-4 h-4 shrink-0 ${secaoAtiva === 'comissoes' ? 'text-emerald-400' : 'text-stone-500'}`} />
-            <span className="truncate">Comissões</span>
+            <span>Comissões</span>
           </button>
 
           {/* Aba 3: Despesas */}
           <button
             onClick={() => setSecaoAtiva('despesas')}
-            className={`py-3 px-4 rounded-2xl transition-all cursor-pointer flex items-center justify-center gap-2 text-xs font-bold ${
+            className={`py-3.5 px-6 rounded-2xl transition-all cursor-pointer flex items-center justify-center gap-2.5 text-xs font-bold shrink-0 min-w-[150px] ${
               secaoAtiva === 'despesas'
-                ? 'text-white border border-stone-700/50 shadow-sm'
+                ? 'text-white border border-stone-700/50 shadow-md scale-[1.02]'
                 : 'bg-white/90 hover:bg-white text-stone-700 border border-stone-200/80 shadow-xs'
             }`}
             style={secaoAtiva === 'despesas' ? {
@@ -321,15 +318,15 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
             } : {}}
           >
             <Receipt className={`w-4 h-4 shrink-0 ${secaoAtiva === 'despesas' ? 'text-rose-400' : 'text-stone-500'}`} />
-            <span className="truncate">Despesas</span>
+            <span>Despesas</span>
           </button>
 
           {/* Aba 4: Cancelados */}
           <button
             onClick={() => setSecaoAtiva('cancelados')}
-            className={`py-3 px-4 rounded-2xl transition-all cursor-pointer flex items-center justify-center gap-2 text-xs font-bold ${
+            className={`py-3.5 px-6 rounded-2xl transition-all cursor-pointer flex items-center justify-center gap-2.5 text-xs font-bold shrink-0 min-w-[150px] ${
               secaoAtiva === 'cancelados'
-                ? 'text-white border border-stone-700/50 shadow-sm'
+                ? 'text-white border border-stone-700/50 shadow-md scale-[1.02]'
                 : 'bg-white/90 hover:bg-white text-stone-700 border border-stone-200/80 shadow-xs'
             }`}
             style={secaoAtiva === 'cancelados' ? {
@@ -338,14 +335,12 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
             } : {}}
           >
             <XCircle className={`w-4 h-4 shrink-0 ${secaoAtiva === 'cancelados' ? 'text-amber-400' : 'text-stone-500'}`} />
-            <span className="truncate">Cancelados</span>
+            <span>Cancelados</span>
           </button>
 
         </div>
 
-        {/* =========================================================
-            CONTEÚDO DINÂMICO DENTRO DO MESMO BLOCO
-            ========================================================= */}
+        {/* CONTEÚDO DINÂMICO */}
         <div className="pt-2 animate-fadeIn">
           
           {/* 1. ATENDIMENTOS REALIZADOS */}

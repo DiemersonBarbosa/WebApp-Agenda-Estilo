@@ -294,13 +294,21 @@ export default function AgendamentoChat({ barbeariaId }) {
           setNome(cliExistente.nome);
           const agsAtivos = await carregarDadosCliente(cliExistente.id);
 
+          const temFidelidade = barbearia?.fidelidade_ativa !== false;
+          const msgTexto = temFidelidade 
+            ? `Que bom vê-lo novamente, ${cliExistente.nome}! Verificamos os seus agendamentos e o seu cartão fidelidade abaixo:`
+            : `Que bom vê-lo novamente, ${cliExistente.nome}! Verificamos os seus agendamentos abaixo:`;
+
           if (agsAtivos.length > 0) {
-            adicionarMensagemBotComDelay(`Que bom vê-lo novamente, ${cliExistente.nome}! Verificamos os seus agendamentos e o seu cartão fidelidade abaixo:`, 'menu_inicial');
+            adicionarMensagemBotComDelay(msgTexto, 'menu_inicial');
           } else {
             if (barbearia?.permite_agendamentos === false) {
               adicionarMensagemBotComDelay(`Que bom vê-lo novamente, ${cliExistente.nome}! No momento, os agendamentos online estão pausados pela barbearia.`, 'menu_inicial');
             } else {
-              adicionarMensagemBotComDelay(`Que bom vê-lo novamente, ${cliExistente.nome}! Confira também o seu cartão fidelidade e escolha o serviço desejado:`, 'servico');
+              const msgNovo = temFidelidade
+                ? `Que bom vê-lo novamente, ${cliExistente.nome}! Confira também o seu cartão fidelidade e escolha o serviço desejado:`
+                : `Que bom vê-lo novamente, ${cliExistente.nome}! Escolha o serviço desejado:`;
+              adicionarMensagemBotComDelay(msgNovo, 'servico');
             }
           }
         } else {
@@ -342,7 +350,8 @@ export default function AgendamentoChat({ barbeariaId }) {
       setMensagens((prev) => [...prev, { remetente: 'usuario', texto: 'Fazer novo agendamento' }]);
       adicionarMensagemBotComDelay('Perfeito! Escolha o serviço que deseja realizar:', 'servico');
     } else if (opcao === 'gerenciar') {
-      setMensagens((prev) => [...prev, { remetente: 'usuario', texto: 'Ver meus agendamentos e selos' }]);
+      const textoOpcao = barbearia?.fidelidade_ativa !== false ? 'Ver / Gerenciar meus agendamentos e selos' : 'Ver / Gerenciar meus agendamentos';
+      setMensagens((prev) => [...prev, { remetente: 'usuario', texto: textoOpcao }]);
       carregarDadosCliente(clienteId);
       adicionarMensagemBotComDelay('Aqui estão os seus dados atualizados:', 'gerenciar');
     }
@@ -445,6 +454,9 @@ export default function AgendamentoChat({ barbeariaId }) {
   };
 
   const renderCartaoFidelidade = () => {
+    // Se a barbearia desativou a fidelidade, não renderiza o componente
+    if (barbearia?.fidelidade_ativa === false) return null;
+
     const selos = dadosFidelidade?.selos_atuais || 0;
     const percentual = Math.min(100, (selos / metaSelos) * 100);
     const atingiuMeta = selos >= metaSelos;
@@ -461,6 +473,7 @@ export default function AgendamentoChat({ barbeariaId }) {
           <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border ${atingiuMeta ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40' : isClean ? 'bg-slate-200 text-slate-700 border-slate-300' : 'bg-amber-500/20 text-amber-400 border-amber-500/40'}`}>
             {atingiuMeta ? '🎁 Resgate Disponível!' : `${selos} / ${metaSelos} Selos`}
           </span>
+
         </div>
         <div className="space-y-1.5">
           <div className={`w-full h-2.5 rounded-full overflow-hidden p-0.5 border ${isClean ? 'bg-slate-200 border-slate-300' : 'bg-stone-950 border-slate-800'}`}>
@@ -564,7 +577,7 @@ export default function AgendamentoChat({ barbeariaId }) {
                 </button>
               )}
               <button onClick={() => escolherOpcaoMenu('gerenciar')} className={`p-3.5 rounded-2xl border text-left flex items-center justify-between transition-all cursor-pointer backdrop-blur-md font-bold text-xs ${isClean ? 'bg-slate-100 border-slate-200 text-slate-800' : 'bg-stone-900 border-white/10 text-white'}`}>
-                <span>Ver / Gerenciar meus agendamentos</span>
+                <span>{barbearia?.fidelidade_ativa !== false ? 'Ver / Gerenciar meus agendamentos e selos' : 'Ver / Gerenciar meus agendamentos'}</span>
                 <CalendarIcon className="w-4 h-4 text-slate-400" />
               </button>
             </div>
@@ -587,7 +600,6 @@ export default function AgendamentoChat({ barbeariaId }) {
                         <p className={`text-[10px] mt-0.5 ${isClean ? 'text-slate-600' : 'text-slate-300'}`}>📅 {dataFormatada}</p>
                       </div>
 
-                      {/* Alinhado à direita: Exibe o selo de concluído ou os botões de ação */}
                       <div className="flex items-center gap-1.5 shrink-0 ml-auto">
                         {isConcluido ? (
                           <span className="text-[9px] font-extrabold uppercase px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 shadow-sm">
@@ -796,7 +808,7 @@ export default function AgendamentoChat({ barbeariaId }) {
                   </button>
                 )}
                 <button onClick={() => { carregarDadosCliente(clienteId); setEtapa('gerenciar'); }} className={`w-full py-3 rounded-2xl font-bold text-xs transition-all cursor-pointer border ${isClean ? 'bg-slate-200 border-slate-300 text-slate-800' : 'bg-stone-900 text-white border-white/10'}`}>
-                  Ver Meus Agendamentos e Selos
+                  {barbearia?.fidelidade_ativa !== false ? 'Ver Meus Agendamentos e Selos' : 'Ver Meus Agendamentos'}
                 </button>
               </div>
             </div>

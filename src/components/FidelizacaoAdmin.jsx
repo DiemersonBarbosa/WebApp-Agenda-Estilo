@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Award, Gift, Users, Search, Settings, History, Plus, Minus, Edit3, Trash2, X, Check } from 'lucide-react';
+import { Award, Gift, Users, Search, Settings, History, Plus, Minus, Edit3, Trash2, X, Check, Power } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 export default function FidelizacaoAdmin({ barbeariaId }) {
@@ -11,6 +11,7 @@ export default function FidelizacaoAdmin({ barbeariaId }) {
   const [busca, setBusca] = useState('');
   
   const [metaSelos, setMetaSelos] = useState(10);
+  const [fidelidadeAtiva, setFidelidadeAtiva] = useState(true);
   const [premioDescricao, setPremioDescricao] = useState('Corte Grátis');
   
   const [clienteEmEdicao, setClienteEmEdicao] = useState(null);
@@ -35,8 +36,13 @@ export default function FidelizacaoAdmin({ barbeariaId }) {
           .eq('id', barbeariaId)
           .single();
 
-        if (barbData && barbData.meta_fidelidade) {
-          setMetaSelos(barbData.meta_fidelidade);
+        if (barbData) {
+          if (barbData.meta_fidelidade) {
+            setMetaSelos(barbData.meta_fidelidade);
+          }
+          if (barbData.fidelidade_ativa !== undefined) {
+            setFidelidadeAtiva(barbData.fidelidade_ativa);
+          }
         }
 
         const { data: cliData } = await supabase
@@ -86,7 +92,10 @@ export default function FidelizacaoAdmin({ barbeariaId }) {
     try {
       const { error } = await supabase
         .from('barbearias')
-        .update({ meta_fidelidade: metaSelos })
+        .update({ 
+          meta_fidelidade: metaSelos,
+          fidelidade_ativa: fidelidadeAtiva 
+        })
         .eq('id', barbeariaId);
 
       if (error) throw error;
@@ -241,10 +250,9 @@ export default function FidelizacaoAdmin({ barbeariaId }) {
   return (
     <div className="max-w-7xl mx-auto space-y-6 pb-28 px-2 sm:px-0 text-slate-800 font-sans">
       
-      {/* 1. TOPO: 4 CARDS NO MESMO PADRÃO DA ABA AGENDAMENTOS */}
+      {/* 1. TOPO: 4 CARDS */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         
-        {/* Card 1 */}
         <div 
           className="relative rounded-[2.5rem] p-5 flex items-center justify-between border border-white/10 shadow-2xl overflow-hidden text-white"
           style={{ background: 'linear-gradient(135deg, #18181b 0%, #09090b 50%, #000000 100%)' }}
@@ -258,7 +266,6 @@ export default function FidelizacaoAdmin({ barbeariaId }) {
           </div>
         </div>
 
-        {/* Card 2 */}
         <div 
           className="relative rounded-[2.5rem] p-5 flex items-center justify-between border border-white/10 shadow-2xl overflow-hidden text-white"
           style={{ background: 'linear-gradient(135deg, #18181b 0%, #09090b 50%, #000000 100%)' }}
@@ -272,7 +279,6 @@ export default function FidelizacaoAdmin({ barbeariaId }) {
           </div>
         </div>
 
-        {/* Card 3 */}
         <div 
           className="relative rounded-[2.5rem] p-5 flex items-center justify-between border border-white/10 shadow-2xl overflow-hidden text-white"
           style={{ background: 'linear-gradient(135deg, #18181b 0%, #09090b 50%, #000000 100%)' }}
@@ -286,35 +292,47 @@ export default function FidelizacaoAdmin({ barbeariaId }) {
           </div>
         </div>
 
-        {/* Card 4 (Ajustes - Clicável para abrir Modal)[cite: 16] */}
         <div 
           onClick={() => setModalAjustesOpen(true)}
           className="relative rounded-[2.5rem] p-5 flex items-center justify-between bg-white border border-slate-200/80 shadow-lg cursor-pointer transition-all hover:border-emerald-700/50 hover:shadow-xl group"
         >
           <div className="min-w-0 pr-2">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">REGISTROS</span>
-            <span className="text-sm font-black text-slate-900 mt-1 block truncate group-hover:text-emerald-900 transition-colors">Ajustes</span>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">STATUS</span>
+            <span className={`text-sm font-black mt-1 block truncate transition-colors ${fidelidadeAtiva ? 'text-emerald-700' : 'text-rose-600'}`}>
+              {fidelidadeAtiva ? 'Ativo' : 'Desativado'}
+            </span>
           </div>
-          <div className="w-12 h-12 rounded-2xl bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0 shadow-inner text-slate-900 group-hover:bg-emerald-900 group-hover:text-white transition-all">
+          <div className={`w-12 h-12 rounded-2xl border flex items-center justify-center shrink-0 shadow-inner transition-all ${fidelidadeAtiva ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-rose-50 border-rose-200 text-rose-600'}`}>
             <Settings className="w-5 h-5" />
           </div>
         </div>
 
       </div>
 
+      {/* AVISO CASO ESTEJA DESATIVADO */}
+      {!fidelidadeAtiva && (
+        <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 text-xs flex items-center justify-between shadow-xs">
+          <span>⚠️ O programa de fidelidade está atualmente <strong>desativado</strong> para os seus clientes. Você ainda pode gerenciar os dados abaixo, mas eles não visualizarão o progresso na página de agendamento.</span>
+          <button 
+            onClick={() => setModalAjustesOpen(true)}
+            className="px-3 py-1.5 bg-amber-800 text-white rounded-xl font-bold text-[10px] shrink-0 ml-3 hover:bg-amber-900 transition-colors"
+          >
+            Ativar Agora
+          </button>
+        </div>
+      )}
+
       {/* 2. GRANDE PAINEL CENTRAL (GESTÃO DE CLIENTES) */}
       <div className="p-6 sm:p-8 rounded-[2.5rem] bg-white border border-slate-200/80 shadow-xl space-y-6">
         
-        {/* CABEÇALHO DO PAINEL */}
         <div className="flex items-center gap-3 pb-4 border-b border-slate-100">
-          <div className="w-3 h-3 rounded-full bg-emerald-700 shadow-sm"></div>
+          <div className={`w-3 h-3 rounded-full shadow-sm ${fidelidadeAtiva ? 'bg-emerald-700' : 'bg-slate-400'}`}></div>
           <div>
             <h2 className="font-black text-slate-900 text-base tracking-tight">Gestão de Clientes e Metas de Fidelidade</h2>
-            <p className="text-xs text-slate-500 mt-0.5">Controle o progresso dos selos e gerencie os cartões dos clientes[cite: 9].</p>
+            <p className="text-xs text-slate-500 mt-0.5">Controle o progresso dos selos e gerencie os cartões dos clientes.</p>
           </div>
         </div>
 
-        {/* BARRA DE PESQUISA */}
         <div className="relative w-full">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input
@@ -326,7 +344,6 @@ export default function FidelizacaoAdmin({ barbeariaId }) {
           />
         </div>
 
-        {/* GRELHA DE CARTÕES DOS CLIENTES */}
         {loading ? (
           <p className="text-xs text-slate-400 py-12 text-center animate-pulse">Carregando cartões de clientes...</p>
         ) : clientesFiltrados.length === 0 ? (
@@ -451,7 +468,7 @@ export default function FidelizacaoAdmin({ barbeariaId }) {
         )}
       </div>
 
-      {/* MODAL DE AJUSTES (CONFIGURAÇÃO DE META) */}
+      {/* MODAL DE AJUSTES (CONFIGURAÇÃO DE META E STATUS) */}
       {modalAjustesOpen && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="w-full max-w-md p-6 rounded-3xl bg-white border border-slate-200 shadow-2xl space-y-4 animate-scale-up">
@@ -468,7 +485,27 @@ export default function FidelizacaoAdmin({ barbeariaId }) {
               </button>
             </div>
 
-            <div className="space-y-3 py-2">
+            <div className="space-y-4 py-2">
+              {/* BOTÃO DE ATIVAR / DESATIVAR */}
+              <div className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 border border-slate-200">
+                <div className="space-y-0.5">
+                  <span className="text-xs font-bold text-slate-900 block">Status do Programa</span>
+                  <span className="text-[10px] text-slate-500 block">Habilitar ou desabilitar o sistema de fidelidade.</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setFidelidadeAtiva(!fidelidadeAtiva)}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow-xs ${
+                    fidelidadeAtiva 
+                      ? 'bg-emerald-700 text-white' 
+                      : 'bg-slate-200 text-slate-700'
+                  }`}
+                >
+                  <Power className="w-3.5 h-3.5" />
+                  <span>{fidelidadeAtiva ? 'Ativado' : 'Desativado'}</span>
+                </button>
+              </div>
+
               <div>
                 <label className="text-[11px] font-bold text-slate-700 block mb-1">Meta de Selos para Resgate</label>
                 <p className="text-[10px] text-slate-400 mb-2">Defina quantos selos o cliente precisa acumular para ganhar o prêmio.</p>
