@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Store, Save, Check, ExternalLink, Share2, Copy, MessageCircle, 
   Send, X, MessageSquare, Bot, Grid, Palette, Moon, BellRing, 
@@ -11,6 +11,18 @@ import { supabase } from '@/lib/supabase';
 
 export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
   const [abaAtiva, setAbaAtiva] = useState('geral');
+  const scrollContainerRef = useRef(null);
+
+  const rolarParaBotao = (e) => {
+    const elemento = e.currentTarget;
+    if (scrollContainerRef.current) {
+      elemento.scrollIntoView({
+        behavior: 'smooth',
+        inline: 'center',
+        block: 'nearest'
+      });
+    }
+  };
 
   const [nome, setNome] = useState(barbearia?.nome || '');
   const [slug, setSlug] = useState(barbearia?.slug || '');
@@ -270,12 +282,12 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 pb-28 px-4 sm:px-6 text-slate-900 font-sans">
+    <div className="w-full mx-auto space-y-6 pb-28 px-0 sm:px-4 text-slate-900 font-sans">
       
       <form onSubmit={handleSubmit} className="space-y-6">
         
         {/* Banner de Capa & Ações Rápidas */}
-        <div className="rounded-[2.5rem] bg-white border border-slate-200 shadow-xl overflow-hidden">
+        <div className="rounded-none sm:rounded-[2.5rem] bg-white border-y sm:border border-slate-200 shadow-xl overflow-hidden">
           <div className="relative h-44 sm:h-52 w-full bg-[#090a0f] overflow-hidden border-b border-white/10">
             {capaUrl ? (
               <img src={capaUrl} alt="Capa" className="w-full h-full object-cover opacity-90" />
@@ -290,7 +302,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
               <button 
                 type="button"
                 onClick={() => setModalCompartilharOpen(true)}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-black/70 hover:bg-black/90 backdrop-blur-md rounded-xl text-xs font-semibold text-white shadow transition-all cursor-pointer border border-white/20 active:scale-95"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-black/75 hover:bg-black/90 backdrop-blur-md rounded-xl text-xs font-semibold text-white shadow transition-all cursor-pointer border border-white/20 active:scale-95"
               >
                 <Share2 className="w-3.5 h-3.5 text-slate-200" />
                 <span>Compartilhar</span>
@@ -299,7 +311,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                 href={`/agendar/${slug || 'barbearia'}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center justify-center w-9 h-9 bg-black/70 hover:bg-black/90 backdrop-blur-md rounded-xl text-white shadow transition-all cursor-pointer border border-white/20"
+                className="inline-flex items-center justify-center w-9 h-9 bg-black/75 hover:bg-black/90 backdrop-blur-md rounded-xl text-white shadow transition-all cursor-pointer border border-white/20"
                 title="Abrir página pública"
               >
                 <ExternalLink className="w-4 h-4 text-slate-200" />
@@ -307,7 +319,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
             </div>
           </div>
 
-          <div className="px-6 sm:px-8 pb-6 pt-0 relative flex flex-col sm:flex-row items-center sm:items-end justify-between gap-4 -mt-14 sm:-mt-16 mb-6">
+          <div className="px-4 sm:px-8 pb-6 pt-0 relative flex flex-col sm:flex-row items-center sm:items-end justify-between gap-4 -mt-14 sm:-mt-16 mb-6">
             <div className="flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
               <div className="relative z-20">
                 <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl bg-black p-1 shadow-2xl border-2 border-white/30 overflow-hidden flex items-center justify-center">
@@ -328,8 +340,11 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
             </div>
           </div>
 
-          {/* MENU DE ABAS SUPERIOR */}
-          <div className="px-6 border-t border-slate-200 bg-slate-50 flex gap-2 overflow-x-auto py-2.5">
+          {/* MENU DE ABAS EM FORMATO DE SLIDE HORIZONTAL */}
+          <div 
+            ref={scrollContainerRef}
+            className="px-4 sm:px-8 border-t border-slate-200 bg-slate-50 flex gap-3 overflow-x-auto py-3.5 no-scrollbar scroll-smooth snap-x snap-mandatory"
+          >
             {[
               { id: 'geral', label: 'Geral & Perfil', icon: Store },
               { id: 'visual', label: 'Visual & Mídia', icon: Palette },
@@ -341,22 +356,29 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                 <button
                   key={aba.id}
                   type="button"
-                  onClick={() => setAbaAtiva(aba.id)}
-                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                  onClick={(e) => {
+                    setAbaAtiva(aba.id);
+                    rolarParaBotao(e);
+                  }}
+                  className={`flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-2xl text-xs font-bold transition-all shrink-0 min-w-[170px] snap-center cursor-pointer ${
                     ativa 
-                      ? 'bg-slate-900 text-white shadow-sm' 
-                      : 'bg-white text-slate-600 hover:bg-slate-200/60 border border-slate-200/80'
+                      ? 'text-white border border-stone-700/50 shadow-md scale-[1.02]' 
+                      : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200/90 shadow-xs'
                   }`}
+                  style={ativa ? {
+                    background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
+                    boxShadow: 'inset 0 1px 2px rgba(255, 255, 255, 0.2)'
+                  } : {}}
                 >
-                  <Icone className={`w-3.5 h-3.5 ${ativa ? 'text-emerald-400' : 'text-slate-500'}`} />
-                  <span>{aba.label}</span>
+                  <Icone className={`w-4 h-4 shrink-0 ${ativa ? 'text-emerald-400' : 'text-slate-500'}`} />
+                  <span className="truncate">{aba.label}</span>
                 </button>
               );
             })}
           </div>
 
           {/* CONTEÚDO DINÂMICO DAS ABAS */}
-          <div className="px-6 sm:px-8 py-8 space-y-6 bg-white text-slate-900 min-h-[320px]">
+          <div className="px-4 sm:px-8 py-8 space-y-6 bg-white text-slate-900 min-h-[320px]">
             
             {/* ABA 1: GERAL & PERFIL */}
             {abaAtiva === 'geral' && (
@@ -621,7 +643,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
         </div>
 
         {/* Botão de Salvar Global */}
-        <div className="pt-2">
+        <div className="pt-2 px-3 sm:px-0">
           <button
             type="submit"
             disabled={salvando}

@@ -976,44 +976,40 @@ const handleSaveBarbeiro = async (e) => {
 {/* =========================================================
     2. CABEÇALHO MOBILE CLEAN (Abaixo do aviso)
     ========================================================= */}
-{/* CABEÇALHO FLUTUANTE (Estilo Dinâmico / Glassmorphism) */}
-{/* CABEÇALHO FLUTUANTE DE PONTA A PONTA (Glassmorphism & Clean) */}
 <header className="w-full sticky top-0 z-30 md:hidden">
-  <div className="w-full bg-white/80 backdrop-blur-xl border-b border-white/80 px-5 py-4 flex items-center justify-between shadow-[0_10px_30px_rgba(0,0,0,0.04)]">
+  {/* Reduzido de py-4 para py-2.5 para diminuir a altura e o espaço vertical */}
+  <div className="w-full bg-white/80 backdrop-blur-xl border-b border-white/80 px-5 py-2.5 flex items-center justify-between shadow-[0_10px_30px_rgba(0,0,0,0.04)]">
     
     {/* Perfil & Nome da Barbearia */}
-    <div className="flex items-center gap-3.5 min-w-0">
+    <div className="flex items-center gap-3 min-w-0">
       {barbearia?.logo || barbearia?.logo_url || barbearia?.avatar || barbearia?.imagem ? (
         <div className="relative">
           <img 
             src={barbearia.logo || barbearia.logo_url || barbearia.avatar || barbearia.imagem} 
             alt="Logo" 
-            className="w-11 h-11 rounded-2xl object-cover border border-white/90 shadow-sm"
+            className="w-10 h-10 rounded-2xl object-cover border border-white/90 shadow-sm"
           />
-          <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full"></span>
+          <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 border-2 border-white rounded-full"></span>
         </div>
       ) : (
-        <div className="w-11 h-11 bg-stone-900 text-white rounded-2xl flex items-center justify-center font-bold text-sm shadow-sm">
+        <div className="w-10 h-10 bg-stone-900 text-white rounded-2xl flex items-center justify-center font-bold text-sm shadow-sm">
           {(barbearia?.nome || 'B').charAt(0)}
         </div>
       )}
       <div className="min-w-0">
-        <h1 className="font-black text-stone-900 text-base tracking-tight truncate">
+        <h1 className="font-black text-stone-900 text-sm tracking-tight truncate">
           {barbearia?.nome || 'Patyoliiiver'}
         </h1>
       </div>
     </div>
 
     {/* Ações Rápidas do Topo (Notificação + Configurações) */}
-    <div className="flex items-center gap-2.5">
-<NotificacoesBell barbeariaId={barbearia?.id} supabase={supabase} />
-
-
-      
+    <div className="flex items-center gap-2">
+      <NotificacoesBell barbeariaId={barbearia?.id} supabase={supabase} />
 
       <button 
         onClick={() => setModalInfoAssinaturaOpen(true)} 
-        className="w-10 h-10 rounded-full bg-white border border-stone-200/80 flex items-center justify-center text-stone-700 shadow-xs hover:bg-stone-50 transition-colors cursor-pointer"
+        className="w-9 h-9 rounded-full bg-white border border-stone-200/80 flex items-center justify-center text-stone-700 shadow-xs hover:bg-stone-50 transition-colors cursor-pointer"
         title="Ajustes"
       >
         <Settings className="w-4 h-4" />

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { TrendingUp, TrendingDown, DollarSign, PieChart, Calendar, CheckCircle2, Percent, Receipt, XCircle } from 'lucide-react';
 
 export default function RelatoriosPage({ agendamentos = [], despesas = [], barbeiros = [], servicos = [], barbearia = {} }) {
@@ -12,6 +12,18 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
   });
 
   const [secaoAtiva, setSecaoAtiva] = useState('atendimentos');
+  const scrollContainerRef = useRef(null);
+
+  const rolarParaBotao = (e) => {
+    const elemento = e.currentTarget;
+    if (scrollContainerRef.current) {
+      elemento.scrollIntoView({
+        behavior: 'smooth',
+        inline: 'center',
+        block: 'nearest'
+      });
+    }
+  };
 
   const getNomeCliente = (item) => {
     return item.clientes?.nome || item.cliente_nome || item.nome_cliente || item.cliente?.name || 'Cliente';
@@ -267,13 +279,19 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
           </div>
         </div>
 
-        {/* ABAS EM FORMATO DE SLIDE HORIZONTAL COM BOTÕES MAIORES */}
-        <div className="flex overflow-x-auto pb-2 gap-3 no-scrollbar scroll-smooth">
+        {/* CARROSSEL DE ABAS COM ROLAGEM OTIMIZADA */}
+        <div 
+          ref={scrollContainerRef}
+          className="flex overflow-x-auto pb-2 gap-3 no-scrollbar scroll-smooth snap-x snap-mandatory px-1"
+        >
           
           {/* Aba 1: Atendimentos */}
           <button
-            onClick={() => setSecaoAtiva('atendimentos')}
-            className={`py-3.5 px-6 rounded-2xl transition-all cursor-pointer flex items-center justify-center gap-2.5 text-xs font-bold shrink-0 min-w-[150px] ${
+            onClick={(e) => {
+              setSecaoAtiva('atendimentos');
+              rolarParaBotao(e);
+            }}
+            className={`py-3.5 px-5 rounded-2xl transition-all cursor-pointer flex items-center justify-center gap-2 text-xs font-bold shrink-0 min-w-[140px] snap-center ${
               secaoAtiva === 'atendimentos'
                 ? 'text-white border border-stone-700/50 shadow-md scale-[1.02]'
                 : 'bg-white/90 hover:bg-white text-stone-700 border border-stone-200/80 shadow-xs'
@@ -289,8 +307,11 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
 
           {/* Aba 2: Comissões */}
           <button
-            onClick={() => setSecaoAtiva('comissoes')}
-            className={`py-3.5 px-6 rounded-2xl transition-all cursor-pointer flex items-center justify-center gap-2.5 text-xs font-bold shrink-0 min-w-[150px] ${
+            onClick={(e) => {
+              setSecaoAtiva('comissoes');
+              rolarParaBotao(e);
+            }}
+            className={`py-3.5 px-5 rounded-2xl transition-all cursor-pointer flex items-center justify-center gap-2 text-xs font-bold shrink-0 min-w-[140px] snap-center ${
               secaoAtiva === 'comissoes'
                 ? 'text-white border border-stone-700/50 shadow-md scale-[1.02]'
                 : 'bg-white/90 hover:bg-white text-stone-700 border border-stone-200/80 shadow-xs'
@@ -306,8 +327,11 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
 
           {/* Aba 3: Despesas */}
           <button
-            onClick={() => setSecaoAtiva('despesas')}
-            className={`py-3.5 px-6 rounded-2xl transition-all cursor-pointer flex items-center justify-center gap-2.5 text-xs font-bold shrink-0 min-w-[150px] ${
+            onClick={(e) => {
+              setSecaoAtiva('despesas');
+              rolarParaBotao(e);
+            }}
+            className={`py-3.5 px-5 rounded-2xl transition-all cursor-pointer flex items-center justify-center gap-2 text-xs font-bold shrink-0 min-w-[140px] snap-center ${
               secaoAtiva === 'despesas'
                 ? 'text-white border border-stone-700/50 shadow-md scale-[1.02]'
                 : 'bg-white/90 hover:bg-white text-stone-700 border border-stone-200/80 shadow-xs'
@@ -323,8 +347,11 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
 
           {/* Aba 4: Cancelados */}
           <button
-            onClick={() => setSecaoAtiva('cancelados')}
-            className={`py-3.5 px-6 rounded-2xl transition-all cursor-pointer flex items-center justify-center gap-2.5 text-xs font-bold shrink-0 min-w-[150px] ${
+            onClick={(e) => {
+              setSecaoAtiva('cancelados');
+              rolarParaBotao(e);
+            }}
+            className={`py-3.5 px-5 rounded-2xl transition-all cursor-pointer flex items-center justify-center gap-2 text-xs font-bold shrink-0 min-w-[140px] snap-center ${
               secaoAtiva === 'cancelados'
                 ? 'text-white border border-stone-700/50 shadow-md scale-[1.02]'
                 : 'bg-white/90 hover:bg-white text-stone-700 border border-stone-200/80 shadow-xs'
