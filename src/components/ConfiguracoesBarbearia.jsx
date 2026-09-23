@@ -282,11 +282,11 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
   };
 
   return (
-    <div className="w-full mx-auto space-y-6 pb-32 px-3 pt-2 text-slate-950 font-sans">
+    <div className="w-full space-y-6 pb-32 px-2.5 sm:px-4 pt-2 text-slate-950 font-sans">
       
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-6 w-full">
         
-        {/* Container principal ocupando a largura total com margens padronizadas */}
+        {/* Container principal de ponta a ponta, sem limites de largura centralizada */}
         <div className="rounded-[2.5rem] bg-white border border-slate-200 shadow-xl overflow-hidden w-full">
           <div className="relative h-44 sm:h-52 w-full bg-[#090a0f] overflow-hidden border-b border-white/15">
             {capaUrl ? (
