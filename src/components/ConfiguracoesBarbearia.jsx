@@ -282,11 +282,11 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
   };
 
   return (
-    <div className="w-full max-w-md mx-auto space-y-6 pb-28 px-4 pt-2 text-slate-900 font-sans">
+    <div className="w-full max-w-md mx-auto space-y-6 pb-32 px-4 pt-3 text-slate-950 font-sans">
       
       <form onSubmit={handleSubmit} className="space-y-6">
         
-        {/* Banner de Capa & Ações Rápidas com bordas arredondadas consistentes e margem segura */}
+        {/* Container principal com margem lateral adequada e bordas bem arredondadas */}
         <div className="rounded-[2.5rem] bg-white border border-slate-200 shadow-xl overflow-hidden">
           <div className="relative h-44 sm:h-52 w-full bg-[#090a0f] overflow-hidden border-b border-white/15">
             {capaUrl ? (
@@ -335,7 +335,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
               </div>
               <div className="pt-2 sm:pt-0">
                 <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight drop-shadow-md">{nome || 'Minha Barbearia'}</h1>
-                <p className="text-xs text-slate-300 mt-0.5 font-medium">Painel de Configurações • Personalize a experiência dos seus clientes</p>
+                <p className="text-xs text-slate-300 mt-0.5 font-medium">Painel de Configurações • Personalize a experiência</p>
               </div>
             </div>
           </div>
@@ -426,7 +426,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                   <div className="bg-slate-50 rounded-2xl border border-slate-200 p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
                     <div className="space-y-1">
                       <h4 className="font-bold text-slate-900 text-xs">Gestão de Horários, Pausas e Feriados</h4>
-                      <p className="text-[11px] text-slate-500">Configure os dias de funcionamento, abertura, fechamento, pausas e bloqueios de datas específicas.</p>
+                      <p className="text-[11px] text-slate-500">Configure os dias de funcionamento, abertura, fechamento e pausas.</p>
                     </div>
                     <button
                       type="button"
@@ -633,7 +633,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                       placeholder="Disponível em breve..."
                       className="w-full bg-slate-200/80 border border-slate-300 rounded-xl px-4 py-3 text-xs font-bold text-slate-400 cursor-not-allowed select-none shadow-inner"
                     />
-                    <p className="text-[10px] text-slate-400">Esta funcionalidade de avisos automáticos via WhatsApp estará disponível em uma próxima atualização da plataforma.</p>
+                    <p className="text-[10px] text-slate-400">Esta funcionalidade de avisos automáticos via WhatsApp estará disponível em uma próxima atualização.</p>
                   </div>
                 </div>
               </div>
