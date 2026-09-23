@@ -127,7 +127,7 @@ export default function NotificacoesBell({ barbeariaId }) {
           e.stopPropagation();
           setModalNotifAberto(!modalNotifAberto);
         }}
-        className="relative w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-white border border-stone-200/80 flex items-center justify-center text-stone-700 hover:bg-stone-50 transition-all shadow-xs cursor-pointer group"
+        className="relative w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-white/80 backdrop-blur-md border border-stone-200/80 flex items-center justify-center text-stone-700 hover:bg-white transition-all shadow-xs cursor-pointer group"
         title="Notificações de Agendamentos"
       >
         <Bell className="w-5 h-5 text-stone-800 group-hover:rotate-12 transition-transform" />
@@ -136,48 +136,48 @@ export default function NotificacoesBell({ barbeariaId }) {
         )}
       </button>
 
-      {/* Prévia Flutuante (Toast) com Degradê Claro */}
+      {/* Prévia Flutuante (Toast) com Efeito de Vidro */}
       {novaNotificacaoToast && (
-        <div className="fixed top-5 right-5 z-[9999] w-84 bg-gradient-to-br from-slate-900 via-stone-900 to-black text-white px-5 py-4 rounded-[2rem] shadow-2xl border border-white/20 flex items-center gap-3.5 animate-in slide-in-from-top-5 duration-300">
-          <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/30">
+        <div className="fixed top-5 right-5 z-[9999] w-84 bg-white/85 backdrop-blur-xl text-slate-900 px-5 py-4 rounded-[2rem] shadow-2xl border border-white/40 flex items-center gap-3.5 animate-in slide-in-from-top-5 duration-300">
+          <div className="w-10 h-10 rounded-2xl bg-emerald-500/15 text-emerald-600 flex items-center justify-center shrink-0 border border-emerald-500/20">
             <Bell className="w-5 h-5 animate-bounce" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-[10px] font-black uppercase tracking-wider text-emerald-400">Novo Agendamento</p>
-            <p className="text-xs font-extrabold truncate mt-0.5 text-white">
+            <p className="text-[10px] font-black uppercase tracking-wider text-emerald-600">Novo Agendamento</p>
+            <p className="text-xs font-extrabold truncate mt-0.5 text-slate-900">
               {novaNotificacaoToast.clientes?.nome || 'Cliente'} - {novaNotificacaoToast.servicos?.nome || 'Serviço'}
             </p>
           </div>
         </div>
       )}
 
-      {/* Painel Dropdown com Cores Claras e Degradê Suave */}
+      {/* Painel Dropdown com Efeito de Vidro (Glassmorphism) e Degradê Claro */}
       {modalNotifAberto && (
         <div 
           ref={modalRef}
-          className="fixed left-0 right-0 top-0 w-full bg-gradient-to-b from-slate-50 via-white to-stone-100 text-slate-900 border-b border-stone-200 shadow-2xl rounded-b-[3rem] p-5 sm:p-8 z-50 transition-all duration-300 ease-in-out transform translate-y-0 animate-in slide-in-from-top duration-300"
+          className="fixed left-0 right-0 top-0 w-full bg-gradient-to-b from-white/90 via-slate-50/85 to-stone-100/90 backdrop-blur-2xl text-slate-900 border-b border-stone-200/60 shadow-[0_20px_50px_rgba(0,0,0,0.1)] rounded-b-[3rem] p-5 sm:p-8 z-50 transition-all duration-300 ease-in-out transform translate-y-0 animate-in slide-in-from-top duration-300"
         >
           
           <div className="max-w-4xl mx-auto pt-1">
 
             {/* Cabeçalho do Painel */}
-            <div className="flex items-center justify-between pb-3 mb-2 border-b border-stone-200">
+            <div className="flex items-center justify-between pb-3 mb-2 border-b border-stone-200/60">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-xl bg-stone-900 text-emerald-400 flex items-center justify-center shadow-xs">
                   <Bell className="w-4 h-4" />
                 </div>
                 <h3 className="text-xs font-black uppercase tracking-wider text-slate-900">Notificações de Hoje</h3>
               </div>
-              <span className="text-[10px] font-extrabold uppercase px-2.5 py-1 rounded-full bg-stone-200/70 text-stone-800">
+              <span className="text-[10px] font-extrabold uppercase px-2.5 py-1 rounded-full bg-stone-200/60 text-stone-800 backdrop-blur-xs">
                 {naoLidas} {naoLidas === 1 ? 'pendente' : 'pendentes'}
               </span>
             </div>
 
-            {/* Lista de Notificações com Estilo Claro e Sofisticado */}
+            {/* Lista de Notificações com Cards em Efeito Vidro */}
             <div className="max-h-80 overflow-y-auto space-y-3 pt-1 pr-1">
               {agendamentosHoje.length === 0 ? (
-                <div className="text-center py-10 text-slate-500 text-xs border border-dashed border-stone-300 rounded-[2.5rem] bg-stone-50/50 flex flex-col items-center justify-center gap-2 shadow-inner">
-                  <div className="w-10 h-10 rounded-2xl bg-white text-emerald-600 flex items-center justify-center border border-stone-200 shadow-sm">
+                <div className="text-center py-10 text-slate-500 text-xs border border-dashed border-stone-300/60 rounded-[2.5rem] bg-white/40 backdrop-blur-md flex flex-col items-center justify-center gap-2 shadow-inner">
+                  <div className="w-10 h-10 rounded-2xl bg-white/80 text-emerald-600 flex items-center justify-center border border-stone-200 shadow-xs">
                     <Sparkles className="w-4 h-4 animate-pulse" />
                   </div>
                   <span className="font-bold text-slate-800">Nenhuma notificação pendente</span>
@@ -187,7 +187,7 @@ export default function NotificacoesBell({ barbeariaId }) {
                 agendamentosHoje.map((item) => (
                   <div 
                     key={item.id}
-                    className="relative px-4 py-3 sm:px-5 sm:py-3.5 rounded-[2rem] bg-white border border-stone-200/90 hover:border-stone-300 transition-all shadow-sm flex items-center justify-between gap-3"
+                    className="relative px-4 py-3 sm:px-5 sm:py-3.5 rounded-[2rem] bg-white/70 backdrop-blur-xl border border-white/80 hover:bg-white/90 transition-all shadow-xs flex items-center justify-between gap-3"
                   >
                     {/* Lado Esquerdo: Ícone + Informações */}
                     <div className="flex items-center gap-3.5 min-w-0">
@@ -200,7 +200,7 @@ export default function NotificacoesBell({ barbeariaId }) {
                           <p className="font-black text-slate-900 text-xs sm:text-sm tracking-tight truncate">
                             {item.clientes?.nome || 'Cliente'}
                           </p>
-                          <span className="inline-flex items-center text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 tracking-wider shrink-0">
+                          <span className="inline-flex items-center text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-emerald-50/80 text-emerald-700 border border-emerald-200/60 tracking-wider shrink-0">
                             {item.status || 'Agendado'}
                           </span>
                         </div>
@@ -212,7 +212,7 @@ export default function NotificacoesBell({ barbeariaId }) {
 
                     {/* Lado Direito: Horário */}
                     <div className="shrink-0">
-                      <span className="text-[11px] font-extrabold text-slate-800 bg-stone-100 px-3 py-1.5 rounded-xl border border-stone-200 shadow-2xs flex items-center gap-1.5">
+                      <span className="text-[11px] font-extrabold text-slate-800 bg-white/90 px-3 py-1.5 rounded-xl border border-stone-200/80 shadow-2xs flex items-center gap-1.5">
                         <Clock className="w-3.5 h-3.5 text-emerald-600" />
                         {item.data_hora ? new Date(item.data_hora).toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'}) : '--:--'}
                       </span>
@@ -228,7 +228,7 @@ export default function NotificacoesBell({ barbeariaId }) {
               <div className="mt-4 pt-3 flex justify-center">
                 <button
                   onClick={limparNotificacoesOnline}
-                  className="text-xs font-black text-slate-700 px-6 py-2.5 rounded-2xl bg-white border border-stone-200 hover:bg-stone-50 transition-all shadow-sm flex items-center gap-2 cursor-pointer"
+                  className="text-xs font-black text-slate-700 px-6 py-2.5 rounded-2xl bg-white/80 backdrop-blur-md border border-stone-200/80 hover:bg-white transition-all shadow-xs flex items-center gap-2 cursor-pointer"
                 >
                   <Trash2 className="w-4 h-4 text-rose-500" />
                   <span>Limpar tudo</span>
