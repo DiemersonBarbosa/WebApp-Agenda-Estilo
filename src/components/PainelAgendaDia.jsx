@@ -5,35 +5,45 @@ import { createClient } from '@supabase/supabase-js';
 import { 
   Calendar, CheckCircle2, DollarSign, TrendingUp, TrendingDown, 
   Users, Settings, Percent, Scissors, ClipboardPenLine, ShoppingCart, 
-  ShoppingBag, MessageCircleCheck, LogOut, History, X, Search, Filter, Clock, Trash2 
+  ShoppingBag, MessageCircleCheck, LogOut, History, X, Search, Filter, Clock, Trash2, ChevronRight, ChevronLeft 
 } from 'lucide-react';
 
-
 import NotificacoesBell from '@/components/NotificacoesBell';
-
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComissao = 50, setActiveTab, setModalInfoAssinaturaOpen, handleLogout, mobileMenuOpen, setMobileMenuOpen, fecharMenuMobile }) {
-  const [agendamentosHoje, setAgendamentosHoje] = useState([]);
   const [todosAgendamentos, setTodosAgendamentos] = useState([]);
   const [carregando, setCarregando] = useState(true);
   const [erroFatal, setErroFatal] = useState(null);
   const [processandoId, setProcessandoId] = useState(null);
   
+  // Estado para controlar a Data Selecionada no Mini Calendário (Padrão: Hoje no fuso local)
+  const obterDataLocalIso = (d = new Date()) => {
+    const ano = d.getFullYear();
+    const mes = String(d.getMonth() + 1).padStart(2, '0');
+    const dia = String(d.getDate()).padStart(2, '0');
+    return `${ano}-${mes}-${dia}`;
+  };
+
+  const [dataSelecionada, setDataSelecionada] = useState(obterDataLocalIso());
+
   // Estado para controlar o Modal de Histórico Completo
   const [modalHistoricoOpen, setModalHistoricoOpen] = useState(false);
   const [filtroDataHistorico, setFiltroDataHistorico] = useState('');
   const [filtroStatusHistorico, setFiltroStatusHistorico] = useState('todos');
 
-  const HOJE_ISO = new Date().toISOString().split('T')[0];
-
   const extrairDataIso = (item) => {
     const dataStr = item.data_hora || item.data || item.created_at || '';
     if (!dataStr) return '';
-    return String(dataStr).substring(0, 10);
+    try {
+      const d = new Date(dataStr);
+      return obterDataLocalIso(d);
+    } catch {
+      return String(dataStr).substring(0, 10);
+    }
   };
 
   const formatarDataHora = (dataHoraStr) => {
@@ -114,8 +124,6 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
 
       if (data) {
         setTodosAgendamentos(data);
-        const doDia = data.filter(item => extrairDataIso(item) === HOJE_ISO);
-        setAgendamentosHoje(doDia);
       }
     } catch (err) {
       setErroFatal(err.message);
@@ -180,19 +188,40 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
     }
   };
 
-  const totalAtendimentosHoje = agendamentosHoje.length;
-  const concluidosHoje = agendamentosHoje.filter(i => i.status === 'concluido').length;
-  const valorTotalHoje = agendamentosHoje
+  // Filtrar agendamentos com base na data selecionada no mini calendário
+  const agendamentosDoDiaSelecionado = todosAgendamentos.filter(item => extrairDataIso(item) === dataSelecionada);
+
+  const totalAtendimentosDia = agendamentosDoDiaSelecionado.length;
+  const concluidosDia = agendamentosDoDiaSelecionado.filter(i => i.status === 'concluido').length;
+  const valorTotalDia = agendamentosDoDiaSelecionado
     .filter(i => i.status !== 'cancelado')
     .reduce((acc, item) => acc + Number(item.valor_total || item.servicos?.preco || 0), 0);
 
-  const agendamentosPendentesHoje = agendamentosHoje.filter(item => {
+  const agendamentosPendentesDia = agendamentosDoDiaSelecionado.filter(item => {
     const status = (item.status || 'agendado').toLowerCase();
     return status !== 'concluido' && status !== 'cancelado';
   });
 
+  // Gerar os próximos 7 dias para o Mini Calendário
+  const gerarProximosDias = () => {
+    const dias = [];
+    const hoje = new Date();
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(hoje);
+      d.setDate(hoje.getDate() + i);
+      const iso = obterDataLocalIso(d);
+      const nomeDia = d.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '');
+      const numeroDia = d.getDate();
+      const nomeMes = d.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '');
+      dias.push({ iso, nomeDia, numeroDia, nomeMes });
+    }
+    return dias;
+  };
+
+  const proximaSemanaDias = gerarProximosDias();
+
   return (
-    <div className="max-w-7xl mx-auto px-2 sm:px-0 space-y-6 pb-24">
+    <div className="max-w-7xl mx-auto px-2 sm:px-0 space-y-5 pb-24">
       
       {/* ERRO FATAL */}
       {erroFatal && (
@@ -202,7 +231,7 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
       )}
 
       {/* CARDS DE RESUMO DO TOPO */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 md:gap-5 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 md:gap-5">
         
         {/* 1. Card: Agendamentos */}
         <div 
@@ -214,7 +243,7 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
         >
           <div className="flex flex-col justify-center min-w-0 pr-2">
             <span className="text-[9px] sm:text-[10px] font-bold text-stone-400 uppercase tracking-wider truncate block">Agendamentos</span>
-            <h3 className="text-xl sm:text-2xl font-black text-white mt-1 truncate">{totalAtendimentosHoje}</h3>
+            <h3 className="text-xl sm:text-2xl font-black text-white mt-1 truncate">{totalAtendimentosDia}</h3>
           </div>
           <div 
             className="w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center shrink-0"
@@ -238,7 +267,7 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
         >
           <div className="flex flex-col justify-center min-w-0 pr-2">
             <span className="text-[9px] sm:text-[10px] font-bold text-stone-400 uppercase tracking-wider truncate block">Concluídos</span>
-            <h3 className="text-xl sm:text-2xl font-black text-white mt-1 truncate">{concluidosHoje}/{totalAtendimentosHoje}</h3>
+            <h3 className="text-xl sm:text-2xl font-black text-white mt-1 truncate">{concluidosDia}/{totalAtendimentosDia}</h3>
           </div>
           <div 
             className="w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center shrink-0"
@@ -262,7 +291,7 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
         >
           <div className="flex flex-col justify-center min-w-0 pr-2">
             <span className="text-[9px] sm:text-[10px] font-bold text-stone-400 uppercase tracking-wider truncate block">Projeção</span>
-            <h3 className="text-xl sm:text-2xl font-black text-white mt-1 truncate">R$ {valorTotalHoje.toFixed(0)}</h3>
+            <h3 className="text-xl sm:text-2xl font-black text-white mt-1 truncate">R$ {valorTotalDia.toFixed(0)}</h3>
           </div>
           <div 
             className="w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center shrink-0"
@@ -292,7 +321,54 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
 
       </div>
 
-      {/* SEÇÃO PRINCIPAL: LISTA MODERNA DE AGENDAMENTOS PENDENTES */}
+      {/* MINI CALENDÁRIO ESTILOSO (PRÓXIMOS 7 DIAS) - COM ESPAÇAMENTO SUPERIOR CORRIGIDO */}
+      <div className="bg-white rounded-[2rem] p-4 pt-5 border border-stone-200/90 shadow-sm space-y-2.5 overflow-visible">
+        <div className="flex items-center justify-between px-1">
+          <span className="text-[10px] font-black uppercase tracking-wider text-stone-400">Selecionar Dia</span>
+          <span className="text-[11px] font-bold text-stone-900 bg-stone-100 px-2.5 py-0.5 rounded-full border border-stone-200 truncate max-w-[200px]">
+            {new Date(dataSelecionada + 'T00:00:00').toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short' })}
+          </span>
+        </div>
+
+        <div className="grid grid-cols-7 gap-1.5 overflow-visible pt-1 pb-1">
+          {proximaSemanaDias.map((dia) => {
+            const selecionado = dataSelecionada === dia.iso;
+            const qtdNoDia = todosAgendamentos.filter(item => extrairDataIso(item) === dia.iso && (item.status || 'agendado') !== 'cancelado').length;
+
+            return (
+              <button
+                key={dia.iso}
+                onClick={() => setDataSelecionada(dia.iso)}
+                className={`flex flex-col items-center justify-center py-2.5 px-1 rounded-2xl transition-all cursor-pointer relative ${
+                  selecionado 
+                    ? 'bg-stone-900 text-white shadow-md scale-105 border border-stone-900' 
+                    : 'bg-stone-50 hover:bg-stone-100 text-stone-700 border border-stone-200/70'
+                }`}
+              >
+                <span className={`text-[8px] sm:text-[9px] uppercase font-bold tracking-wider ${selecionado ? 'text-stone-300' : 'text-stone-400'}`}>
+                  {dia.nomeDia}
+                </span>
+                <span className="text-sm sm:text-base font-black my-0.5">
+                  {dia.numeroDia}
+                </span>
+                <span className={`text-[8px] uppercase font-semibold ${selecionado ? 'text-stone-400' : 'text-stone-500'}`}>
+                  {dia.nomeMes}
+                </span>
+
+                {qtdNoDia > 0 && (
+                  <span className={`absolute -top-2 -right-1 w-4 h-4 rounded-full text-[9px] font-black flex items-center justify-center shadow-xs z-10 ${
+                    selecionado ? 'bg-emerald-400 text-stone-950' : 'bg-stone-900 text-white'
+                  }`}>
+                    {qtdNoDia}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* SEÇÃO PRINCIPAL: LISTA MODERNA DE AGENDAMENTOS PENDENTES DO DIA SELECIONADO */}
       <div 
         className="relative rounded-[2.5rem] p-5 sm:p-8 border border-white/80 overflow-hidden shadow-sm"
         style={{
@@ -301,18 +377,16 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
         }}
       >
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-5 border-b border-stone-300/60 gap-3">
-          <h2 className="text-lg sm:text-xl font-extrabold text-stone-900 flex items-center gap-3 tracking-tight">
-            <span className="w-3 h-3 bg-[#111111] rounded-full shadow-[0_0_8px_rgba(17,17,17,0.4)]"></span>
-            Agenda • Pendentes de Hoje
-            <span className="text-xs sm:text-sm font-bold text-stone-700 bg-white px-3 py-0.5 rounded-full border border-stone-200 shadow-xs">
-              {agendamentosPendentesHoje.length}
+          <h2 className="text-base sm:text-lg font-extrabold text-stone-900 flex items-center gap-2.5 tracking-tight truncate">
+            <span className="w-2.5 h-2.5 bg-[#111111] rounded-full shrink-0 shadow-[0_0_8px_rgba(17,17,17,0.4)]"></span>
+            <span className="truncate">Pendentes • {new Date(dataSelecionada + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}</span>
+            <span className="text-xs font-bold text-stone-700 bg-white px-2.5 py-0.5 rounded-full border border-stone-200 shadow-xs shrink-0">
+              {agendamentosPendentesDia.length}
             </span>
           </h2>
           
-          <div 
-            className="inline-flex items-center px-4 py-2 rounded-2xl text-xs font-bold text-stone-700 self-start sm:self-auto bg-white border border-stone-200 shadow-xs"
-          >
-            {new Date().toLocaleDateString('pt-BR')}
+          <div className="inline-flex items-center px-3.5 py-1.5 rounded-xl text-xs font-bold text-stone-700 self-start sm:self-auto bg-white border border-stone-200 shadow-xs">
+            {new Date(dataSelecionada + 'T00:00:00').toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short' })}
           </div>
         </div>
 
@@ -320,13 +394,13 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
           <div className="flex justify-center items-center py-16">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-stone-900"></div>
           </div>
-        ) : agendamentosPendentesHoje.length === 0 ? (
+        ) : agendamentosPendentesDia.length === 0 ? (
           <div className="text-center py-16 text-stone-400 text-sm font-medium">
-            Nenhum atendimento pendente para hoje. Todos foram concluídos ou cancelados!
+            Nenhum atendimento pendente para esta data.
           </div>
         ) : (
           <div className="mt-6 space-y-4">
-            {agendamentosPendentesHoje.map((item) => (
+            {agendamentosPendentesDia.map((item) => (
               <div 
                 key={item.id} 
                 className="w-full bg-white border border-stone-200/90 rounded-[2rem] p-4 sm:p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_10px_30px_rgba(0,0,0,0.07)] transition-all flex flex-col justify-between gap-4"
@@ -369,7 +443,7 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
                   </div>
                 </div>
 
-                {/* Rodapé do Card: Status e Botões de Ação com Espaçamento Ajustado */}
+                {/* Rodapé do Card: Status e Botões de Ação */}
                 <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 border-t border-stone-100">
                   <div className="flex items-center justify-between sm:justify-start">
                     <span className="text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider bg-stone-100 text-stone-700 border border-stone-200">
@@ -377,7 +451,6 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
                     </span>
                   </div>
 
-                  {/* Grid ajustado com texto compacto para evitar cortes em telas menores */}
                   <div className="grid grid-cols-3 gap-1 sm:flex sm:items-center">
                     
                     {/* Botão Concluir */}
