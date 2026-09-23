@@ -282,70 +282,68 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
   };
 
   return (
-    <div className="w-full h-[calc(100vh-80px)] flex flex-col justify-between overflow-hidden px-2.5 sm:px-4 pt-1 text-slate-950 font-sans">
+    <div className="w-full space-y-6 pb-32 px-2.5 sm:px-4 pt-3 text-slate-950 font-sans">
       
-      <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden space-y-3">
+      <form onSubmit={handleSubmit} className="space-y-6 w-full">
         
-        {/* Container principal ajustado para preencher a tela exata sem transbordar */}
-        <div className="rounded-[2rem] bg-white border border-slate-200 shadow-xl overflow-hidden flex flex-col flex-1 w-full">
-          
-          {/* Capa Compacta */}
-          <div className="relative h-28 sm:h-36 w-full bg-[#090a0f] overflow-hidden border-b border-white/15 shrink-0">
+        {/* Container principal de ponta a ponta com tamanho de fonte confortável */}
+        <div className="rounded-[2.5rem] bg-white border border-slate-200 shadow-xl overflow-hidden w-full">
+          <div className="relative h-44 sm:h-52 w-full bg-[#090a0f] overflow-hidden border-b border-white/15">
             {capaUrl ? (
               <img src={capaUrl} alt="Capa" className="w-full h-full object-cover opacity-90" />
             ) : (
               <div className="w-full h-full bg-gradient-to-r from-stone-900 via-stone-800 to-stone-900 flex items-center justify-center">
-                <span className="text-[10px] font-medium text-stone-400 tracking-wider uppercase">Nenhuma capa cadastrada</span>
+                <span className="text-xs font-medium text-stone-400 tracking-wider uppercase">Nenhuma capa cadastrada</span>
               </div>
             )}
             <div className="absolute inset-0 bg-gradient-to-t from-[#090a0f] via-[#090a0f]/60 to-black/30"></div>
             
-            <div className="absolute top-3 right-3 z-10 flex items-center gap-2">
+            <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
               <button 
                 type="button"
                 onClick={() => setModalCompartilharOpen(true)}
-                className="inline-flex items-center gap-1 px-3 py-1.5 bg-black/75 hover:bg-black/90 backdrop-blur-md rounded-xl text-[11px] font-semibold text-white shadow transition-all cursor-pointer border border-white/20"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-black/75 hover:bg-black/90 backdrop-blur-md rounded-xl text-xs font-semibold text-white shadow transition-all cursor-pointer border border-white/20 active:scale-95"
               >
-                <Share2 className="w-3 h-3 text-slate-200" />
+                <Share2 className="w-3.5 h-3.5 text-slate-200" />
                 <span>Compartilhar</span>
               </button>
               <a 
                 href={`/agendar/${slug || 'barbearia'}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center justify-center w-8 h-8 bg-black/75 hover:bg-black/90 backdrop-blur-md rounded-xl text-white shadow transition-all cursor-pointer border border-white/20"
+                className="inline-flex items-center justify-center w-9 h-9 bg-black/75 hover:bg-black/90 backdrop-blur-md rounded-xl text-white shadow transition-all cursor-pointer border border-white/20"
+                title="Abrir página pública"
               >
-                <ExternalLink className="w-3.5 h-3.5 text-slate-200" />
+                <ExternalLink className="w-4 h-4 text-slate-200" />
               </a>
             </div>
           </div>
 
-          {/* Perfil Header */}
-          <div className="px-5 pb-3 pt-0 relative flex items-end justify-between gap-4 -mt-10 mb-2 shrink-0">
-            <div className="flex items-center gap-3.5">
+          <div className="px-6 sm:px-8 pb-6 pt-0 relative flex flex-col sm:flex-row items-center sm:items-end justify-between gap-4 -mt-14 sm:-mt-16 mb-6">
+            <div className="flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
               <div className="relative z-20">
-                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-black p-1 shadow-2xl border-2 border-white/30 overflow-hidden flex items-center justify-center">
+                <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl bg-black p-1 shadow-2xl border-2 border-white/30 overflow-hidden flex items-center justify-center">
                   {logoUrl ? (
                     <img src={logoUrl} alt="Logo" className="w-full h-full object-cover rounded-xl" />
                   ) : (
-                    <div className="w-full h-full bg-gradient-to-br from-stone-800 to-black text-white rounded-xl flex items-center justify-center font-black text-xl">
+                    <div className="w-full h-full bg-gradient-to-br from-stone-800 to-black text-white rounded-xl flex items-center justify-center font-black text-2xl">
                       {(nome || 'B').charAt(0)}
                     </div>
                   )}
                 </div>
-                <span className="absolute bottom-1 right-1 w-3 h-3 border-2 border-slate-950 rounded-full shadow" style={{ backgroundColor: corDestaqueAtiva }}></span>
+                <span className="absolute bottom-1 right-1 w-4 h-4 border-2 border-slate-950 rounded-full shadow" style={{ backgroundColor: corDestaqueAtiva }}></span>
               </div>
-              <div>
-                <h1 className="text-base sm:text-lg font-black text-slate-950 tracking-tight leading-tight">{nome || 'Minha Barbearia'}</h1>
-                <p className="text-[11px] text-slate-900 font-bold">Painel de Configurações</p>
+              <div className="pt-2 sm:pt-0">
+                <h1 className="text-xl sm:text-2xl font-black text-slate-950 tracking-tight">{nome || 'Minha Barbearia'}</h1>
+                <p className="text-xs text-slate-900 mt-1 font-bold">Painel de Configurações • Personalize a experiência</p>
               </div>
             </div>
           </div>
 
-          {/* MENU DE ABAS HORIZONTAL */}
+          {/* MENU DE ABAS EM FORMATO DE SLIDE HORIZONTAL */}
           <div 
             ref={scrollContainerRef}
-            className="px-5 border-t border-slate-200 bg-slate-50 flex gap-2.5 overflow-x-auto py-2.5 no-scrollbar scroll-smooth shrink-0"
+            className="px-6 sm:px-8 border-t border-slate-200 bg-slate-50 flex gap-3 overflow-x-auto py-3.5 no-scrollbar scroll-smooth snap-x snap-mandatory"
           >
             {[
               { id: 'geral', label: 'Geral & Perfil', icon: Store },
@@ -362,55 +360,56 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                     setAbaAtiva(aba.id);
                     rolarParaBotao(e);
                   }}
-                  className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                  className={`flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-2xl text-xs font-bold transition-all shrink-0 min-w-[170px] snap-center cursor-pointer ${
                     ativa 
-                      ? 'text-white border border-stone-700/50 shadow-md' 
+                      ? 'text-white border border-stone-700/50 shadow-md scale-[1.02]' 
                       : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200/90 shadow-xs'
                   }`}
                   style={ativa ? {
-                    background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)'
+                    background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
+                    boxShadow: 'inset 0 1px 2px rgba(255, 255, 255, 0.2)'
                   } : {}}
                 >
-                  <Icone className={`w-3.5 h-3.5 shrink-0 ${ativa ? 'text-emerald-400' : 'text-slate-500'}`} />
+                  <Icone className={`w-4 h-4 shrink-0 ${ativa ? 'text-emerald-400' : 'text-slate-500'}`} />
                   <span className="truncate">{aba.label}</span>
                 </button>
               );
             })}
           </div>
 
-          {/* CONTEÚDO DINÂMICO COM SCROLL INTERNO INDIVIDUAL */}
-          <div className="px-5 py-4 space-y-4 bg-white text-slate-900 flex-1 overflow-y-auto">
+          {/* CONTEÚDO DINÂMICO DAS ABAS */}
+          <div className="px-6 sm:px-8 py-8 space-y-6 bg-white text-slate-900">
             
             {/* ABA 1: GERAL & PERFIL */}
             {abaAtiva === 'geral' && (
-              <div className="space-y-4 animate-fade-in">
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2 border-b border-slate-100 pb-1.5">
-                    <Store className="w-3.5 h-3.5 text-slate-700" />
-                    <h2 className="text-[11px] font-bold uppercase tracking-wider text-slate-800">Identidade e Acesso</h2>
+              <div className="space-y-6 animate-fade-in">
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2.5 border-b border-slate-100 pb-2">
+                    <Store className="w-4 h-4 text-slate-700" />
+                    <h2 className="text-xs font-bold uppercase tracking-wider text-slate-800">Identidade e Acesso</h2>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <label className="text-[11px] font-bold text-slate-700 block">Nome da Barbearia</label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-700 block">Nome da Barbearia</label>
                       <input
                         type="text"
                         value={nome}
                         onChange={(e) => setNome(e.target.value)}
-                        className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-900 focus:outline-none focus:border-slate-500 shadow-inner"
+                        className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 text-xs font-bold text-slate-900 focus:outline-none focus:border-slate-500 transition-all shadow-inner"
                         required
                       />
                     </div>
 
-                    <div className="space-y-1">
-                      <label className="text-[11px] font-bold text-slate-700 block">Link Personalizado (Slug)</label>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-700 block">Link Personalizado (Slug)</label>
                       <div className="flex items-center bg-slate-50 border border-slate-300 rounded-xl overflow-hidden focus-within:border-slate-500 shadow-inner">
-                        <span className="pl-3 text-[10px] text-slate-400 font-bold bg-slate-100 border-r border-slate-300 py-2.5">/agendar/</span>
+                        <span className="pl-3.5 text-[11px] text-slate-400 font-bold bg-slate-100 border-r border-slate-300 py-3">/agendar/</span>
                         <input
                           type="text"
                           value={slug}
                           onChange={(e) => setSlug(e.target.value)}
-                          className="w-full bg-transparent px-2 py-2.5 text-xs font-bold text-slate-900 focus:outline-none"
+                          className="w-full bg-transparent px-2 py-3 text-xs font-bold text-slate-900 focus:outline-none"
                           required
                         />
                       </div>
@@ -418,24 +417,24 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                   </div>
                 </div>
 
-                <div className="space-y-3 pt-1">
-                  <div className="flex items-center gap-2 border-b border-slate-100 pb-1.5">
-                    <Clock className="w-3.5 h-3.5 text-slate-700" />
-                    <h2 className="text-[11px] font-bold uppercase tracking-wider text-slate-800">Horários & Expediente</h2>
+                <div className="space-y-4 pt-2">
+                  <div className="flex items-center gap-2.5 border-b border-slate-100 pb-2">
+                    <Clock className="w-4 h-4 text-slate-700" />
+                    <h2 className="text-xs font-bold uppercase tracking-wider text-slate-800">Horários & Expediente</h2>
                   </div>
 
-                  <div className="bg-slate-50 rounded-2xl border border-slate-200 p-3.5 flex items-center justify-between gap-3 shadow-sm">
-                    <div>
-                      <h4 className="font-bold text-slate-900 text-xs">Gestão de Horários e Pausas</h4>
-                      <p className="text-[10px] text-slate-500">Configure dias, abertura, fechamento e feriados.</p>
+                  <div className="bg-slate-50 rounded-2xl border border-slate-200 p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
+                    <div className="space-y-1">
+                      <h4 className="font-bold text-slate-900 text-xs">Gestão de Horários, Pausas e Feriados</h4>
+                      <p className="text-[11px] text-slate-500">Configure os dias de funcionamento, abertura, fechamento e pausas.</p>
                     </div>
                     <button
                       type="button"
                       onClick={() => setModalHorariosOpen(true)}
-                      className="px-3.5 py-2 bg-slate-900 hover:bg-black text-white rounded-xl text-xs font-bold transition-all shadow cursor-pointer flex items-center gap-1.5 shrink-0"
+                      className="px-4 py-2.5 bg-slate-900 hover:bg-black text-white rounded-xl text-xs font-bold transition-all shadow cursor-pointer flex items-center gap-2 shrink-0"
                     >
-                      <Clock className="w-3 h-3 text-emerald-400" />
-                      <span>Configurar</span>
+                      <Clock className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>Configurar Horários</span>
                     </button>
                   </div>
                 </div>
@@ -444,88 +443,112 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
 
             {/* ABA 2: VISUAL & MÍDIA */}
             {abaAtiva === 'visual' && (
-              <div className="space-y-4 animate-fade-in">
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2 border-b border-slate-100 pb-1.5">
-                    <Palette className="w-3.5 h-3.5 text-slate-700" />
-                    <h2 className="text-[11px] font-bold uppercase tracking-wider text-slate-800">Mídia & Identidade Visual</h2>
+              <div className="space-y-6 animate-fade-in">
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2.5 border-b border-slate-100 pb-2">
+                    <Palette className="w-4 h-4 text-slate-700" />
+                    <h2 className="text-xs font-bold uppercase tracking-wider text-slate-800">Mídia & Identidade Visual</h2>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <label className="text-[11px] font-bold text-slate-700 block">Logo / Perfil</label>
-                      <label className="border border-dashed border-slate-300 hover:border-slate-500 rounded-xl p-3 flex items-center gap-3 bg-slate-50 cursor-pointer transition-all">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {/* Upload Logo */}
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-slate-700 block">Logo / Foto de Perfil</label>
+                      <label className="border-2 border-dashed border-slate-300 hover:border-slate-500 rounded-2xl p-4 flex flex-col items-center justify-center gap-2 bg-slate-50 cursor-pointer transition-all text-center">
                         <input type="file" accept="image/*" onChange={(e) => handleUploadImagem(e, 'logo')} className="hidden" />
                         {enviandoLogo ? (
-                          <span className="text-xs font-bold text-slate-500 animate-pulse">Enviando...</span>
+                          <span className="text-xs font-bold text-slate-500 animate-pulse">Enviando logo...</span>
                         ) : logoUrl ? (
-                          <div className="flex items-center gap-2.5 w-full">
-                            <img src={logoUrl} alt="Logo" className="w-10 h-10 rounded-lg object-cover border" />
-                            <div className="overflow-hidden">
-                              <p className="text-xs font-bold text-slate-900 truncate">Logo ativa</p>
-                              <span className="text-[9px] text-emerald-600 font-bold">Alterar</span>
+                          <div className="flex items-center gap-3 w-full">
+                            <img src={logoUrl} alt="Logo Preview" className="w-12 h-12 rounded-xl object-cover border" />
+                            <div className="text-left overflow-hidden">
+                              <p className="text-xs font-bold text-slate-900 truncate">Logo carregada</p>
+                              <span className="text-[10px] text-emerald-600 font-bold">Clique para alterar</span>
                             </div>
                           </div>
                         ) : (
-                          <div className="flex items-center gap-2">
-                            <Upload className="w-4 h-4 text-slate-500" />
-                            <span className="text-xs font-bold text-slate-800">Enviar Logo</span>
-                          </div>
+                          <>
+                            <div className="w-10 h-10 rounded-xl bg-slate-200 text-slate-700 flex items-center justify-center shadow-inner">
+                              <Upload className="w-4 h-4" />
+                            </div>
+                            <div>
+                              <p className="text-xs font-bold text-slate-800">Clique para enviar a Logo</p>
+                              <span className="text-[10px] text-slate-400">PNG, JPG ou WEBP</span>
+                            </div>
+                          </>
                         )}
                       </label>
                     </div>
 
-                    <div className="space-y-1">
-                      <label className="text-[11px] font-bold text-slate-700 block">Imagem de Capa</label>
-                      <label className="border border-dashed border-slate-300 hover:border-slate-500 rounded-xl p-3 flex items-center gap-3 bg-slate-50 cursor-pointer transition-all">
+                    {/* Upload Capa */}
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-slate-700 block">Imagem de Capa</label>
+                      <label className="border-2 border-dashed border-slate-300 hover:border-slate-500 rounded-2xl p-4 flex flex-col items-center justify-center gap-2 bg-slate-50 cursor-pointer transition-all text-center">
                         <input type="file" accept="image/*" onChange={(e) => handleUploadImagem(e, 'capa')} className="hidden" />
                         {enviandoCapa ? (
-                          <span className="text-xs font-bold text-slate-500 animate-pulse">Enviando...</span>
+                          <span className="text-xs font-bold text-slate-500 animate-pulse">Enviando capa...</span>
                         ) : capaUrl ? (
-                          <div className="flex items-center gap-2.5 w-full">
-                            <img src={capaUrl} alt="Capa" className="w-12 h-8 rounded-lg object-cover border" />
-                            <div className="overflow-hidden">
-                              <p className="text-xs font-bold text-slate-900 truncate">Capa ativa</p>
-                              <span className="text-[9px] text-emerald-600 font-bold">Alterar</span>
+                          <div className="flex items-center gap-3 w-full">
+                            <img src={capaUrl} alt="Capa Preview" className="w-16 h-10 rounded-lg object-cover border" />
+                            <div className="text-left overflow-hidden">
+                              <p className="text-xs font-bold text-slate-900 truncate">Capa carregada</p>
+                              <span className="text-[10px] text-emerald-600 font-bold">Clique para alterar</span>
                             </div>
                           </div>
                         ) : (
-                          <div className="flex items-center gap-2">
-                            <ImageIcon className="w-4 h-4 text-slate-500" />
-                            <span className="text-xs font-bold text-slate-800">Enviar Capa</span>
-                          </div>
+                          <>
+                            <div className="w-10 h-10 rounded-xl bg-slate-200 text-slate-700 flex items-center justify-center shadow-inner">
+                              <ImageIcon className="w-4 h-4" />
+                            </div>
+                            <div>
+                              <p className="text-xs font-bold text-slate-800">Clique para enviar a Capa</p>
+                              <span className="text-[10px] text-slate-400">PNG, JPG ou WEBP</span>
+                            </div>
+                          </>
                         )}
                       </label>
                     </div>
                   </div>
 
-                  <div className="space-y-1.5 pt-1">
-                    <label className="text-[11px] font-bold text-slate-700 block">Estilo Visual</label>
-                    <div className="grid grid-cols-2 gap-2.5">
+                  <div className="space-y-2 pt-2">
+                    <label className="text-xs font-bold text-slate-700 block">Padrão de Cores e Estilo Visual</label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                       <div 
                         onClick={() => setTemaVisual('clean')}
-                        className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
-                          temaVisual === 'clean' ? 'border-slate-900 bg-slate-50' : 'border-slate-200 bg-white'
+                        className={`p-4 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between shadow-sm ${
+                          temaVisual === 'clean' ? 'border-slate-900 bg-slate-50 ring-2 ring-slate-900/10' : 'border-slate-200 bg-white hover:border-slate-300'
                         }`}
                       >
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm">✨</span>
-                          <span className="font-bold text-xs text-slate-900">Modo Clean</span>
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-xs shadow-sm">✨</div>
+                            <div>
+                              <h4 className="font-bold text-slate-900 text-xs">Modo Clean</h4>
+                              <p className="text-[10px] text-slate-500">Tons claros e elegantes</p>
+                            </div>
+                          </div>
+                          {temaVisual === 'clean' && <Check className="w-4 h-4 text-slate-900" />}
                         </div>
-                        {temaVisual === 'clean' && <Check className="w-3.5 h-3.5 text-slate-900" />}
                       </div>
 
                       <div 
                         onClick={() => setTemaVisual('dark')}
-                        className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
-                          temaVisual === 'dark' ? 'border-stone-900 bg-stone-950 text-white' : 'border-slate-200 bg-white'
+                        className={`p-4 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between shadow-sm ${
+                          temaVisual === 'dark' ? 'border-stone-900 bg-stone-950 text-white ring-2 ring-black/10' : 'border-slate-200 bg-white hover:border-slate-300'
                         }`}
                       >
-                        <div className="flex items-center gap-2">
-                          <Moon className="w-3.5 h-3.5 text-slate-200" />
-                          <span className={`font-bold text-xs ${temaVisual === 'dark' ? 'text-white' : 'text-slate-900'}`}>Modo Dark</span>
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-8 h-8 rounded-lg bg-stone-900 text-white border border-stone-800 flex items-center justify-center shadow-inner">
+                              <Moon className="w-4 h-4 text-slate-200" />
+                            </div>
+                            <div>
+                              <h4 className={`font-bold text-xs ${temaVisual === 'dark' ? 'text-white' : 'text-slate-900'}`}>Modo Dark</h4>
+                              <p className={`text-[10px] ${temaVisual === 'dark' ? 'text-stone-400' : 'text-slate-500'}`}>Tons escuros sofisticados</p>
+                            </div>
+                          </div>
+                          {temaVisual === 'dark' && <Check className="w-4 h-4 text-white" />}
                         </div>
-                        {temaVisual === 'dark' && <Check className="w-3.5 h-3.5 text-white" />}
                       </div>
                     </div>
                   </div>
@@ -535,54 +558,83 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
 
             {/* ABA 3: ATENDIMENTO & ALERTAS */}
             {abaAtiva === 'atendimento' && (
-              <div className="space-y-4 animate-fade-in">
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2 border-b border-slate-100 pb-1.5">
-                    <MessageSquare className="w-3.5 h-3.5 text-slate-700" />
-                    <h2 className="text-[11px] font-bold uppercase tracking-wider text-slate-800">Experiência de Atendimento</h2>
+              <div className="space-y-6 animate-fade-in">
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2.5 border-b border-slate-100 pb-2">
+                    <MessageSquare className="w-4 h-4 text-slate-700" />
+                    <h2 className="text-xs font-bold uppercase tracking-wider text-slate-800">Experiência de Atendimento</h2>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2.5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                     <div 
                       onClick={() => setModoAtendimento('conversacional')}
-                      className={`p-3 rounded-xl border transition-all cursor-pointer flex flex-col justify-between ${
-                        modoAtendimento === 'conversacional' ? 'border-slate-900 bg-slate-50' : 'border-slate-200 bg-white'
+                      className={`p-4 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between shadow-sm ${
+                        modoAtendimento === 'conversacional' ? 'border-slate-900 bg-slate-50 ring-2 ring-slate-900/10' : 'border-slate-200 bg-white hover:border-slate-300'
                       }`}
                     >
                       <div className="flex items-center justify-between mb-2">
-                        <Bot className="w-4 h-4 text-slate-900" />
-                        {modoAtendimento === 'conversacional' && <span className="text-[8px] font-bold uppercase px-2 py-0.5 rounded bg-slate-900 text-white">Ativo</span>}
+                        <div className="w-8 h-8 rounded-xl flex items-center justify-center text-white font-bold shadow bg-slate-900">
+                          <Bot className="w-4 h-4" />
+                        </div>
+                        {modoAtendimento === 'conversacional' && (
+                          <span className="text-[9px] font-extrabold uppercase px-2.5 py-0.5 rounded-full bg-slate-900 text-white">Ativo</span>
+                        )}
                       </div>
-                      <h4 className="font-bold text-slate-900 text-xs">Conversacional</h4>
+                      <div>
+                        <h4 className="font-bold text-slate-900 text-xs">Modo Conversacional</h4>
+                        <p className="text-[10px] text-slate-500 mt-0.5">Chat interativo guiado passo a passo.</p>
+                      </div>
                     </div>
 
                     <div 
                       onClick={() => setModoAtendimento('classico')}
-                      className={`p-3 rounded-xl border transition-all cursor-pointer flex flex-col justify-between ${
-                        modoAtendimento === 'classico' ? 'border-slate-900 bg-slate-50' : 'border-slate-200 bg-white'
+                      className={`p-4 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between shadow-sm ${
+                        modoAtendimento === 'classico' ? 'border-slate-900 bg-slate-50 ring-2 ring-slate-900/10' : 'border-slate-200 bg-white hover:border-slate-300'
                       }`}
                     >
                       <div className="flex items-center justify-between mb-2">
-                        <Grid className="w-4 h-4 text-slate-900" />
-                        {modoAtendimento === 'classico' && <span className="text-[8px] font-bold uppercase px-2 py-0.5 rounded bg-slate-900 text-white">Ativo</span>}
+                        <div className="w-8 h-8 rounded-xl flex items-center justify-center text-white font-bold shadow bg-slate-900">
+                          <Grid className="w-4 h-4" />
+                        </div>
+                        {modoAtendimento === 'classico' && (
+                          <span className="text-[9px] font-extrabold uppercase px-2.5 py-0.5 rounded-full bg-slate-900 text-white">Ativo</span>
+                        )}
                       </div>
-                      <h4 className="font-bold text-slate-900 text-xs">Clássico</h4>
+                      <div>
+                        <h4 className="font-bold text-slate-900 text-xs">Modo Clássico</h4>
+                        <p className="text-[10px] text-slate-500 mt-0.5">Layout tradicional em grade para seleção rápida.</p>
+                      </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="space-y-2 pt-1">
-                  <div className="flex items-center justify-between border-b border-slate-100 pb-1.5">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Notificações</span>
-                    <span className="text-[9px] font-bold px-2 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200">Em breve</span>
+                {/* NOTIFICAÇÕES E ALERTAS - BLOQUEADO (EM BREVE) */}
+                <div className="space-y-4 pt-2">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                    <div className="flex items-center gap-2.5">
+                      <BellRing className="w-4 h-4 text-slate-400" />
+                      <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400">Notificações e Alertas</h2>
+                    </div>
+                    <span className="text-[10px] font-extrabold uppercase px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1 shadow-xs">
+                      <Lock className="w-3 h-3" />
+                      <span>Em breve</span>
+                    </span>
                   </div>
-                  <input
-                    type="text"
-                    disabled
-                    value={whatsappNotificacoes}
-                    placeholder="WhatsApp para Alertas (Em breve)"
-                    className="w-full bg-slate-100 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-400 cursor-not-allowed"
-                  />
+
+                  <div className="space-y-1.5 p-4 rounded-2xl bg-slate-100/70 border border-slate-200/80 relative overflow-hidden">
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-xs font-bold text-slate-400 block">WhatsApp para Alertas de Agendamento</label>
+                      <span className="text-[10px] text-slate-500 font-medium italic">Funcionalidade bloqueada temporariamente</span>
+                    </div>
+                    <input
+                      type="text"
+                      disabled
+                      value={whatsappNotificacoes}
+                      placeholder="Disponível em breve..."
+                      className="w-full bg-slate-200/80 border border-slate-300 rounded-xl px-4 py-3 text-xs font-bold text-slate-400 cursor-not-allowed select-none shadow-inner"
+                    />
+                    <p className="text-[10px] text-slate-400">Esta funcionalidade de avisos automáticos via WhatsApp estará disponível em uma próxima atualização.</p>
+                  </div>
                 </div>
               </div>
             )}
@@ -590,15 +642,15 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
           </div>
         </div>
 
-        {/* Botão de Salvar Fixo na parte inferior */}
-        <div className="shrink-0 pt-1">
+        {/* Botão de Salvar Global (Visível ao rolar naturalmente) */}
+        <div className="pt-2">
           <button
             type="submit"
             disabled={salvando}
-            className="w-full py-3.5 rounded-2xl text-white font-bold text-xs uppercase tracking-wider transition-all active:scale-[0.99] shadow-lg flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 bg-[#090a0f] hover:bg-black border border-stone-800"
+            className="w-full py-4 rounded-2xl text-white font-bold text-xs uppercase tracking-wider transition-all active:scale-[0.99] shadow-xl flex items-center justify-center gap-2.5 cursor-pointer disabled:opacity-50 bg-[#090a0f] hover:bg-black border border-stone-800"
           >
             {sucesso ? <Check className="w-4 h-4" /> : <Save className="w-4 h-4" />}
-            <span>{salvando ? 'Salvando...' : sucesso ? 'Salvo com sucesso!' : 'Salvar Alterações'}</span>
+            <span>{salvando ? 'Salvando alterações...' : sucesso ? 'Alterações salvas com sucesso!' : 'Salvar Alterações'}</span>
           </button>
         </div>
 
@@ -607,80 +659,169 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
       {/* MODAL DE HORÁRIOS & BLOQUEIOS */}
       {modalHorariosOpen && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-fade-in">
-          <div className="bg-white border border-slate-200 rounded-[2rem] shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col overflow-hidden relative text-slate-900">
+          <div className="bg-white border border-slate-200 rounded-[2.5rem] shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden relative text-slate-900">
             
-            <div className="flex items-center justify-between p-5 border-b border-slate-100 shrink-0">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-slate-900 text-white flex items-center justify-center shadow">
-                  <Clock className="w-4 h-4 text-emerald-400" />
+            <div className="flex items-center justify-between p-6 sm:p-8 border-b border-slate-100 shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-slate-900 text-white flex items-center justify-center shadow">
+                  <Clock className="w-5 h-5 text-emerald-400" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-slate-900">Horários & Expediente</h3>
-                  <p className="text-[10px] text-slate-500">Defina expediente semanal e folgas.</p>
+                  <h3 className="text-base font-bold text-slate-900">Horários & Expediente</h3>
+                  <p className="text-xs text-slate-500">Defina expediente semanal, pausas e bloqueio de feriados.</p>
                 </div>
               </div>
               <button 
                 type="button"
                 onClick={() => setModalHorariosOpen(false)}
-                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center cursor-pointer"
+                className="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-900 flex items-center justify-center transition-colors cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-5 space-y-4">
+            <div className="flex-1 overflow-y-auto p-6 sm:p-8 space-y-6">
               
-              <div className="bg-slate-50 rounded-xl border border-slate-200 p-3.5 flex items-center justify-between gap-3">
-                <div>
-                  <h4 className="font-bold text-slate-900 text-xs">Novos Agendamentos</h4>
-                  <p className="text-[10px] text-slate-500">{permiteAgendamentos ? 'Aceitando agendamentos.' : 'Pausados.'}</p>
+              {/* Controle Geral */}
+              <div className="bg-slate-50 rounded-2xl border border-slate-200 p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Sliders className="w-4 h-4 text-slate-800" />
+                    <h4 className="font-bold text-slate-900 text-xs">Novos Agendamentos Online</h4>
+                  </div>
+                  <p className="text-[11px] text-slate-500">
+                    {permiteAgendamentos ? 'Aceitando novos agendamentos.' : 'Agendamentos pausados.'}
+                  </p>
                 </div>
+
                 <button
                   type="button"
                   onClick={() => setPermiteAgendamentos(!permiteAgendamentos)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                    permiteAgendamentos ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 shrink-0 shadow-sm ${
+                    permiteAgendamentos 
+                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100' 
+                      : 'bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100'
                   }`}
                 >
-                  {permiteAgendamentos ? 'Ativo' : 'Pausado'}
+                  {permiteAgendamentos ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <X className="w-3.5 h-3.5 text-rose-600" />}
+                  <span>{permiteAgendamentos ? 'Ativo (Aceitando)' : 'Desativado (Pausado)'}</span>
                 </button>
               </div>
 
-              {/* Lista Dias da Semana */}
-              <div className="space-y-2">
-                <h4 className="font-bold text-slate-900 text-xs uppercase tracking-wider">Expediente Semanal</h4>
-                <div className="space-y-2">
+              {/* Bloqueio de Datas Específicas */}
+              <div className="bg-slate-50 rounded-2xl border border-slate-200 p-4 sm:p-5 space-y-4 shadow-sm">
+                <div className="flex items-center gap-2">
+                  <CalendarOff className="w-4 h-4 text-rose-600" />
+                  <h4 className="font-bold text-slate-900 text-xs uppercase tracking-wider">Bloqueio de Feriados / Folgas</h4>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-2 pt-1">
+                  <input 
+                    type="date"
+                    value={novaDataBloqueio}
+                    onChange={(e) => setNovaDataBloqueio(e.target.value)}
+                    className="bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 focus:outline-none cursor-pointer flex-1"
+                  />
+                  <input 
+                    type="text"
+                    placeholder="Motivo (Ex: Feriado, Viagem...)"
+                    value={novoMotivoBloqueio}
+                    onChange={(e) => setNovoMotivoBloqueio(e.target.value)}
+                    className="bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-medium text-slate-900 focus:outline-none flex-1"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAdicionarBloqueio}
+                    disabled={!novaDataBloqueio}
+                    className="px-4 py-2 bg-slate-900 hover:bg-black text-white rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-40 shadow-sm shrink-0"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Bloquear</span>
+                  </button>
+                </div>
+
+                <div className="space-y-2 pt-2">
+                  {carregandoBloqueios ? (
+                    <p className="text-[11px] text-slate-400 italic">Carregando bloqueios...</p>
+                  ) : listaBloqueios.length === 0 ? (
+                    <p className="text-[11px] text-slate-400 italic">Nenhuma data bloqueada cadastrada.</p>
+                  ) : (
+                    <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+                      {listaBloqueios.map((bloqueio) => {
+                        const dataFmt = bloqueio.data_bloqueio.split('-').reverse().join('/');
+                        return (
+                          <div key={bloqueio.id} className="flex items-center justify-between bg-white border border-slate-200 px-3.5 py-2 rounded-xl shadow-xs text-xs">
+                            <div className="flex items-center gap-2">
+                              <span className="font-black text-slate-900">📅 {dataFmt}</span>
+                              <span className="text-slate-400">•</span>
+                              <span className="text-slate-600 font-medium">{bloqueio.motivo}</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoverBloqueio(bloqueio.id)}
+                              className="text-rose-600 hover:text-rose-800 p-1 rounded-lg hover:bg-rose-50 transition-colors cursor-pointer"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Lista de Dias da Semana */}
+              <div className="space-y-3">
+                <h4 className="font-bold text-slate-900 text-xs uppercase tracking-wider">Expediente Semanal & Pausas</h4>
+
+                <div className="space-y-2.5">
                   {ordemDiasSemana.map(({ key: diaKey, label }) => {
-                    const diaConfig = horariosSemana[diaKey] || { ativo: false, abertura: '09:00', fechamento: '19:00' };
+                    const diaConfig = horariosSemana[diaKey] || { ativo: false, abertura: '09:00', fechamento: '19:00', pausaInicio: '', pausaFim: '' };
                     return (
-                      <div key={diaKey} className={`p-3 rounded-xl border flex items-center justify-between gap-2 ${diaConfig.ativo ? 'bg-slate-50 border-slate-200' : 'bg-slate-100 opacity-60'}`}>
-                        <div className="flex items-center gap-3">
-                          <span className="font-bold text-slate-900 text-xs w-24">{label}</span>
+                      <div 
+                        key={diaKey}
+                        className={`p-3.5 rounded-2xl border transition-all flex flex-col md:flex-row md:items-center justify-between gap-3 ${
+                          diaConfig.ativo ? 'bg-slate-50 border-slate-200' : 'bg-slate-100/60 border-slate-200/50 opacity-60'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between md:w-40 shrink-0">
+                          <span className="font-bold text-slate-900 text-xs capitalize">{label}</span>
                           <button
                             type="button"
                             onClick={() => handleToggleDia(diaKey)}
-                            className={`text-[10px] font-bold px-2 py-1 rounded cursor-pointer ${diaConfig.ativo ? 'bg-slate-900 text-white' : 'bg-slate-200 text-slate-600'}`}
+                            className={`text-[10px] font-bold px-2.5 py-1 rounded-lg transition-colors cursor-pointer ${
+                              diaConfig.ativo ? 'bg-slate-900 text-white' : 'bg-slate-200 text-slate-600'
+                            }`}
                           >
                             {diaConfig.ativo ? 'Aberto' : 'Fechado'}
                           </button>
                         </div>
 
-                        {diaConfig.ativo && (
-                          <div className="flex items-center gap-1.5 text-xs">
-                            <input 
-                              type="time"
-                              value={diaConfig.abertura}
-                              onChange={(e) => handleChangeHorario(diaKey, 'abertura', e.target.value)}
-                              className="bg-white px-2 py-1 rounded border border-slate-200 font-bold text-slate-900"
-                            />
-                            <span>às</span>
-                            <input 
-                              type="time"
-                              value={diaConfig.fechamento}
-                              onChange={(e) => handleChangeHorario(diaKey, 'fechamento', e.target.value)}
-                              className="bg-white px-2 py-1 rounded border border-slate-200 font-bold text-slate-900"
-                            />
+                        {diaConfig.ativo ? (
+                          <div className="flex flex-wrap items-center gap-2 flex-1 justify-end text-xs">
+                            <div className="flex items-center gap-1 bg-white px-2.5 py-1 rounded-xl border border-slate-200 shadow-inner">
+                              <span className="text-[9px] font-bold text-slate-400 uppercase">Abertura:</span>
+                              <input 
+                                type="time"
+                                value={diaConfig.abertura}
+                                onChange={(e) => handleChangeHorario(diaKey, 'abertura', e.target.value)}
+                                className="bg-transparent font-bold text-slate-900 focus:outline-none cursor-pointer"
+                              />
+                            </div>
+
+                            <div className="flex items-center gap-1 bg-white px-2.5 py-1 rounded-xl border border-slate-200 shadow-inner">
+                              <span className="text-[9px] font-bold text-slate-400 uppercase">Fechamento:</span>
+                              <input 
+                                type="time"
+                                value={diaConfig.fechamento}
+                                onChange={(e) => handleChangeHorario(diaKey, 'fechamento', e.target.value)}
+                                className="bg-transparent font-bold text-slate-900 focus:outline-none cursor-pointer"
+                              />
+                            </div>
                           </div>
+                        ) : (
+                          <div className="text-xs text-slate-400 italic font-medium py-1">Fechado neste dia.</div>
                         )}
                       </div>
                     );
@@ -690,13 +831,13 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
 
             </div>
 
-            <div className="p-4 border-t border-slate-100 flex justify-end shrink-0 bg-slate-50">
+            <div className="p-6 sm:p-8 border-t border-slate-100 flex items-center justify-end gap-3 shrink-0 bg-slate-50">
               <button
                 type="button"
                 onClick={() => setModalHorariosOpen(false)}
-                className="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold cursor-pointer"
+                className="px-5 py-2.5 bg-white border border-slate-200 hover:bg-slate-100 rounded-xl text-xs font-bold text-slate-700 transition-colors cursor-pointer shadow-sm"
               >
-                Concluir
+                Concluir / Fechar
               </button>
             </div>
 
@@ -704,35 +845,61 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
         </div>
       )}
 
-      {/* MODAL COMPARTILHAR */}
+      {/* MODAL DE COMPARTILHAMENTO */}
       {modalCompartilharOpen && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-fade-in">
-          <div className="bg-white border border-slate-200 rounded-3xl shadow-2xl w-full max-w-md p-6 space-y-5 relative text-slate-900">
+          <div className="bg-white border border-slate-200 rounded-3xl shadow-2xl w-full max-w-md p-6 sm:p-8 space-y-6 relative text-slate-900">
             <button 
               type="button"
               onClick={() => setModalCompartilharOpen(false)}
-              className="absolute top-5 right-5 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center"
+              className="absolute top-6 right-6 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-900 flex items-center justify-center transition-colors"
             >
               <X className="w-4 h-4" />
             </button>
 
-            <h3 className="text-base font-bold text-slate-900">Compartilhar Link</h3>
+            <div className="space-y-1">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Divulgação</span>
+              <h3 className="text-base font-bold text-slate-900">Compartilhar Link do Cliente</h3>
+              <p className="text-xs text-slate-500">Envie o link de agendamento online diretamente para seus clientes.</p>
+            </div>
 
-            <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 p-2 rounded-2xl">
-              <input type="text" readOnly value={urlCliente} className="w-full bg-transparent px-2 text-xs font-medium text-slate-700 outline-none truncate" />
-              <button type="button" onClick={handleCopiarLink} className="px-3 py-2 text-white bg-slate-900 rounded-xl text-xs font-bold shrink-0 flex items-center gap-1">
-                {copiado ? <Check className="w-3 h-3" /> : <Copy className="w-3.5 h-3.5" />}
+            <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 p-2 rounded-2xl shadow-inner">
+              <input 
+                type="text" 
+                readOnly 
+                value={urlCliente} 
+                className="w-full bg-transparent px-3 text-xs font-medium text-slate-700 outline-none truncate"
+              />
+              <button 
+                type="button"
+                onClick={handleCopiarLink}
+                className="px-4 py-2.5 text-white bg-slate-900 hover:bg-black rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 cursor-pointer shadow"
+              >
+                {copiado ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
                 <span>{copiado ? 'Copiado!' : 'Copiar'}</span>
               </button>
             </div>
 
-            <div className="grid grid-cols-2 gap-2.5 pt-1">
-              <button type="button" onClick={handleCompartilharWhatsApp} className="flex items-center justify-center gap-2 p-3 rounded-xl bg-emerald-50 text-emerald-700 font-bold text-xs border border-emerald-200">
-                <MessageCircle className="w-4 h-4" /> WhatsApp
-              </button>
-              <button type="button" onClick={handleCompartilharTelegram} className="flex items-center justify-center gap-2 p-3 rounded-xl bg-sky-50 text-sky-700 font-bold text-xs border border-sky-200">
-                <Send className="w-4 h-4" /> Telegram
-              </button>
+            <div className="space-y-2.5 pt-2">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">Enviar via Redes Sociais</span>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={handleCompartilharWhatsApp}
+                  className="flex items-center gap-3 p-3.5 rounded-2xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 font-bold text-xs transition-all cursor-pointer"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                  <span>WhatsApp</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCompartilharTelegram}
+                  className="flex items-center gap-3 p-3.5 rounded-2xl bg-sky-50 hover:bg-sky-100 border border-sky-200 text-sky-700 font-bold text-xs transition-all cursor-pointer"
+                >
+                  <Send className="w-4 h-4" />
+                  <span>Telegram</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
