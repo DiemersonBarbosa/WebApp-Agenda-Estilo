@@ -282,13 +282,13 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
   };
 
   return (
-    <div className="w-full mx-auto space-y-6 pb-28 px-0 sm:px-4 text-slate-900 font-sans">
+    <div className="w-full max-w-md mx-auto space-y-6 pb-28 px-4 pt-2 text-slate-900 font-sans">
       
       <form onSubmit={handleSubmit} className="space-y-6">
         
-        {/* Banner de Capa & Ações Rápidas */}
-        <div className="rounded-none sm:rounded-[2.5rem] bg-white border-y sm:border border-slate-200 shadow-xl overflow-hidden">
-          <div className="relative h-44 sm:h-52 w-full bg-[#090a0f] overflow-hidden border-b border-white/10">
+        {/* Banner de Capa & Ações Rápidas com bordas arredondadas consistentes e margem segura */}
+        <div className="rounded-[2.5rem] bg-white border border-slate-200 shadow-xl overflow-hidden">
+          <div className="relative h-44 sm:h-52 w-full bg-[#090a0f] overflow-hidden border-b border-white/15">
             {capaUrl ? (
               <img src={capaUrl} alt="Capa" className="w-full h-full object-cover opacity-90" />
             ) : (
@@ -319,7 +319,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
             </div>
           </div>
 
-          <div className="px-4 sm:px-8 pb-6 pt-0 relative flex flex-col sm:flex-row items-center sm:items-end justify-between gap-4 -mt-14 sm:-mt-16 mb-6">
+          <div className="px-5 sm:px-8 pb-6 pt-0 relative flex flex-col sm:flex-row items-center sm:items-end justify-between gap-4 -mt-14 sm:-mt-16 mb-6">
             <div className="flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
               <div className="relative z-20">
                 <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl bg-black p-1 shadow-2xl border-2 border-white/30 overflow-hidden flex items-center justify-center">
@@ -343,7 +343,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
           {/* MENU DE ABAS EM FORMATO DE SLIDE HORIZONTAL */}
           <div 
             ref={scrollContainerRef}
-            className="px-4 sm:px-8 border-t border-slate-200 bg-slate-50 flex gap-3 overflow-x-auto py-3.5 no-scrollbar scroll-smooth snap-x snap-mandatory"
+            className="px-5 sm:px-8 border-t border-slate-200 bg-slate-50 flex gap-3 overflow-x-auto py-3.5 no-scrollbar scroll-smooth snap-x snap-mandatory"
           >
             {[
               { id: 'geral', label: 'Geral & Perfil', icon: Store },
@@ -378,7 +378,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
           </div>
 
           {/* CONTEÚDO DINÂMICO DAS ABAS */}
-          <div className="px-4 sm:px-8 py-8 space-y-6 bg-white text-slate-900 min-h-[320px]">
+          <div className="px-5 sm:px-8 py-8 space-y-6 bg-white text-slate-900 min-h-[320px]">
             
             {/* ABA 1: GERAL & PERFIL */}
             {abaAtiva === 'geral' && (
@@ -643,7 +643,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
         </div>
 
         {/* Botão de Salvar Global */}
-        <div className="pt-2 px-3 sm:px-0">
+        <div className="pt-2">
           <button
             type="submit"
             disabled={salvando}
