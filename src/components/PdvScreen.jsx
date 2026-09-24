@@ -9,7 +9,6 @@ export default function PdvScreen({ barbeariaId, supabase, produtos = [], onRelo
   const [clienteNome, setClienteNome] = useState('');
   const [formaPagamento, setFormaPagamento] = useState('dinheiro');
   const [modalFechamentoAberto, setModalFechamentoAberto] = useState(false);
-  const [abaAtiva, setAbaAtiva] = useState('produtos'); // 'produtos' ou 'carrinho' para navegação mobile perfeita
   const [salvando, setSalvando] = useState(false);
   const [vendasPdV, setVendasPdV] = useState([]);
 
@@ -136,17 +135,19 @@ export default function PdvScreen({ barbeariaId, supabase, produtos = [], onRelo
     setSalvando(false);
     setCarrinho([]);
     setClienteNome('');
-    setAbaAtiva('produtos');
     carregarVendasPdV();
     if (onReload) onReload();
     alert('Venda realizada com sucesso!');
   };
 
-  // Filtro inteligente de produtos cadastrados
-  const produtosFiltrados = (produtos || []).filter(p => 
-    (p.nome && p.nome.toLowerCase().includes(busca.toLowerCase())) ||
-    (p.categoria && p.categoria.toLowerCase().includes(busca.toLowerCase()))
-  );
+  // Filtro robusto para garantir que os produtos apareçam e respondam ao digitar
+  const produtosFiltrados = (produtos || []).filter(p => {
+    if (!busca.trim()) return true;
+    const termo = busca.toLowerCase();
+    const nomeProd = (p.nome || '').toLowerCase();
+    const catProd = (p.categoria || '').toLowerCase();
+    return nomeProd.includes(termo) || catProd.includes(termo);
+  });
 
   return (
     <div className="max-w-7xl mx-auto px-2 sm:px-0 space-y-4 pb-28 font-sans">
@@ -165,7 +166,7 @@ export default function PdvScreen({ barbeariaId, supabase, produtos = [], onRelo
           </div>
           <div>
             <h3 className="text-sm sm:text-base font-extrabold text-stone-900 tracking-tight">PDV / Frente de Caixa</h3>
-            <p className="text-[11px] text-stone-500">Vendas rápidas de balcão e produtos.</p>
+            <p className="text-[11px] text-stone-500">Vendas rápidas e controle de balcão.</p>
           </div>
         </div>
 
@@ -178,38 +179,18 @@ export default function PdvScreen({ barbeariaId, supabase, produtos = [], onRelo
         </button>
       </div>
 
-      {/* SELETOR DE ABAS MOBILE (Produtos vs Carrinho) */}
-      <div className="flex lg:hidden bg-stone-200/70 p-1 rounded-2xl gap-1">
-        <button
-          onClick={() => setAbaAtiva('produtos')}
-          className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${
-            abaAtiva === 'produtos' ? 'bg-white text-stone-900 shadow-xs' : 'text-stone-600'
-          }`}
-        >
-          📦 Produtos ({produtosFiltrados.length})
-        </button>
-        <button
-          onClick={() => setAbaAtiva('carrinho')}
-          className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all relative ${
-            abaAtiva === 'carrinho' ? 'bg-white text-stone-900 shadow-xs' : 'text-stone-600'
-          }`}
-        >
-          🛒 Carrinho {totalItensCarrinho > 0 && `(${totalItensCarrinho})`}
-        </button>
-      </div>
-
-      {/* GRID DE CONTEÚDO (No desktop exibe lado a lado; no mobile alterna pelas abas) */}
+      {/* TELA ÚNICA: CATALOGO + CARRINHO ORGANIZADOS */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
         
         {/* COLUNA DE PRODUTOS DISPONÍVEIS */}
-        <div className={`lg:col-span-7 bg-white rounded-[2rem] border border-stone-200/85 shadow-sm p-4 sm:p-6 space-y-3.5 flex flex-col ${abaAtiva !== 'produtos' ? 'hidden lg:flex' : 'flex'}`}>
+        <div className="lg:col-span-7 bg-white rounded-[2rem] border border-stone-200/85 shadow-sm p-4 sm:p-5 space-y-3 flex flex-col">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-2.5 pb-2.5 border-b border-stone-100">
             <h4 className="font-black text-stone-900 text-xs tracking-wider uppercase">Catálogo de Produtos</h4>
-            <div className="relative w-full sm:w-56">
+            <div className="relative w-full sm:w-60">
               <Search className="w-3.5 h-3.5 text-stone-400 absolute left-3 top-2.5" />
               <input
                 type="text"
-                placeholder="Buscar produto..."
+                placeholder="Pesquisar por nome ou categoria..."
                 value={busca}
                 onChange={(e) => setBusca(e.target.value)}
                 className="w-full pl-9 pr-3 py-1.5 bg-stone-50 border border-stone-200 rounded-xl text-xs font-bold text-stone-900 focus:outline-none focus:border-stone-900"
@@ -218,13 +199,13 @@ export default function PdvScreen({ barbeariaId, supabase, produtos = [], onRelo
           </div>
 
           {produtosFiltrados.length === 0 ? (
-            <div className="p-12 text-center text-stone-400 text-xs border border-dashed border-stone-200 rounded-2xl my-auto space-y-2">
+            <div className="p-10 text-center text-stone-400 text-xs border border-dashed border-stone-200 rounded-2xl my-auto space-y-2">
               <Package className="w-8 h-8 mx-auto text-stone-300" />
-              <p>Nenhum produto cadastrado ou encontrado.</p>
-              <span className="text-[10px] text-stone-400 block">Cadastre produtos na aba de Produtos & Estoque.</span>
+              <p>Nenhum produto encontrado para &quot;{busca}&quot;.</p>
+              <span className="text-[10px] text-stone-400 block">Certifique-se de que os produtos foram cadastrados na aba de Produtos.</span>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-[420px] overflow-y-auto pr-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-[320px] sm:max-h-[380px] overflow-y-auto pr-1">
               {produtosFiltrados.map((prod) => {
                 const estoqueQtd = Number(prod.estoque || 0);
                 const esgotado = estoqueQtd <= 0;
@@ -233,7 +214,7 @@ export default function PdvScreen({ barbeariaId, supabase, produtos = [], onRelo
                   <div 
                     key={prod.id}
                     onClick={() => !esgotado && adicionarAoCarrinho(prod)}
-                    className={`p-3.5 rounded-2xl border transition-all flex flex-col justify-between space-y-2 ${
+                    className={`p-3 rounded-2xl border transition-all flex flex-col justify-between space-y-2 ${
                       esgotado ? 'bg-stone-100/60 border-stone-200 opacity-60 cursor-not-allowed' : 'bg-stone-50/80 hover:bg-stone-100/80 border-stone-200/80 cursor-pointer shadow-xs hover:border-stone-400'
                     }`}
                   >
@@ -263,8 +244,8 @@ export default function PdvScreen({ barbeariaId, supabase, produtos = [], onRelo
         </div>
 
         {/* COLUNA DO CARRINHO / CHECKOUT */}
-        <div className={`lg:col-span-5 bg-white rounded-[2rem] border border-stone-200/85 shadow-sm p-4 sm:p-6 flex flex-col justify-between space-y-3.5 ${abaAtiva !== 'carrinho' ? 'hidden lg:flex' : 'flex'}`}>
-          <div className="space-y-3">
+        <div className="lg:col-span-5 bg-white rounded-[2rem] border border-stone-200/85 shadow-sm p-4 sm:p-5 flex flex-col justify-between space-y-3">
+          <div className="space-y-2.5">
             <div className="pb-2 border-b border-stone-100 flex items-center justify-between">
               <h4 className="font-black text-stone-900 text-xs tracking-wider uppercase flex items-center gap-1.5">
                 <ShoppingCart className="w-3.5 h-3.5 text-emerald-600" /> Carrinho ({totalItensCarrinho})
@@ -276,20 +257,20 @@ export default function PdvScreen({ barbeariaId, supabase, produtos = [], onRelo
               )}
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 gap-2">
               <input
                 type="text"
-                placeholder="Cliente (Opcional)"
+                placeholder="Nome do Cliente (Opcional)"
                 value={clienteNome}
                 onChange={(e) => setClienteNome(e.target.value)}
                 className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs font-bold text-stone-900 focus:outline-none focus:border-stone-900"
               />
 
               {/* FORMA DE PAGAMENTO */}
-              <div className="grid grid-cols-3 gap-1">
+              <div className="grid grid-cols-3 gap-1.5">
                 {[
-                  { id: 'dinheiro', label: 'Din.', icon: DollarSign },
-                  { id: 'cartao', label: 'Cart.', icon: CreditCard },
+                  { id: 'dinheiro', label: 'Dinheiro', icon: DollarSign },
+                  { id: 'cartao', label: 'Cartão', icon: CreditCard },
                   { id: 'pix', label: 'PIX', icon: QrCode },
                 ].map((metodo) => {
                   const Icon = metodo.icon;
@@ -312,14 +293,14 @@ export default function PdvScreen({ barbeariaId, supabase, produtos = [], onRelo
             </div>
 
             {/* LISTA DE ITENS NO CARRINHO */}
-            <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+            <div className="space-y-1.5 max-h-32 sm:max-h-36 overflow-y-auto pr-1">
               {carrinho.length === 0 ? (
-                <div className="p-8 text-center text-stone-400 text-xs border border-dashed border-stone-200 rounded-2xl">
-                  Carrinho vazio. Selecione produtos ao lado.
+                <div className="p-6 text-center text-stone-400 text-xs border border-dashed border-stone-200 rounded-2xl">
+                  Carrinho vazio. Selecione os produtos ao lado.
                 </div>
               ) : (
                 carrinho.map((item) => (
-                  <div key={item.id} className="p-2.5 rounded-xl bg-stone-50 border border-stone-200/70 flex items-center justify-between gap-2">
+                  <div key={item.id} className="p-2 rounded-xl bg-stone-50 border border-stone-200/70 flex items-center justify-between gap-2">
                     <div className="min-w-0 pr-1">
                       <h6 className="font-bold text-stone-900 text-xs truncate">{item.nome}</h6>
                       <span className="text-[10px] text-stone-500">R$ {Number(item.preco).toFixed(2)} un.</span>
@@ -346,7 +327,7 @@ export default function PdvScreen({ barbeariaId, supabase, produtos = [], onRelo
           </div>
 
           {/* TOTAL E BOTÃO FINALIZAR */}
-          <div className="space-y-2.5 pt-3 border-t border-stone-100">
+          <div className="space-y-2 pt-2.5 border-t border-stone-100">
             <div className="flex justify-between items-center text-xs font-black text-stone-900">
               <span>Total a Pagar:</span>
               <span className="text-emerald-600 text-sm">R$ {valorTotalCarrinho.toFixed(2)}</span>
@@ -355,7 +336,7 @@ export default function PdvScreen({ barbeariaId, supabase, produtos = [], onRelo
             <button
               onClick={finalizarVenda}
               disabled={carrinho.length === 0 || salvando}
-              className={`w-full py-3 rounded-2xl text-xs font-bold shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+              className={`w-full py-2.5 rounded-2xl text-xs font-bold shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                 carrinho.length === 0 || salvando ? 'bg-stone-200 text-stone-400 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700 text-white active:scale-95'
               }`}
             >
