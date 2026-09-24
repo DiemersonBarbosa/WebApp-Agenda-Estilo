@@ -137,7 +137,6 @@ export default function ProdutosScreen({ produtos = [], barbeariaId, supabase, o
     }
   };
 
-  // Correção da data local (consistente com o PainelAgendaDia até meia-noite)
   const obterDataLocalIso = (d = new Date()) => {
     const ano = d.getFullYear();
     const mes = String(d.getMonth() + 1).padStart(2, '0');
@@ -237,112 +236,112 @@ export default function ProdutosScreen({ produtos = [], barbeariaId, supabase, o
   return (
     <div className="max-w-7xl mx-auto px-2 sm:px-0 space-y-6 pb-28 font-sans">
       
-      {/* 4 CARDS DE MÉTRICAS */}
+      {/* 4 CARDS DE MÉTRICAS (Com tamanhos de texto ajustados para não cortar) */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 md:gap-5 mb-6">
         
         {/* 1. Faturamento Hoje */}
         <div 
-          className="relative rounded-3xl md:rounded-[2.5rem] p-5 sm:p-6 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden shadow-xl"
+          className="relative rounded-3xl md:rounded-[2.5rem] p-4 sm:p-6 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden shadow-xl"
           style={{
             background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
             boxShadow: '0 15px 35px rgba(0, 0, 0, 0.5), inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
           }}
         >
-          <div className="flex flex-col justify-center min-w-0 pr-2">
+          <div className="flex flex-col justify-center min-w-0 pr-1">
             <span className="text-[9px] sm:text-[10px] font-bold text-stone-400 uppercase tracking-wider truncate block">Fat. Hoje</span>
-            <h3 className="text-xl sm:text-2xl font-black text-white mt-1 truncate">R$ {faturamentoDiario.toFixed(2)}</h3>
-            <p className="text-[10px] text-emerald-400 font-medium mt-0.5">{vendasHoje.length} comanda(s) hoje</p>
+            <h3 className="text-lg sm:text-2xl font-black text-white mt-1 truncate">R$ {faturamentoDiario.toFixed(2)}</h3>
+            <p className="text-[10px] text-emerald-400 font-medium mt-0.5 truncate">{vendasHoje.length} comanda(s)</p>
           </div>
           <div 
-            className="w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center shrink-0 shadow-lg"
+            className="w-9 h-9 sm:w-12 sm:h-12 rounded-full flex items-center justify-center shrink-0 shadow-lg"
             style={{
               background: 'radial-gradient(circle at 30% 30%, #ffffff 0%, #d8e2ec 60%, #9fb3c8 100%)',
               boxShadow: '0 6px 15px rgba(0, 0, 0, 0.4), inset 0 2px 3px rgba(255, 255, 255, 1), inset 0 -4px 6px rgba(0, 0, 0, 0.25)',
               border: '1px solid rgba(255, 255, 255, 0.9)'
             }}
           >
-            <DollarSign className="w-5 h-5 sm:w-6 sm:h-6 text-stone-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]" />
+            <DollarSign className="w-4 h-4 sm:w-6 sm:h-6 text-stone-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]" />
           </div>
         </div>
 
         {/* 2. Faturamento do Mês */}
         <div 
-          className="relative rounded-3xl md:rounded-[2.5rem] p-5 sm:p-6 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden shadow-xl"
+          className="relative rounded-3xl md:rounded-[2.5rem] p-4 sm:p-6 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden shadow-xl"
           style={{
             background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
             boxShadow: '0 15px 35px rgba(0, 0, 0, 0.5), inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
           }}
         >
-          <div className="flex flex-col justify-center min-w-0 pr-2">
+          <div className="flex flex-col justify-center min-w-0 pr-1">
             <span className="text-[9px] sm:text-[10px] font-bold text-stone-400 uppercase tracking-wider truncate block">Fat. do Mês</span>
-            <h3 className="text-xl sm:text-2xl font-black text-white mt-1 truncate">R$ {faturamentoMensal.toFixed(2)}</h3>
-            <p className="text-[10px] text-stone-400 font-medium mt-0.5">{vendasMes.length} venda(s) mês</p>
+            <h3 className="text-lg sm:text-2xl font-black text-white mt-1 truncate">R$ {faturamentoMensal.toFixed(2)}</h3>
+            <p className="text-[10px] text-stone-400 font-medium mt-0.5 truncate">{vendasMes.length} vendas mês</p>
           </div>
           <div 
-            className="w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center shrink-0 shadow-lg"
+            className="w-9 h-9 sm:w-12 sm:h-12 rounded-full flex items-center justify-center shrink-0 shadow-lg"
             style={{
               background: 'radial-gradient(circle at 30% 30%, #ffffff 0%, #d8e2ec 60%, #9fb3c8 100%)',
               boxShadow: '0 6px 15px rgba(0, 0, 0, 0.4), inset 0 2px 3px rgba(255, 255, 255, 1), inset 0 -4px 6px rgba(0, 0, 0, 0.25)',
               border: '1px solid rgba(255, 255, 255, 0.9)'
             }}
           >
-            <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-stone-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]" />
+            <TrendingUp className="w-4 h-4 sm:w-6 sm:h-6 text-stone-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]" />
           </div>
         </div>
 
         {/* 3. Itens Vendidos (Mês) */}
         <div 
-          className="relative rounded-3xl md:rounded-[2.5rem] p-5 sm:p-6 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden shadow-xl"
+          className="relative rounded-3xl md:rounded-[2.5rem] p-4 sm:p-6 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden shadow-xl"
           style={{
             background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
             boxShadow: '0 15px 35px rgba(0, 0, 0, 0.5), inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
           }}
         >
-          <div className="flex flex-col justify-center min-w-0 pr-2">
+          <div className="flex flex-col justify-center min-w-0 pr-1">
             <span className="text-[9px] sm:text-[10px] font-bold text-stone-400 uppercase tracking-wider truncate block">Itens Vendidos</span>
-            <h3 className="text-xl sm:text-2xl font-black text-white mt-1 truncate">{totalItensVendidosMes} un.</h3>
-            <p className="text-[10px] text-stone-400 font-medium mt-0.5">Saídas PDV mês</p>
+            <h3 className="text-lg sm:text-2xl font-black text-white mt-1 truncate">{totalItensVendidosMes} un.</h3>
+            <p className="text-[10px] text-stone-400 font-medium mt-0.5 truncate">Saídas PDV mês</p>
           </div>
           <div 
-            className="w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center shrink-0 shadow-lg"
+            className="w-9 h-9 sm:w-12 sm:h-12 rounded-full flex items-center justify-center shrink-0 shadow-lg"
             style={{
               background: 'radial-gradient(circle at 30% 30%, #ffffff 0%, #d8e2ec 60%, #9fb3c8 100%)',
               boxShadow: '0 6px 15px rgba(0, 0, 0, 0.4), inset 0 2px 3px rgba(255, 255, 255, 1), inset 0 -4px 6px rgba(0, 0, 0, 0.25)',
               border: '1px solid rgba(255, 255, 255, 0.9)'
             }}
           >
-            <ShoppingCart className="w-5 h-5 sm:w-6 sm:h-6 text-stone-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]" />
+            <ShoppingCart className="w-4 h-4 sm:w-6 sm:h-6 text-stone-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]" />
           </div>
         </div>
 
         {/* 4. Valor em Estoque */}
         <div 
-          className="relative rounded-3xl md:rounded-[2.5rem] p-5 sm:p-6 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden shadow-xl"
+          className="relative rounded-3xl md:rounded-[2.5rem] p-4 sm:p-6 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden shadow-xl"
           style={{
             background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
             boxShadow: '0 15px 35px rgba(0, 0, 0, 0.5), inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
           }}
         >
-          <div className="flex flex-col justify-center min-w-0 pr-2">
+          <div className="flex flex-col justify-center min-w-0 pr-1">
             <span className="text-[9px] sm:text-[10px] font-bold text-stone-400 uppercase tracking-wider truncate block">Vlr. em Estoque</span>
-            <h3 className="text-xl sm:text-2xl font-black text-white mt-1 truncate">R$ {valorTotalEstoque.toFixed(2)}</h3>
-            <p className="text-[10px] text-stone-400 font-medium mt-0.5">Potencial mercadorias</p>
+            <h3 className="text-base sm:text-2xl font-black text-white mt-1 truncate">R$ {valorTotalEstoque.toFixed(2)}</h3>
+            <p className="text-[10px] text-stone-400 font-medium mt-0.5 truncate">Mercadorias</p>
           </div>
           <div 
-            className="w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center shrink-0 shadow-lg"
+            className="w-9 h-9 sm:w-12 sm:h-12 rounded-full flex items-center justify-center shrink-0 shadow-lg"
             style={{
               background: 'radial-gradient(circle at 30% 30%, #ffffff 0%, #d8e2ec 60%, #9fb3c8 100%)',
               boxShadow: '0 6px 15px rgba(0, 0, 0, 0.4), inset 0 2px 3px rgba(255, 255, 255, 1), inset 0 -4px 6px rgba(0, 0, 0, 0.25)',
               border: '1px solid rgba(255, 255, 255, 0.9)'
             }}
           >
-            <Package className="w-5 h-5 sm:w-6 sm:h-6 text-stone-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]" />
+            <Package className="w-4 h-4 sm:w-6 sm:h-6 text-stone-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]" />
           </div>
         </div>
 
       </div>
 
-      {/* SEÇÃO PRINCIPAL DE CATÁLOGO COM O NOVO ESTILO DOS BOTÕES */}
+      {/* SEÇÃO PRINCIPAL DE CATÁLOGO */}
       <div 
         className="relative rounded-[2.5rem] p-5 sm:p-8 border border-white/80 overflow-hidden shadow-sm space-y-6"
         style={{
@@ -362,34 +361,34 @@ export default function ProdutosScreen({ produtos = [], barbeariaId, supabase, o
           </div>
         </div>
 
-        {/* Botões de Ação com Estilo Moderno */}
+        {/* Botões de Ação (Com flex-1 para manter o mesmo tamanho) */}
         <div className="flex flex-wrap items-center gap-2.5">
           <button
             onClick={() => setModalGerenciarCatAberto(true)}
-            className="flex-1 sm:flex-none px-4 py-3 bg-white hover:bg-stone-50 text-stone-700 border border-stone-200/90 rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-xs cursor-pointer"
+            className="flex-1 px-3 py-3 bg-white hover:bg-stone-50 text-stone-700 border border-stone-200/90 rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-xs cursor-pointer truncate"
           >
-            <Settings className="w-4 h-4 text-stone-500" />
-            <span>Gerenciar Categorias</span>
+            <Settings className="w-4 h-4 text-stone-500 shrink-0" />
+            <span className="truncate">Gerenciar Categorias</span>
           </button>
           
           <button
             onClick={() => setModalCategoriaAberto(true)}
-            className="flex-1 sm:flex-none px-4 py-3 bg-white hover:bg-stone-50 text-stone-700 border border-stone-200/90 rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-xs cursor-pointer"
+            className="flex-1 px-3 py-3 bg-white hover:bg-stone-50 text-stone-700 border border-stone-200/90 rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-xs cursor-pointer truncate"
           >
-            <FolderPlus className="w-4 h-4 text-stone-500" />
-            <span>Nova Categoria</span>
+            <FolderPlus className="w-4 h-4 text-stone-500 shrink-0" />
+            <span className="truncate">Nova Categoria</span>
           </button>
           
           <button
             onClick={handleNovoProduto}
-            className="w-full sm:w-auto px-5 py-3 bg-stone-900 hover:bg-stone-800 text-white rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-md cursor-pointer"
+            className="w-full sm:w-auto px-5 py-3 bg-stone-900 hover:bg-stone-800 text-white rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-md cursor-pointer shrink-0"
           >
             <Plus className="w-4 h-4" />
             <span>Cadastrar Produto</span>
           </button>
         </div>
 
-        {/* CARDS DINÂMICOS DE CATEGORIAS REAIS DO BANCO */}
+        {/* CARDS DINÂMICOS DE CATEGORIAS */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
           {categorias.map((catObj) => {
             const produtosDaCat = produtos.filter(p => (p.categoria || categorias[0]?.nome) === catObj.nome);
@@ -401,14 +400,14 @@ export default function ProdutosScreen({ produtos = [], barbeariaId, supabase, o
                 onClick={() => setCategoriaModal(catObj.nome)}
                 className="bg-white rounded-[2rem] border border-stone-200/90 p-5 shadow-xs flex items-center justify-between cursor-pointer hover:border-stone-400 transition-all group"
               >
-                <div className="space-y-1">
+                <div className="space-y-1 min-w-0 pr-2">
                   <span className="text-[10px] font-extrabold text-stone-400 uppercase tracking-wider block">Categoria</span>
-                  <h4 className="font-black text-stone-900 text-base">{catObj.nome}</h4>
+                  <h4 className="font-black text-stone-900 text-base truncate">{catObj.nome}</h4>
                   <p className="text-xs text-stone-600 font-medium pt-1">
                     Estoque: <span className="text-emerald-600 font-bold">{estoqueCat} un.</span>
                   </p>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 shrink-0">
                   <div className="w-10 h-10 rounded-2xl bg-stone-100 flex items-center justify-center text-xl shadow-xs">
                     📦
                   </div>
@@ -422,17 +421,17 @@ export default function ProdutosScreen({ produtos = [], barbeariaId, supabase, o
         </div>
       </div>
 
-      {/* HISTÓRICO DE VENDAS DO DIA */}
+      {/* HISTÓRICO DE VENDAS DO DIA (Adaptado para cards responsivos sem estourar a tela) */}
       <div className="bg-white rounded-[2.5rem] border border-stone-200/85 shadow-[0_10px_30px_rgba(0,0,0,0.03)] p-6 sm:p-8 space-y-4">
-        <div className="flex items-center justify-between pb-3.5 border-b border-stone-100">
-          <div>
-            <h3 className="text-sm font-black text-stone-900 tracking-wider uppercase flex items-center gap-2">
-              <Clock className="w-4 h-4 text-emerald-600" /> Vendas de Balcão Realizadas Hoje
+        <div className="flex items-center justify-between pb-3.5 border-b border-stone-100 gap-2">
+          <div className="min-w-0">
+            <h3 className="text-xs sm:text-sm font-black text-stone-900 tracking-wider uppercase flex items-center gap-2 truncate">
+              <Clock className="w-4 h-4 text-emerald-600 shrink-0" /> <span className="truncate">Vendas de Balcão Realizadas Hoje</span>
             </h3>
-            <p className="text-xs text-stone-400 mt-0.5">Acompanhe em tempo real o fluxo de caixa dos produtos vendidos hoje.</p>
+            <p className="text-[11px] text-stone-400 mt-0.5 truncate">Fluxo de caixa dos produtos vendidos hoje.</p>
           </div>
-          <span className="text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-full">
-            {vendasHoje.length} venda(s) hoje
+          <span className="text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-full shrink-0">
+            {vendasHoje.length} venda(s)
           </span>
         </div>
         
@@ -441,39 +440,27 @@ export default function ProdutosScreen({ produtos = [], barbeariaId, supabase, o
             Nenhuma venda de produto registrada hoje até o momento.
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-stone-100 text-[11px] font-bold text-stone-400 uppercase">
-                  <th className="py-3 px-4">Horário</th>
-                  <th className="py-3 px-4">Cliente</th>
-                  <th className="py-3 px-4">Pagamento</th>
-                  <th className="py-3 px-4">Itens Comprados</th>
-                  <th className="py-3 px-4 text-right">Total</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-stone-50 text-xs text-stone-700">
-                {vendasHoje.map((venda) => (
-                  <tr key={venda.id} className="hover:bg-stone-50/50 transition-colors">
-                    <td className="py-3.5 px-4 text-stone-500 font-medium">
-                      {new Date(venda.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                    </td>
-                    <td className="py-3.5 px-4 font-bold text-stone-900">{venda.cliente_nome}</td>
-                    <td className="py-3.5 px-4 uppercase font-semibold text-[10px]">
-                      <span className="bg-stone-100 text-stone-700 px-2.5 py-1 rounded-lg border border-stone-200/60">
-                        {venda.forma_pagamento}
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-4 text-stone-600 font-medium">
+          <div className="space-y-3">
+            {vendasHoje.map((venda) => (
+              <div key={venda.id} className="p-4 rounded-2xl bg-stone-50 border border-stone-200/70 space-y-2.5">
+                <div className="flex justify-between items-start gap-2">
+                  <div className="min-w-0">
+                    <span className="font-bold text-stone-900 text-xs block truncate">{venda.cliente_nome}</span>
+                    <span className="text-[11px] text-stone-500 block truncate">
                       {(venda.itens || []).map(i => `${i.quantidade}x ${i.nome}`).join(', ')}
-                    </td>
-                    <td className="py-3.5 px-4 text-right font-extrabold text-emerald-600 text-sm">
-                      R$ {Number(venda.total).toFixed(2)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    </span>
+                  </div>
+                  <span className="font-black text-emerald-600 text-xs shrink-0">R$ {Number(venda.total).toFixed(2)}</span>
+                </div>
+                
+                <div className="flex justify-between items-center pt-2 border-t border-stone-200/60 text-[11px] text-stone-500 font-medium">
+                  <span className="bg-stone-200/70 text-stone-700 px-2 py-0.5 rounded-lg uppercase text-[10px] font-bold">
+                    {venda.forma_pagamento}
+                  </span>
+                  <span>🕒 {new Date(venda.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>
