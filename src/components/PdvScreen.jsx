@@ -3,8 +3,9 @@
 import { useState, useEffect } from 'react';
 import { ShoppingCart, Plus, Minus, Trash2, DollarSign, CreditCard, QrCode, CheckCircle, X, Search, Clock, ShieldCheck, Package } from 'lucide-react';
 
-export default function PdvScreen({ barbeariaId, supabase, produtos = [], onReload }) {
+export default function PdvScreen({ barbeariaId, supabase, produtos: produtosProp = [], onReload }) {
   const [busca, setBusca] = useState('');
+  const [produtosLocal, setProdutosLocal] = useState(produtosProp);
   const [carrinho, setCarrinho] = useState([]);
   const [clienteNome, setClienteNome] = useState('');
   const [formaPagamento, setFormaPagamento] = useState('dinheiro');
@@ -13,10 +14,31 @@ export default function PdvScreen({ barbeariaId, supabase, produtos = [], onRelo
   const [vendasPdV, setVendasPdV] = useState([]);
 
   useEffect(() => {
+    if (produtosProp && produtosProp.length > 0) {
+      setProdutosLocal(produtosProp);
+    }
+  }, [produtosProp]);
+
+  useEffect(() => {
     if (barbeariaId && supabase) {
       carregarVendasPdV();
+      if (!produtosProp || produtosProp.length === 0) {
+        carregarProdutosDireto();
+      }
     }
-  }, [barbeariaId]);
+  }, [barbeariaId, supabase]);
+
+  const carregarProdutosDireto = async () => {
+    if (!supabase || !barbeariaId) return;
+    const { data, error } = await supabase
+      .from('produtos')
+      .select('*')
+      .eq('barbearia_id', barbeariaId);
+
+    if (!error && data) {
+      setProdutosLocal(data);
+    }
+  };
 
   const carregarVendasPdV = async () => {
     if (!supabase || !barbeariaId) return;
@@ -136,14 +158,15 @@ export default function PdvScreen({ barbeariaId, supabase, produtos = [], onRelo
     setCarrinho([]);
     setClienteNome('');
     carregarVendasPdV();
+    carregarProdutosDireto();
     if (onReload) onReload();
     alert('Venda realizada com sucesso!');
   };
 
-  // Filtro robusto para garantir que os produtos apareçam e respondam ao digitar
-  const produtosFiltrados = (produtos || []).filter(p => {
+  // Pesquisa de produtos otimizada e sensível a qualquer termo digitado
+  const produtosFiltrados = produtosLocal.filter(p => {
     if (!busca.trim()) return true;
-    const termo = busca.toLowerCase();
+    const termo = busca.toLowerCase().trim();
     const nomeProd = (p.nome || '').toLowerCase();
     const catProd = (p.categoria || '').toLowerCase();
     return nomeProd.includes(termo) || catProd.includes(termo);
@@ -179,7 +202,7 @@ export default function PdvScreen({ barbeariaId, supabase, produtos = [], onRelo
         </button>
       </div>
 
-      {/* TELA ÚNICA: CATALOGO + CARRINHO ORGANIZADOS */}
+      {/* TELA ÚNICA: CATALOGO + CARRINHO */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
         
         {/* COLUNA DE PRODUTOS DISPONÍVEIS */}
@@ -202,7 +225,7 @@ export default function PdvScreen({ barbeariaId, supabase, produtos = [], onRelo
             <div className="p-10 text-center text-stone-400 text-xs border border-dashed border-stone-200 rounded-2xl my-auto space-y-2">
               <Package className="w-8 h-8 mx-auto text-stone-300" />
               <p>Nenhum produto encontrado para &quot;{busca}&quot;.</p>
-              <span className="text-[10px] text-stone-400 block">Certifique-se de que os produtos foram cadastrados na aba de Produtos.</span>
+              <span className="text-[10px] text-stone-400 block">Verifique se há produtos cadastrados na aba de Produtos.</span>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-[320px] sm:max-h-[380px] overflow-y-auto pr-1">
