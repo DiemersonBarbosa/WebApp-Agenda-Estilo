@@ -157,15 +157,16 @@ export default function PdvScreen({ barbeariaId, supabase, produtos: produtosPro
     setSalvando(false);
     setCarrinho([]);
     setClienteNome('');
+    setBusca(''); // Limpa a busca após finalizar
     carregarVendasPdV();
     carregarProdutosDireto();
     if (onReload) onReload();
     alert('Venda realizada com sucesso!');
   };
 
-  // Pesquisa de produtos otimizada e sensível a qualquer termo digitado
+  // Os produtos só aparecem se houver texto digitado na busca
   const produtosFiltrados = produtosLocal.filter(p => {
-    if (!busca.trim()) return true;
+    if (!busca.trim()) return false; // Se a busca estiver vazia, não exibe nenhum produto
     const termo = busca.toLowerCase().trim();
     const nomeProd = (p.nome || '').toLowerCase();
     const catProd = (p.categoria || '').toLowerCase();
@@ -213,7 +214,7 @@ export default function PdvScreen({ barbeariaId, supabase, produtos: produtosPro
               <Search className="w-3.5 h-3.5 text-stone-400 absolute left-3 top-2.5" />
               <input
                 type="text"
-                placeholder="Pesquisar por nome ou categoria..."
+                placeholder="Digite o nome do produto..."
                 value={busca}
                 onChange={(e) => setBusca(e.target.value)}
                 className="w-full pl-9 pr-3 py-1.5 bg-stone-50 border border-stone-200 rounded-xl text-xs font-bold text-stone-900 focus:outline-none focus:border-stone-900"
@@ -221,11 +222,15 @@ export default function PdvScreen({ barbeariaId, supabase, produtos: produtosPro
             </div>
           </div>
 
-          {produtosFiltrados.length === 0 ? (
+          {!busca.trim() ? (
+            <div className="p-10 text-center text-stone-400 text-xs border border-dashed border-stone-200 rounded-2xl my-auto space-y-2">
+              <Package className="w-8 h-8 mx-auto text-stone-300" />
+              <p>Digite o nome do produto na barra de pesquisa acima para exibi-lo.</p>
+            </div>
+          ) : produtosFiltrados.length === 0 ? (
             <div className="p-10 text-center text-stone-400 text-xs border border-dashed border-stone-200 rounded-2xl my-auto space-y-2">
               <Package className="w-8 h-8 mx-auto text-stone-300" />
               <p>Nenhum produto encontrado para &quot;{busca}&quot;.</p>
-              <span className="text-[10px] text-stone-400 block">Verifique se há produtos cadastrados na aba de Produtos.</span>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-[320px] sm:max-h-[380px] overflow-y-auto pr-1">
@@ -319,7 +324,7 @@ export default function PdvScreen({ barbeariaId, supabase, produtos: produtosPro
             <div className="space-y-1.5 max-h-32 sm:max-h-36 overflow-y-auto pr-1">
               {carrinho.length === 0 ? (
                 <div className="p-6 text-center text-stone-400 text-xs border border-dashed border-stone-200 rounded-2xl">
-                  Carrinho vazio. Selecione os produtos ao lado.
+                  Carrinho vazio. Pesquise e adicione produtos.
                 </div>
               ) : (
                 carrinho.map((item) => (
