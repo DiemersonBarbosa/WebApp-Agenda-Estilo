@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
-import { TrendingUp, TrendingDown, DollarSign, PieChart, Calendar, CheckCircle2, Percent, Receipt, XCircle, ShoppingBag, Plus, Settings, Package, ShoppingCart } from 'lucide-react';
+import React, { useState } from 'react';
+import { DollarSign, TrendingUp, ShoppingBag, Plus, Settings, Package, ShoppingCart } from 'lucide-react';
 
 export default function ProdutosEstoquePage({ produtos = [], categorias = [], vendas = [], barbearia = {} }) {
   const [filtroMes, setFiltroMes] = useState(() => {
@@ -10,6 +10,11 @@ export default function ProdutosEstoquePage({ produtos = [], categorias = [], ve
     const mes = String(hoje.getMonth() + 1).padStart(2, '0');
     return `${ano}-${mes}`;
   });
+
+  // Estados para controlar os modais/ações dos botões
+  const [modalGerenciarOpen, setModalGerenciarOpen] = useState(false);
+  const [modalCategoriaOpen, setModalCategoriaOpen] = useState(false);
+  const [modalProdutoOpen, setModalProdutoOpen] = useState(false);
 
   // Cálculos simulados ou baseados nas props
   const faturamentoHoje = 15.00;
@@ -20,7 +25,7 @@ export default function ProdutosEstoquePage({ produtos = [], categorias = [], ve
   return (
     <div className="max-w-7xl mx-auto space-y-5 pb-28 px-2 sm:px-0">
       
-      {/* 4 Cards de Indicadores (KPIs) do Topo - Textos Corrigidos sem cortes */}
+      {/* 4 Cards de Indicadores (KPIs) do Topo */}
       <div className="grid grid-cols-2 gap-3.5 md:gap-5">
         
         {/* 1. Faturamento Hoje */}
@@ -147,24 +152,38 @@ export default function ProdutosEstoquePage({ produtos = [], categorias = [], ve
           </div>
         </div>
 
-        {/* Botões de Ação */}
+        {/* Botões de Ação com onClick funcional */}
         <div className="flex flex-wrap items-center gap-2.5">
-          <button className="flex-1 sm:flex-none px-4 py-3 bg-white hover:bg-stone-50 text-stone-700 border border-stone-200/90 rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-xs cursor-pointer">
+          <button 
+            onClick={() => setModalGerenciarOpen(true)}
+            className="flex-1 sm:flex-none px-4 py-3 bg-white hover:bg-stone-50 text-stone-700 border border-stone-200/90 rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-xs cursor-pointer"
+          >
             <Settings className="w-4 h-4 text-stone-500" />
             <span>Gerenciar</span>
           </button>
-          <button className="flex-1 sm:flex-none px-4 py-3 bg-white hover:bg-stone-50 text-stone-700 border border-stone-200/90 rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-xs cursor-pointer">
+          
+          <button 
+            onClick={() => setModalCategoriaOpen(true)}
+            className="flex-1 sm:flex-none px-4 py-3 bg-white hover:bg-stone-50 text-stone-700 border border-stone-200/90 rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-xs cursor-pointer"
+          >
             <Package className="w-4 h-4 text-stone-500" />
             <span>Nova Categoria</span>
           </button>
-          <button className="w-full sm:w-auto px-5 py-3 bg-stone-900 hover:bg-stone-800 text-white rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-md cursor-pointer">
+          
+          <button 
+            onClick={() => setModalProdutoOpen(true)}
+            className="w-full sm:w-auto px-5 py-3 bg-stone-900 hover:bg-stone-800 text-white rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-md cursor-pointer"
+          >
             <Plus className="w-4 h-4" />
             <span>Cadastrar Produto</span>
           </button>
         </div>
 
-        {/* Card de Categoria Exemplo */}
-        <div className="bg-white rounded-[2rem] border border-stone-200/90 p-5 shadow-xs flex items-center justify-between">
+        {/* Card de Categoria Exemplo com Clique */}
+        <div 
+          onClick={() => alert('Abrir itens da categoria Bebidas')}
+          className="bg-white rounded-[2rem] border border-stone-200/90 p-5 shadow-xs flex items-center justify-between cursor-pointer hover:border-stone-400 transition-all"
+        >
           <div className="space-y-1">
             <span className="text-[10px] font-extrabold text-stone-400 uppercase tracking-wider block">Categoria</span>
             <h3 className="font-black text-stone-900 text-base">Bebidas</h3>
@@ -176,9 +195,9 @@ export default function ProdutosEstoquePage({ produtos = [], categorias = [], ve
             <div className="w-10 h-10 rounded-2xl bg-stone-100 flex items-center justify-center text-xl shadow-xs">
               📦
             </div>
-            <button className="text-xs font-bold text-stone-900 hover:underline flex items-center gap-1">
+            <span className="text-xs font-bold text-stone-900 hover:underline flex items-center gap-1">
               Ver itens &gt;
-            </button>
+            </span>
           </div>
         </div>
 
