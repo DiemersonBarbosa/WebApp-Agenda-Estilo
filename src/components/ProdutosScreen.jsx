@@ -137,14 +137,30 @@ export default function ProdutosScreen({ produtos = [], barbeariaId, supabase, o
     }
   };
 
-  const hojeStr = new Date().toISOString().split('T')[0];
+  // Correção da data local (consistente com o PainelAgendaDia até meia-noite)
+  const obterDataLocalIso = (d = new Date()) => {
+    const ano = d.getFullYear();
+    const mes = String(d.getMonth() + 1).padStart(2, '0');
+    const dia = String(d.getDate()).padStart(2, '0');
+    return `${ano}-${mes}-${dia}`;
+  };
+
+  const extrairDataIso = (item) => {
+    const dataStr = item.criado_em || '';
+    if (!dataStr) return '';
+    try {
+      const d = new Date(dataStr);
+      return obterDataLocalIso(d);
+    } catch {
+      return String(dataStr).substring(0, 10);
+    }
+  };
+
+  const hojeStr = obterDataLocalIso();
   const mesAtual = new Date().getMonth();
   const anoAtual = new Date().getFullYear();
 
-  const vendasHoje = vendasPdV.filter(v => {
-    const dataVenda = new Date(v.criado_em).toISOString().split('T')[0];
-    return dataVenda === hojeStr;
-  });
+  const vendasHoje = vendasPdV.filter(v => extrairDataIso(v) === hojeStr);
   const faturamentoDiario = vendasHoje.reduce((acc, v) => acc + Number(v.total), 0);
 
   const vendasMes = vendasPdV.filter(v => {
