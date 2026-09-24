@@ -326,43 +326,55 @@ export default function ProdutosScreen({ produtos = [], barbeariaId, supabase, o
 
       </div>
 
-      {/* SEÇÃO PRINCIPAL DE CATEGORIAS E ESTOQUE */}
-      <div className="bg-white rounded-[2.5rem] border border-stone-200/85 shadow-[0_10px_30px_rgba(0,0,0,0.03)] p-6 sm:p-8 space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-stone-200/60">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-[#111111] text-white flex items-center justify-center shadow-md shrink-0">
-              <ShoppingBag className="w-5 h-5 text-stone-200" />
+      {/* SEÇÃO PRINCIPAL DE CATÁLOGO COM O NOVO ESTILO DOS BOTÕES */}
+      <div 
+        className="relative rounded-[2.5rem] p-5 sm:p-8 border border-white/80 overflow-hidden shadow-sm space-y-6"
+        style={{
+          background: 'linear-gradient(135deg, #f7f9f8 0%, #edf1f0 50%, #e2e8e6 100%)',
+          boxShadow: '0 20px 40px rgba(0, 0, 0, 0.08), inset 0 2px 4px rgba(255, 255, 255, 0.9), inset 0 -3px 6px rgba(0, 0, 0, 0.05)'
+        }}
+      >
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-5 border-b border-stone-300/60 gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="w-11 h-11 rounded-2xl bg-stone-900 text-white flex items-center justify-center shadow-md shrink-0">
+              <ShoppingBag className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-base sm:text-lg font-black text-stone-900 tracking-tight">Catálogo de Produtos & Categorias</h3>
-              <p className="text-xs text-stone-500 mt-0.5">Gerencie suas categorias e os itens de balcão disponíveis no PDV.</p>
+              <h3 className="text-base sm:text-lg font-extrabold text-stone-900 tracking-tight">Catálogo de Produtos & Categorias</h3>
+              <p className="text-xs text-stone-500">Gerencie suas categorias e os itens de balcão disponíveis no PDV.</p>
             </div>
-          </div>
-
-          <div className="flex items-center gap-2 flex-wrap">
-            <button
-              onClick={() => setModalGerenciarCatAberto(true)}
-              className="bg-stone-100 hover:bg-stone-200 text-stone-700 px-4 py-2.5 rounded-2xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer border border-stone-200 shadow-xs"
-            >
-              <Settings className="w-4 h-4 text-stone-500" /> Gerenciar Categorias
-            </button>
-            <button
-              onClick={() => setModalCategoriaAberto(true)}
-              className="bg-stone-100 hover:bg-stone-200 text-stone-700 px-4 py-2.5 rounded-2xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer border border-stone-200 shadow-xs"
-            >
-              <FolderPlus className="w-4 h-4 text-stone-500" /> Nova Categoria
-            </button>
-            <button
-              onClick={handleNovoProduto}
-              className="bg-[#111111] hover:bg-stone-800 text-white px-5 py-2.5 rounded-2xl text-xs font-bold flex items-center justify-center gap-2 shadow-md transition-all cursor-pointer active:scale-95"
-            >
-              <Plus className="w-4 h-4" /> Cadastrar Produto
-            </button>
           </div>
         </div>
 
-        {/* CARDS DINÂMICOS DE CATEGORIAS */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {/* Botões de Ação com Estilo Moderno */}
+        <div className="flex flex-wrap items-center gap-2.5">
+          <button
+            onClick={() => setModalGerenciarCatAberto(true)}
+            className="flex-1 sm:flex-none px-4 py-3 bg-white hover:bg-stone-50 text-stone-700 border border-stone-200/90 rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-xs cursor-pointer"
+          >
+            <Settings className="w-4 h-4 text-stone-500" />
+            <span>Gerenciar Categorias</span>
+          </button>
+          
+          <button
+            onClick={() => setModalCategoriaAberto(true)}
+            className="flex-1 sm:flex-none px-4 py-3 bg-white hover:bg-stone-50 text-stone-700 border border-stone-200/90 rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-xs cursor-pointer"
+          >
+            <FolderPlus className="w-4 h-4 text-stone-500" />
+            <span>Nova Categoria</span>
+          </button>
+          
+          <button
+            onClick={handleNovoProduto}
+            className="w-full sm:w-auto px-5 py-3 bg-stone-900 hover:bg-stone-800 text-white rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-md cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Cadastrar Produto</span>
+          </button>
+        </div>
+
+        {/* CARDS DINÂMICOS DE CATEGORIAS REAIS DO BANCO */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
           {categorias.map((catObj) => {
             const produtosDaCat = produtos.filter(p => (p.categoria || categorias[0]?.nome) === catObj.nome);
             const estoqueCat = produtosDaCat.reduce((acc, p) => acc + Number(p.estoque || 0), 0);
@@ -371,18 +383,22 @@ export default function ProdutosScreen({ produtos = [], barbeariaId, supabase, o
               <div 
                 key={catObj.id}
                 onClick={() => setCategoriaModal(catObj.nome)}
-                className="bg-stone-50/80 hover:bg-stone-100/80 p-5 rounded-3xl border border-stone-200/70 space-y-3 flex flex-col justify-between cursor-pointer transition-all hover:shadow-md hover:border-stone-300 group"
+                className="bg-white rounded-[2rem] border border-stone-200/90 p-5 shadow-xs flex items-center justify-between cursor-pointer hover:border-stone-400 transition-all group"
               >
-                <div className="flex justify-between items-start">
-                  <div>
-                    <span className="text-[9px] font-extrabold text-stone-400 uppercase tracking-wider block">Categoria</span>
-                    <h4 className="font-black text-stone-900 text-sm group-hover:text-stone-950 mt-0.5">{catObj.nome}</h4>
-                  </div>
-                  <span className="text-xl">📦</span>
+                <div className="space-y-1">
+                  <span className="text-[10px] font-extrabold text-stone-400 uppercase tracking-wider block">Categoria</span>
+                  <h4 className="font-black text-stone-900 text-base">{catObj.nome}</h4>
+                  <p className="text-xs text-stone-600 font-medium pt-1">
+                    Estoque: <span className="text-emerald-600 font-bold">{estoqueCat} un.</span>
+                  </p>
                 </div>
-                <div className="flex items-center justify-between pt-3 border-t border-stone-200/60 text-xs">
-                  <span className="text-stone-500 font-medium">Estoque: <strong className="text-emerald-600 font-bold">{estoqueCat} un.</strong></span>
-                  <span className="text-stone-900 font-extrabold flex items-center gap-1 group-hover:underline">Ver itens <ChevronRight className="w-3.5 h-3.5" /></span>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-stone-100 flex items-center justify-center text-xl shadow-xs">
+                    📦
+                  </div>
+                  <span className="text-xs font-bold text-stone-900 hover:underline flex items-center gap-1">
+                    Ver itens &gt;
+                  </span>
                 </div>
               </div>
             );
