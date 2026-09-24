@@ -1,508 +1,712 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
-import { 
-  ShoppingBag, Search, Plus, Trash2, Check, User, 
-  CreditCard, Banknote, QrCode, X, Scissors, Package, Lock, Unlock, BarChart3, ShieldCheck 
-} from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { useState, useEffect } from 'react';
+import { Package, Plus, Edit, Trash2, Search, X, CheckCircle, DollarSign, ShoppingCart, TrendingUp, AlertCircle, Calendar, Clock, ChevronRight, FolderPlus, Settings, ShoppingBag } from 'lucide-react';
 
-export default function PDVBarbearia({ barbeariaId }) {
+export default function ProdutosScreen({ produtos = [], barbeariaId, supabase, onReload }) {
   const [busca, setBusca] = useState('');
-  const [produtosServicos, setProdutosServicos] = useState([]);
-  const [resultadosBusca, setResultadosBusca] = useState([]);
-  const [comanda, setComanda] = useState([]);
-  const [nomeCliente, setNomeCliente] = useState('');
-  const [formaPagamento, setFormaPagamento] = useState('dinheiro');
-  const [carregando, setCarregando] = useState(false);
-  const [sucesso, setSucesso] = useState(false);
-  const [dropdownAberto, setDropdownAberto] = useState(false);
-  const [caixaAberto, setCaixaAberto] = useState(true);
+  const [modalAberto, setModalAberto] = useState(false);
+  const [modalCategoriaAberto, setModalCategoriaAberto] = useState(false);
+  const [modalGerenciarCatAberto, setModalGerenciarCatAberto] = useState(false);
+  const [salvando, setSalvando] = useState(false);
+  const [produtoEmEdicao, setProdutoEmEdicao] = useState(null);
 
-  // Estados para o Fechamento de Caixa
-  const [modalFechamentoAberto, setModalFechamentoAberto] = useState(false);
-  const [vendasDoDia, setVendasDoDia] = useState([]);
-  
-  const searchRef = useRef(null);
+  // Estado de Categorias vindas do Banco de Dados
+  const [categorias, setCategorias] = useState([]);
+  const [novaCategoriaNome, setNovaCategoriaNome] = useState('');
+  const [categoriaEmEdicao, setCategoriaEmEdicao] = useState(null);
+  const [nomeEditadoCat, setNomeEditadoCat] = useState('');
+
+  // Estado para controlar o Modal de Categoria Selecionada para ver os itens
+  const [categoriaModal, setCategoriaModal] = useState(null);
+
+  // Estados de Faturamento de Produtos
+  const [vendasPdV, setVendasPdV] = useState([]);
+
+  // Form State para Produto
+  const [nome, setNome] = useState('');
+  const [preco, setPreco] = useState('');
+  const [estoque, setEstoque] = useState('');
+  const [categoria, setCategoria] = useState('');
 
   useEffect(() => {
-    async function carregarDados() {
-      if (!barbeariaId) return;
-      try {
-        const [resServicos, resProdutos, resVendas] = await Promise.all([
-          supabase.from('servicos').select('id, nome, preco').eq('barbearia_id', barbeariaId),
-          supabase.from('produtos').select('id, nome, preco, estoque').eq('barbearia_id', barbeariaId),
-          supabase.from('vendas_pdv').select('*').eq('barbearia_id', barbeariaId)
-        ]);
-
-        const listaServicos = (resServicos.data || []).map(s => ({ ...s, tipo: 'servico' }));
-        const listaProdutos = (resProdutos.data || []).map(p => ({ ...p, tipo: 'produto' }));
-
-        setProdutosServicos([...listaServicos, ...listaProdutos]);
-
-        if (resVendas.data) {
-          const hojeStr = new Date().toISOString().split('T')[0];
-          const vendasHoje = resVendas.data.filter(v => {
-            const dataVenda = new Date(v.criado_em).toISOString().split('T')[0];
-            return dataVenda === hojeStr;
-          });
-          setVendasDoDia(vendasHoje);
-        }
-      } catch (err) {
-        console.error('Erro ao carregar dados:', err);
-      }
+    if (barbeariaId && supabase) {
+      carregarVendasPdV();
+      carregarCategorias();
+      if (onReload) onReload();
     }
-    carregarDados();
   }, [barbeariaId]);
 
-  useEffect(() => {
-    if (!busca.trim()) {
-      setResultadosBusca([]);
-      setDropdownAberto(false);
+  const carregarCategorias = async () => {
+    if (!supabase || !barbeariaId) return;
+    const { data, error } = await supabase
+      .from('categorias_produtos')
+      .select('*')
+      .eq('barbearia_id', barbeariaId)
+      .order('criado_em', { ascending: true });
+
+    if (!error && data) {
+      if (data.length > 0) {
+        setCategorias(data);
+      } else {
+        const padroes = ['Bebidas & Conveniência', 'Pomadas & Cabelo'];
+        const insercoes = padroes.map(nome => ({ barbearia_id: barbeariaId, nome }));
+        const { data: novasData, error: insError } = await supabase
+          .from('categorias_produtos')
+          .insert(insercoes)
+          .select('*');
+        if (!insError && novasData) {
+          setCategorias(novasData);
+        }
+      }
+    }
+  };
+
+  const carregarVendasPdV = async () => {
+    if (!supabase || !barbeariaId) return;
+    const { data, error } = await supabase
+      .from('vendas_pdv')
+      .select('*')
+      .eq('barbearia_id', barbeariaId)
+      .order('criado_em', { ascending: false });
+
+    if (!error && data) {
+      setVendasPdV(data);
+    }
+  };
+
+  const handleAdicionarCategoria = async (e) => {
+    e.preventDefault();
+    if (!novaCategoriaNome.trim()) return;
+    const catTrim = novaCategoriaNome.trim();
+
+    if (categorias.some(c => c.nome.toLowerCase() === catTrim.toLowerCase())) {
+      alert('Esta categoria já existe!');
       return;
     }
 
-    const filtrados = produtosServicos.filter(item => 
-      item.nome.toLowerCase().includes(busca.toLowerCase())
-    );
-    setResultadosBusca(filtrados);
-    setDropdownAberto(true);
-  }, [busca, produtosServicos]);
+    const { data, error } = await supabase
+      .from('categorias_produtos')
+      .insert([{ barbearia_id: barbeariaId, nome: catTrim }])
+      .select('*');
 
-  useEffect(() => {
-    function handleClickOutside(event) {
-      if (searchRef.current && !searchRef.current.contains(event.target)) {
-        setDropdownAberto(false);
-      }
+    if (error) {
+      alert('Erro ao criar categoria: ' + error.message);
+    } else if (data) {
+      setCategorias([...categorias, data[0]]);
+      setNovaCategoriaNome('');
+      setModalCategoriaAberto(false);
     }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const adicionarItem = (item) => {
-    if (!caixaAberto) return;
-    setComanda(prev => {
-      const existe = prev.find(i => i.id === item.id && i.tipo === item.tipo);
-      if (existe) {
-        return prev.map(i => i.id === item.id && i.tipo === item.tipo ? { ...i, quantidade: i.quantidade + 1 } : i);
-      }
-      return [...prev, { ...item, quantidade: 1 }];
-    });
-    setBusca('');
-    setDropdownAberto(false);
   };
 
-  const alterarQuantidade = (id, tipo, delta) => {
-    setComanda(prev => prev.map(item => {
-      if (item.id === id && item.tipo === tipo) {
-        const novaQtd = item.quantidade + delta;
-        return novaQtd > 0 ? { ...item, quantidade: novaQtd } : null;
-      }
-      return item;
-    }).filter(Boolean));
+  const handleSalvarEdicaoCategoria = async (e, catObj) => {
+    e.preventDefault();
+    if (!nomeEditadoCat.trim()) return;
+    const novoNome = nomeEditadoCat.trim();
+
+    const { error } = await supabase
+      .from('categorias_produtos')
+      .update({ nome: novoNome })
+      .eq('id', catObj.id);
+
+    if (error) {
+      alert('Erro ao atualizar categoria: ' + error.message);
+    } else {
+      setCategorias(categorias.map(c => c.id === catObj.id ? { ...c, nome: novoNome } : c));
+      setCategoriaEmEdicao(null);
+      setNomeEditadoCat('');
+    }
   };
 
-  const removerItem = (id, tipo) => {
-    setComanda(prev => prev.filter(i => !(i.id === id && i.tipo === tipo)));
+  const handleExcluirCategoria = async (catObj) => {
+    if (categorias.length <= 1) {
+      alert('Você precisa ter pelo menos uma categoria cadastrada.');
+      return;
+    }
+    if (!confirm(`Deseja excluir a categoria "${catObj.nome}"?`)) return;
+
+    const { error } = await supabase
+      .from('categorias_produtos')
+      .delete()
+      .eq('id', catObj.id);
+
+    if (error) {
+      alert('Erro ao excluir categoria: ' + error.message);
+    } else {
+      setCategorias(categorias.filter(c => c.id !== catObj.id));
+    }
   };
 
-  const totalComanda = comanda.reduce((acc, item) => acc + (item.preco * item.quantidade), 0);
+  // Correção rigorosa de fuso horário local até meia-noite (00:00 às 23:59)
+  const obterDataLocalIso = (d = new Date()) => {
+    const ano = d.getFullYear();
+    const mes = String(d.getMonth() + 1).padStart(2, '0');
+    const dia = String(d.getDate()).padStart(2, '0');
+    return `${ano}-${mes}-${dia}`;
+  };
 
-  const finalizarVenda = async () => {
-    if (comanda.length === 0 || !caixaAberto || !barbeariaId) return;
-    setCarregando(true);
-
+  const extrairDataIso = (item) => {
+    const dataStr = item.criado_em || '';
+    if (!dataStr) return '';
     try {
-      const itensFormatados = comanda.map(i => ({
-        id: i.id,
-        nome: i.nome,
-        tipo: i.tipo,
-        quantidade: i.quantidade,
-        preco_unitario: i.preco,
-        subtotal: i.preco * i.quantidade
-      }));
-
-      const novaVenda = {
-        barbearia_id: barbeariaId,
-        cliente_nome: nomeCliente || 'Cliente Balcão',
-        total: totalComanda,
-        forma_pagamento: formaPagamento,
-        itens: itensFormatados,
-        criado_em: new Date().toISOString()
-      };
-
-      const { data, error: vendaError } = await supabase
-        .from('vendas_pdv')
-        .insert([novaVenda])
-        .select();
-
-      if (vendaError) throw vendaError;
-
-      if (data) {
-        setVendasDoDia(prev => [data[0], ...prev]);
-      }
-
-      for (const item of comanda) {
-        if (item.tipo === 'produto') {
-          const { data: prodBanco, error: errBusca } = await supabase
-            .from('produtos')
-            .select('estoque')
-            .eq('id', item.id)
-            .single();
-
-          if (!errBusca && prodBanco) {
-            const novoEstoque = Math.max(0, prodBanco.estoque - item.quantidade);
-            await supabase
-              .from('produtos')
-              .update({ estoque: novoEstoque })
-              .eq('id', item.id);
-          }
-        }
-      }
-
-      setSucesso(true);
-      setTimeout(() => {
-        setComanda([]);
-        setNomeCliente('');
-        setSucesso(false);
-        setCarregando(false);
-      }, 1500);
-
-    } catch (err) {
-      console.error('Erro ao finalizar venda no PDV:', err.message);
-      alert('Erro ao finalizar venda: ' + err.message);
-      setCarregando(false);
+      const d = new Date(dataStr);
+      return obterDataLocalIso(d);
+    } catch {
+      return String(dataStr).substring(0, 10);
     }
   };
 
-  const totalDinheiro = vendasDoDia
-    .filter(v => v.forma_pagamento?.toLowerCase() === 'dinheiro')
-    .reduce((acc, v) => acc + Number(v.total), 0);
+  const hojeStr = obterDataLocalIso();
+  const mesAtual = new Date().getMonth();
+  const anoAtual = new Date().getFullYear();
 
-  const totalCartao = vendasDoDia
-    .filter(v => v.forma_pagamento?.toLowerCase() === 'cartao' || v.forma_pagamento?.toLowerCase() === 'cartão')
-    .reduce((acc, v) => acc + Number(v.total), 0);
+  const vendasHoje = vendasPdV.filter(v => extrairDataIso(v) === hojeStr);
+  const faturamentoDiario = vendasHoje.reduce((acc, v) => acc + Number(v.total), 0);
 
-  const totalPix = vendasDoDia
-    .filter(v => v.forma_pagamento?.toLowerCase() === 'pix')
-    .reduce((acc, v) => acc + Number(v.total), 0);
+  const vendasMes = vendasPdV.filter(v => {
+    const d = new Date(v.criado_em);
+    return d.getMonth() === mesAtual && d.getFullYear() === anoAtual;
+  });
+  const faturamentoMensal = vendasMes.reduce((acc, v) => acc + Number(v.total), 0);
 
-  const faturamentoTotalDia = totalDinheiro + totalCartao + totalPix;
+  const totalItensVendidosMes = vendasMes.reduce((acc, v) => {
+    return acc + (v.itens || []).reduce((subAcc, item) => subAcc + item.quantidade, 0);
+  }, 0);
+  
+  const valorTotalEstoque = produtos.reduce((acc, p) => acc + (Number(p.preco) * Number(p.estoque || 0)), 0);
+
+  const handleNovoProduto = () => {
+    setProdutoEmEdicao(null);
+    setNome('');
+    setPreco('');
+    setEstoque('');
+    setCategoria(categorias[0]?.nome || 'Geral');
+    setModalAberto(true);
+  };
+
+  const handleEditarProduto = (prod) => {
+    setProdutoEmEdicao(prod);
+    setNome(prod.nome);
+    setPreco(prod.preco);
+    setEstoque(prod.estoque);
+    setCategoria(prod.categoria || categorias[0]?.nome || 'Geral');
+    setModalAberto(true);
+  };
+
+  const handleSalvar = async (e) => {
+    e.preventDefault();
+    if (!nome || !preco) return alert('Preencha pelo menos o nome e o preço.');
+
+    setSalvando(true);
+    const dadosProduto = {
+      barbearia_id: barbeariaId,
+      nome: nome.trim(),
+      preco: parseFloat(preco),
+      estoque: parseInt(estoque || 0, 10),
+      categoria: categoria || categorias[0]?.nome || 'Geral',
+    };
+
+    let error;
+    if (produtoEmEdicao) {
+      const res = await supabase.from('produtos').update(dadosProduto).eq('id', produtoEmEdicao.id);
+      error = res.error;
+    } else {
+      const res = await supabase.from('produtos').insert([dadosProduto]);
+      error = res.error;
+    }
+
+    setSalvando(false);
+    if (error) {
+      alert('Erro ao salvar produto: ' + error.message);
+    } else {
+      setModalAberto(false);
+      if (onReload) onReload();
+    }
+  };
+
+  const handleExcluir = async (id, nomeProduto) => {
+    if (!confirm(`Deseja realmente excluir o produto "${nomeProduto}"?`)) return;
+    const { error } = await supabase.from('produtos').delete().eq('id', id);
+    if (error) {
+      alert('Erro ao excluir: ' + error.message);
+    } else {
+      if (onReload) onReload();
+    }
+  };
 
   return (
-    <div className="w-full max-w-md mx-auto flex flex-col justify-between h-[calc(100vh-7.5rem)] px-3 pb-20 pt-2 text-stone-900 font-sans select-none">
+    <div className="max-w-7xl mx-auto px-2 sm:px-0 space-y-6 pb-28 font-sans">
       
-      {/* TOPO: TÍTULO ACIMA DE TUDO + AÇÕES ALINHADAS */}
-      <div className="space-y-2 shrink-0">
+      {/* 4 CARDS DE MÉTRICAS */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 md:gap-5 mb-6">
         
-        {/* Linha 1: Título Principal Grande e Sem Cortes */}
-        <div className="flex items-center gap-2.5 px-1">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-stone-900 to-stone-950 text-white flex items-center justify-center shadow-md shrink-0">
-            <ShoppingBag className="w-4 h-4 text-emerald-400" />
+        {/* 1. Faturamento Hoje */}
+        <div 
+          className="relative rounded-3xl md:rounded-[2.5rem] p-4 sm:p-6 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden shadow-xl"
+          style={{
+            background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
+            boxShadow: '0 15px 35px rgba(0, 0, 0, 0.5), inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
+          }}
+        >
+          <div className="flex flex-col justify-center min-w-0 pr-1">
+            <span className="text-[9px] sm:text-[10px] font-bold text-stone-400 uppercase tracking-wider truncate block">Fat. Hoje</span>
+            <h3 className="text-lg sm:text-2xl font-black text-white mt-1 truncate">R$ {faturamentoDiario.toFixed(2)}</h3>
+            <p className="text-[10px] text-emerald-400 font-medium mt-0.5 truncate">{vendasHoje.length} comanda(s)</p>
           </div>
-          <h1 className="text-base font-black text-stone-900 tracking-tight">
-            Frente de Caixa
-          </h1>
-        </div>
-
-        {/* Linha 2: Barra de Status (Aberto/Fechado à esquerda) e Resumo (à direita) */}
-        <div className="flex items-center justify-between px-3.5 py-2.5 bg-white/90 backdrop-blur-md rounded-2xl border border-stone-200/80 shadow-2xs">
-          
-          {/* Esquerda: Status do Caixa */}
-          <button
-            type="button"
-            onClick={() => setCaixaAberto(!caixaAberto)}
-            className={`px-3 py-1.5 rounded-xl text-[10px] font-extrabold uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer ${
-              caixaAberto 
-                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/80 hover:bg-emerald-100' 
-                : 'bg-rose-50 text-rose-700 border border-rose-200/80 hover:bg-rose-100'
-            }`}
+          <div 
+            className="w-9 h-9 sm:w-12 sm:h-12 rounded-full flex items-center justify-center shrink-0 shadow-lg"
+            style={{
+              background: 'radial-gradient(circle at 30% 30%, #ffffff 0%, #d8e2ec 60%, #9fb3c8 100%)',
+              boxShadow: '0 6px 15px rgba(0, 0, 0, 0.4), inset 0 2px 3px rgba(255, 255, 255, 1), inset 0 -4px 6px rgba(0, 0, 0, 0.25)',
+              border: '1px solid rgba(255, 255, 255, 0.9)'
+            }}
           >
-            {caixaAberto ? <Unlock className="w-3.5 h-3.5 text-emerald-600" /> : <Lock className="w-3.5 h-3.5 text-rose-600" />}
-            <span>{caixaAberto ? 'Caixa Aberto' : 'Caixa Fechado'}</span>
-          </button>
-
-          {/* Direita: Botão Resumo */}
-          <button
-            type="button"
-            onClick={() => setModalFechamentoAberto(true)}
-            className="px-3 py-1.5 bg-stone-900 hover:bg-stone-800 text-white rounded-xl text-[11px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
-          >
-            <BarChart3 className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Resumo</span>
-          </button>
-
-        </div>
-
-        {/* CAMPO DE BUSCA COM AUTOCOMPLETE */}
-        <div className="relative" ref={searchRef}>
-          <div className="flex items-center bg-white border border-stone-200/90 rounded-2xl px-3.5 py-2.5 shadow-2xs focus-within:border-stone-900 transition-all">
-            <Search className="w-4 h-4 text-stone-400 mr-2.5 shrink-0" />
-            <input
-              type="text"
-              value={busca}
-              onChange={(e) => setBusca(e.target.value)}
-              onFocus={() => { if (busca.trim() && caixaAberto) setDropdownAberto(true); }}
-              placeholder={caixaAberto ? "Pesquisar produto ou serviço..." : "Caixa fechado"}
-              disabled={!caixaAberto}
-              className="w-full bg-transparent text-xs font-bold text-stone-900 placeholder:text-stone-400 focus:outline-none disabled:cursor-not-allowed"
-            />
-            {busca && (
-              <button onClick={() => { setBusca(''); setDropdownAberto(false); }} className="text-stone-400 hover:text-stone-600">
-                <X className="w-4 h-4" />
-              </button>
-            )}
+            <DollarSign className="w-4 h-4 sm:w-6 sm:h-6 text-stone-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]" />
           </div>
-
-          {dropdownAberto && resultadosBusca.length > 0 && caixaAberto && (
-            <div className="absolute top-full left-0 right-0 mt-1.5 bg-white border border-stone-200 rounded-2xl shadow-xl max-h-44 overflow-y-auto z-50 divide-y divide-stone-50">
-              {resultadosBusca.map((item) => (
-                <button
-                  key={`${item.tipo}-${item.id}`}
-                  onClick={() => adicionarItem(item)}
-                  className="w-full px-3.5 py-2 text-left flex items-center justify-between hover:bg-stone-50 transition-colors cursor-pointer group"
-                >
-                  <div className="flex items-center gap-2.5 truncate">
-                    <div className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 ${
-                      item.tipo === 'servico' ? 'bg-indigo-50 text-indigo-600' : 'bg-emerald-50 text-emerald-600'
-                    }`}>
-                      {item.tipo === 'servico' ? <Scissors className="w-3 h-3" /> : <Package className="w-3 h-3" />}
-                    </div>
-                    <div className="truncate">
-                      <p className="text-xs font-bold text-stone-800 group-hover:text-stone-950 truncate">{item.nome}</p>
-                      <span className="text-[9px] text-stone-400 font-semibold uppercase">
-                        {item.tipo} {item.tipo === 'produto' && `• Estoque: ${item.estoque}`}
-                      </span>
-                    </div>
-                  </div>
-                  <span className="text-xs font-black text-stone-900 shrink-0 ml-2">
-                    R$ {Number(item.preco).toFixed(2)}
-                  </span>
-                </button>
-              ))}
-            </div>
-          )}
         </div>
+
+        {/* 2. Faturamento do Mês */}
+        <div 
+          className="relative rounded-3xl md:rounded-[2.5rem] p-4 sm:p-6 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden shadow-xl"
+          style={{
+            background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
+            boxShadow: '0 15px 35px rgba(0, 0, 0, 0.5), inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
+          }}
+        >
+          <div className="flex flex-col justify-center min-w-0 pr-1">
+            <span className="text-[9px] sm:text-[10px] font-bold text-stone-400 uppercase tracking-wider truncate block">Fat. do Mês</span>
+            <h3 className="text-lg sm:text-2xl font-black text-white mt-1 truncate">R$ {faturamentoMensal.toFixed(2)}</h3>
+            <p className="text-[10px] text-stone-400 font-medium mt-0.5 truncate">{vendasMes.length} vendas mês</p>
+          </div>
+          <div 
+            className="w-9 h-9 sm:w-12 sm:h-12 rounded-full flex items-center justify-center shrink-0 shadow-lg"
+            style={{
+              background: 'radial-gradient(circle at 30% 30%, #ffffff 0%, #d8e2ec 60%, #9fb3c8 100%)',
+              boxShadow: '0 6px 15px rgba(0, 0, 0, 0.4), inset 0 2px 3px rgba(255, 255, 255, 1), inset 0 -4px 6px rgba(0, 0, 0, 0.25)',
+              border: '1px solid rgba(255, 255, 255, 0.9)'
+            }}
+          >
+            <TrendingUp className="w-4 h-4 sm:w-6 sm:h-6 text-stone-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]" />
+          </div>
+        </div>
+
+        {/* 3. Itens Vendidos (Mês) */}
+        <div 
+          className="relative rounded-3xl md:rounded-[2.5rem] p-4 sm:p-6 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden shadow-xl"
+          style={{
+            background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
+            boxShadow: '0 15px 35px rgba(0, 0, 0, 0.5), inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
+          }}
+        >
+          <div className="flex flex-col justify-center min-w-0 pr-1">
+            <span className="text-[9px] sm:text-[10px] font-bold text-stone-400 uppercase tracking-wider truncate block">Itens Vendidos</span>
+            <h3 className="text-lg sm:text-2xl font-black text-white mt-1 truncate">{totalItensVendidosMes} un.</h3>
+            <p className="text-[10px] text-stone-400 font-medium mt-0.5 truncate">Saídas PDV mês</p>
+          </div>
+          <div 
+            className="w-9 h-9 sm:w-12 sm:h-12 rounded-full flex items-center justify-center shrink-0 shadow-lg"
+            style={{
+              background: 'radial-gradient(circle at 30% 30%, #ffffff 0%, #d8e2ec 60%, #9fb3c8 100%)',
+              boxShadow: '0 6px 15px rgba(0, 0, 0, 0.4), inset 0 2px 3px rgba(255, 255, 255, 1), inset 0 -4px 6px rgba(0, 0, 0, 0.25)',
+              border: '1px solid rgba(255, 255, 255, 0.9)'
+            }}
+          >
+            <ShoppingCart className="w-4 h-4 sm:w-6 sm:h-6 text-stone-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]" />
+          </div>
+        </div>
+
+        {/* 4. Valor em Estoque */}
+        <div 
+          className="relative rounded-3xl md:rounded-[2.5rem] p-4 sm:p-6 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden shadow-xl"
+          style={{
+            background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
+            boxShadow: '0 15px 35px rgba(0, 0, 0, 0.5), inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
+          }}
+        >
+          <div className="flex flex-col justify-center min-w-0 pr-1">
+            <span className="text-[9px] sm:text-[10px] font-bold text-stone-400 uppercase tracking-wider truncate block">Vlr. em Estoque</span>
+            <h3 className="text-base sm:text-2xl font-black text-white mt-1 truncate">R$ {valorTotalEstoque.toFixed(2)}</h3>
+            <p className="text-[10px] text-stone-400 font-medium mt-0.5 truncate">Mercadorias</p>
+          </div>
+          <div 
+            className="w-9 h-9 sm:w-12 sm:h-12 rounded-full flex items-center justify-center shrink-0 shadow-lg"
+            style={{
+              background: 'radial-gradient(circle at 30% 30%, #ffffff 0%, #d8e2ec 60%, #9fb3c8 100%)',
+              boxShadow: '0 6px 15px rgba(0, 0, 0, 0.4), inset 0 2px 3px rgba(255, 255, 255, 1), inset 0 -4px 6px rgba(0, 0, 0, 0.25)',
+              border: '1px solid rgba(255, 255, 255, 0.9)'
+            }}
+          >
+            <Package className="w-4 h-4 sm:w-6 sm:h-6 text-stone-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]" />
+          </div>
+        </div>
+
       </div>
 
-      {/* CORPO: CLIENTE & COMANDA */}
-      <div className="flex-1 flex flex-col justify-between space-y-2 my-2">
-        
-        {/* Cliente Opcional */}
-        <div className="flex items-center bg-white border border-stone-200/90 rounded-2xl px-3.5 py-2 shadow-2xs shrink-0">
-          <User className="w-3.5 h-3.5 text-stone-400 mr-2.5 shrink-0" />
-          <input
-            type="text"
-            value={nomeCliente}
-            onChange={(e) => setNomeCliente(e.target.value)}
-            placeholder="Nome do cliente (Opcional)..."
-            disabled={!caixaAberto}
-            className="w-full bg-transparent text-xs font-medium text-stone-800 placeholder:text-stone-400 focus:outline-none truncate disabled:cursor-not-allowed"
-          />
-        </div>
-
-        {/* Lista de Itens na Comanda */}
-        <div className="bg-white border border-stone-200/90 rounded-2xl p-3 flex flex-col shadow-2xs flex-1 max-h-40 overflow-hidden">
-          <div className="flex items-center justify-between pb-2 border-b border-stone-100 shrink-0">
-            <span className="text-[10px] font-black text-stone-400 uppercase tracking-wider">Comanda Atual</span>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-stone-100 text-stone-600">
-              {comanda.reduce((acc, i) => acc + i.quantidade, 0)} itens
-            </span>
-          </div>
-
-          <div className="overflow-y-auto divide-y divide-stone-50 pr-1 my-1.5 flex-1">
-            {!caixaAberto ? (
-              <div className="h-full flex flex-col items-center justify-center text-center text-rose-500 py-3">
-                <Lock className="w-6 h-6 stroke-1 mb-1 opacity-60" />
-                <p className="text-xs font-bold">Caixa Fechado</p>
-              </div>
-            ) : comanda.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center text-center text-stone-400 py-3">
-                <ShoppingBag className="w-6 h-6 stroke-1 mb-1 opacity-30" />
-                <p className="text-[11px] font-medium">Nenhum item adicionado</p>
-              </div>
-            ) : (
-              comanda.map((item) => (
-                <div key={`${item.tipo}-${item.id}`} className="py-2 flex items-center justify-between gap-2">
-                  <div className="truncate flex-1">
-                    <p className="text-xs font-bold text-stone-900 truncate">{item.nome}</p>
-                    <p className="text-[9px] font-semibold text-stone-400">R$ {Number(item.preco).toFixed(2)} un</p>
-                  </div>
-
-                  <div className="flex items-center gap-2 shrink-0">
-                    <div className="flex items-center bg-stone-100 rounded-lg p-0.5 border border-stone-200/60">
-                      <button 
-                        onClick={() => alterarQuantidade(item.id, item.tipo, -1)}
-                        className="w-4 h-4 flex items-center justify-center text-stone-600 hover:bg-white rounded font-bold text-xs"
-                      >-</button>
-                      <span className="w-5 text-center text-xs font-bold text-stone-800">{item.quantidade}</span>
-                      <button 
-                        onClick={() => alterarQuantidade(item.id, item.tipo, 1)}
-                        className="w-4 h-4 flex items-center justify-center text-stone-600 hover:bg-white rounded font-bold text-xs"
-                      >+</button>
-                    </div>
-
-                    <span className="text-xs font-black text-stone-900 w-12 text-right">
-                      R$ {(item.preco * item.quantidade).toFixed(2)}
-                    </span>
-
-                    <button 
-                      onClick={() => removerItem(item.id, item.tipo)}
-                      className="text-rose-400 hover:text-rose-600 p-1 rounded transition-colors"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
-              ))
-            )}
+      {/* SEÇÃO PRINCIPAL DE CATÁLOGO */}
+      <div 
+        className="relative rounded-[2.5rem] p-5 sm:p-8 border border-white/80 overflow-hidden shadow-sm space-y-6"
+        style={{
+          background: 'linear-gradient(135deg, #f7f9f8 0%, #edf1f0 50%, #e2e8e6 100%)',
+          boxShadow: '0 20px 40px rgba(0, 0, 0, 0.08), inset 0 2px 4px rgba(255, 255, 255, 0.9), inset 0 -3px 6px rgba(0, 0, 0, 0.05)'
+        }}
+      >
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-5 border-b border-stone-300/60 gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="w-11 h-11 rounded-2xl bg-stone-900 text-white flex items-center justify-center shadow-md shrink-0">
+              <ShoppingBag className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-base sm:text-lg font-extrabold text-stone-900 tracking-tight">Catálogo de Produtos & Categorias</h3>
+              <p className="text-xs text-stone-500">Gerencie suas categorias e os itens de balcão disponíveis no PDV.</p>
+            </div>
           </div>
         </div>
 
-        {/* FORMA DE PAGAMENTO */}
-        <div className="grid grid-cols-3 gap-2 shrink-0">
-          {[
-            { id: 'dinheiro', label: 'Dinheiro', icon: Banknote },
-            { id: 'cartao', label: 'Cartão', icon: CreditCard },
-            { id: 'pix', label: 'PIX', icon: QrCode },
-          ].map((pag) => {
-            const Icon = pag.icon;
-            const ativo = formaPagamento === pag.id;
+        {/* Botões de Ação com o mesmo tamanho */}
+        <div className="flex flex-wrap items-center gap-2.5">
+          <button
+            onClick={() => setModalGerenciarCatAberto(true)}
+            className="flex-1 px-3 py-3 bg-white hover:bg-stone-50 text-stone-700 border border-stone-200/90 rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-xs cursor-pointer truncate"
+          >
+            <Settings className="w-4 h-4 text-stone-500 shrink-0" />
+            <span className="truncate">Gerenciar Categorias</span>
+          </button>
+          
+          <button
+            onClick={() => setModalCategoriaAberto(true)}
+            className="flex-1 px-3 py-3 bg-white hover:bg-stone-50 text-stone-700 border border-stone-200/90 rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-xs cursor-pointer truncate"
+          >
+            <FolderPlus className="w-4 h-4 text-stone-500 shrink-0" />
+            <span className="truncate">Nova Categoria</span>
+          </button>
+          
+          <button
+            onClick={handleNovoProduto}
+            className="w-full sm:w-auto px-5 py-3 bg-stone-900 hover:bg-stone-800 text-white rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-md cursor-pointer shrink-0"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Cadastrar Produto</span>
+          </button>
+        </div>
+
+        {/* CARDS DINÂMICOS DE CATEGORIAS */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+          {categorias.map((catObj) => {
+            const produtosDaCat = produtos.filter(p => (p.categoria || categorias[0]?.nome) === catObj.nome);
+            const estoqueCat = produtosDaCat.reduce((acc, p) => acc + Number(p.estoque || 0), 0);
+
             return (
-              <button
-                key={pag.id}
-                type="button"
-                disabled={!caixaAberto}
-                onClick={() => setFormaPagamento(pag.id)}
-                className={`py-2 px-2 rounded-xl border flex items-center justify-center gap-1.5 text-xs font-bold transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
-                  ativo 
-                    ? 'bg-stone-900 text-white border-stone-900 shadow-sm' 
-                    : 'bg-white text-stone-700 border-stone-200/80 hover:bg-stone-50'
-                }`}
+              <div 
+                key={catObj.id}
+                onClick={() => setCategoriaModal(catObj.nome)}
+                className="bg-white rounded-[2rem] border border-stone-200/90 p-5 shadow-xs flex items-center justify-between cursor-pointer hover:border-stone-400 transition-all group"
               >
-                <Icon className={`w-3.5 h-3.5 ${ativo ? 'text-emerald-400' : 'text-stone-500'}`} />
-                <span>{pag.label}</span>
-              </button>
+                <div className="space-y-1 min-w-0 pr-2">
+                  <span className="text-[10px] font-extrabold text-stone-400 uppercase tracking-wider block">Categoria</span>
+                  <h4 className="font-black text-stone-900 text-base truncate">{catObj.nome}</h4>
+                  <p className="text-xs text-stone-600 font-medium pt-1">
+                    Estoque: <span className="text-emerald-600 font-bold">{estoqueCat} un.</span>
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <div className="w-10 h-10 rounded-2xl bg-stone-100 flex items-center justify-center text-xl shadow-xs">
+                    📦
+                  </div>
+                  <span className="text-xs font-bold text-stone-900 hover:underline flex items-center gap-1">
+                    Ver itens &gt;
+                  </span>
+                </div>
+              </div>
             );
           })}
         </div>
-
       </div>
 
-      {/* RODAPÉ: TOTAL & BOTÃO DE CONFIRMAÇÃO */}
-      <div className="bg-white border border-stone-200/90 rounded-2xl p-3 shadow-md shrink-0 space-y-2">
-        <div className="flex items-center justify-between">
-          <span className="text-[10px] font-black text-stone-400 uppercase tracking-wider">Total a Pagar</span>
-          <span className="text-sm font-black text-stone-900 tracking-tight">
-            R$ {totalComanda.toFixed(2)}
+      {/* HISTÓRICO DE VENDAS DO DIA */}
+      <div className="bg-white rounded-[2.5rem] border border-stone-200/85 shadow-[0_10px_30px_rgba(0,0,0,0.03)] p-6 sm:p-8 space-y-4">
+        <div className="flex items-center justify-between pb-3.5 border-b border-stone-100 gap-2">
+          <div className="min-w-0">
+            <h3 className="text-xs sm:text-sm font-black text-stone-900 tracking-wider uppercase flex items-center gap-2 truncate">
+              <Clock className="w-4 h-4 text-emerald-600 shrink-0" /> <span className="truncate">Vendas de Balcão Realizadas Hoje</span>
+            </h3>
+            <p className="text-[11px] text-stone-400 mt-0.5 truncate">Fluxo de caixa dos produtos vendidos hoje.</p>
+          </div>
+          <span className="text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-full shrink-0">
+            {vendasHoje.length} venda(s)
           </span>
         </div>
-
-        <button
-          type="button"
-          disabled={comanda.length === 0 || carregando || !caixaAberto}
-          onClick={finalizarVenda}
-          className={`w-full py-2.5 rounded-xl text-white font-bold text-xs uppercase tracking-wider transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
-            sucesso ? 'bg-emerald-600' : 'bg-stone-900 hover:bg-stone-800'
-          }`}
-        >
-          {sucesso ? (
-            <>
-              <Check className="w-4 h-4 text-white" />
-              <span>Venda Confirmada!</span>
-            </>
-          ) : carregando ? (
-            <span className="animate-pulse">Processando...</span>
-          ) : (
-            <>
-              <Check className="w-4 h-4 text-emerald-400" />
-              <span>Confirmar Venda • R$ {totalComanda.toFixed(2)}</span>
-            </>
-          )}
-        </button>
+        
+        {vendasHoje.length === 0 ? (
+          <div className="p-10 text-center text-stone-400 text-xs border border-dashed border-stone-200 rounded-3xl">
+            Nenhuma venda de produto registrada hoje até o momento.
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {vendasHoje.map((venda) => (
+              <div key={venda.id} className="p-4 rounded-2xl bg-stone-50 border border-stone-200/70 space-y-2.5">
+                <div className="flex justify-between items-start gap-2">
+                  <div className="min-w-0">
+                    <span className="font-bold text-stone-900 text-xs block truncate">{venda.cliente_nome}</span>
+                    <span className="text-[11px] text-stone-500 block truncate">
+                      {(venda.itens || []).map(i => `${i.quantidade}x ${i.nome}`).join(', ')}
+                    </span>
+                  </div>
+                  <span className="font-black text-emerald-600 text-xs shrink-0">R$ {Number(venda.total).toFixed(2)}</span>
+                </div>
+                
+                <div className="flex justify-between items-center pt-2 border-t border-stone-200/60 text-[11px] text-stone-500 font-medium">
+                  <span className="bg-stone-200/70 text-stone-700 px-2 py-0.5 rounded-lg uppercase text-[10px] font-bold">
+                    {venda.forma_pagamento}
+                  </span>
+                  <span>🕒 {new Date(venda.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* MODAL MODERNO DE FECHAMENTO DE CAIXA */}
-      {modalFechamentoAberto && (
-        <div className="fixed inset-0 bg-stone-950/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-white w-full max-w-sm rounded-[2.5rem] p-6 shadow-2xl space-y-5 border border-stone-100">
-            
-            {/* Header do Modal */}
-            <div className="flex items-center justify-between pb-3 border-b border-stone-100">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
-                  <ShieldCheck className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-black text-stone-900">Resumo do Caixa</h3>
-                  <p className="text-[10px] text-stone-400 font-medium">Entradas registradas hoje</p>
-                </div>
-              </div>
-              <button 
-                onClick={() => setModalFechamentoAberto(false)} 
-                className="text-stone-400 hover:text-stone-600 p-1.5 rounded-xl hover:bg-stone-100 transition-colors"
-              >
-                <X className="w-4 h-4" />
+      {/* MODAL PARA CRIAR NOVA CATEGORIA */}
+      {modalCategoriaAberto && (
+        <div className="fixed inset-0 bg-stone-950/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-sm rounded-[2.5rem] p-6 sm:p-8 shadow-2xl space-y-5 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between pb-3.5 border-b border-stone-100">
+              <h4 className="font-black text-stone-900 text-base">Nova Categoria</h4>
+              <button onClick={() => setModalCategoriaAberto(false)} className="text-stone-400 hover:text-stone-600 p-1 rounded-lg">
+                <X className="w-5 h-5" />
               </button>
             </div>
-
-            {/* Faturamento Total Destaque */}
-            <div className="bg-stone-900 text-white rounded-2xl p-4 text-center space-y-1 shadow-md">
-              <span className="text-[10px] font-extrabold uppercase tracking-widest text-stone-400">Faturamento Total do Dia</span>
-              <h2 className="text-2xl font-black text-emerald-400 tracking-tight">R$ {faturamentoTotalDia.toFixed(2)}</h2>
-              <p className="text-[10px] text-stone-300">{vendasDoDia.length} transação(ões) realizada(s)</p>
-            </div>
-
-            {/* Detalhes por Forma de Pagamento */}
-            <div className="space-y-2.5">
-              <span className="text-[10px] font-extrabold uppercase tracking-wider text-stone-400 block px-1">Detalhamento por Método</span>
-              
-              <div className="flex items-center justify-between p-3 rounded-xl bg-stone-50 border border-stone-200/70">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center">
-                    <Banknote className="w-3.5 h-3.5" />
-                  </div>
-                  <span className="text-xs font-bold text-stone-800">Dinheiro</span>
-                </div>
-                <span className="text-xs font-black text-stone-900">R$ {totalDinheiro.toFixed(2)}</span>
+            <form onSubmit={handleAdicionarCategoria} className="space-y-4">
+              <div>
+                <label className="block text-[10px] font-extrabold uppercase tracking-wider text-stone-500 mb-1">Nome da Categoria</label>
+                <input
+                  type="text"
+                  placeholder="Ex: Acessórios, Bonés, Barba..."
+                  value={novaCategoriaNome}
+                  onChange={(e) => setNovaCategoriaNome(e.target.value)}
+                  className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-2xl text-xs font-bold text-stone-900 focus:outline-none focus:border-stone-900"
+                  required
+                />
               </div>
-
-              <div className="flex items-center justify-between p-3 rounded-xl bg-stone-50 border border-stone-200/70">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center">
-                    <CreditCard className="w-3.5 h-3.5" />
-                  </div>
-                  <span className="text-xs font-bold text-stone-800">Cartão</span>
-                </div>
-                <span className="text-xs font-black text-stone-900">R$ {totalCartao.toFixed(2)}</span>
+              <div className="flex justify-end gap-2 pt-2">
+                <button type="button" onClick={() => setModalCategoriaAberto(false)} className="px-4 py-2.5 text-xs font-semibold text-stone-600 hover:bg-stone-100 rounded-2xl">
+                  Cancelar
+                </button>
+                <button type="submit" className="px-5 py-2.5 bg-[#111111] hover:bg-stone-800 text-white text-xs font-bold rounded-2xl shadow-md">
+                  Criar Categoria
+                </button>
               </div>
-
-              <div className="flex items-center justify-between p-3 rounded-xl bg-stone-50 border border-stone-200/70">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-lg bg-sky-100 text-sky-700 flex items-center justify-center">
-                    <QrCode className="w-3.5 h-3.5" />
-                  </div>
-                  <span className="text-xs font-bold text-stone-800">PIX</span>
-                </div>
-                <span className="text-xs font-black text-stone-900">R$ {totalPix.toFixed(2)}</span>
-              </div>
-            </div>
-
-            {/* Botão Fechar Modal */}
-            <div className="pt-2">
-              <button
-                type="button"
-                onClick={() => setModalFechamentoAberto(false)}
-                className="w-full py-2.5 bg-stone-900 hover:bg-stone-800 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-all shadow-sm cursor-pointer"
-              >
-                Concluir / Voltar ao PDV
-              </button>
-            </div>
-
+            </form>
           </div>
         </div>
       )}
 
+      {/* MODAL PARA GERENCIAR / EDITAR / EXCLUIR CATEGORIAS */}
+      {modalGerenciarCatAberto && (
+        <div className="fixed inset-0 bg-stone-950/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-md rounded-[2.5rem] p-6 sm:p-8 shadow-2xl space-y-5 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between pb-3.5 border-b border-stone-100">
+              <h4 className="font-black text-stone-900 text-base">Gerenciar Categorias</h4>
+              <button onClick={() => { setModalGerenciarCatAberto(false); setCategoriaEmEdicao(null); }} className="text-stone-400 hover:text-stone-600 p-1 rounded-lg">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3 max-h-60 overflow-y-auto">
+              {categorias.map((catObj) => (
+                <div key={catObj.id} className="flex items-center justify-between p-3.5 rounded-2xl bg-stone-50 border border-stone-200/80">
+                  {categoriaEmEdicao === catObj.id ? (
+                    <form onSubmit={(e) => handleSalvarEdicaoCategoria(e, catObj)} className="flex items-center gap-2 w-full">
+                      <input
+                        type="text"
+                        value={nomeEditadoCat}
+                        onChange={(e) => setNomeEditadoCat(e.target.value)}
+                        className="w-full px-3 py-2 bg-white border border-stone-300 rounded-xl text-xs font-bold text-stone-900 focus:outline-none"
+                        required
+                      />
+                      <button type="submit" className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl">Salvar</button>
+                      <button type="button" onClick={() => setCategoriaEmEdicao(null)} className="px-2 py-2 text-stone-500 hover:bg-stone-200 rounded-xl text-xs">Cancelar</button>
+                    </form>
+                  ) : (
+                    <>
+                      <span className="font-bold text-xs text-stone-800">{catObj.nome}</span>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={() => { setCategoriaEmEdicao(catObj.id); setNomeEditadoCat(catObj.nome); }}
+                          className="p-2 bg-white hover:bg-stone-100 text-stone-700 rounded-xl border border-stone-200"
+                          title="Renomear Categoria"
+                        >
+                          <Edit className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => handleExcluirCategoria(catObj)}
+                          className="p-2 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl border border-rose-100"
+                          title="Excluir Categoria"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <div className="flex justify-end pt-3 border-t border-stone-100">
+              <button onClick={() => { setModalGerenciarCatAberto(false); setCategoriaEmEdicao(null); }} className="px-6 py-2.5 bg-[#111111] hover:bg-stone-800 text-white text-xs font-bold rounded-2xl shadow-md">
+                Fechar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DA CATEGORIA SELECIONADA (VER ITENS) */}
+      {categoriaModal && (
+        <div className="fixed inset-0 bg-stone-950/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-[2.5rem] p-6 sm:p-8 shadow-2xl space-y-5 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between pb-3.5 border-b border-stone-100">
+              <div>
+                <span className="text-[10px] font-extrabold text-stone-400 uppercase tracking-wider block">Itens da Categoria</span>
+                <h4 className="font-black text-stone-900 text-base">{categoriaModal}</h4>
+              </div>
+              <button onClick={() => setCategoriaModal(null)} className="text-stone-400 hover:text-stone-600 p-1 rounded-lg">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {produtos.filter(p => (p.categoria || categorias[0]?.nome) === categoriaModal).length === 0 ? (
+              <div className="p-12 text-center text-stone-400 text-xs border border-dashed border-stone-200 rounded-3xl">
+                Nenhum produto cadastrado nesta categoria.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                {produtos.filter(p => (p.categoria || categorias[0]?.nome) === categoriaModal).map((prod) => {
+                  const qtdEstoque = Number(prod.estoque || 0);
+                  const isZerado = qtdEstoque === 0;
+
+                  return (
+                    <div key={prod.id} className="p-4.5 rounded-3xl border border-stone-200/80 bg-stone-50/80 flex flex-col justify-between space-y-3">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h5 className="font-extrabold text-stone-900 text-xs">{prod.nome}</h5>
+                          <span className="text-sm font-black text-stone-900">R$ {Number(prod.preco).toFixed(2)}</span>
+                        </div>
+                        <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full ${isZerado ? 'bg-rose-100 text-rose-700' : 'bg-emerald-50 text-emerald-700'}`}>
+                          {qtdEstoque > 0 ? `${qtdEstoque} un.` : 'Esgotado'}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-end gap-2 pt-2.5 border-t border-stone-200/60">
+                        <button
+                          onClick={() => {
+                            setCategoriaModal(null);
+                            handleEditarProduto(prod);
+                          }}
+                          className="px-3.5 py-1.5 bg-white hover:bg-stone-100 text-stone-700 text-xs font-bold rounded-xl border border-stone-200 cursor-pointer flex items-center gap-1 shadow-xs"
+                        >
+                          <Edit className="w-3 h-3" /> Editar
+                        </button>
+                        <button
+                          onClick={() => handleExcluir(prod.id, prod.nome)}
+                          className="px-3.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-bold rounded-xl border border-rose-100 cursor-pointer flex items-center gap-1 shadow-xs"
+                        >
+                          <Trash2 className="w-3 h-3" /> Excluir
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            <div className="flex justify-end pt-3 border-t border-stone-100">
+              <button onClick={() => setCategoriaModal(null)} className="px-6 py-2.5 bg-[#111111] hover:bg-stone-800 text-white text-xs font-bold rounded-2xl shadow-md">
+                Fechar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DE CADASTRO / EDIÇÃO DE PRODUTO */}
+      {modalAberto && (
+        <div className="fixed inset-0 bg-stone-950/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-md rounded-[2.5rem] p-6 sm:p-8 shadow-2xl space-y-5 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between pb-3.5 border-b border-stone-100">
+              <h4 className="font-black text-stone-900 text-base">
+                {produtoEmEdicao ? 'Editar Produto' : 'Novo Produto'}
+              </h4>
+              <button onClick={() => setModalAberto(false)} className="text-stone-400 hover:text-stone-600 p-1 rounded-lg">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSalvar} className="space-y-4">
+              <div>
+                <label className="block text-[10px] font-extrabold uppercase tracking-wider text-stone-500 mb-1">Nome do Produto</label>
+                <input
+                  type="text"
+                  placeholder="Ex: Pomada Matte 150g..."
+                  value={nome}
+                  onChange={(e) => setNome(e.target.value)}
+                  className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-2xl text-xs font-bold text-stone-900 focus:outline-none focus:border-stone-900"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-extrabold uppercase tracking-wider text-stone-500 mb-1">Categoria</label>
+                <select
+                  value={categoria}
+                  onChange={(e) => setCategoria(e.target.value)}
+                  className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-2xl text-xs font-bold text-stone-900 focus:outline-none focus:border-stone-900 cursor-pointer"
+                >
+                  {categorias.map(catObj => (
+                    <option key={catObj.id} value={catObj.nome}>{catObj.nome}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[10px] font-extrabold uppercase tracking-wider text-stone-500 mb-1">Preço (R$)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    placeholder="0.00"
+                    value={preco}
+                    onChange={(e) => setPreco(e.target.value)}
+                    className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-2xl text-xs font-bold text-stone-900 focus:outline-none focus:border-stone-900"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-extrabold uppercase tracking-wider text-stone-500 mb-1">Estoque Inicial</label>
+                  <input
+                    type="number"
+                    placeholder="0"
+                    value={estoque}
+                    onChange={(e) => setEstoque(e.target.value)}
+                    className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-2xl text-xs font-bold text-stone-900 focus:outline-none focus:border-stone-900"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-stone-100">
+                <button type="button" onClick={() => setModalAberto(false)} className="px-4 py-2.5 text-xs font-semibold text-stone-600 hover:bg-stone-100 rounded-2xl">
+                  Cancelar
+                </button>
+                <button type="submit" disabled={salvando} className="px-5 py-2.5 bg-[#111111] hover:bg-stone-800 text-white text-xs font-bold rounded-2xl shadow-md flex items-center gap-1.5">
+                  <CheckCircle className="w-4 h-4 text-emerald-400" />
+                  {salvando ? 'Salvando...' : 'Salvar Produto'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
