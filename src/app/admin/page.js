@@ -40,39 +40,16 @@ import {
 import { supabase } from '@/lib/supabase';
 
 import ConfiguracoesBarbearia from '@/components/ConfiguracoesBarbearia';
-
-
 import PainelAgendaDia from '@/components/PainelAgendaDia';
 
-
-import { Transition } from '@headlessui/react';
-import { Fragment } from 'react';
-
-import { motion, AnimatePresence } from 'framer-motion';
-
-
-
-import RelatoriosPage from './relatorios'; // Ajuste o caminho caso o arquivo esteja em outra pasta dentro de admin
-
+import RelatoriosPage from './relatorios'; 
 import PdvScreen from '@/components/PdvScreen'; 
 import ProdutosScreen from '@/components/ProdutosScreen';
-
-import NotificacoesBell from '@/components/NotificacoesBell'; // Ajuste o caminho se necessário
-
-
-// Exemplo de importação no topo da sua página admin/configurações
+import NotificacoesBell from '@/components/NotificacoesBell'; 
 import AdminModoAgendamento from '@/components/AdminModoAgendamento';
+import FidelizacaoAdmin from '@/components/FidelizacaoAdmin';
 
-
-import FidelizacaoAdmin from '@/components/FidelizacaoAdmin'; // Ajuste o caminho caso sua pasta de componentes tenha outro nome
-
-
-
-
-
-// ou o caminho relativo correto de onde você salvou o arquivo
-
- async function criarAcessoBarbeiro(barbeiroId, emailBarbeiro, senhaTemporaria) {
+async function criarAcessoBarbeiro(barbeiroId, emailBarbeiro, senhaTemporaria) {
   try {
     const response = await fetch('/api/criar-acesso', {
       method: 'POST',
@@ -97,105 +74,60 @@ import FidelizacaoAdmin from '@/components/FidelizacaoAdmin'; // Ajuste o caminh
   }
 }
 
-
-
-
 export default function AdminDashboard() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('agendamentos');
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState(null);
 
-
-
-
   const [produtos, setProdutos] = useState([]);
 
-
-  
-
-
-// 2. COLE APENAS ESTE BLOCO LOGO AQUI NO INÍCIO DO COMPONENTE:
   useEffect(() => {
     window.scrollTo({
       top: 0,
       behavior: 'smooth'
     });
   }, [activeTab]);
- 
 
-
-
-// Função para buscar produtos do Supabase
-async function carregarProdutos(barbeariaId) {
-  const { data, error } = await supabase
-    .from('produtos')
-    .select('*')
-    .eq('barbearia_id', barbeariaId);
-  
-  if (!error && data) {
-    setProdutos(data);
+  async function carregarProdutos(barbeariaId) {
+    const { data, error } = await supabase
+      .from('produtos')
+      .select('*')
+      .eq('barbearia_id', barbeariaId);
+    
+    if (!error && data) {
+      setProdutos(data);
+    }
   }
-}
 
-
-
-
-
-
-  // NOVO: Estado para controlar a gaveta do menu no mobile
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  
-  // ... (o restante dos seus estados continuam iguais)
-
-  // Sessão e Barbearia
   const [user, setUser] = useState(null);
   const [barbearia, setBarbearia] = useState(null);
 
-
-
-
-
-  // Estados de Assinatura e Teste
   const [diasRestantes, setDiasRestantes] = useState(7);
   const [assinaturaExpirada, setAssinaturaExpirada] = useState(false);
   const [modalAssinaturaOpen, setModalAssinaturaOpen] = useState(false);
   const [processandoPagamento, setProcessandoPagamento] = useState(false);
   const [copiado, setCopiado] = useState(false);
 
-
-
-
-const [barbeiroParaEditar, setBarbeiroParaEditar] = useState(null);
-
-
-
-  
-  
-  // Opção de pagamento selecionada no modal ('pix', 'credito', 'debito')
+  const [barbeiroParaEditar, setBarbeiroParaEditar] = useState(null);
   const [metodoPagamento, setMetodoPagamento] = useState('pix');
 
+  const fecharMenuMobile = () => {
+    const barraAntiga = document.querySelector('nav[aria-label="Navegação inferior mobile"]');
+    if (barraAntiga) {
+      barraAntiga.style.transition = 'none';
+      barraAntiga.style.opacity = '1';
+    }
+    setMobileMenuOpen(false);
+  };
 
-
-// Função para fechar o menu mobile instantaneamente sem delay na barra inferior
-const fecharMenuMobile = () => {
-  const barraAntiga = document.querySelector('nav[aria-label="Navegação inferior mobile"]');
-  if (barraAntiga) {
-    barraAntiga.style.transition = 'none';
-    barraAntiga.style.opacity = '1';
-  }
-  setMobileMenuOpen(false);
-};
-
-
-  // Estados dinâmicos para o Pix do Mercado Pago
   const [pixDataMP, setPixDataMP] = useState({
     qrCodeBase64: '',
     copiaECola: '',
     paymentId: null
   });
 
-  // Estados para o formulário de Cartão (Mercado Pago)
   const [dadosCartao, setDadosCartao] = useState({
     numero: '',
     nome: '',
@@ -204,32 +136,20 @@ const fecharMenuMobile = () => {
     parcelas: '1'
   });
 
-  // Valor da assinatura mensal
   const valorAssinatura = 9.90;
 
-  // Dados filtrados do Banco
   const [agendamentos, setAgendamentos] = useState([]);
   const [clientes, setClientes] = useState([]);
   const [barbeiros, setBarbeiros] = useState([]);
   const [servicos, setServicos] = useState([]);
   const [despesas, setDespesas] = useState([]);
 
-
-
-  
-// Log para inspecionar os agendamentos no console de forma correta
   useEffect(() => {
     console.log("Agendamentos carregados:", agendamentos);
   }, [agendamentos]);
 
-
-
-  
-
-  // Filtro de busca de cliente
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Funções Utilitárias de Formatação
   const formatarData = (item) => {
     const rawData = item.data_hora || item.created_at;
     if (!rawData) return '-';
@@ -246,46 +166,34 @@ const fecharMenuMobile = () => {
       return new Date(rawData).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
     }
     return '-';
-
   };
-
-
 
   const [aberturaManual, setAberturaManual] = useState(false);
 
-
-
-// Função para abrir o modal manualmente quando o usuário clicar no botão
   const abrirModalAssinaturaManual = () => {
-  setAberturaManual(true);
-  setModalAssinaturaOpen(true);
-  if (!pixDataMP?.paymentId) {
-    gerarPixMercadoPago({
-      transaction_amount: 9.90,
-      description: 'Plano Mensal Gestor - Acesso Completo',
-      payer_email: user?.email || 'diemersonlimabarbosa@gmail.com',
-      payer_name: barbearia?.nome || 'Gestor'
-    });
-  }
-};
-
+    setAberturaManual(true);
+    setModalAssinaturaOpen(true);
+    if (!pixDataMP?.paymentId) {
+      gerarPixMercadoPago({
+        transaction_amount: 9.90,
+        description: 'Plano Mensal Gestor - Acesso Completo',
+        payer_email: user?.email || 'diemersonlimabarbosa@gmail.com',
+        payer_name: barbearia?.nome || 'Gestor'
+      });
+    }
+  };
 
   const verificarStatusAssinatura = (dadosBarbearia) => {
-    console.log("STATUS VINDO DO SUPABASE:", dadosBarbearia?.status_assinatura);
-    console.log("DATA DE VENCIMENTO:", dadosBarbearia?.data_vencimento);
-    
     if (!dadosBarbearia) return;
 
     const status = dadosBarbearia?.status_assinatura?.trim().toLowerCase();
 
-    // SE O STATUS FOR ATIVO, LIBERA IMEDIATAMENTE (Sem checar datas complexas que possam falhar)
     if (status === 'ativo') {
       setModalAssinaturaOpen(false);
       setAssinaturaExpirada(false);
       return;
     }
 
-    // Se estiver explicitamente vencido ou o teste acabou
     const dataCriacaoStr = dadosBarbearia?.created_at;
     if (dataCriacaoStr) {
       const dataCriacao = new Date(dataCriacaoStr);
@@ -315,7 +223,6 @@ const fecharMenuMobile = () => {
     }
   };
 
-  // Carregar Dados isolados por barbearia_id
   const loadDashboardData = useCallback(async (barbeariaId) => {
     setLoading(true);
     setErrorMessage(null);
@@ -345,21 +252,17 @@ const fecharMenuMobile = () => {
       setServicos(resServicos.data || []);
       setDespesas(resDespesas.data || []);
 
+      if (dadosBarbearia) {
+        verificarStatusAssinatura(dadosBarbearia);
+      }
 
-// ADICIONE ESTA LINHA AQUI PARA EXECUTAR A VALIDAÇÃO:
-   // Apenas essa linha deve ficar:
-    if (dadosBarbearia) {
-      verificarStatusAssinatura(dadosBarbearia);
+    } catch (err) {
+      setErrorMessage(err.message);
+    } finally {
+      setLoading(false);
     }
+  }, []);
 
-  } catch (err) {
-    setErrorMessage(err.message);
-  } finally {
-    setLoading(false);
-  }
-}, []);
-
-  // Gerar Pix dinâmico Oficial via API do Mercado Pago
   const gerarPixMercadoPago = useCallback(async (paymentData) => {
     try {
       const payload = {
@@ -396,7 +299,6 @@ const fecharMenuMobile = () => {
     }
   }, []);
 
-  // Verificar Autenticação e Carregar dados da Barbearia
   useEffect(() => {
     const checkAuthAndLoad = async () => {
       setLoading(true);
@@ -408,9 +310,6 @@ const fecharMenuMobile = () => {
         return;
       }
 
-
-
-// --- ADICIONE ESTE BLOCO LOGO AQUI ---
       const { data: barbeiroCheck } = await supabase
         .from('barbeiros')
         .select('id')
@@ -421,9 +320,6 @@ const fecharMenuMobile = () => {
         router.push('/barbeiro');
         return;
       }
-      // -------------------------------------
-
-
 
       setUser(session.user);
 
@@ -447,7 +343,6 @@ const fecharMenuMobile = () => {
     checkAuthAndLoad();
   }, [router, loadDashboardData]);
 
- // Efeito para verificar o status do pagamento automaticamente a cada 5 segundos
   useEffect(() => {
     let intervalId;
 
@@ -464,7 +359,6 @@ const fecharMenuMobile = () => {
 
           if (res.ok && data.status === 'approved') {
             clearInterval(intervalId);
-            // Chama a função centralizada de aprovação para evitar duplicações de alertas
             handleProcessarPagamentoMercadoPago();
           }
         } catch (err) {
@@ -479,10 +373,8 @@ const fecharMenuMobile = () => {
   }, [modalAssinaturaOpen, metodoPagamento, pixDataMP?.paymentId, processandoPagamento]);
 
   useEffect(() => {
-    // Se o usuário abriu manualmente para adiantar a assinatura, não interfere!
     if (aberturaManual) return;
 
-    // Se ainda estiver no período de teste ou ativo, sai imediatamente sem fazer nada
     const dataCriacaoStr = barbearia?.created_at;
     const status = barbearia?.status_assinatura;
 
@@ -496,12 +388,11 @@ const fecharMenuMobile = () => {
         const restante = 7 - diasPassados;
 
         if (restante > 0) {
-          return; // Retorna sem fechar o modal à força
+          return;
         }
       }
     }
 
-    // Só prossegue para gerar o Pix se realmente passou do prazo ou não está em teste
     if (modalAssinaturaOpen && metodoPagamento === 'pix' && !pixDataMP?.paymentId) {
       gerarPixMercadoPago({
         transaction_amount: 9.90,
@@ -519,7 +410,7 @@ const fecharMenuMobile = () => {
 
   const handleProcessarPagamentoMercadoPago = async (e) => {
     if (e) e.preventDefault();
-    if (processandoPagamento) return; // Evita cliques duplos / múltiplos disparos
+    if (processandoPagamento) return;
     
     setProcessandoPagamento(true);
 
@@ -550,13 +441,10 @@ const fecharMenuMobile = () => {
         }
 
        if (barbearia?.id) {
-          console.log("ID DA BARBEARIA SENDO ATUALIZADO:", barbearia.id);
-
           const dataInicio = new Date();
           const dataExpiracao = new Date();
           dataExpiracao.setMonth(dataExpiracao.getMonth() + 1);
 
-          // Enviamos estritamente apenas as colunas essenciais que existem na sua tabela do Supabase
           const novosDadosAssinatura = {
             status_assinatura: 'ativo',
             data_inicio_assinatura: dataInicio.toISOString().split('T')[0],
@@ -569,10 +457,7 @@ const fecharMenuMobile = () => {
             .eq('id', barbearia.id)
             .select();
 
-          console.log("RESPOSTA DO UPDATE NO SUPABASE:", { updateData, updateError });
-
           if (updateError) {
-            console.error('Erro detalhado do Supabase:', updateError);
             throw new Error('Erro ao atualizar assinatura: ' + updateError.message);
           }
 
@@ -587,7 +472,6 @@ const fecharMenuMobile = () => {
         setAssinaturaExpirada(false);
         setProcessandoPagamento(false);
         
-        // Recarrega os dados da barbearia do banco para garantir consistência
         loadDashboardData(barbearia.id);
       }
     } catch (err) {
@@ -597,7 +481,7 @@ const fecharMenuMobile = () => {
     }
   };
 
-const handleUpdateStatus = async (id, newStatus) => {
+  const handleUpdateStatus = async (id, newStatus) => {
     try {
       const { error } = await supabase
         .from('agendamentos')
@@ -614,9 +498,7 @@ const handleUpdateStatus = async (id, newStatus) => {
     }
   };
 
-  
-
- const copiarChavePix = () => {
+  const copiarChavePix = () => {
     const codigoParaCopiar = pixDataMP?.copiaECola;
 
     if (!codigoParaCopiar) {
@@ -625,7 +507,6 @@ const handleUpdateStatus = async (id, newStatus) => {
     }
 
     try {
-      // Cria um elemento textarea temporário invisível para garantir a cópia nativa
       const textarea = document.createElement('textarea');
       textarea.value = codigoParaCopiar;
       textarea.style.position = 'fixed';
@@ -645,7 +526,6 @@ const handleUpdateStatus = async (id, newStatus) => {
         throw new Error('Falha');
       }
     } catch (err) {
-      // Fallback final: seleciona o input visual da tela caso o temporário falhe
       const inputElement = document.getElementById('input-copia-cola');
       if (inputElement) {
         inputElement.focus();
@@ -655,136 +535,91 @@ const handleUpdateStatus = async (id, newStatus) => {
     }
   };
 
-  // --- AÇÕES DE SERVIÇOS, BARBEIROS E DESPESAS ---
   const [modalServicoOpen, setModalServicoOpen] = useState(false);
   const [editingServico, setEditingServico] = useState(null);
   const [formServico, setFormServico] = useState({ nome: '', preco: '', duracao_minutos: 30 });
 
   const [modalBarbeiroOpen, setModalBarbeiroOpen] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [fotoUrl, setFotoUrl] = useState('');
 
-const [uploading, setUploading] = useState(false);
-const [fotoUrl, setFotoUrl] = useState('');
+  const [nome, setNome] = useState('');
+  const [especialidade, setEspecialidade] = useState('');
+  const [taxaComissao, setTaxaComissao] = useState('');
 
-const [nome, setNome] = useState('');
-const [especialidade, setEspecialidade] = useState('');
-const [taxaComissao, setTaxaComissao] = useState('');
+  const handleUploadFoto = async (e) => {
+    const arquivo = e.target.files[0];
+    if (!arquivo) return;
 
-const handleUploadFoto = async (e) => {
-  const arquivo = e.target.files[0];
-  if (!arquivo) return;
+    setUploading(true);
+    try {
+      const comprimidoBlob = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(arquivo);
+        reader.onload = (event) => {
+          const img = new Image();
+          img.src = event.target.result;
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            let width = img.width;
+            let height = img.height;
 
-  setUploading(true);
-  try {
-    // 1. Redimensiona e comprime a imagem usando Canvas antes do upload
-    const comprimidoBlob = await new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(arquivo);
-      reader.onload = (event) => {
-        const img = new Image();
-        img.src = event.target.result;
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          let width = img.width;
-          let height = img.height;
-
-          // Define o limite máximo (ex: 800px de largura/altura máxima)
-          const MAX_SIZE = 800;
-          if (width > height) {
-            if (width > MAX_SIZE) {
-              height *= MAX_SIZE / width;
-              width = MAX_SIZE;
+            const MAX_SIZE = 800;
+            if (width > height) {
+              if (width > MAX_SIZE) {
+                height *= MAX_SIZE / width;
+                width = MAX_SIZE;
+              }
+            } else {
+              if (height > MAX_SIZE) {
+                width *= MAX_SIZE / height;
+                height = MAX_SIZE;
+              }
             }
-          } else {
-            if (height > MAX_SIZE) {
-              width *= MAX_SIZE / height;
-              height = MAX_SIZE;
-            }
-          }
 
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0, width, height);
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
 
-          // Converte para JPEG com qualidade de 80% (0.8)
-          canvas.toBlob(
-            (blob) => {
-              resolve(blob);
-            },
-            'image/jpeg',
-            0.8
-          );
+            canvas.toBlob(
+              (blob) => {
+                resolve(blob);
+              },
+              'image/jpeg',
+              0.8
+            );
+          };
+          img.onerror = (error) => reject(error);
         };
-        img.onerror = (error) => reject(error);
-      };
-      reader.onerror = (error) => reject(error);
-    });
-
-    // 2. Prepara o arquivo comprimido para o envio ao Supabase
-    const fileExt = 'jpg';
-    const fileName = `barbeiro-${Math.random()}.${fileExt}`;
-    const filePath = `barbeiros/${fileName}`;
-
-    const { error: uploadError } = await supabase.storage
-      .from('barbearia-bucket')
-      .upload(filePath, comprimidoBlob, {
-        contentType: 'image/jpeg',
-        upsert: true
+        reader.onerror = (error) => reject(error);
       });
 
-    if (uploadError) throw uploadError;
+      const fileExt = 'jpg';
+      const fileName = `barbeiro-${Math.random()}.${fileExt}`;
+      const filePath = `barbeiros/${fileName}`;
 
-    const { data: publicURLData } = supabase.storage
-      .from('barbearia-bucket')
-      .getPublicUrl(filePath);
+      const { error: uploadError } = await supabase.storage
+        .from('barbearia-bucket')
+        .upload(filePath, comprimidoBlob, {
+          contentType: 'image/jpeg',
+          upsert: true
+        });
 
-    setFotoUrl(publicURLData.publicUrl);
-  } catch (err) {
-    console.error('Erro no upload:', err);
-    alert('Erro ao enviar a imagem. Tente novamente.');
-  } finally {
-    setUploading(false);
-  }
-};
+      if (uploadError) throw uploadError;
 
+      const { data: publicURLData } = supabase.storage
+        .from('barbearia-bucket')
+        .getPublicUrl(filePath);
 
-const handleSalvarBarbeiro = async (e) => {
-  e.preventDefault();
-
-  try {
-    const dadosBarbeiro = {
-      barbearia_id: barbearia?.id,
-      nome,
-      especialidade,
-      taxa_comissao: Number(taxaComissao) || 0,
-      foto: fotoUrl
-    };
-
-    if (barbeiroParaEditar?.id) {
-      const { error } = await supabase
-        .from('barbeiros')
-        .update(dadosBarbeiro)
-        .eq('id', barbeiroParaEditar.id);
-      if (error) throw error;
-    } else {
-      const { error } = await supabase
-        .from('barbeiros')
-        .insert([dadosBarbeiro]);
-      if (error) throw error;
+      setFotoUrl(publicURLData.publicUrl);
+    } catch (err) {
+      console.error('Erro no upload:', err);
+      alert('Erro ao enviar a imagem. Tente novamente.');
+    } finally {
+      setUploading(false);
     }
-
-    alert('Profissional salvo com sucesso!');
-    setModalBarbeiroOpen(false);
-    window.location.reload();
-  } catch (err) {
-    console.error('Erro ao salvar profissional:', err);
-    alert('Erro ao salvar o profissional.');
-  }
-};
-
-
-  const [editingBarbeiro, setEditingBarbeiro] = useState(null);
-  const [formBarbeiro, setFormBarbeiro] = useState({ nome: '', especialidade: '' });
+  };
 
   const [modalDespesaOpen, setModalDespesaOpen] = useState(false);
   const [editingDespesa, setEditingDespesa] = useState(null);
@@ -822,54 +657,56 @@ const handleSalvarBarbeiro = async (e) => {
     loadDashboardData(barbearia.id);
   };
 
- const handleOpenBarbeiroModal = (barbeiro = null) => {
-  if (barbeiro) {
-    setBarbeiroParaEditar(barbeiro);
-    setNome(barbeiro.nome || '');
-    setEspecialidade(barbeiro.especialidade || '');
-    setTaxaComissao(barbeiro.taxa_comissao || '');
-    setFotoUrl(barbeiro.foto || '');
-  } else {
-    setBarbeiroParaEditar(null);
-    setNome('');
-    setEspecialidade('');
-    setTaxaComissao('');
-    setFotoUrl('');
-  }
-  setModalBarbeiroOpen(true);
-};
-
-const handleSaveBarbeiro = async (e) => {
-  e.preventDefault();
-
-  try {
-    const dadosBarbeiro = {
-      barbearia_id: barbearia?.id,
-      nome,
-      especialidade
-    };
-
-    if (barbeiroParaEditar?.id) {
-      const { error } = await supabase
-        .from('barbeiros')
-        .update(dadosBarbeiro)
-        .eq('id', barbeiroParaEditar.id);
-      if (error) throw error;
+  const handleOpenBarbeiroModal = (barbeiro = null) => {
+    if (barbeiro) {
+      setBarbeiroParaEditar(barbeiro);
+      setNome(barbeiro.nome || '');
+      setEspecialidade(barbeiro.especialidade || '');
+      setTaxaComissao(barbeiro.taxa_comissao || '');
+      setFotoUrl(barbeiro.foto || '');
     } else {
-      const { error } = await supabase
-        .from('barbeiros')
-        .insert([dadosBarbeiro]);
-      if (error) throw error;
+      setBarbeiroParaEditar(null);
+      setNome('');
+      setEspecialidade('');
+      setTaxaComissao('');
+      setFotoUrl('');
     }
+    setModalBarbeiroOpen(true);
+  };
 
-    setModalBarbeiroOpen(false);
-    loadDashboardData(barbearia.id);
-    alert('Profissional salvo com sucesso!');
-  } catch (err) {
-    console.error('ERRO DETALHADO SUPABASE:', JSON.stringify(err, null, 2));
-    alert('Erro ao salvar: ' + (err.message || JSON.stringify(err)));
-  }
-};
+  const handleSaveBarbeiro = async (e) => {
+    e.preventDefault();
+
+    try {
+      const dadosBarbeiro = {
+        barbearia_id: barbearia?.id,
+        nome,
+        especialidade,
+        taxa_comissao: Number(taxaComissao) || 0,
+        foto: fotoUrl
+      };
+
+      if (barbeiroParaEditar?.id) {
+        const { error } = await supabase
+          .from('barbeiros')
+          .update(dadosBarbeiro)
+          .eq('id', barbeiroParaEditar.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('barbeiros')
+          .insert([dadosBarbeiro]);
+        if (error) throw error;
+      }
+
+      setModalBarbeiroOpen(false);
+      loadDashboardData(barbearia.id);
+      alert('Profissional salvo com sucesso!');
+    } catch (err) {
+      console.error('ERRO DETALHADO SUPABASE:', JSON.stringify(err, null, 2));
+      alert('Erro ao salvar: ' + (err.message || JSON.stringify(err)));
+    }
+  };
 
   const handleDeleteBarbeiro = async (id) => {
     if (!confirm('Deseja realmente excluir este funcionário?')) return;
@@ -901,18 +738,12 @@ const handleSaveBarbeiro = async (e) => {
     } catch (err) { alert('Erro ao salvar despesa: ' + err.message); }
   };
 
-
-
-
-
-
   const handleDeleteDespesa = async (id) => {
     if (!confirm('Deseja realmente excluir esta despesa?')) return;
     await supabase.from('despesas').delete().eq('id', id);
     loadDashboardData(barbearia.id);
   };
 
-  // Cálculos Financeiros
   const totalFaturamento = agendamentos.filter((a) => a.status === 'concluido').reduce((acc, curr) => acc + (Number(curr.valor_total) || 0), 0);
   const totalDespesas = despesas.reduce((acc, curr) => acc + (Number(curr.valor) || 0), 0);
   const lucroLiquido = totalFaturamento - totalDespesas;
@@ -929,292 +760,128 @@ const handleSaveBarbeiro = async (e) => {
     );
   }
 
-
-
-
-
-
   return (
-
-
-
-
-   <div className="min-h-screen bg-stone-100 text-stone-800 flex flex-col font-sans relative select-none">
-    {/* TRAVA DE CARREGAMENTO PARA EVITAR O PISCAR DO MODAL */}
-    {loading && (
-      <div className="fixed inset-0 bg-stone-900 z-50 flex items-center justify-center text-white">
-        <p>Carregando painel...</p>
-      </div>
-    )}
-
-
-
-
-    
-
-
-
-{/* WRAPPER FIXO DO TOPO (Aviso + Cabeçalho grudados juntos sem espaço vazio) */}
-<div className="sticky top-0 z-40 w-full">
-
-{/* =========================================================
-    1. NOTIFICAÇÃO NO TOPO ABSOLUTO (TESTE OU ALERTA)
-    ========================================================= */}
-{!assinaturaExpirada && barbearia?.status_assinatura !== 'ativo' && (
-  <div className="bg-sky-600 text-white px-4 py-2 text-center text-xs font-bold flex items-center justify-center gap-2 shadow-sm z-40">
-    <AlertCircle className="w-4 h-4" />
-    <span>Seu período de testes gratuitos termina em {diasRestantes} {diasRestantes === 1 ? 'dia' : 'dias'}.</span>
-    <button
-      onClick={abrirModalAssinaturaManual}
-      className="underline ml-2 hover:text-stone-200 transition-colors cursor-pointer"
-    >
-      Assinar via Mercado Pago agora
-    </button>
-  </div>
-)}
-
-{/* =========================================================
-    2. CABEÇALHO MOBILE CLEAN (Abaixo do aviso)
-    ========================================================= */}
-<header className="w-full sticky top-0 z-30 md:hidden">
-  {/* Reduzido de py-4 para py-2.5 para diminuir a altura e o espaço vertical */}
-  <div className="w-full bg-white/80 backdrop-blur-xl border-b border-white/80 px-5 py-2.5 flex items-center justify-between shadow-[0_10px_30px_rgba(0,0,0,0.04)]">
-    
-    {/* Perfil & Nome da Barbearia */}
-    <div className="flex items-center gap-3 min-w-0">
-      {barbearia?.logo || barbearia?.logo_url || barbearia?.avatar || barbearia?.imagem ? (
-        <div className="relative">
-          <img 
-            src={barbearia.logo || barbearia.logo_url || barbearia.avatar || barbearia.imagem} 
-            alt="Logo" 
-            className="w-10 h-10 rounded-2xl object-cover border border-white/90 shadow-sm"
-          />
-          <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 border-2 border-white rounded-full"></span>
-        </div>
-      ) : (
-        <div className="w-10 h-10 bg-stone-900 text-white rounded-2xl flex items-center justify-center font-bold text-sm shadow-sm">
-          {(barbearia?.nome || 'B').charAt(0)}
+    <div className="min-h-screen bg-stone-100 text-stone-800 flex flex-col font-sans relative select-none">
+      {loading && (
+        <div className="fixed inset-0 bg-stone-900 z-50 flex items-center justify-center text-white">
+          <p>Carregando painel...</p>
         </div>
       )}
-      <div className="min-w-0">
-        <h1 className="font-black text-stone-900 text-sm tracking-tight truncate">
-          {barbearia?.nome || 'Patyoliiiver'}
-        </h1>
-      </div>
-    </div>
 
-    {/* Ações Rápidas do Topo (Notificação + Configurações) */}
-    <div className="flex items-center gap-2">
-      <NotificacoesBell barbeariaId={barbearia?.id} supabase={supabase} />
-
-      <button 
-        onClick={() => setModalInfoAssinaturaOpen(true)} 
-        className="w-9 h-9 rounded-full bg-white border border-stone-200/80 flex items-center justify-center text-stone-700 shadow-xs hover:bg-stone-50 transition-colors cursor-pointer"
-        title="Ajustes"
-      >
-        <Settings className="w-4 h-4" />
-      </button>
-    </div>
-
-  </div>
-</header>
-
-
-
-
-</div>
-
-
-
-    {/* =========================================================
-   ABA: VISÃO GERAL & DASHBOARD COMPLETO (MOBILE & DESKTOP)
-   ========================================================= */}
-{activeTab === 'visao-geral' && (
-  <div className=" pb-24 pt-1">
-    
-    {/* Cabeçalho da Seção */}
-    <div className="bg-white p-5 rounded-2xl border border-stone-200/80 shadow-xs flex flex-col gap-3">
-      <div>
-        <h1 className="text-base font-extrabold text-stone-900">Visão Geral — {barbearia?.nome || 'Barbearia'}</h1>
-        <p className="text-[11px] text-stone-500 mt-0.5">Acompanhe o desempenho, faturamento e fluxo de clientes no mês.</p>
-      </div>
-      <div className="flex items-center justify-between pt-2 border-t border-stone-100">
-        <span className="inline-flex items-center px-2.5 py-1 rounded-xl text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-          ● Mês Atual Ativo
-        </span>
-        {/* Link do Cliente opcional */}
-        <a 
-          href="/cliente" 
-          target="_blank" 
-          rel="noopener noreferrer"
-          className="text-[11px] font-bold text-stone-900 hover:underline flex items-center gap-1"
-        >
-          Link do Cliente ↗
-        </a>
-      </div>
-    </div>
-
-         {/* Cards de Indicadores (KPIs) com Estilo Black Piano Degradê & Esferas 3D */}
-      <div className="grid grid-cols-2 gap-3.5 md:gap-5 mb-6">
-        
-        {/* 1. Faturamento */}
-        <div 
-          className="relative rounded-3xl md:rounded-[2.5rem] p-5 sm:p-6 md:p-7 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden shadow-xl"
-          style={{
-            background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
-            boxShadow: '0 15px 35px rgba(0, 0, 0, 0.5), inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
-          }}
-        >
-          <div className="flex flex-col justify-center min-w-0 pr-2">
-            <span className="text-[9px] sm:text-[10px] md:text-xs font-bold text-stone-400 uppercase tracking-wider truncate block">Faturamento</span>
-            <h3 className="text-lg sm:text-2xl md:text-3xl font-black text-white mt-1 truncate">R$ {faturamentoTotal.toFixed(0)}</h3>
-            <p className="text-[10px] text-emerald-400 font-medium mt-0.5">{atendimentosConcluidos.length} concluídos</p>
+      <div className="sticky top-0 z-40 w-full">
+        {!assinaturaExpirada && barbearia?.status_assinatura !== 'ativo' && (
+          <div className="bg-sky-600 text-white px-4 py-2 text-center text-xs font-bold flex items-center justify-center gap-2 shadow-sm z-40">
+            <AlertCircle className="w-4 h-4" />
+            <span>Seu período de testes gratuitos termina em {diasRestantes} {diasRestantes === 1 ? 'dia' : 'dias'}.</span>
+            <button
+              onClick={abrirModalAssinaturaManual}
+              className="underline ml-2 hover:text-stone-200 transition-colors cursor-pointer"
+            >
+              Assinar via Mercado Pago agora
+            </button>
           </div>
-          <div 
-            className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center shrink-0 shadow-lg"
-            style={{
-              background: 'radial-gradient(circle at 30% 30%, #ffffff 0%, #d8e2ec 60%, #9fb3c8 100%)',
-              boxShadow: '0 6px 15px rgba(0, 0, 0, 0.4), inset 0 2px 3px rgba(255, 255, 255, 1), inset 0 -4px 6px rgba(0, 0, 0, 0.25)',
-              border: '1px solid rgba(255, 255, 255, 0.9)'
-            }}
+        )}
+
+        <header className="w-full sticky top-0 z-30 md:hidden">
+          <div className="w-full bg-white/80 backdrop-blur-xl border-b border-white/80 px-5 py-2.5 flex items-center justify-between shadow-[0_10px_30px_rgba(0,0,0,0.04)]">
+            <div className="flex items-center gap-3 min-w-0">
+              {barbearia?.logo || barbearia?.logo_url || barbearia?.avatar || barbearia?.imagem ? (
+                <div className="relative">
+                  <img 
+                    src={barbearia.logo || barbearia.logo_url || barbearia.avatar || barbearia.imagem} 
+                    alt="Logo" 
+                    className="w-10 h-10 rounded-2xl object-cover border border-white/90 shadow-sm"
+                  />
+                  <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 border-2 border-white rounded-full"></span>
+                </div>
+              ) : (
+                <div className="w-10 h-10 bg-stone-900 text-white rounded-2xl flex items-center justify-center font-bold text-sm shadow-sm">
+                  {(barbearia?.nome || 'B').charAt(0)}
+                </div>
+              )}
+              <div className="min-w-0">
+                <h1 className="font-black text-stone-900 text-sm tracking-tight truncate">
+                  {barbearia?.nome || 'Patyoliiiver'}
+                </h1>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <NotificacoesBell barbeariaId={barbearia?.id} supabase={supabase} />
+
+              <button 
+                onClick={() => setModalInfoAssinaturaOpen(true)} 
+                className="w-9 h-9 rounded-full bg-white border border-stone-200/80 flex items-center justify-center text-stone-700 shadow-xs hover:bg-stone-50 transition-colors cursor-pointer"
+                title="Ajustes"
+              >
+                <Settings className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </header>
+      </div>
+
+      <main className="...">
+        {!mobileMenuOpen && (
+          <nav 
+            aria-label="Navegação inferior mobile" 
+            style={{ display: mobileMenuOpen ? 'none' : undefined }}
+            className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-stone-200 px-4 py-2 z-40 flex items-center justify-between shadow-lg"
           >
-            <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-stone-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]" />
-          </div>
-        </div>
+            <button 
+              onClick={() => setActiveTab('financeiro')}
+              className={`flex flex-col items-center space-y-1 transition-colors cursor-pointer ${activeTab === 'financeiro' ? 'text-stone-900 font-bold' : 'text-stone-400 font-medium'}`}
+            >
+              <TrendingUp className="w-5 h-5" />
+              <span className="text-[10px]">Financeiro</span>
+            </button>
 
-        {/* 2. Despesas */}
-        <div 
-          className="relative rounded-3xl md:rounded-[2.5rem] p-5 sm:p-6 md:p-7 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden shadow-xl"
-          style={{
-            background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
-            boxShadow: '0 15px 35px rgba(0, 0, 0, 0.5), inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
-          }}
-        >
-          <div className="flex flex-col justify-center min-w-0 pr-2">
-            <span className="text-[9px] sm:text-[10px] md:text-xs font-bold text-stone-400 uppercase tracking-wider truncate block">Despesas</span>
-            <h3 className="text-lg sm:text-2xl md:text-3xl font-black text-white mt-1 truncate">R$ {custosTotais.toFixed(0)}</h3>
-            <p className="text-[10px] text-rose-400 font-medium mt-0.5">{despesas.length} cadastradas</p>
-          </div>
-          <div 
-            className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center shrink-0 shadow-lg"
-            style={{
-              background: 'radial-gradient(circle at 30% 30%, #ffffff 0%, #d8e2ec 60%, #9fb3c8 100%)',
-              boxShadow: '0 6px 15px rgba(0, 0, 0, 0.4), inset 0 2px 3px rgba(255, 255, 255, 1), inset 0 -4px 6px rgba(0, 0, 0, 0.25)',
-              border: '1px solid rgba(255, 255, 255, 0.9)'
-            }}
-          >
-            <TrendingDown className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-stone-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]" />
-          </div>
-        </div>
+            <button 
+              onClick={() => setActiveTab('agendamentos')}
+              className={`flex flex-col items-center space-y-1 transition-colors cursor-pointer ${activeTab === 'agendamentos' ? 'text-stone-900 font-bold' : 'text-stone-400 font-medium'}`}
+            >
+              <Calendar className="w-5 h-5" />
+              <span className="text-[10px]">Agenda</span>
+            </button>
 
-        {/* 3. Lucro Líquido */}
-        <div 
-          className="relative rounded-3xl md:rounded-[2.5rem] p-5 sm:p-6 md:p-7 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden shadow-xl"
-          style={{
-            background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
-            boxShadow: '0 15px 35px rgba(0, 0, 0, 0.5), inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
-          }}
-        >
-          <div className="flex flex-col justify-center min-w-0 pr-2">
-            <span className="text-[9px] sm:text-[10px] md:text-xs font-bold text-stone-400 uppercase tracking-wider truncate block">Lucro Líquido</span>
-            <h3 className={`text-lg sm:text-2xl md:text-3xl font-black mt-1 truncate ${lucroLiquidoReal >= 0 ? 'text-sky-400' : 'text-rose-400'}`}>
-              R$ {lucroLiquidoReal.toFixed(0)}
-            </h3>
-            <p className="text-[10px] text-stone-400 font-medium mt-0.5">Entradas - Saídas</p>
-          </div>
-          <div 
-            className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center shrink-0 shadow-lg"
-            style={{
-              background: 'radial-gradient(circle at 30% 30%, #ffffff 0%, #d8e2ec 60%, #9fb3c8 100%)',
-              boxShadow: '0 6px 15px rgba(0, 0, 0, 0.4), inset 0 2px 3px rgba(255, 255, 255, 1), inset 0 -4px 6px rgba(0, 0, 0, 0.25)',
-              border: '1px solid rgba(255, 255, 255, 0.9)'
-            }}
-          >
-            <DollarSign className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-stone-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]" />
-          </div>
-        </div>
+            <div className="relative -top-3">
+              <button 
+                onClick={() => setMobileMenuOpen(true)}
+                className="w-12 h-12 text-white rounded-full flex items-center justify-center active:scale-95 transition-transform border-4 border-white cursor-pointer"
+                style={{
+                  background: 'linear-gradient(135deg, #102a43 0%, #0b1d2d 100%)',
+                  boxShadow: '0 10px 20px rgba(16, 42, 67, 0.4), inset 0 2px 2px rgba(255, 255, 255, 0.3), inset 0 -3px 4px rgba(0, 0, 0, 0.5)'
+                }}
+                aria-label="Abrir Menu de Acesso Rápido"
+              >
+                <Menu className="w-5 h-5 text-white" />
+              </button>
+            </div>
 
-        {/* 4. Ticket Médio */}
-        <div 
-          className="relative rounded-3xl md:rounded-[2.5rem] p-5 sm:p-6 md:p-7 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden shadow-xl"
-          style={{
-            background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
-            boxShadow: '0 15px 35px rgba(0, 0, 0, 0.5), inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
-          }}
-        >
-          <div className="flex flex-col justify-center min-w-0 pr-2">
-            <span className="text-[9px] sm:text-[10px] md:text-xs font-bold text-stone-400 uppercase tracking-wider truncate block">Ticket Médio</span>
-            <h3 className="text-lg sm:text-2xl md:text-3xl font-black text-white mt-1 truncate">R$ {ticketMedioCalculado.toFixed(0)}</h3>
-            <p className="text-[10px] text-stone-400 font-medium mt-0.5">Média por atendimento</p>
-          </div>
-          <div 
-            className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center shrink-0 shadow-lg"
-            style={{
-              background: 'radial-gradient(circle at 30% 30%, #ffffff 0%, #d8e2ec 60%, #9fb3c8 100%)',
-              boxShadow: '0 6px 15px rgba(0, 0, 0, 0.4), inset 0 2px 3px rgba(255, 255, 255, 1), inset 0 -4px 6px rgba(0, 0, 0, 0.25)',
-              border: '1px solid rgba(255, 255, 255, 0.9)'
-            }}
-          >
-            <PieChart className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-stone-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]" />
-          </div>
-        </div>
+            <button 
+              onClick={() => setActiveTab('clientes')}
+              className={`flex flex-col items-center space-y-1 transition-colors cursor-pointer ${activeTab === 'clientes' ? 'text-stone-900 font-bold' : 'text-stone-400 font-medium'}`}
+            >
+              <Users className="w-5 h-5" />
+              <span className="text-[10px]">Clientes</span>
+            </button>
 
-      </div>
+            <button 
+              onClick={() => setActiveTab('configuracoes')}
+              className={`flex flex-col items-center space-y-1 transition-colors cursor-pointer ${activeTab === 'configuracoes' ? 'text-stone-900 font-bold' : 'text-stone-400 font-medium'}`}
+            >
+              <Settings className="w-5 h-5" />
+              <span className="text-[10px]">Ajustes</span>
+            </button>
+          </nav>
+        )}
+      </main>
 
-    {/* RESUMO FINANCEIRO E ATALHOS */}
-    <div className="bg-white p-5 rounded-2xl border border-stone-200/80 shadow-xs space-y-4">
-      <h2 className="text-xs font-bold text-stone-900">Balanço de Entradas e Saídas</h2>
-      
-      <div className="space-y-2">
-        <div className="flex items-center justify-between p-3 bg-stone-50 rounded-xl">
-          <span className="text-xs font-medium text-stone-600">Total de Entradas</span>
-          <span className="text-xs font-extrabold text-emerald-600">R$ {totalFaturamento ? totalFaturamento.toFixed(2) : '0,00'}</span>
-        </div>
-        <div className="flex items-center justify-between p-3 bg-stone-50 rounded-xl">
-          <span className="text-xs font-medium text-stone-600">Total de Despesas</span>
-          <span className="text-xs font-extrabold text-rose-600">R$ {totalDespesas ? totalDespesas.toFixed(2) : '0,00'}</span>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-2 pt-2">
-        <button 
-          onClick={() => setActiveTab('agendamentos')}
-          className="p-3 bg-stone-900 text-white rounded-xl text-center text-xs font-bold active:scale-95 transition-transform"
-        >
-          Ver Agenda
-        </button>
-        <button 
-          onClick={() => setActiveTab('clientes')}
-          className="p-3 bg-stone-100 text-stone-800 rounded-xl text-center text-xs font-bold active:scale-95 transition-transform"
-        >
-          Ver Clientes
-        </button>
-      </div>
-    </div>
-
-  </div>
-)}
-
-
-
-
-
-
-
-    
-   
-
-    {/* ÁREA PRINCIPAL DA PÁGINA */}
-    <main className="...">
-
-{/* BARRA DE NAVEGAÇÃO INFERIOR FIXA COM O NOVO ESTILO 3D AZUL PETRÓLEO */}
       <nav 
-        aria-label="Navegação inferior mobile" 
+        aria-label="Navegação inferior mobile"
         style={{ display: mobileMenuOpen ? 'none' : undefined }}
         className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-stone-200 px-4 py-2 z-40 flex items-center justify-between shadow-lg"
       >
-        
-        {/* 1. Financeiro */}
         <button 
           onClick={() => setActiveTab('financeiro')}
           className={`flex flex-col items-center space-y-1 transition-colors cursor-pointer ${activeTab === 'financeiro' ? 'text-stone-900 font-bold' : 'text-stone-400 font-medium'}`}
@@ -1223,7 +890,6 @@ const handleSaveBarbeiro = async (e) => {
           <span className="text-[10px]">Financeiro</span>
         </button>
 
-        {/* 2. Agenda */}
         <button 
           onClick={() => setActiveTab('agendamentos')}
           className={`flex flex-col items-center space-y-1 transition-colors cursor-pointer ${activeTab === 'agendamentos' ? 'text-stone-900 font-bold' : 'text-stone-400 font-medium'}`}
@@ -1232,22 +898,16 @@ const handleSaveBarbeiro = async (e) => {
           <span className="text-[10px]">Agenda</span>
         </button>
 
-        {/* 3. BOTÃO CENTRAL DESTAQUE (Com o estilo 3D Azul Petróleo Exato) */}
         <div className="relative -top-3">
           <button 
             onClick={() => setMobileMenuOpen(true)}
-            className="w-12 h-12 text-white rounded-full flex items-center justify-center active:scale-95 transition-transform border-4 border-white cursor-pointer"
-            style={{
-              background: 'linear-gradient(135deg, #102a43 0%, #0b1d2d 100%)',
-              boxShadow: '0 10px 20px rgba(16, 42, 67, 0.4), inset 0 2px 2px rgba(255, 255, 255, 0.3), inset 0 -3px 4px rgba(0, 0, 0, 0.5)'
-            }}
+            className="w-12 h-12 bg-stone-900 text-white rounded-full flex items-center justify-center shadow-md active:scale-95 transition-transform border-4 border-white cursor-pointer"
             aria-label="Abrir Menu de Acesso Rápido"
           >
-            <Menu className="w-5 h-5 text-white" />
+            <Menu className="w-5 h-5" />
           </button>
         </div>
 
-        {/* 4. Clientes */}
         <button 
           onClick={() => setActiveTab('clientes')}
           className={`flex flex-col items-center space-y-1 transition-colors cursor-pointer ${activeTab === 'clientes' ? 'text-stone-900 font-bold' : 'text-stone-400 font-medium'}`}
@@ -1256,7 +916,6 @@ const handleSaveBarbeiro = async (e) => {
           <span className="text-[10px]">Clientes</span>
         </button>
 
-        {/* 5. Ajustes / Configurações */}
         <button 
           onClick={() => setActiveTab('configuracoes')}
           className={`flex flex-col items-center space-y-1 transition-colors cursor-pointer ${activeTab === 'configuracoes' ? 'text-stone-900 font-bold' : 'text-stone-400 font-medium'}`}
@@ -1264,592 +923,360 @@ const handleSaveBarbeiro = async (e) => {
           <Settings className="w-5 h-5" />
           <span className="text-[10px]">Ajustes</span>
         </button>
-
-
-<button
-  onClick={() => setActiveTab('fidelizacao')}
-  className={`flex items-center gap-2.5 px-4 py-3 rounded-2xl text-xs font-bold transition-all cursor-pointer ${
-    activeTab === 'fidelizacao' 
-      ? 'bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/20' 
-      : 'text-slate-400 hover:text-white hover:bg-slate-900/60'
-  }`}
->
-  <Award className="w-4 h-4" />
-  <span>Fidelização</span>
-</button>
-
-
       </nav>
 
-    </main>
+      {/* PAINEL DE GAVETA DE APPS NO MOBILE (SEM OVERLAY DE OFUSCAÇÃO, TUDO FICA VISÍVEL) */}
+      {mobileMenuOpen && (
+        <div className="fixed inset-0 z-[60] flex md:hidden items-end justify-center pointer-events-none">
+          <div className="relative w-full max-w-lg mx-4 mb-4 bg-stone-200/95 backdrop-blur-2xl rounded-[2.5rem] pt-3 px-6 pb-8 shadow-2xl border border-stone-300 z-10 flex flex-col text-stone-800 pointer-events-auto">
+            <div className="w-10 h-1 bg-stone-400 rounded-full mx-auto mb-5 cursor-pointer" onClick={fecharMenuMobile}></div>
 
+            <div className="grid grid-cols-4 gap-y-6 gap-x-3 py-2">
+              {[
+                { id: 'financeiro', label: 'Financeiro', icon: TrendingUp, action: () => setActiveTab('financeiro') },
+                { id: 'agendamentos', label: 'Agenda', icon: Calendar, action: () => setActiveTab('agendamentos') },
+                { id: 'fidelidade', label: 'Fidelizacao', icon: Award, action: () => setActiveTab('fidelidade') },
+                { id: 'configuracoes', label: 'Configurações', icon: Settings, action: () => setActiveTab('configuracoes') },
+                { id: 'despesas', label: 'Despesas', icon: TrendingDown, action: () => setActiveTab('despesas') },
+                { id: 'comissoes', label: 'Comissões', icon: Percent, action: () => setActiveTab('comissoes') },
+                { id: 'servicos', label: 'Equipe', icon: Scissors, action: () => setActiveTab('servicos') },
+                { id: 'assinatura', label: 'Assinatura', icon: ClipboardPenLine, action: () => setModalInfoAssinaturaOpen(true) },
+                { id: 'pdv', label: 'PDV', icon: ShoppingCart, action: () => setActiveTab('pdv') },
+                { id: 'produtos', label: 'Produtos', icon: ShoppingBag, action: () => setActiveTab('produtos') },
+                { id: 'suporte', label: 'Suporte', icon: MessageCircleCheck, isLink: true, href: "https://wa.me/5542998040396?text=Olá,%20preciso%20de%20suporte%20com%20o%20sistema%20AgendaSoft." },
+                { id: 'logout', label: 'Logout', icon: LogOut, action: handleLogout, isLogout: true },
+              ].map((item) => {
+                const IconComponent = item.icon;
+                
+                let buttonStyle = {};
+                if (item.isLogout) {
+                  buttonStyle = {
+                    background: 'linear-gradient(135deg, #9b1c2e 0%, #70121f 100%)',
+                    boxShadow: '0 10px 20px rgba(112, 18, 31, 0.35), inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 5px rgba(0, 0, 0, 0.4)',
+                    border: '1px solid rgba(255, 255, 255, 0.15)'
+                  };
+                } else {
+                  buttonStyle = {
+                    background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
+                    boxShadow: '0 10px 20px rgba(0, 0, 0, 0.45), inset 0 2px 3px rgba(255, 255, 255, 0.2), inset 0 -3px 5px rgba(0, 0, 0, 0.8)',
+                    border: '1px solid rgba(255, 255, 255, 0.15)'
+                  };
+                }
 
-{/* =========================================================
-    BARRA DE NAVEGAÇÃO INFERIOR ANIMADA (DESCE QUANDO O MENU ABRE)
-    ========================================================= */}
-<motion.nav 
-  aria-label="Navegação inferior mobile"
-  animate={{ y: mobileMenuOpen ? 100 : 0 }}
-  transition={{ type: "spring", damping: 25, stiffness: 320 }}
-  className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-stone-200 px-4 py-2 z-40 flex items-center justify-between shadow-lg"
->
-  
-  <button 
-    onClick={() => setActiveTab('financeiro')}
-    className={`flex flex-col items-center space-y-1 transition-colors cursor-pointer ${activeTab === 'financeiro' ? 'text-stone-900 font-bold' : 'text-stone-400 font-medium'}`}
-  >
-    <TrendingUp className="w-5 h-5" />
-    <span className="text-[10px]">Financeiro</span>
-  </button>
+                const buttonContent = (
+                  <div 
+                    className="w-14 h-14 rounded-2xl flex items-center justify-center transition-transform duration-200 active:scale-95"
+                    style={buttonStyle}
+                  >
+                    <IconComponent className="w-6 h-6 text-white" />
+                  </div>
+                );
 
-  <button 
-    onClick={() => setActiveTab('agendamentos')}
-    className={`flex flex-col items-center space-y-1 transition-colors cursor-pointer ${activeTab === 'agendamentos' ? 'text-stone-900 font-bold' : 'text-stone-400 font-medium'}`}
-  >
-    <Calendar className="w-5 h-5" />
-    <span className="text-[10px]">Agenda</span>
-  </button>
+                const labelContent = (
+                  <span className={`text-[11px] font-medium tracking-tight mt-1.5 ${item.isLogout ? 'text-rose-600 font-bold' : 'text-stone-700'}`}>
+                    {item.label}
+                  </span>
+                );
 
-  <div className="relative -top-3">
-    <button 
-      onClick={() => setMobileMenuOpen(true)}
-      className="w-12 h-12 bg-stone-900 text-white rounded-full flex items-center justify-center shadow-md active:scale-95 transition-transform border-4 border-white cursor-pointer"
-      aria-label="Abrir Menu de Acesso Rápido"
-    >
-      <Menu className="w-5 h-5" />
-    </button>
-  </div>
+                if (item.isLink) {
+                  return (
+                    <a
+                      key={item.id}
+                      href={item.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={fecharMenuMobile}
+                      className="flex flex-col items-center justify-center group cursor-pointer"
+                    >
+                      {buttonContent}
+                      {labelContent}
+                    </a>
+                  );
+                }
 
-  <button 
-    onClick={() => setActiveTab('clientes')}
-    className={`flex flex-col items-center space-y-1 transition-colors cursor-pointer ${activeTab === 'clientes' ? 'text-stone-900 font-bold' : 'text-stone-400 font-medium'}`}
-  >
-    <Users className="w-5 h-5" />
-    <span className="text-[10px]">Clientes</span>
-  </button>
-
-  <button 
-    onClick={() => setActiveTab('configuracoes')}
-    className={`flex flex-col items-center space-y-1 transition-colors cursor-pointer ${activeTab === 'configuracoes' ? 'text-stone-900 font-bold' : 'text-stone-400 font-medium'}`}
-  >
-    <Settings className="w-5 h-5" />
-    <span className="text-[10px]">Ajustes</span>
-  </button>
-
-</motion.nav>
-
-
-{/* =========================================================
-    PAINEL DESLIZANTE ESTILO GLASSMORPHISM (MODERNIZADO)
-    ========================================================= */}
-<AnimatePresence>
-  {mobileMenuOpen && (
-    <div className="fixed inset-0 z-[60] flex md:hidden items-end justify-center">
-      
-      {/* Backdrop escuro com desfoque suave */}
-      <motion.div 
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 0 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.2 }}
-        onClick={fecharMenuMobile}
-        className="fixed inset-0 bg-stone-950/40 backdrop-blur-sm"
-      />
-
-      {/* Container Principal do Menu */}
-      <motion.div 
-  initial={{ y: "100%" }}
-  animate={{ y: 0 }}
-  exit={{ y: 0 }}
-  transition={{ duration: 0.1 }}
-  className="relative w-full max-w-lg mx-4 mb-4 bg-stone-200/90 backdrop-blur-2xl rounded-[2.5rem] pt-3 px-6 pb-8 shadow-2xl border border-stone-300 z-10 flex flex-col text-stone-800"
->
-  {/* Puxador superior */}
-  <div className="w-10 h-1 bg-stone-400 rounded-full mx-auto mb-5"></div>
-
-       {/* =========================================================
-    GRADE DE APLICATIVOS (Estilo Black Piano Degradê & 3D)
-    ========================================================= */}
-<div className="grid grid-cols-4 gap-y-6 gap-x-3 py-2">
-  
-  {[
-    { id: 'financeiro', label: 'Financeiro', icon: TrendingUp, action: () => setActiveTab('financeiro') },
-    { id: 'agendamentos', label: 'Agenda', icon: Calendar, action: () => setActiveTab('agendamentos') },
-    { id: 'fidelidade', label: 'Fidelizacao', icon: Award, action: () => setActiveTab('fidelidade') },
-    { id: 'configuracoes', label: 'Configurações', icon: Settings, action: () => setActiveTab('configuracoes') },
-    { id: 'despesas', label: 'Despesas', icon: TrendingDown, action: () => setActiveTab('despesas') },
-    { id: 'comissoes', label: 'Comissões', icon: Percent, action: () => setActiveTab('comissoes') },
-    { id: 'servicos', label: 'Equipe', icon: Scissors, action: () => setActiveTab('servicos') },
-    { id: 'assinatura', label: 'Assinatura', icon: ClipboardPenLine, action: () => setModalInfoAssinaturaOpen(true) },
-    { id: 'pdv', label: 'PDV', icon: ShoppingCart, action: () => setActiveTab('pdv') },
-    { id: 'produtos', label: 'Produtos', icon: ShoppingBag, action: () => setActiveTab('produtos') },
-    { id: 'suporte', label: 'Suporte', icon: MessageCircleCheck, isLink: true, href: "https://wa.me/5542998040396?text=Olá,%20preciso%20de%20suporte%20com%20o%20sistema%20AgendaSoft." },
-    { id: 'logout', label: 'Logout', icon: LogOut, action: handleLogout, isLogout: true },
-  ].map((item) => {
-    const IconComponent = item.icon;
-    
-    // Estilo Black Piano para os botões normais e Vinho para o Logout
-    let buttonStyle = {};
-    if (item.isLogout) {
-      buttonStyle = {
-        background: 'linear-gradient(135deg, #9b1c2e 0%, #70121f 100%)',
-        boxShadow: '0 10px 20px rgba(112, 18, 31, 0.35), inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 5px rgba(0, 0, 0, 0.4)',
-        border: '1px solid rgba(255, 255, 255, 0.15)'
-      };
-    } else {
-      buttonStyle = {
-        background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
-        boxShadow: '0 10px 20px rgba(0, 0, 0, 0.45), inset 0 2px 3px rgba(255, 255, 255, 0.2), inset 0 -3px 5px rgba(0, 0, 0, 0.8)',
-        border: '1px solid rgba(255, 255, 255, 0.15)'
-      };
-    }
-
-    const buttonContent = (
-      <div 
-        className="w-14 h-14 rounded-2xl flex items-center justify-center transition-transform duration-200 active:scale-95"
-        style={buttonStyle}
-      >
-        <IconComponent className="w-6 h-6 text-white" />
-      </div>
-    );
-
-    const labelContent = (
-      <span className={`text-[11px] font-medium tracking-tight mt-1.5 ${item.isLogout ? 'text-rose-600 font-bold' : 'text-stone-700'}`}>
-        {item.label}
-      </span>
-    );
-
-    if (item.isLink) {
-      return (
-        <a
-          key={item.id}
-          href={item.href}
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={fecharMenuMobile}
-          className="flex flex-col items-center justify-center group cursor-pointer"
-        >
-          {buttonContent}
-          {labelContent}
-        </a>
-      );
-    }
-
-    return (
-      <button
-        key={item.id}
-        onClick={() => { item.action(); fecharMenuMobile(); }}
-        className="flex flex-col items-center justify-center group cursor-pointer"
-      >
-        {buttonContent}
-        {labelContent}
-      </button>
-    );
-  })}
-
-</div>
-
-      </motion.div>
-    </div>
-  )}
-</AnimatePresence>
-
-{/* =========================================================
-    BARRA DE NAVEGAÇÃO INFERIOR FIXA NORMAL (QUANDO O MENU ESTÁ FECHADO)
-    ========================================================= */}
-{!mobileMenuOpen && (
-<nav 
-  aria-label="Navegação inferior mobile" 
-  style={{ display: mobileMenuOpen ? 'none' : undefined }}
-  className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-stone-200 px-4 py-2 z-40 flex items-center justify-between shadow-lg"
->
-    <button 
-      onClick={() => setActiveTab('financeiro')}
-      className={`flex flex-col items-center space-y-1 transition-colors cursor-pointer ${activeTab === 'financeiro' ? 'text-stone-900 font-bold' : 'text-stone-400 font-medium'}`}
-    >
-      <TrendingUp className="w-5 h-5" />
-      <span className="text-[10px]">Financeiro</span>
-    </button>
-
-    <button 
-      onClick={() => setActiveTab('agendamentos')}
-      className={`flex flex-col items-center space-y-1 transition-colors cursor-pointer ${activeTab === 'agendamentos' ? 'text-stone-900 font-bold' : 'text-stone-400 font-medium'}`}
-    >
-      <Calendar className="w-5 h-5" />
-      <span className="text-[10px]">Agenda</span>
-    </button>
-
-    <div className="relative -top-3">
-      <button 
-        onClick={() => setMobileMenuOpen(true)}
-        className="w-12 h-12 bg-stone-900 text-white rounded-full flex items-center justify-center shadow-md active:scale-95 transition-transform border-4 border-white cursor-pointer"
-        aria-label="Abrir Menu de Acesso Rápido"
-      >
-        <Menu className="w-5 h-5" />
-      </button>
-    </div>
-
-    <button 
-      onClick={() => setActiveTab('clientes')}
-      className={`flex flex-col items-center space-y-1 transition-colors cursor-pointer ${activeTab === 'clientes' ? 'text-stone-900 font-bold' : 'text-stone-400 font-medium'}`}
-    >
-      <Users className="w-5 h-5" />
-      <span className="text-[10px]">Clientes</span>
-    </button>
-
-    <button 
-      onClick={() => setActiveTab('configuracoes')}
-      className={`flex flex-col items-center space-y-1 transition-colors cursor-pointer ${activeTab === 'configuracoes' ? 'text-stone-900 font-bold' : 'text-stone-400 font-medium'}`}
-    >
-      <Settings className="w-5 h-5" />
-      <span className="text-[10px]">Ajustes</span>
-    </button>
-
-  </nav>
-)}
-{/* TELA DE BLOQUEIO / PAYWALL CASO O TESTE TENHA EXPIRADO */}
-{assinaturaExpirada && !loading && modalAssinaturaOpen && (
-  <div className="fixed inset-0 bg-stone-950/95 backdrop-blur-md z-50 overflow-y-auto pointer-events-auto">
-    <div className="min-h-full flex items-center justify-center p-4 py-8">
-      
-      {/* ADICIONE O onClick={(e) => e.stopPropagation()} AQUI NA CAIXA BRANCA */}
-      <div 
-        onClick={(e) => e.stopPropagation()}
-        className="bg-white rounded-3xl p-5 sm:p-6 w-full max-w-md shadow-2xl border border-stone-200 flex flex-col items-center text-center space-y-3 my-auto relative z-10"
-      >
-        
-        {/* CABEÇALHO COM O CADEADO */}
-        <div className="w-full flex flex-col items-center text-center space-y-2 pb-3 border-b border-stone-100">
-          <div className="w-10 h-10 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center shadow-inner mx-auto">
-            <Lock className="w-5 h-5" />
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => { item.action(); fecharMenuMobile(); }}
+                    className="flex flex-col items-center justify-center group cursor-pointer"
+                  >
+                    {buttonContent}
+                    {labelContent}
+                  </button>
+                );
+              })}
+            </div>
           </div>
-          <div className="w-full space-y-0.5 text-center">
-            <h2 className="text-lg font-extrabold text-stone-900 w-full text-center">Período de Teste Finalizado</h2>
-            <p className="text-[11px] sm:text-xs text-stone-500 leading-relaxed w-full text-center px-2">
-              Seus 7 dias gratuitos expiraram. Para liberar o acesso completo ao painel, efetue o pagamento abaixo.
-            </p>
-          </div>
-        </div>
-
-        {/* CARD DO PLANO */}
-        <div className="bg-stone-50 p-3 rounded-2xl border border-stone-200 w-full text-center space-y-1">
-          <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider block">Plano Mensal Gestor</span>
-          <div className="flex justify-between items-center px-1">
-            <span className="text-stone-700 text-xs font-medium">Acesso Completo</span>
-            <span className="text-sm sm:text-base font-extrabold text-stone-900">R$ {valorAssinatura?.toFixed(2)} / mês</span>
-          </div>
-        </div>
-
-        {/* ÁREA DOS BOTÕES E QR CODE */}
-<div className="w-full flex flex-col items-center space-y-3" onClick={(e) => e.stopPropagation()}>
-  {pixDataMP ? (
-    <div className="flex flex-col items-center justify-center space-y-3 w-full max-w-sm mx-auto" onClick={(e) => e.stopPropagation()}>
-      
-      {/* Imagem do QR Code */}
-      <div className="bg-white p-2 rounded-2xl border border-stone-200 shadow-inner inline-block" onClick={(e) => e.stopPropagation()}>
-        <img 
-          src={`data:image/png;base64,${pixDataMP.qrCodeBase64}`} 
-          alt="QR Code Pix" 
-          className="w-36 h-36 sm:w-40 sm:h-40 object-contain mx-auto block pointer-events-none" 
-        />
-      </div>
-
-      {/* Texto informativo */}
-      <div className="w-full pointer-events-none select-none">
-        <p className="text-[10px] sm:text-[11px] text-stone-500 text-center px-4">
-          Escaneie o QR Code acima ou copie o código Pix abaixo:
-        </p>
-      </div>
-
-      {/* Input Copia e Cola isolado */}
-      <div className="w-full">
-        <input
-          id="input-copia-cola"
-          type="text"
-          readOnly
-          value={pixDataMP?.copiaECola || ''}
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            e.currentTarget.select();
-          }}
-          className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-xs text-stone-600 focus:outline-none cursor-text"
-        />
-      </div>
-
-      {/* Botão Copiar */}
-      <button
-        type="button"
-        onClick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          copiarChavePix();
-        }}
-        className="w-full bg-stone-900 hover:bg-stone-800 text-white py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-xs mt-1"
-      >
-        {copiado ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
-        {copiado ? 'Código Pix Copiado com Sucesso!' : 'Copiar Código Pix'}
-      </button>
-
-      {/* Botão Ativar Assinatura (Garantindo que responde aos cliques) */}
-      <button
-        type="button"
-        onClick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          handleProcessarPagamentoMercadoPago(e);
-        }}
-        disabled={processandoPagamento}
-        className="w-full bg-sky-600 hover:bg-sky-700 text-white font-bold py-3 rounded-xl transition duration-200 text-xs shadow-md cursor-pointer disabled:opacity-50 mt-2 z-20 relative"
-      >
-        {processandoPagamento ? 'Verificando Pagamento...' : 'Já fiz o pagamento / Ativar Assinatura'}
-      </button>
-    </div>
-  ) : (
-    <button 
-      type="button"
-      onClick={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        gerarPixMercadoPago({
-          transaction_amount: 9.90,
-          description: 'Plano Mensal Gestor - Acesso Completo',
-          payer_email: user?.email || 'diemersonlimabarbosa@gmail.com',
-          payer_name: barbearia?.nome || 'Gestor'
-        });
-      }}
-      className="w-full py-2.5 bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold rounded-xl shadow-md transition-all cursor-pointer"
-    >
-      Gerar Pix de Pagamento
-    </button>
-  )}
-</div>
-      </div>
-
-    </div>
-  </div>
-)}
-
-      <div className="flex flex-1">
-   {/* BARRA LATERAL FIXA & UNIFICADA - ESTILO CLEAN COM DETALHE BLACK PIANO */}
-<aside 
-  className="hidden md:flex flex-col w-72 p-5 select-none shrink-0 fixed left-0 top-0 h-screen overflow-y-auto justify-between border-r border-slate-200 z-40 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-slate-50 [&::-webkit-scrollbar-thumb]:bg-slate-300 [&::-webkit-scrollbar-thumb]:rounded-full"
-  style={{
-    background: '#ffffff',
-    boxShadow: '10px 0 40px rgba(0, 0, 0, 0.03), inset -1px 0 0 rgba(0, 0, 0, 0.05)'
-  }}
->
-  <div className="space-y-5 w-full">
-    
-    {/* TOPO: PERFIL DA BARBEARIA */}
-    <div 
-      className="flex items-center gap-3.5 px-4 py-3.5 rounded-2xl border border-slate-200/80 shadow-sm relative overflow-hidden bg-slate-50"
-    >
-      {barbearia?.logo || barbearia?.logo_url || barbearia?.avatar || barbearia?.imagem ? (
-        <img 
-          src={barbearia.logo || barbearia.logo_url || barbearia.avatar || barbearia.imagem} 
-          alt={barbearia?.nome || "Barbearia"} 
-          className="w-10 h-10 rounded-xl object-cover border border-slate-200 shadow-sm shrink-0"
-        />
-      ) : (
-        <div className="w-10 h-10 rounded-xl bg-stone-900 text-white flex items-center justify-center shadow-md border border-stone-800 shrink-0">
-          <Store className="w-5 h-5 text-slate-300" />
         </div>
       )}
-      <div className="min-w-0 pr-1">
-        <h1 className="font-black text-slate-900 text-xs leading-tight truncate" title={barbearia?.nome}>
-          {barbearia?.nome || 'Minha Barbearia'}
-        </h1>
-        <span className="text-[9px] font-extrabold text-slate-500 uppercase tracking-widest block mt-0.5">Painel Gestor</span>
-      </div>
-    </div>
 
-    {/* MENU DE NAVEGAÇÃO */}
-    <nav className="space-y-1.5 pt-1 w-full">
-      {[
-        { id: 'pdv', label: 'PDV', icon: ShoppingCart },
-        { id: 'produtos', label: 'Produtos & Estoque', icon: ShoppingBag },
-        { id: 'agendamentos', label: 'Agendamentos', icon: CalendarCheck },
-        { id: 'clientes', label: 'Clientes Cadastrados', icon: Users },
-        { id: 'fidelidade', label: 'Fidelização', icon: Award },
-        { id: 'financeiro', label: 'Relatório Financeiro', icon: DollarSign },
-        { id: 'despesas', label: 'Custos & Despesas', icon: TrendingDown },
-        { id: 'servicos', label: 'Serviços & Equipe', icon: Scissors },
-        { id: 'comissoes', label: 'Comissões', icon: Percent },
-        { id: 'configuracoes', label: 'Configurações', icon: Store },
-      ].map((item) => {
-        const IconComponent = item.icon;
-        const isActive = activeTab === item.id;
+      {assinaturaExpirada && !loading && modalAssinaturaOpen && (
+        <div className="fixed inset-0 bg-stone-950/95 backdrop-blur-md z-50 overflow-y-auto pointer-events-auto">
+          <div className="min-h-full flex items-center justify-center p-4 py-8">
+            <div 
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-3xl p-5 sm:p-6 w-full max-w-md shadow-2xl border border-stone-200 flex flex-col items-center text-center space-y-3 my-auto relative z-10"
+            >
+              <div className="w-full flex flex-col items-center text-center space-y-2 pb-3 border-b border-stone-100">
+                <div className="w-10 h-10 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center shadow-inner mx-auto">
+                  <Lock className="w-5 h-5" />
+                </div>
+                <div className="w-full space-y-0.5 text-center">
+                  <h2 className="text-lg font-extrabold text-stone-900 w-full text-center">Período de Teste Finalizado</h2>
+                  <p className="text-[11px] sm:text-xs text-stone-500 leading-relaxed w-full text-center px-2">
+                    Seus 7 dias gratuitos expiraram. Para liberar o acesso completo ao painel, efetue o pagamento abaixo.
+                  </p>
+                </div>
+              </div>
 
-        return (
-          <button
-            key={item.id}
-            onClick={() => { setActiveTab(item.id); setMobileMenuOpen(false); }}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-bold transition-all cursor-pointer border ${
-              isActive 
-                ? 'text-white shadow-xl border-stone-800 scale-[1.02]' 
-                : 'text-slate-600 border-slate-200/60 hover:bg-slate-100 hover:text-slate-900 hover:border-slate-300'
-            }`}
-            style={isActive ? {
-              background: 'linear-gradient(135deg, #18181b 0%, #09090b 50%, #000000 100%)',
-              boxShadow: '0 10px 25px rgba(0, 0, 0, 0.2), inset 0 1px 2px rgba(255, 255, 255, 0.15)',
-            } : {
-              background: '#f8fafc'
-            }}
-          >
-            <div className={`w-7 h-7 rounded-xl flex items-center justify-center shrink-0 border transition-all ${
-              isActive 
-                ? 'bg-white/10 border-white/20 text-white shadow-inner' 
-                : 'bg-white border-slate-200 text-slate-500 shadow-sm'
-            }`}>
-              <IconComponent className="w-4 h-4 shrink-0" />
+              <div className="bg-stone-50 p-3 rounded-2xl border border-stone-200 w-full text-center space-y-1">
+                <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider block">Plano Mensal Gestor</span>
+                <div className="flex justify-between items-center px-1">
+                  <span className="text-stone-700 text-xs font-medium">Acesso Completo</span>
+                  <span className="text-sm sm:text-base font-extrabold text-stone-900">R$ {valorAssinatura?.toFixed(2)} / mês</span>
+                </div>
+              </div>
+
+              <div className="w-full flex flex-col items-center space-y-3" onClick={(e) => e.stopPropagation()}>
+                {pixDataMP ? (
+                  <div className="flex flex-col items-center justify-center space-y-3 w-full max-w-sm mx-auto" onClick={(e) => e.stopPropagation()}>
+                    <div className="bg-white p-2 rounded-2xl border border-stone-200 shadow-inner inline-block" onClick={(e) => e.stopPropagation()}>
+                      <img 
+                        src={`data:image/png;base64,${pixDataMP.qrCodeBase64}`} 
+                        alt="QR Code Pix" 
+                        className="w-36 h-36 sm:w-40 sm:h-40 object-contain mx-auto block pointer-events-none" 
+                      />
+                    </div>
+
+                    <div className="w-full pointer-events-none select-none">
+                      <p className="text-[10px] sm:text-[11px] text-stone-500 text-center px-4">
+                        Escaneie o QR Code acima ou copie o código Pix abaixo:
+                      </p>
+                    </div>
+
+                    <div className="w-full">
+                      <input
+                        id="input-copia-cola"
+                        type="text"
+                        readOnly
+                        value={pixDataMP?.copiaECola || ''}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          e.currentTarget.select();
+                        }}
+                        className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-xs text-stone-600 focus:outline-none cursor-text"
+                      />
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        copiarChavePix();
+                      }}
+                      className="w-full bg-stone-900 hover:bg-stone-800 text-white py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-xs mt-1"
+                    >
+                      {copiado ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                      {copiado ? 'Código Pix Copiado com Sucesso!' : 'Copiar Código Pix'}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleProcessarPagamentoMercadoPago(e);
+                      }}
+                      disabled={processandoPagamento}
+                      className="w-full bg-sky-600 hover:bg-sky-700 text-white font-bold py-3 rounded-xl transition duration-200 text-xs shadow-md cursor-pointer disabled:opacity-50 mt-2 z-20 relative"
+                    >
+                      {processandoPagamento ? 'Verificando Pagamento...' : 'Já fiz o pagamento / Ativar Assinatura'}
+                    </button>
+                  </div>
+                ) : (
+                  <button 
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      gerarPixMercadoPago({
+                        transaction_amount: 9.90,
+                        description: 'Plano Mensal Gestor - Acesso Completo',
+                        payer_email: user?.email || 'diemersonlimabarbosa@gmail.com',
+                        payer_name: barbearia?.nome || 'Gestor'
+                      });
+                    }}
+                    className="w-full py-2.5 bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold rounded-xl shadow-md transition-all cursor-pointer"
+                  >
+                    Gerar Pix de Pagamento
+                  </button>
+                )}
+              </div>
             </div>
-            <span className="tracking-tight truncate">{item.label}</span>
-          </button>
-        );
-      })}
-    </nav>
-  </div>
-
-  {/* RODAPÉ DA SIDEBAR: AÇÕES RÁPIDAS */}
-  <div className="space-y-2 pt-4 border-t border-slate-200 mt-auto w-full">
-    <button
-      onClick={() => setModalInfoAssinaturaOpen(true)}
-      className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-2xl text-xs font-extrabold text-white transition-all cursor-pointer border border-stone-800 shadow-md"
-      style={{
-        background: 'linear-gradient(135deg, #18181b 0%, #09090b 100%)',
-        boxShadow: '0 6px 15px rgba(0, 0, 0, 0.15), inset 0 1px 1px rgba(255, 255, 255, 0.1)'
-      }}
-    >
-      <CreditCard className="w-4 h-4 text-slate-300 shrink-0" /> 
-      <span className="truncate">{barbearia?.status_assinatura === 'ativo' ? 'Assinatura Ativa' : 'Assinar / Renovar'}</span>
-    </button>
-
-    <button
-      onClick={() => loadDashboardData(barbearia.id)}
-      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl border border-slate-200 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-all cursor-pointer shadow-sm bg-slate-50"
-    >
-      <RefreshCw className="w-4 h-4 shrink-0 text-slate-400" /> 
-      <span className="truncate">Atualizar Dados</span>
-    </button>
-
-    <button
-      onClick={handleLogout}
-      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl border border-rose-200 text-xs font-semibold text-rose-600 hover:bg-rose-50 transition-all cursor-pointer shadow-sm bg-rose-50/50"
-    >
-      <LogOut className="w-4 h-4 shrink-0 text-rose-500" /> 
-      <span className="truncate">Sair do Sistema</span>
-    </button>
-  </div>
-</aside>
-{/* CONTEÚDO PRINCIPAL (Com 'md:ml-72' para empurrar o layout e evitar o corte à esquerda) */}
-<main className="flex-1 md:ml-72 p-4 sm:p-6 md:p-10 pb-24 overflow-y-auto max-w-full">
-  
-  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-    {activeTab === 'configuracoes' && (
-      <div className="flex items-center gap-2"></div>
-    )}
-  </div>
-
-  {errorMessage && (
-    <div className="mb-6 bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 rounded-2xl text-xs flex items-center gap-2">
-      <AlertCircle className="w-4 h-4 text-rose-500" /> {errorMessage}
-    </div>
-  )}
-
-  {/* CARDS DE INDICADORES */}
-  {activeTab === 'relatorio financeiro' && (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-      <div className="bg-white p-5 rounded-2xl border border-stone-200/80 shadow-sm">
-        <div className="flex items-center justify-between text-stone-400 mb-3">
-          <span className="text-xs font-medium uppercase tracking-wider">Faturamento</span>
-          <DollarSign className="w-4 h-4 text-emerald-600" />
+          </div>
         </div>
-        <p className="text-2xl font-extrabold text-stone-900">R$ {totalFaturamento.toFixed(2)}</p>
-        <span className="text-[11px] text-emerald-600 font-medium">Serviços finalizados</span>
-      </div>
+      )}
 
-      <div className="bg-white p-5 rounded-2xl border border-stone-200/80 shadow-sm">
-        <div className="flex items-center justify-between text-stone-400 mb-3">
-          <span className="text-xs font-medium uppercase tracking-wider">Despesas</span>
-          <TrendingDown className="w-4 h-4 text-rose-500" />
-        </div>
-        <p className="text-2xl font-extrabold text-stone-900">R$ {totalDespesas.toFixed(2)}</p>
-        <span className="text-[11px] text-rose-600 font-medium">Custos cadastrados</span>
-      </div>
+      <div className="flex flex-1">
+        <aside 
+          className="hidden md:flex flex-col w-72 p-5 select-none shrink-0 fixed left-0 top-0 h-screen overflow-y-auto justify-between border-r border-slate-200 z-40 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-slate-50 [&::-webkit-scrollbar-thumb]:bg-slate-300 [&::-webkit-scrollbar-thumb]:rounded-full"
+          style={{
+            background: '#ffffff',
+            boxShadow: '10px 0 40px rgba(0, 0, 0, 0.03), inset -1px 0 0 rgba(0, 0, 0, 0.05)'
+          }}
+        >
+          <div className="space-y-5 w-full">
+            <div 
+              className="flex items-center gap-3.5 px-4 py-3.5 rounded-2xl border border-slate-200/80 shadow-sm relative overflow-hidden bg-slate-50"
+            >
+              {barbearia?.logo || barbearia?.logo_url || barbearia?.avatar || barbearia?.imagem ? (
+                <img 
+                  src={barbearia.logo || barbearia.logo_url || barbearia.avatar || barbearia.imagem} 
+                  alt={barbearia?.nome || "Barbearia"} 
+                  className="w-10 h-10 rounded-xl object-cover border border-slate-200 shadow-sm shrink-0"
+                />
+              ) : (
+                <div className="w-10 h-10 rounded-xl bg-stone-900 text-white flex items-center justify-center shadow-md border border-stone-800 shrink-0">
+                  <Store className="w-5 h-5 text-slate-300" />
+                </div>
+              )}
+              <div className="min-w-0 pr-1">
+                <h1 className="font-black text-slate-900 text-xs leading-tight truncate" title={barbearia?.nome}>
+                  {barbearia?.nome || 'Minha Barbearia'}
+                </h1>
+                <span className="text-[9px] font-extrabold text-slate-500 uppercase tracking-widest block mt-0.5">Painel Gestor</span>
+              </div>
+            </div>
 
-      <div className="bg-white p-5 rounded-2xl border border-stone-200/80 shadow-sm">
-        <div className="flex items-center justify-between text-stone-400 mb-3">
-          <span className="text-xs font-medium uppercase tracking-wider">Lucro Líquido</span>
-          <Wallet className="w-4 h-4 text-indigo-500" />
-        </div>
-        <p className="text-2xl font-extrabold text-stone-900">R$ {lucroLiquido.toFixed(2)}</p>
-        <span className="text-[11px] text-indigo-600 font-medium">Receita - Despesas</span>
-      </div>
+            <nav className="space-y-1.5 pt-1 w-full">
+              {[
+                { id: 'pdv', label: 'PDV', icon: ShoppingCart },
+                { id: 'produtos', label: 'Produtos & Estoque', icon: ShoppingBag },
+                { id: 'agendamentos', label: 'Agendamentos', icon: CalendarCheck },
+                { id: 'clientes', label: 'Clientes Cadastrados', icon: Users },
+                { id: 'fidelidade', label: 'Fidelização', icon: Award },
+                { id: 'financeiro', label: 'Relatório Financeiro', icon: DollarSign },
+                { id: 'despesas', label: 'Custos & Despesas', icon: TrendingDown },
+                { id: 'servicos', label: 'Serviços & Equipe', icon: Scissors },
+                { id: 'comissoes', label: 'Comissões', icon: Percent },
+                { id: 'configuracoes', label: 'Configurações', icon: Store },
+              ].map((item) => {
+                const IconComponent = item.icon;
+                const isActive = activeTab === item.id;
 
-      <div className="bg-white p-5 rounded-2xl border border-stone-200/80 shadow-sm">
-        <div className="flex items-center justify-between text-stone-400 mb-3">
-          <span className="text-xs font-medium uppercase tracking-wider">Ticket Médio</span>
-          <TrendingUp className="w-4 h-4 text-stone-600" />
-        </div>
-        <p className="text-2xl font-extrabold text-stone-900">R$ {ticketMedio}</p>
-        <span className="text-[11px] text-stone-400 font-medium">Média por atendimento</span>
-      </div>
-    </div>
-  )}
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => { setActiveTab(item.id); setMobileMenuOpen(false); }}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-bold transition-all cursor-pointer border ${
+                      isActive 
+                        ? 'text-white shadow-xl border-stone-800 scale-[1.02]' 
+                        : 'text-slate-600 border-slate-200/60 hover:bg-slate-100 hover:text-slate-900 hover:border-slate-300'
+                    }`}
+                    style={isActive ? {
+                      background: 'linear-gradient(135deg, #18181b 0%, #09090b 50%, #000000 100%)',
+                      boxShadow: '0 10px 25px rgba(0, 0, 0, 0.2), inset 0 1px 2px rgba(255, 255, 255, 0.15)',
+                    } : {
+                      background: '#f8fafc'
+                    }}
+                  >
+                    <div className={`w-7 h-7 rounded-xl flex items-center justify-center shrink-0 border transition-all ${
+                      isActive 
+                        ? 'bg-white/10 border-white/20 text-white shadow-inner' 
+                        : 'bg-white border-slate-200 text-slate-500 shadow-sm'
+                    }`}>
+                      <IconComponent className="w-4 h-4 shrink-0" />
+                    </div>
+                    <span className="tracking-tight truncate">{item.label}</span>
+                  </button>
+                );
+              })}
+            </nav>
+          </div>
 
-          {/* CONTEÚDO DAS ABAS */}
-{/* CONTEÚDO DAS ABAS */}
+          <div className="space-y-2 pt-4 border-t border-slate-200 mt-auto w-full">
+            <button
+              onClick={() => setModalInfoAssinaturaOpen(true)}
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-2xl text-xs font-extrabold text-white transition-all cursor-pointer border border-stone-800 shadow-md"
+              style={{
+                background: 'linear-gradient(135deg, #18181b 0%, #09090b 100%)',
+                boxShadow: '0 6px 15px rgba(0, 0, 0, 0.15), inset 0 1px 1px rgba(255, 255, 255, 0.1)'
+              }}
+            >
+              <CreditCard className="w-4 h-4 text-slate-300 shrink-0" /> 
+              <span className="truncate">{barbearia?.status_assinatura === 'ativo' ? 'Assinatura Ativa' : 'Assinar / Renovar'}</span>
+            </button>
 
+            <button
+              onClick={() => loadDashboardData(barbearia.id)}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl border border-slate-200 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-all cursor-pointer shadow-sm bg-slate-50"
+            >
+              <RefreshCw className="w-4 h-4 shrink-0 text-slate-400" /> 
+              <span className="truncate">Atualizar Dados</span>
+            </button>
 
-{activeTab === 'pdv' && (
-  <PdvScreen 
-    servicosIniciais={servicos} 
-    produtosIniciais={produtos} 
-    barbeariaId={barbearia?.id}
-    supabase={supabase}
-    onVendaConcluida={() => {
-      carregarProdutos(barbearia?.id);
-    }}
-  />
-)}
+            <button
+              onClick={handleLogout}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl border border-rose-200 text-xs font-semibold text-rose-600 hover:bg-rose-50 transition-all cursor-pointer shadow-sm bg-rose-50/50"
+            >
+              <LogOut className="w-4 h-4 shrink-0 text-rose-500" /> 
+              <span className="truncate">Sair do Sistema</span>
+            </button>
+          </div>
+        </aside>
 
+        <main className="flex-1 md:ml-72 p-4 sm:p-6 md:p-10 pb-24 overflow-y-auto max-w-full">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+            {activeTab === 'configuracoes' && (
+              <div className="flex items-center gap-2"></div>
+            )}
+          </div>
 
+          {errorMessage && (
+            <div className="mb-6 bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 rounded-2xl text-xs flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-rose-500" /> {errorMessage}
+            </div>
+          )}
 
-{activeTab === 'produtos' && (
-  <ProdutosScreen
-    produtos={produtos}
-    barbeariaId={barbearia?.id}
-    supabase={supabase}
-    onReload={() => carregarProdutos(barbearia?.id)}
-  />
-)}
+          {activeTab === 'pdv' && (
+            <PdvScreen 
+              servicosIniciais={servicos} 
+              produtosIniciais={produtos} 
+              barbeariaId={barbearia?.id}
+              supabase={supabase}
+              onVendaConcluida={() => {
+                carregarProdutos(barbearia?.id);
+              }}
+            />
+          )}
 
+          {activeTab === 'produtos' && (
+            <ProdutosScreen
+              produtos={produtos}
+              barbeariaId={barbearia?.id}
+              supabase={supabase}
+              onReload={() => carregarProdutos(barbearia?.id)}
+            />
+          )}
 
-{activeTab === 'agendamentos' && (
-  <div className="space-y-4 pb-24">
-    {/* =========================================================
-        PAINEL DE CARDS DO DIA (Automático para Desktop e Mobile)
-        ========================================================= */}
-    <PainelAgendaDia 
-      profissionalId={agendamentos[0]?.barbeiro_id || agendamentos[0]?.profissional_id} 
-      taxaComissao={50}
-      handleUpdateStatus={handleUpdateStatus}
-    />
-  </div>
-)}
-{activeTab === 'configuracoes' && (
-  <ConfiguracoesBarbearia 
-    barbearia={barbearia} 
-    onUpdate={() => loadDashboardData(barbearia.id)} 
-  />
-)}
+          {activeTab === 'agendamentos' && (
+            <div className="space-y-4 pb-24">
+              <PainelAgendaDia 
+                profissionalId={agendamentos[0]?.barbeiro_id || agendamentos[0]?.profissional_id} 
+                taxaComissao={50}
+                handleUpdateStatus={handleUpdateStatus}
+              />
+            </div>
+          )}
 
-
-
-
-
-
+          {activeTab === 'configuracoes' && (
+            <ConfiguracoesBarbearia 
+              barbearia={barbearia} 
+              onUpdate={() => loadDashboardData(barbearia.id)} 
+            />
+          )}
 
           {activeTab === 'clientes' && (
             <div className="bg-white rounded-3xl border border-stone-200/80 shadow-sm overflow-hidden p-6">
@@ -1887,130 +1314,127 @@ const handleSaveBarbeiro = async (e) => {
               )}
             </div>
           )}
-{activeTab === 'fidelidade' && (
-  <FidelizacaoAdmin
-    barbeariaId={barbearia?.id}
-    supabase={supabase}
-  />
-)}
 
+          {activeTab === 'fidelidade' && (
+            <FidelizacaoAdmin
+              barbeariaId={barbearia?.id}
+              supabase={supabase}
+            />
+          )}
 
           {activeTab === 'financeiro' && (
-  <RelatoriosPage 
-  agendamentos={agendamentos} 
-  despesas={despesas} 
-  barbeiros={barbeiros} 
-/>
-)}
+            <RelatoriosPage 
+              agendamentos={agendamentos} 
+              despesas={despesas} 
+              barbeiros={barbeiros} 
+            />
+          )}
 
-
-{activeTab === 'comissoes' && (
-  <div 
-    className="rounded-[2.5rem] border border-stone-200/85 shadow-[0_10px_30px_rgba(0,0,0,0.03)] p-5 sm:p-8 space-y-6 bg-white"
-  >
-    <div className="pb-4 border-b border-stone-200/60 flex items-center gap-3">
-      <div className="w-10 h-10 rounded-2xl bg-[#111111] text-white flex items-center justify-center shadow-md">
-        <Percent className="w-5 h-5 text-stone-200" />
-      </div>
-      <div>
-        <h3 className="text-base sm:text-lg font-black text-stone-900 tracking-tight">Comissões dos Barbeiros</h3>
-        <p className="text-xs text-stone-500 mt-0.5">Defina a porcentagem de comissão padrão para cada profissional da unidade.</p>
-      </div>
-    </div>
-
-    {barbeiros.length === 0 ? (
-      <div className="p-12 text-center text-stone-400 text-xs font-medium">
-        Nenhum barbeiro cadastrado no momento para esta unidade.
-      </div>
-    ) : (
-      <div className="space-y-3.5">
-        {barbeiros
-          .filter((barbeiro, index, self) => 
-            index === self.findIndex(b => (b.id && b.id === barbeiro.id) || (b.nome && b.nome.toLowerCase() === barbeiro.nome.toLowerCase()))
-          )
-          .map((barbeiro) => {
-            const valorAtual = barbeiro.comissao_padrao ?? 50;
-
-            return (
-              <div 
-                key={barbeiro.id} 
-                className="flex flex-col sm:flex-row sm:items-center justify-between p-4 sm:p-5 rounded-3xl border border-stone-200/70 bg-stone-50/80 hover:bg-stone-50 transition-all gap-4 shadow-xs"
-              >
-                <div className="space-y-0.5">
-                  <h4 className="text-xs sm:text-sm font-extrabold text-stone-900">{barbeiro.nome}</h4>
-                  <span className="text-xs text-stone-500 font-medium">
-                    Comissão atual: <strong className="text-stone-900 font-bold">{valorAtual}%</strong>
-                  </span>
+          {activeTab === 'comissoes' && (
+            <div 
+              className="rounded-[2.5rem] border border-stone-200/85 shadow-[0_10px_30px_rgba(0,0,0,0.03)] p-5 sm:p-8 space-y-6 bg-white"
+            >
+              <div className="pb-4 border-b border-stone-200/60 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-[#111111] text-white flex items-center justify-center shadow-md">
+                  <Percent className="w-5 h-5 text-stone-200" />
                 </div>
-
-                <div className="flex items-center gap-2.5 self-end sm:self-auto">
-                  <div className="relative flex items-center">
-                    <input
-                      type="number"
-                      defaultValue={valorAtual}
-                      id={`comissao-${barbeiro.id}`}
-                      className="w-20 px-3.5 py-2 bg-white border border-stone-300/80 rounded-2xl text-xs font-bold text-stone-900 focus:outline-none focus:border-stone-900 shadow-xs text-center"
-                    />
-                    <span className="absolute right-3 text-xs font-bold text-stone-400 pointer-events-none">%</span>
-                  </div>
-
-                  <button
-                    onClick={async () => {
-                      const inputReal = document.getElementById(`comissao-${barbeiro.id}`);
-                      const novaComissao = Number(inputReal.value);
-
-                      if (isNaN(novaComissao) || novaComissao < 0 || novaComissao > 100) {
-                        alert('Insira um valor entre 0 e 100.');
-                        return;
-                      }
-
-                      const { data, error } = await supabase
-                        .from('barbeiros')
-                        .update({ 
-                          taxa_comissao: novaComissao, 
-                          comissao_padrao: novaComissao 
-                        })
-                        .eq('id', barbeiro.id)
-                        .select();
-
-                      if (error) {
-                        console.error('Erro detalhado do Supabase:', error);
-                        alert('Erro do Banco: ' + error.message);
-                      } else if (!data || data.length === 0) {
-                        const { data: data2, error: err2 } = await supabase
-                          .from('barbeiros')
-                          .update({ 
-                            taxa_comissao: novaComissao, 
-                            comissao_padrao: novaComissao 
-                          })
-                          .eq('user_id', barbeiro.user_id || '')
-                          .select();
-
-                        if (err2 || !data2 || data2.length === 0) {
-                          alert('Erro: O banco recusou a atualização. Verifique as políticas de RLS (Row Level Security) da tabela barbeiros no Supabase.');
-                        } else {
-                          alert('Comissão atualizada com sucesso!');
-                          setBarbeiros(prev => prev.map(b => b.user_id === barbeiro.user_id ? { ...b, taxa_comissao: novaComissao, comissao_padrao: novaComissao } : b));
-                        }
-                      } else {
-                        alert('Comissão atualizada com sucesso!');
-                        setBarbeiros(prev => prev.map(b => b.id === barbeiro.id ? { ...b, taxa_comissao: novaComissao, comissao_padrao: novaComissao } : b));
-                      }
-                    }}
-                    className="px-5 py-2 bg-[#111111] hover:bg-stone-800 text-white text-xs font-bold rounded-2xl active:scale-95 transition-all shadow-md cursor-pointer"
-                  >
-                    Salvar
-                  </button>
+                <div>
+                  <h3 className="text-base sm:text-lg font-black text-stone-900 tracking-tight">Comissões dos Barbeiros</h3>
+                  <p className="text-xs text-stone-500 mt-0.5">Defina a porcentagem de comissão padrão para cada profissional da unidade.</p>
                 </div>
               </div>
-            );
-          })}
-      </div>
-    )}
-  </div>
-)}
 
+              {barbeiros.length === 0 ? (
+                <div className="p-12 text-center text-stone-400 text-xs font-medium">
+                  Nenhum barbeiro cadastrado no momento para esta unidade.
+                </div>
+              ) : (
+                <div className="space-y-3.5">
+                  {barbeiros
+                    .filter((barbeiro, index, self) => 
+                      index === self.findIndex(b => (b.id && b.id === barbeiro.id) || (b.nome && b.nome.toLowerCase() === barbeiro.nome.toLowerCase()))
+                    )
+                    .map((barbeiro) => {
+                      const valorAtual = barbeiro.comissao_padrao ?? 50;
 
+                      return (
+                        <div 
+                          key={barbeiro.id} 
+                          className="flex flex-col sm:flex-row sm:items-center justify-between p-4 sm:p-5 rounded-3xl border border-stone-200/70 bg-stone-50/80 hover:bg-stone-50 transition-all gap-4 shadow-xs"
+                        >
+                          <div className="space-y-0.5">
+                            <h4 className="text-xs sm:text-sm font-extrabold text-stone-900">{barbeiro.nome}</h4>
+                            <span className="text-xs text-stone-500 font-medium">
+                              Comissão atual: <strong className="text-stone-900 font-bold">{valorAtual}%</strong>
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-2.5 self-end sm:self-auto">
+                            <div className="relative flex items-center">
+                              <input
+                                type="number"
+                                defaultValue={valorAtual}
+                                id={`comissao-${barbeiro.id}`}
+                                className="w-20 px-3.5 py-2 bg-white border border-stone-300/80 rounded-2xl text-xs font-bold text-stone-900 focus:outline-none focus:border-stone-900 shadow-xs text-center"
+                              />
+                              <span className="absolute right-3 text-xs font-bold text-stone-400 pointer-events-none">%</span>
+                            </div>
+
+                            <button
+                              onClick={async () => {
+                                const inputReal = document.getElementById(`comissao-${barbeiro.id}`);
+                                const novaComissao = Number(inputReal.value);
+
+                                if (isNaN(novaComissao) || novaComissao < 0 || novaComissao > 100) {
+                                  alert('Insira um valor entre 0 e 100.');
+                                  return;
+                                }
+
+                                const { data, error } = await supabase
+                                  .from('barbeiros')
+                                  .update({ 
+                                    taxa_comissao: novaComissao, 
+                                    comissao_padrao: novaComissao 
+                                  })
+                                  .eq('id', barbeiro.id)
+                                  .select();
+
+                                if (error) {
+                                  console.error('Erro detalhado do Supabase:', error);
+                                  alert('Erro do Banco: ' + error.message);
+                                } else if (!data || data.length === 0) {
+                                  const { data: data2, error: err2 } = await supabase
+                                    .from('barbeiros')
+                                    .update({ 
+                                      taxa_comissao: novaComissao, 
+                                      comissao_padrao: novaComissao 
+                                    })
+                                    .eq('user_id', barbeiro.user_id || '')
+                                    .select();
+
+                                  if (err2 || !data2 || data2.length === 0) {
+                                    alert('Erro: O banco recusou a atualização. Verifique as políticas de RLS (Row Level Security) da tabela barbeiros no Supabase.');
+                                  } else {
+                                    alert('Comissão atualizada com sucesso!');
+                                    setBarbeiros(prev => prev.map(b => b.user_id === barbeiro.user_id ? { ...b, taxa_comissao: novaComissao, comissao_padrao: novaComissao } : b));
+                                  }
+                                } else {
+                                  alert('Comissão atualizada com sucesso!');
+                                  setBarbeiros(prev => prev.map(b => b.id === barbeiro.id ? { ...b, taxa_comissao: novaComissao, comissao_padrao: novaComissao } : b));
+                                }
+                              }}
+                              className="px-5 py-2 bg-[#111111] hover:bg-stone-800 text-white text-xs font-bold rounded-2xl active:scale-95 transition-all shadow-md cursor-pointer"
+                            >
+                              Salvar
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              )}
+            </div>
+          )}
 
           {activeTab === 'despesas' && (
             <div className="bg-white rounded-3xl border border-stone-200/80 shadow-sm overflow-hidden p-6 space-y-6">
@@ -2067,7 +1491,6 @@ const handleSaveBarbeiro = async (e) => {
 
           {activeTab === 'servicos' && (
             <div className="space-y-8">
-              {/* Seção de Serviços */}
               <div className="bg-white rounded-3xl border border-stone-200/80 shadow-sm overflow-hidden p-6 space-y-6">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-stone-100">
                   <div>
@@ -2109,204 +1532,195 @@ const handleSaveBarbeiro = async (e) => {
                 )}
               </div>
 
-              {/* Seção de Barbeiros / Equipe */}
-<div className="bg-white rounded-3xl border border-stone-200/80 shadow-sm overflow-hidden p-6 space-y-6">
-  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-stone-100">
-    <div>
-      <h3 className="text-base font-bold text-stone-900">Equipe de Barbeiros</h3>
-      <p className="text-xs text-stone-400">Profissionais disponíveis para agendamento.</p>
-    </div>
-    <button
-      onClick={() => handleOpenBarbeiroModal()}
-      className="bg-stone-900 hover:bg-stone-800 text-white px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer"
-    >
-      <Plus className="w-4 h-4" /> Novo Barbeiro
-    </button>
-  </div>
-
-  {barbeiros.length === 0 ? (
-    <div className="p-8 text-center text-stone-400 text-xs">Nenhum barbeiro cadastrado.</div>
-  ) : (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-      {barbeiros.map((b) => (
-        <div key={b.id} className="bg-stone-50/70 p-4 rounded-2xl border border-stone-200/80 space-y-3">
-          
-          {/* Cabeçalho do Card com Foto e Ações */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3 overflow-hidden">
-              {b.foto ? (
-                <img 
-                  src={b.foto} 
-                  alt={b.nome} 
-                  className="w-11 h-11 rounded-full object-cover border border-stone-200 shrink-0 shadow-sm" 
-                />
-              ) : (
-                <div className="w-11 h-11 rounded-full bg-stone-900 text-white font-bold flex items-center justify-center text-xs shrink-0">
-                  {(b.nome || 'P').charAt(0).toUpperCase()}
+              <div className="bg-white rounded-3xl border border-stone-200/80 shadow-sm overflow-hidden p-6 space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-stone-100">
+                  <div>
+                    <h3 className="text-base font-bold text-stone-900">Equipe de Barbeiros</h3>
+                    <p className="text-xs text-stone-400">Profissionais disponíveis para agendamento.</p>
+                  </div>
+                  <button
+                    onClick={() => handleOpenBarbeiroModal()}
+                    className="bg-stone-900 hover:bg-stone-800 text-white px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4" /> Novo Barbeiro
+                  </button>
                 </div>
-              )}
-              <div className="space-y-0.5 overflow-hidden">
-                <h4 className="font-bold text-stone-900 text-sm truncate">{b.nome}</h4>
-                <span className="text-xs text-stone-500 block truncate">{b.especialidade || 'Profissional'}</span>
+
+                {barbeiros.length === 0 ? (
+                  <div className="p-8 text-center text-stone-400 text-xs">Nenhum barbeiro cadastrado.</div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {barbeiros.map((b) => (
+                      <div key={b.id} className="bg-stone-50/70 p-4 rounded-2xl border border-stone-200/80 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3 overflow-hidden">
+                            {b.foto ? (
+                              <img 
+                                src={b.foto} 
+                                alt={b.nome} 
+                                className="w-11 h-11 rounded-full object-cover border border-stone-200 shrink-0 shadow-sm" 
+                              />
+                            ) : (
+                              <div className="w-11 h-11 rounded-full bg-stone-900 text-white font-bold flex items-center justify-center text-xs shrink-0">
+                                {(b.nome || 'P').charAt(0).toUpperCase()}
+                              </div>
+                            )}
+                            <div className="space-y-0.5 overflow-hidden">
+                              <h4 className="font-bold text-stone-900 text-sm truncate">{b.nome}</h4>
+                              <span className="text-xs text-stone-500 block truncate">{b.especialidade || 'Profissional'}</span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-1 shrink-0">
+                            <button onClick={() => handleOpenBarbeiroModal(b)} className="p-1.5 bg-white border border-stone-200 rounded-xl hover:bg-stone-100 cursor-pointer">
+                              <Edit className="w-3.5 h-3.5 text-stone-700" />
+                            </button>
+                            <button onClick={() => handleDeleteBarbeiro(b.id)} className="p-1.5 bg-white border border-stone-200 rounded-xl hover:bg-red-50 text-red-500 cursor-pointer">
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="pt-3 border-t border-stone-200/60 space-y-2">
+                          <p className="text-[11px] font-bold text-stone-700">Acesso ao Painel</p>
+                          <input 
+                            type="email" 
+                            placeholder="E-mail de acesso" 
+                            id={`email-${b.id}`}
+                            className="w-full px-3 py-1.5 bg-white border border-stone-200 rounded-xl text-xs text-stone-900 focus:outline-none"
+                          />
+                          <input 
+                            type="password" 
+                            placeholder="Senha temporária" 
+                            id={`senha-${b.id}`}
+                            className="w-full px-3 py-1.5 bg-white border border-stone-200 rounded-xl text-xs text-stone-900 focus:outline-none"
+                          />
+                          <button
+                            onClick={() => {
+                              const emailInput = document.getElementById(`email-${b.id}`).value;
+                              const senhaInput = document.getElementById(`senha-${b.id}`).value;
+
+                              if (!emailInput || !senhaInput) {
+                                alert('Preencha o e-mail e a senha.');
+                                return;
+                              }
+
+                              criarAcessoBarbeiro(b.id, emailInput, senhaInput);
+                            }}
+                            className="w-full py-1.5 bg-stone-900 text-white rounded-xl text-xs font-bold hover:bg-stone-800 transition-colors cursor-pointer"
+                          >
+                            Gerar Acesso
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {modalBarbeiroOpen && (
+                  <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 relative">
+                      <button 
+                        onClick={() => setModalBarbeiroOpen(false)}
+                        className="absolute top-4 right-4 p-1.5 bg-stone-100 rounded-full hover:bg-stone-200 text-stone-600 cursor-pointer"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+
+                      <h3 className="font-bold text-stone-900 text-base">
+                        {barbeiroParaEditar ? 'Editar Profissional' : 'Novo Profissional'}
+                      </h3>
+
+                      <form onSubmit={handleSaveBarbeiro} className="space-y-4">
+                        <div>
+                          <label className="block text-xs font-semibold text-stone-600 mb-1">Nome</label>
+                          <input 
+                            type="text" 
+                            required
+                            value={nome} 
+                            onChange={(e) => setNome(e.target.value)} 
+                            className="w-full p-3 rounded-xl bg-stone-50 border border-stone-200 text-xs text-stone-800 focus:outline-none"
+                            placeholder="Ex: Thais"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-semibold text-stone-600 mb-1">Especialidade</label>
+                          <input 
+                            type="text" 
+                            value={especialidade} 
+                            onChange={(e) => setEspecialidade(e.target.value)} 
+                            className="w-full p-3 rounded-xl bg-stone-50 border border-stone-200 text-xs text-stone-800 focus:outline-none"
+                            placeholder="Ex: Designer de sobrancelhas"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-semibold text-stone-600 mb-1">Taxa de Comissão (%)</label>
+                          <input 
+                            type="number" 
+                            value={taxaComissao} 
+                            onChange={(e) => setTaxaComissao(e.target.value)} 
+                            className="w-full p-3 rounded-xl bg-stone-50 border border-stone-200 text-xs text-stone-800 focus:outline-none"
+                            placeholder="Ex: 50"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-semibold text-stone-600 mb-1">Foto de Perfil</label>
+                          <div className="flex items-center gap-3">
+                            {fotoUrl ? (
+                              <img 
+                                src={fotoUrl} 
+                                alt="Preview" 
+                                className="w-12 h-12 rounded-full object-cover border border-stone-200 shrink-0 shadow-sm" 
+                              />
+                            ) : (
+                              <div className="w-12 h-12 rounded-full bg-stone-100 border border-stone-200 flex items-center justify-center text-stone-400 text-[10px] shrink-0 font-bold">
+                                Sem foto
+                              </div>
+                            )}
+
+                            <input 
+                              type="file" 
+                              accept="image/*"
+                              onChange={handleUploadFoto}
+                              disabled={uploading}
+                              className="w-full text-xs text-stone-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-stone-900 file:text-white hover:file:bg-stone-800 cursor-pointer"
+                            />
+                          </div>
+                          {uploading && <p className="text-[10px] text-amber-600 mt-1 font-medium">Enviando imagem...</p>}
+                        </div>
+
+                        <div className="pt-2 flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setModalBarbeiroOpen(false)}
+                            className="w-1/2 py-3 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-2xl text-xs font-semibold cursor-pointer transition-colors"
+                          >
+                            Cancelar
+                          </button>
+                          <button 
+                            type="submit" 
+                            disabled={uploading}
+                            className="w-1/2 bg-stone-900 text-white font-semibold py-3 rounded-2xl text-xs uppercase tracking-wider shadow-md hover:bg-stone-800 cursor-pointer disabled:opacity-50 transition-all"
+                          >
+                            {uploading ? 'Aguarde...' : 'Salvar'}
+                          </button>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
-
-            <div className="flex items-center gap-1 shrink-0">
-              <button onClick={() => handleOpenBarbeiroModal(b)} className="p-1.5 bg-white border border-stone-200 rounded-xl hover:bg-stone-100 cursor-pointer">
-                <Edit className="w-3.5 h-3.5 text-stone-700" />
-              </button>
-              <button onClick={() => handleDeleteBarbeiro(b.id)} className="p-1.5 bg-white border border-stone-200 rounded-xl hover:bg-red-50 text-red-500 cursor-pointer">
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </div>
-
-          {/* Campos de Acesso */}
-          <div className="pt-3 border-t border-stone-200/60 space-y-2">
-            <p className="text-[11px] font-bold text-stone-700">Acesso ao Painel</p>
-            <input 
-              type="email" 
-              placeholder="E-mail de acesso" 
-              id={`email-${b.id}`}
-              className="w-full px-3 py-1.5 bg-white border border-stone-200 rounded-xl text-xs text-stone-900 focus:outline-none"
-            />
-            <input 
-              type="password" 
-              placeholder="Senha temporária" 
-              id={`senha-${b.id}`}
-              className="w-full px-3 py-1.5 bg-white border border-stone-200 rounded-xl text-xs text-stone-900 focus:outline-none"
-            />
-            <button
-              onClick={() => {
-                const emailInput = document.getElementById(`email-${b.id}`).value;
-                const senhaInput = document.getElementById(`senha-${b.id}`).value;
-
-                if (!emailInput || !senhaInput) {
-                  alert('Preencha o e-mail e a senha.');
-                  return;
-                }
-
-                criarAcessoBarbeiro(b.id, emailInput, senhaInput);
-              }}
-              className="w-full py-1.5 bg-stone-900 text-white rounded-xl text-xs font-bold hover:bg-stone-800 transition-colors cursor-pointer"
-            >
-              Gerar Acesso
-            </button>
-          </div>
-        </div>
-      ))}
-    </div>
-  )}
-
-  {/* MODAL DE CADASTRO / EDIÇÃO DENTRO DA SEÇÃO */}
-  {modalBarbeiroOpen && (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 relative">
-        <button 
-          onClick={() => setModalBarbeiroOpen(false)}
-          className="absolute top-4 right-4 p-1.5 bg-stone-100 rounded-full hover:bg-stone-200 text-stone-600 cursor-pointer"
-        >
-          <X className="w-4 h-4" />
-        </button>
-
-        <h3 className="font-bold text-stone-900 text-base">
-          {barbeiroParaEditar ? 'Editar Profissional' : 'Novo Profissional'}
-        </h3>
-
-        <form onSubmit={handleSalvarBarbeiro} className="space-y-4">
-          <div>
-            <label className="block text-xs font-semibold text-stone-600 mb-1">Nome</label>
-            <input 
-              type="text" 
-              required
-              value={nome} 
-              onChange={(e) => setNome(e.target.value)} 
-              className="w-full p-3 rounded-xl bg-stone-50 border border-stone-200 text-xs text-stone-800 focus:outline-none"
-              placeholder="Ex: Thais"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-stone-600 mb-1">Especialidade</label>
-            <input 
-              type="text" 
-              value={especialidade} 
-              onChange={(e) => setEspecialidade(e.target.value)} 
-              className="w-full p-3 rounded-xl bg-stone-50 border border-stone-200 text-xs text-stone-800 focus:outline-none"
-              placeholder="Ex: Designer de sobrancelhas"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-stone-600 mb-1">Taxa de Comissão (%)</label>
-            <input 
-              type="number" 
-              value={taxaComissao} 
-              onChange={(e) => setTaxaComissao(e.target.value)} 
-              className="w-full p-3 rounded-xl bg-stone-50 border border-stone-200 text-xs text-stone-800 focus:outline-none"
-              placeholder="Ex: 50"
-            />
-          </div>
-
-          {/* Campo de Upload de Foto */}
-          <div>
-            <label className="block text-xs font-semibold text-stone-600 mb-1">Foto de Perfil</label>
-            <div className="flex items-center gap-3">
-              {fotoUrl ? (
-                <img 
-                  src={fotoUrl} 
-                  alt="Preview" 
-                  className="w-12 h-12 rounded-full object-cover border border-stone-200 shrink-0 shadow-sm" 
-                />
-              ) : (
-                <div className="w-12 h-12 rounded-full bg-stone-100 border border-stone-200 flex items-center justify-center text-stone-400 text-[10px] shrink-0 font-bold">
-                  Sem foto
-                </div>
-              )}
-
-              <input 
-                type="file" 
-                accept="image/*"
-                onChange={handleUploadFoto}
-                disabled={uploading}
-                className="w-full text-xs text-stone-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-stone-900 file:text-white hover:file:bg-stone-800 cursor-pointer"
-              />
-            </div>
-            {uploading && <p className="text-[10px] text-amber-600 mt-1 font-medium">Enviando imagem...</p>}
-          </div>
-
-          <div className="pt-2 flex gap-2">
-            <button
-              type="button"
-              onClick={() => setModalBarbeiroOpen(false)}
-              className="w-1/2 py-3 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-2xl text-xs font-semibold cursor-pointer transition-colors"
-            >
-              Cancelar
-            </button>
-            <button 
-              type="submit" 
-              disabled={uploading}
-              className="w-1/2 bg-stone-900 text-white font-semibold py-3 rounded-2xl text-xs uppercase tracking-wider shadow-md hover:bg-stone-800 cursor-pointer disabled:opacity-50 transition-all"
-            >
-              {uploading ? 'Aguarde...' : 'Salvar'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  )}
-</div>
-            </div>
           )}
-
         </main>
       </div>
 
-      {/* Modal de Detalhes da Assinatura */}
-      {!loading &&modalInfoAssinaturaOpen && (
+      {!loading && modalInfoAssinaturaOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
           <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl p-6 shadow-2xl border border-slate-100 dark:border-slate-800 relative space-y-6">
-            
             <button 
               onClick={() => setModalInfoAssinaturaOpen(false)}
               className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xl font-bold p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition"
@@ -2364,26 +1778,23 @@ const handleSaveBarbeiro = async (e) => {
                 Entendido
               </button>
             </div>
-
           </div>
         </div>
       )}
 
-      {/* MODAL DE CHECKOUT DO MERCADO PAGO */}
       {modalAssinaturaOpen && !loading && (
-  <div className="fixed inset-0 bg-white/95 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-white/95 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl border border-stone-200 space-y-6">
             <div className="flex justify-between items-center">
-              {/* TOPO DO MODAL COM O AVISO DE TESTE EXPIRADO */}
-<div className="text-center space-y-2 border-b border-stone-100 pb-4">
-  <div className="w-12 h-12 bg-rose-100 text-rose-600 rounded-2xl flex items-center justify-center mx-auto shadow-inner mb-2">
-    <Lock className="w-6 h-6" />
-  </div>
-  <h2 className="text-xl font-extrabold text-stone-900">Período de Teste Finalizado</h2>
-  <p className="text-xs text-stone-500 leading-relaxed max-w-sm mx-auto">
-    Seus 7 dias gratuitos expiraram. Para liberar o acesso completo ao painel e continuar utilizando os serviços, efetue o pagamento abaixo.
-  </p>
-</div>
+              <div className="text-center space-y-2 border-b border-stone-100 pb-4">
+                <div className="w-12 h-12 bg-rose-100 text-rose-600 rounded-2xl flex items-center justify-center mx-auto shadow-inner mb-2">
+                  <Lock className="w-6 h-6" />
+                </div>
+                <h2 className="text-xl font-extrabold text-stone-900">Período de Teste Finalizado</h2>
+                <p className="text-xs text-stone-500 leading-relaxed max-w-sm mx-auto">
+                  Seus 7 dias gratuitos expiraram. Para liberar o acesso completo ao painel e continuar utilizando os serviços, efetue o pagamento abaixo.
+                </p>
+              </div>
             </div>
             
             <div className="bg-stone-50 p-4 rounded-2xl border border-stone-200 flex justify-between items-center">
@@ -2440,7 +1851,6 @@ const handleSaveBarbeiro = async (e) => {
 
                 {pixDataMP.copiaECola && (
                   <div className="space-y-3 w-full" onClick={(e) => e.stopPropagation()}>
-                    {/* Caixa do código Pix */}
                     <div 
                       onClick={async (e) => {
                         e.preventDefault();
@@ -2468,10 +1878,7 @@ const handleSaveBarbeiro = async (e) => {
                       {pixDataMP.copiaECola}
                     </div>
 
-                    {/* Container isolado estritamente para os botões com margem de segurança */}
                     <div className="w-full space-y-3 mt-4 relative z-50">
-                      
-                      {/* Botão Copiar */}
                       <button
                         type="button"
                         onClick={(e) => {
@@ -2504,10 +1911,8 @@ const handleSaveBarbeiro = async (e) => {
                         {copiado ? 'Código Pix Copiado com Sucesso!' : 'Copiar Código Pix'}
                       </button>
 
-                      {/* Espaçador visual intransponível para evitar sobreposição de hitbox */}
                       <div className="w-full h-2" />
 
-                      {/* Botão de Verificação de Pagamento */}
                       <button
                         type="button"
                         onClick={(e) => {
@@ -2520,7 +1925,6 @@ const handleSaveBarbeiro = async (e) => {
                       >
                         {processandoPagamento ? 'Verificando Pagamento...' : 'Já fiz o pagamento / Ativar Assinatura'}
                       </button>
-
                     </div>
                   </div>
                 )}
@@ -2529,15 +1933,14 @@ const handleSaveBarbeiro = async (e) => {
 
             {(metodoPagamento === 'credito' || metodoPagamento === 'debito') && (
               <form 
-  onSubmit={(e) => {
-    e.preventDefault();
-    // Só processa se o método ativo for crédito ou débito
-    if (metodoPagamento === 'credito' || metodoPagamento === 'debito') {
-      handleProcessarPagamentoMercadoPago(e);
-    }
-  }} 
-  className="space-y-4"
->
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (metodoPagamento === 'credito' || metodoPagamento === 'debito') {
+                    handleProcessarPagamentoMercadoPago(e);
+                  }
+                }} 
+                className="space-y-4"
+              >
                 <div className="space-y-1">
                   <label className="text-xs font-semibold text-stone-600">Número do Cartão</label>
                   <input
@@ -2597,12 +2000,10 @@ const handleSaveBarbeiro = async (e) => {
                 </button>
               </form>
             )}
-
           </div>
         </div>
       )}
 
-      {/* MODAL DE SERVIÇOS */}
       {modalServicoOpen && (
         <div className="fixed inset-0 bg-stone-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-stone-200 space-y-6">
@@ -2657,9 +2058,6 @@ const handleSaveBarbeiro = async (e) => {
         </div>
       )}
 
-     
-
-      {/* MODAL DE DESPESAS */}
       {modalDespesaOpen && (
         <div className="fixed inset-0 bg-stone-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-stone-200 space-y-6">
