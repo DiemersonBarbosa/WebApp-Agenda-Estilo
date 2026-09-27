@@ -762,6 +762,12 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-stone-100 text-stone-800 flex flex-col font-sans relative select-none">
+      <style dangerouslySetInnerHTML={{ __html: `
+        .produtos-container *, .produtos-container div, .produtos-container button, .produtos-container section {
+          box-shadow: none !important;
+        }
+      ` }} />
+
       {loading && (
         <div className="fixed inset-0 bg-stone-900 z-50 flex items-center justify-center text-white">
           <p>Carregando painel...</p>
@@ -925,10 +931,15 @@ export default function AdminDashboard() {
         </button>
       </nav>
 
-      {/* PAINEL DE GAVETA DE APPS NO MOBILE (SEM OVERLAY DE OFUSCAÇÃO, TUDO FICA VISÍVEL) */}
+      {/* PAINEL DE GAVETA DE APPS NO MOBILE (FECHA AO TOCAR FORA, MANTÉM TUDO VISÍVEL) */}
       {mobileMenuOpen && (
-        <div className="fixed inset-0 z-[60] flex md:hidden items-end justify-center pointer-events-none">
-          <div className="relative w-full max-w-lg mx-4 mb-4 bg-stone-200/95 backdrop-blur-2xl rounded-[2.5rem] pt-3 px-6 pb-8 shadow-2xl border border-stone-300 z-10 flex flex-col text-stone-800 pointer-events-auto">
+        <div className="fixed inset-0 z-[60] flex md:hidden items-end justify-center">
+          <div 
+            onClick={fecharMenuMobile} 
+            className="fixed inset-0 bg-transparent" 
+          />
+
+          <div className="relative w-full max-w-lg mx-4 mb-4 bg-stone-200/95 backdrop-blur-2xl rounded-[2.5rem] pt-3 px-6 pb-8 shadow-2xl border border-stone-300 z-10 flex flex-col text-stone-800">
             <div className="w-10 h-1 bg-stone-400 rounded-full mx-auto mb-5 cursor-pointer" onClick={fecharMenuMobile}></div>
 
             <div className="grid grid-cols-4 gap-y-6 gap-x-3 py-2">
@@ -1253,12 +1264,14 @@ export default function AdminDashboard() {
           )}
 
           {activeTab === 'produtos' && (
-            <ProdutosScreen
-              produtos={produtos}
-              barbeariaId={barbearia?.id}
-              supabase={supabase}
-              onReload={() => carregarProdutos(barbearia?.id)}
-            />
+            <div className="produtos-container">
+              <ProdutosScreen
+                produtos={produtos}
+                barbeariaId={barbearia?.id}
+                supabase={supabase}
+                onReload={() => carregarProdutos(barbearia?.id)}
+              />
+            </div>
           )}
 
           {activeTab === 'agendamentos' && (

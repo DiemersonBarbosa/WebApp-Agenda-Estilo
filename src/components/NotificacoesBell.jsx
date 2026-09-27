@@ -1,11 +1,11 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Bell, Calendar, Sparkles, Trash2, Clock } from 'lucide-react';
+import { Bell, Calendar, Sparkles, Trash2, Clock, Scissors } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 export default function NotificacoesBell({ barbeariaId }) {
-  const [agendamentosHoje, setAgendamentosHoje] = useState([]);
+  const [agendamentosNotif, setAgendamentosNotif] = useState([]);
   const [modalNotifAberto, setModalNotifAberto] = useState(false);
   const [novaNotificacaoToast, setNovaNotificacaoToast] = useState(null);
 
@@ -13,9 +13,7 @@ export default function NotificacoesBell({ barbeariaId }) {
   const idsConhecidosRef = useRef(new Set());
   const primeiraCargaRef = useRef(true);
 
-  const HOJE_ISO = new Date().toISOString().split('T')[0];
-
-  const carregarNotificacoesDoDia = async () => {
+  const carregarNotificacoes = async () => {
     if (!supabase) return;
 
     try {
@@ -29,11 +27,13 @@ export default function NotificacoesBell({ barbeariaId }) {
           valor_total,
           barbearia_id,
           lido,
+          barbeiro_id,
           clientes:cliente_id (nome),
-          servicos:servico_id (nome, preco)
+          servicos:servico_id (nome, preco),
+          barbeiros:barbeiro_id (nome)
         `)
-        .eq('lido', false)
-        .order('data_hora', { ascending: true });
+        .order('data_hora', { ascending: false })
+        .limit(20);
 
       if (barbeariaId) {
         query = query.eq('barbearia_id', barbeariaId);
@@ -42,16 +42,14 @@ export default function NotificacoesBell({ barbeariaId }) {
       const { data, error } = await query;
 
       if (!error && data) {
-        const doDia = data.filter(item => {
-          if (!item.data_hora) return false;
-          return item.data_hora.substring(0, 10) === HOJE_ISO;
-        });
+        // Filtramos para mostrar os que não foram lidos (ou se 'lido' for nulo/falso)
+        const listaNotificacoes = data.filter(item => item.lido === false || item.lido === null);
 
         if (!primeiraCargaRef.current) {
-          const novosItens = doDia.filter(item => !idsConhecidosRef.current.has(item.id));
+          const novosItens = listaNotificacoes.filter(item => !idsConhecidosRef.current.has(item.id));
           
           if (novosItens.length > 0) {
-            const ultimoNovo = novosItens[novosItens.length - 1];
+            const ultimoNovo = novosItens[0];
             setNovaNotificacaoToast(ultimoNovo);
             
             setTimeout(() => {
@@ -60,10 +58,10 @@ export default function NotificacoesBell({ barbeariaId }) {
           }
         }
 
-        doDia.forEach(item => idsConhecidosRef.current.add(item.id));
+        listaNotificacoes.forEach(item => idsConhecidosRef.current.add(item.id));
         primeiraCargaRef.current = false;
 
-        setAgendamentosHoje(doDia);
+        setAgendamentosNotif(listaNotificacoes);
       }
     } catch (err) {
       console.error('Erro ao carregar notificações:', err);
@@ -71,10 +69,10 @@ export default function NotificacoesBell({ barbeariaId }) {
   };
 
   useEffect(() => {
-    carregarNotificacoesDoDia();
+    carregarNotificacoes();
 
     const intervalo = setInterval(() => {
-      carregarNotificacoesDoDia();
+      carregarNotificacoes();
     }, 10000);
 
     return () => clearInterval(intervalo);
@@ -97,9 +95,9 @@ export default function NotificacoesBell({ barbeariaId }) {
   }, [modalNotifAberto]);
 
   const limparNotificacoesOnline = async () => {
-    if (!supabase || agendamentosHoje.length === 0) return;
+    if (!supabase || agendamentosNotif.length === 0) return;
 
-    const idsParaMarcarComoLidos = agendamentosHoje.map(item => item.id);
+    const idsParaMarcarComoLidos = agendamentosNotif.map(item => item.id);
 
     try {
       const { error } = await supabase
@@ -108,7 +106,7 @@ export default function NotificacoesBell({ barbeariaId }) {
         .in('id', idsParaMarcarComoLidos);
 
       if (!error) {
-        setAgendamentosHoje([]);
+        setAgendamentosNotif([]);
         setModalNotifAberto(false);
       }
     } catch (err) {
@@ -116,7 +114,17 @@ export default function NotificacoesBell({ barbeariaId }) {
     }
   };
 
-  const naoLidas = agendamentosHoje.length;
+  const naoLidas = agendamentosNotif.length;
+
+  const formatarDataNotificacao = (dataHora) => {
+    if (!dataHora) return '';
+    try {
+      const dataObj = new Date(dataHora);
+      return dataObj.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+    } catch {
+      return '';
+    }
+  };
 
   return (
     <div className="relative inline-block">
@@ -136,14 +144,14 @@ export default function NotificacoesBell({ barbeariaId }) {
         )}
       </button>
 
-      {/* Prévia Flutuante (Toast) com Efeito de Vidro */}
+      {/* Prévia Flutuante (Toast) */}
       {novaNotificacaoToast && (
         <div className="fixed top-5 right-5 z-[9999] w-84 bg-white/85 backdrop-blur-xl text-slate-900 px-5 py-4 rounded-[2rem] shadow-2xl border border-white/40 flex items-center gap-3.5 animate-in slide-in-from-top-5 duration-300">
           <div className="w-10 h-10 rounded-2xl bg-emerald-500/15 text-emerald-600 flex items-center justify-center shrink-0 border border-emerald-500/20">
             <Bell className="w-5 h-5 animate-bounce" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-[10px] font-black uppercase tracking-wider text-emerald-600">Novo Agendamento</p>
+            <p className="text-[10px] font-black uppercase tracking-wider text-emerald-600">Nova Movimentação na Agenda</p>
             <p className="text-xs font-extrabold truncate mt-0.5 text-slate-900">
               {novaNotificacaoToast.clientes?.nome || 'Cliente'} - {novaNotificacaoToast.servicos?.nome || 'Serviço'}
             </p>
@@ -151,84 +159,100 @@ export default function NotificacoesBell({ barbeariaId }) {
         </div>
       )}
 
-      {/* Painel Dropdown com Efeito de Vidro (Glassmorphism) e Degradê Claro */}
+      {/* Painel Dropdown */}
       {modalNotifAberto && (
         <div 
           ref={modalRef}
-          className="fixed left-0 right-0 top-0 w-full bg-gradient-to-b from-white/90 via-slate-50/85 to-stone-100/90 backdrop-blur-2xl text-slate-900 border-b border-stone-200/60 shadow-[0_20px_50px_rgba(0,0,0,0.1)] rounded-b-[3rem] p-5 sm:p-8 z-50 transition-all duration-300 ease-in-out transform translate-y-0 animate-in slide-in-from-top duration-300"
+          className="fixed left-0 right-0 top-0 w-full bg-gradient-to-b from-white/95 via-slate-50/90 to-stone-100/95 backdrop-blur-2xl text-slate-900 border-b border-stone-200/80 shadow-[0_25px_60px_rgba(0,0,0,0.15)] rounded-b-[2.5rem] p-4 sm:p-6 z-50 transition-all duration-300 ease-in-out transform translate-y-0 animate-in slide-in-from-top duration-300"
         >
           
-          <div className="max-w-4xl mx-auto pt-1">
+          <div className="max-w-xl mx-auto pt-2">
 
             {/* Cabeçalho do Painel */}
-            <div className="flex items-center justify-between pb-3 mb-2 border-b border-stone-200/60">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-stone-900 text-emerald-400 flex items-center justify-center shadow-xs">
+            <div className="flex items-center justify-between pb-3 mb-3 border-b border-stone-200/80">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-stone-900 text-emerald-400 flex items-center justify-center shadow-xs shrink-0">
                   <Bell className="w-4 h-4" />
                 </div>
-                <h3 className="text-xs font-black uppercase tracking-wider text-slate-900">Notificações de Hoje</h3>
+                <div>
+                  <h3 className="text-xs font-black uppercase tracking-wider text-slate-900">Notificações</h3>
+                  <p className="text-[10px] text-stone-500 font-medium">Movimentações e agendamentos</p>
+                </div>
               </div>
-              <span className="text-[10px] font-extrabold uppercase px-2.5 py-1 rounded-full bg-stone-200/60 text-stone-800 backdrop-blur-xs">
+              <span className="text-[10px] font-extrabold uppercase px-3 py-1 rounded-full bg-stone-200/70 text-stone-800">
                 {naoLidas} {naoLidas === 1 ? 'pendente' : 'pendentes'}
               </span>
             </div>
 
-            {/* Lista de Notificações com Cards em Efeito Vidro */}
-            <div className="max-h-80 overflow-y-auto space-y-3 pt-1 pr-1">
-              {agendamentosHoje.length === 0 ? (
-                <div className="text-center py-10 text-slate-500 text-xs border border-dashed border-stone-300/60 rounded-[2.5rem] bg-white/40 backdrop-blur-md flex flex-col items-center justify-center gap-2 shadow-inner">
-                  <div className="w-10 h-10 rounded-2xl bg-white/80 text-emerald-600 flex items-center justify-center border border-stone-200 shadow-xs">
+            {/* Lista de Notificações */}
+            <div className="max-h-[60vh] overflow-y-auto space-y-2.5 pr-1">
+              {agendamentosNotif.length === 0 ? (
+                <div className="text-center py-10 text-slate-500 text-xs border border-dashed border-stone-300/70 rounded-3xl bg-white/50 backdrop-blur-md flex flex-col items-center justify-center gap-2 shadow-inner">
+                  <div className="w-10 h-10 rounded-2xl bg-white text-emerald-600 flex items-center justify-center border border-stone-200 shadow-xs">
                     <Sparkles className="w-4 h-4 animate-pulse" />
                   </div>
                   <span className="font-bold text-slate-800">Nenhuma notificação pendente</span>
-                  <span className="text-[10px] text-slate-500">Você está em dia com os horários de hoje!</span>
+                  <span className="text-[10px] text-slate-500">Todas as movimentações foram lidas!</span>
                 </div>
               ) : (
-                agendamentosHoje.map((item) => (
-                  <div 
-                    key={item.id}
-                    className="relative px-4 py-3 sm:px-5 sm:py-3.5 rounded-[2rem] bg-white/70 backdrop-blur-xl border border-white/80 hover:bg-white/90 transition-all shadow-xs flex items-center justify-between gap-3"
-                  >
-                    {/* Lado Esquerdo: Ícone + Informações */}
-                    <div className="flex items-center gap-3.5 min-w-0">
-                      <div className="w-10 h-10 rounded-xl bg-stone-900 text-emerald-400 flex items-center justify-center shrink-0 shadow-sm">
-                        <Calendar className="w-4 h-4" />
-                      </div>
+                agendamentosNotif.map((item) => {
+                  const nomeProfissional = item.barbeiros?.nome || 'Não atribuído';
 
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className="font-black text-slate-900 text-xs sm:text-sm tracking-tight truncate">
-                            {item.clientes?.nome || 'Cliente'}
-                          </p>
-                          <span className="inline-flex items-center text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-emerald-50/80 text-emerald-700 border border-emerald-200/60 tracking-wider shrink-0">
-                            {item.status || 'Agendado'}
-                          </span>
+                  return (
+                    <div 
+                      key={item.id}
+                      className="relative p-3.5 rounded-2xl bg-white border border-stone-200/90 hover:border-stone-300 transition-all shadow-xs flex items-center justify-between gap-3"
+                    >
+                      {/* Esquerda: Ícone + Detalhes */}
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <div className="w-9 h-9 rounded-xl bg-stone-900 text-emerald-400 flex items-center justify-center shrink-0 shadow-sm">
+                          <Calendar className="w-4 h-4" />
                         </div>
-                        <p className="text-[11px] text-slate-500 font-medium truncate mt-0.5">
-                          {item.servicos?.nome || 'Serviço'} • <strong className="text-slate-900 font-bold">R$ {Number(item.valor_total || item.servicos?.preco || 0).toFixed(2)}</strong>
-                        </p>
+
+                        <div className="min-w-0 flex-1 space-y-0.5">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="font-black text-slate-900 text-xs tracking-tight truncate max-w-[140px]">
+                              {item.clientes?.nome || 'Cliente'}
+                            </p>
+                            <span className="inline-flex items-center text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 tracking-wider">
+                              {item.status || 'Agendado'}
+                            </span>
+                          </div>
+
+                          <p className="text-[11px] text-stone-500 font-medium truncate">
+                            {item.servicos?.nome || 'Serviço'} • <strong className="text-stone-900 font-bold">R$ {Number(item.valor_total || item.servicos?.preco || 0).toFixed(2)}</strong>
+                          </p>
+
+                          <div className="flex items-center gap-1 text-[10px] text-stone-600 font-semibold">
+                            <Scissors className="w-3 h-3 text-stone-400" />
+                            <span>Profissional: <strong className="text-stone-900">{nomeProfissional}</strong></span>
+                          </div>
+                        </div>
                       </div>
-                    </div>
 
-                    {/* Lado Direito: Horário */}
-                    <div className="shrink-0">
-                      <span className="text-[11px] font-extrabold text-slate-800 bg-white/90 px-3 py-1.5 rounded-xl border border-stone-200/80 shadow-2xs flex items-center gap-1.5">
-                        <Clock className="w-3.5 h-3.5 text-emerald-600" />
-                        {item.data_hora ? new Date(item.data_hora).toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'}) : '--:--'}
-                      </span>
-                    </div>
+                      {/* Direita: Data e Hora Juntas e Compactas */}
+                      <div className="flex flex-col items-end gap-1 shrink-0">
+                        <span className="text-[10px] font-bold text-stone-600 bg-stone-100 px-2 py-0.5 rounded-lg border border-stone-200/60">
+                          {formatarDataNotificacao(item.data_hora)}
+                        </span>
+                        <span className="text-[11px] font-extrabold text-slate-800 bg-stone-50 px-2.5 py-1 rounded-xl border border-stone-200 shadow-2xs flex items-center gap-1">
+                          <Clock className="w-3 h-3 text-emerald-600" />
+                          {item.data_hora ? new Date(item.data_hora).toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'}) : '--:--'}
+                        </span>
+                      </div>
 
-                  </div>
-                ))
+                    </div>
+                  );
+                })
               )}
             </div>
 
             {/* Botão de Limpar Tudo */}
             {naoLidas > 0 && (
-              <div className="mt-4 pt-3 flex justify-center">
+              <div className="mt-4 pt-3 border-t border-stone-200/60 flex justify-center">
                 <button
                   onClick={limparNotificacoesOnline}
-                  className="text-xs font-black text-slate-700 px-6 py-2.5 rounded-2xl bg-white/80 backdrop-blur-md border border-stone-200/80 hover:bg-white transition-all shadow-xs flex items-center gap-2 cursor-pointer"
+                  className="text-xs font-black text-stone-700 px-6 py-2.5 rounded-2xl bg-white border border-stone-200 hover:bg-stone-50 transition-all shadow-xs flex items-center gap-2 cursor-pointer"
                 >
                   <Trash2 className="w-4 h-4 text-rose-500" />
                   <span>Limpar tudo</span>
