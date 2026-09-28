@@ -20,7 +20,6 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
   const [erroFatal, setErroFatal] = useState(null);
   const [processandoId, setProcessandoId] = useState(null);
   
-  // Estado para controlar a Data Selecionada no Mini Calendário (Padrão: Hoje no fuso local)
   const obterDataLocalIso = (d = new Date()) => {
     const ano = d.getFullYear();
     const mes = String(d.getMonth() + 1).padStart(2, '0');
@@ -30,7 +29,6 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
 
   const [dataSelecionada, setDataSelecionada] = useState(obterDataLocalIso());
 
-  // Estado para controlar o Modal de Histórico Completo
   const [modalHistoricoOpen, setModalHistoricoOpen] = useState(false);
   const [filtroDataHistorico, setFiltroDataHistorico] = useState('');
   const [filtroStatusHistorico, setFiltroStatusHistorico] = useState('todos');
@@ -77,7 +75,6 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
 
   const carregarAgenda = async () => {
     try {
-      setCarregando(true);
       setErroFatal(null);
 
       let barbeariaAtiva = barbeariaId;
@@ -134,6 +131,25 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
 
   useEffect(() => {
     carregarAgenda();
+
+    const channel = supabase
+      .channel('realtime-agendamentos')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'agendamentos',
+        },
+        () => {
+          carregarAgenda();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [barbeariaId, profissionalId]);
 
   const concluirAgendamento = async (id) => {
@@ -145,7 +161,6 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
         .eq('id', id);
 
       if (error) throw error;
-      carregarAgenda();
     } catch (err) {
       alert('Erro ao concluir agendamento: ' + err.message);
     } finally {
@@ -162,7 +177,6 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
         .eq('id', id);
 
       if (error) throw error;
-      carregarAgenda();
     } catch (err) {
       alert('Erro ao cancelar agendamento: ' + err.message);
     } finally {
@@ -180,7 +194,6 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
         .eq('id', id);
 
       if (error) throw error;
-      carregarAgenda();
     } catch (err) {
       alert('Erro ao excluir agendamento: ' + err.message);
     } finally {
@@ -188,21 +201,19 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
     }
   };
 
-  // Filtrar agendamentos com base na data selecionada no mini calendário
   const agendamentosDoDiaSelecionado = todosAgendamentos.filter(item => extrairDataIso(item) === dataSelecionada);
 
   const totalAtendimentosDia = agendamentosDoDiaSelecionado.length;
-  const concluidosDia = agendamentosDoDiaSelecionado.filter(i => i.status === 'concluido').length;
+  const concluidosDia = agendamentosDoDiaSelecionado.filter(i => (i.status || '').toLowerCase() === 'concluido').length;
   const valorTotalDia = agendamentosDoDiaSelecionado
-    .filter(i => i.status !== 'cancelado')
+    .filter(i => (i.status || '').toLowerCase() !== 'cancelado')
     .reduce((acc, item) => acc + Number(item.valor_total || item.servicos?.preco || 0), 0);
 
   const agendamentosPendentesDia = agendamentosDoDiaSelecionado.filter(item => {
     const status = (item.status || 'agendado').toLowerCase();
-    return status !== 'concluido' && status !== 'cancelado';
+    return status !== 'concluido' && status !== 'cancelado' && status !== 'finalizado' && status !== 'cancelada';
   });
 
-  // Gerar os próximos 7 dias para o Mini Calendário
   const gerarProximosDias = () => {
     const dias = [];
     const hoje = new Date();
@@ -223,7 +234,6 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
   return (
     <div className="max-w-7xl mx-auto px-2 sm:px-0 space-y-5 pb-24">
       
-      {/* ERRO FATAL */}
       {erroFatal && (
         <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-2xl shadow-sm">
           <div className="text-red-700 text-sm font-medium">Erro ao carregar agenda: {erroFatal}</div>
@@ -321,7 +331,7 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
 
       </div>
 
-      {/* MINI CALENDÁRIO ESTILOSO (PRÓXIMOS 7 DIAS) - COM ESPAÇAMENTO SUPERIOR CORRIGIDO */}
+      {/* MINI CALENDÁRIO ESTILOSO (PRÓXIMOS 7 DIAS) */}
       <div className="bg-white rounded-[2rem] p-4 pt-5 border border-stone-200/90 shadow-sm space-y-2.5 overflow-visible">
         <div className="flex items-center justify-between px-1">
           <span className="text-[10px] font-black uppercase tracking-wider text-stone-400">Selecionar Dia</span>
@@ -333,7 +343,13 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
         <div className="grid grid-cols-7 gap-1.5 overflow-visible pt-1 pb-1">
           {proximaSemanaDias.map((dia) => {
             const selecionado = dataSelecionada === dia.iso;
-            const qtdNoDia = todosAgendamentos.filter(item => extrairDataIso(item) === dia.iso && (item.status || 'agendado') !== 'cancelado').length;
+            
+            const qtdNoDia = todosAgendamentos.filter(item => {
+              const dataItem = extrairDataIso(item);
+              const status = (item.status || 'agendado').toLowerCase();
+              const pendenteOuAgendado = status !== 'concluido' && status !== 'cancelado' && status !== 'finalizado' && status !== 'cancelada';
+              return dataItem === dia.iso && pendenteOuAgendado;
+            }).length;
 
             return (
               <button
@@ -368,7 +384,7 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
         </div>
       </div>
 
-      {/* SEÇÃO PRINCIPAL: LISTA MODERNA DE AGENDAMENTOS PENDENTES DO DIA SELECIONADO */}
+      {/* SEÇÃO PRINCIPAL: LISTA DE AGENDAMENTOS PENDENTES */}
       <div 
         className="relative rounded-[2.5rem] p-5 sm:p-8 border border-white/80 overflow-hidden shadow-sm"
         style={{
@@ -406,7 +422,7 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
                 className="w-full bg-white border border-stone-200/90 rounded-[2rem] p-4 sm:p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_10px_30px_rgba(0,0,0,0.07)] transition-all flex flex-col justify-between gap-4"
               >
                 
-                {/* Topo do Card: Badge de Horário & Valor */}
+                {/* Topo do Card */}
                 <div className="flex items-start justify-between gap-3">
                   <div className="space-y-1.5 min-w-0">
                     <div 
@@ -432,7 +448,7 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
                   </div>
                 </div>
 
-                {/* Detalhes do Serviço & Profissional */}
+                {/* Detalhes */}
                 <div className="bg-stone-50 rounded-2xl p-3.5 border border-stone-200/70 space-y-1 text-xs">
                   <div className="flex items-center gap-2 font-bold text-stone-900 text-sm">
                     <span className="w-2 h-2 rounded-full bg-stone-900"></span>
@@ -443,7 +459,7 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
                   </div>
                 </div>
 
-                {/* Rodapé do Card: Status e Botões de Ação */}
+                {/* Ações */}
                 <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 border-t border-stone-100">
                   <div className="flex items-center justify-between sm:justify-start">
                     <span className="text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider bg-stone-100 text-stone-700 border border-stone-200">
@@ -452,8 +468,6 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
                   </div>
 
                   <div className="grid grid-cols-3 gap-1 sm:flex sm:items-center">
-                    
-                    {/* Botão Concluir */}
                     <button 
                       onClick={() => concluirAgendamento(item.id)}
                       disabled={processandoId === item.id}
@@ -462,34 +476,28 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
                         background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
                         boxShadow: 'inset 0 1px 2px rgba(255, 255, 255, 0.2)'
                       }}
-                      title="Concluir"
                     >
                       <CheckCircle2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0 text-emerald-400" />
                       <span className="truncate">Concluir</span>
                     </button>
 
-                    {/* Botão Cancelar */}
                     <button 
                       onClick={() => cancelarAgendamento(item.id)}
                       disabled={processandoId === item.id}
                       className="py-2 px-1.5 sm:px-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 border border-stone-200 rounded-xl transition-all disabled:opacity-50 cursor-pointer flex items-center justify-center gap-1 text-[10px] sm:text-xs font-bold shadow-xs"
-                      title="Cancelar"
                     >
                       <X className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0 text-stone-500" />
                       <span className="truncate">Cancelar</span>
                     </button>
 
-                    {/* Botão Excluir */}
                     <button 
                       onClick={() => excluirAgendamento(item.id)}
                       disabled={processandoId === item.id}
                       className="py-2 px-1.5 sm:px-2.5 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 rounded-xl transition-all disabled:opacity-50 cursor-pointer flex items-center justify-center gap-1 text-[10px] sm:text-xs font-bold shadow-xs"
-                      title="Excluir"
                     >
                       <Trash2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
                       <span className="truncate">Excluir</span>
                     </button>
-
                   </div>
                 </div>
 
@@ -499,7 +507,7 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
         )}
       </div>
 
-      {/* BOTÃO ESTRATÉGICO PARA ABRIR O HISTÓRICO EM MODAL */}
+      {/* BOTÃO HISTÓRICO */}
       <div className="text-center pt-2">
         <button
           onClick={() => setModalHistoricoOpen(true)}
@@ -512,12 +520,9 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
         </button>
       </div>
 
-      {/* =========================================================
-          MODAL DE HISTÓRICO E FILTROS AVANÇADOS
-          ========================================================= */}
+      {/* MODAL DE HISTÓRICO */}
       {modalHistoricoOpen && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
-          
           <div 
             onClick={() => setModalHistoricoOpen(false)}
             className="fixed inset-0 bg-stone-950/50 backdrop-blur-sm transition-opacity"
@@ -638,7 +643,6 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
             </div>
 
           </div>
-
         </div>
       )}
 

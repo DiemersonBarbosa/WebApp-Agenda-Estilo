@@ -1,9 +1,23 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { createClient } from '@supabase/supabase-js';
 import { TrendingUp, TrendingDown, DollarSign, PieChart, Calendar, CheckCircle2, Percent, Receipt, XCircle } from 'lucide-react';
 
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
 export default function RelatoriosPage({ agendamentos = [], despesas = [], barbeiros = [], servicos = [], barbearia = {} }) {
+  const [listaAgendamentos, setListaAgendamentos] = useState(agendamentos);
+  const [listaDespesas, setListaDespesas] = useState(despesas);
+  const [listaBarbeiros, setListaBarbeiros] = useState(barbeiros);
+  const [erroFatal, setErroFatal] = useState(null);
+
+  useEffect(() => { if (agendamentos?.length > 0) setListaAgendamentos(agendamentos); }, [agendamentos]);
+  useEffect(() => { if (despesas?.length > 0) setListaDespesas(despesas); }, [despesas]);
+  useEffect(() => { if (barbeiros?.length > 0) setListaBarbeiros(barbeiros); }, [barbeiros]);
+
   const [filtroMes, setFiltroMes] = useState(() => {
     const hoje = new Date();
     const ano = hoje.getFullYear();
@@ -12,18 +26,92 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
   });
 
   const [secaoAtiva, setSecaoAtiva] = useState('atendimentos');
-  const scrollContainerRef = useRef(null);
 
-  const rolarParaBotao = (e) => {
-    const elemento = e.currentTarget;
-    if (scrollContainerRef.current) {
-      elemento.scrollIntoView({
-        behavior: 'smooth',
-        inline: 'center',
-        block: 'nearest'
-      });
+  const carregarDadosDoBanco = async () => {
+    try {
+      setErroFatal(null);
+      let barbeariaAtiva = barbearia?.id;
+
+      if (!barbeariaAtiva) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data: barbeariaData } = await supabase
+            .from('barbearias')
+            .select('id')
+            .eq('user_id', user.id)
+            .single();
+
+          if (barbeariaData) {
+            barbeariaAtiva = barbeariaData.id;
+          }
+        }
+      }
+
+      let queryAgendamentos = supabase
+        .from('agendamentos')
+        .select(`
+          id,
+          cliente_id,
+          barbeiro_id,
+          servico_id,
+          data_hora,
+          status,
+          valor_total,
+          barbearia_id,
+          clientes:cliente_id (nome),
+          servicos:servico_id (nome, preco),
+          barbeiros:barbeiro_id (nome, barbearia_id)
+        `)
+        .order('data_hora', { ascending: false });
+
+      if (barbeariaAtiva) {
+        queryAgendamentos = queryAgendamentos.eq('barbearia_id', barbeariaAtiva);
+      }
+
+      const { data: dataAgendamentos, error: errAg } = await queryAgendamentos;
+      if (errAg) throw errAg;
+      if (dataAgendamentos) setListaAgendamentos(dataAgendamentos);
+
+      let queryDespesas = supabase.from('despesas').select('*').order('data', { ascending: false });
+      if (barbeariaAtiva) queryDespesas = queryDespesas.eq('barbearia_id', barbeariaAtiva);
+      const { data: dataDesp } = await queryDespesas;
+      if (dataDesp) setListaDespesas(dataDesp);
+
+      let queryBarbeiros = supabase.from('barbeiros').select('*');
+      if (barbeariaAtiva) queryBarbeiros = queryBarbeiros.eq('barbearia_id', barbeariaAtiva);
+      const { data: dataBarb } = await queryBarbeiros;
+      if (dataBarb) setListaBarbeiros(dataBarb);
+
+    } catch (err) {
+      setErroFatal(err.message);
     }
   };
+
+  useEffect(() => {
+    carregarDadosDoBanco();
+
+    const channel = supabase
+      .channel('realtime-relatorios-pagina')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'agendamentos' },
+        () => {
+          carregarDadosDoBanco();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'despesas' },
+        () => {
+          carregarDadosDoBanco();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [barbearia?.id]);
 
   const getNomeCliente = (item) => {
     return item.clientes?.nome || item.cliente_nome || item.nome_cliente || item.cliente?.name || 'Cliente';
@@ -38,7 +126,7 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
   };
 
   const getValorServico = (item) => {
-    const val = item.servicos?.valor || item.servicos?.preco || item.valor || item.preco || item.total || item.valor_servico || 0;
+    const val = item.valor_total || item.servicos?.preco || item.valor || item.preco || item.total || item.valor_servico || 0;
     return Number(val) || 0;
   };
 
@@ -49,10 +137,10 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
       return num > 1 ? num / 100 : num; 
     }
 
-    if (Array.isArray(barbeiros) && barbeiros.length > 0) {
-      let found = barbeiros.find(b => String(b.id) === String(item.barbeiro_id));
+    if (Array.isArray(listaBarbeiros) && listaBarbeiros.length > 0) {
+      let found = listaBarbeiros.find(b => String(b.id) === String(item.barbeiro_id));
       if (!found && nomeBarbeiro) {
-        found = barbeiros.find(b => {
+        found = listaBarbeiros.find(b => {
           const nomeB = (b.nome || b.nome_barbeiro || '').trim().toLowerCase();
           const nomeA = nomeBarbeiro.trim().toLowerCase();
           return nomeB === nomeA || nomeB.includes(nomeA) || nomeA.includes(nomeB);
@@ -76,15 +164,15 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
     return mesAnoItem === filtroMes;
   };
 
-  const agendamentosFiltrados = Array.isArray(agendamentos)
-    ? agendamentos.filter(item => {
+  const agendamentosFiltrados = Array.isArray(listaAgendamentos)
+    ? listaAgendamentos.filter(item => {
         const dataItem = item.data_hora || item.data || item.created_at;
         return pertenceAoMesSelecionado(dataItem);
       })
     : [];
 
-  const despesasFiltradas = Array.isArray(despesas)
-    ? despesas.filter(item => {
+  const despesasFiltradas = Array.isArray(listaDespesas)
+    ? listaDespesas.filter(item => {
         const dataItem = item.data || item.created_at || item.data_despesa;
         return pertenceAoMesSelecionado(dataItem);
       })
@@ -132,108 +220,114 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
   return (
     <div className="max-w-7xl mx-auto space-y-6 pb-28 px-2 sm:px-0">
       
-      {/* Cards de Indicadores (KPIs) */}
-      <div className="grid grid-cols-2 gap-3.5 md:gap-5 mb-2">
+      {erroFatal && (
+        <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-2xl shadow-sm">
+          <div className="text-red-700 text-sm font-medium">Erro ao carregar relatórios: {erroFatal}</div>
+        </div>
+      )}
+
+      {/* Cards de Indicadores (KPIs) com largura e tamanho de fonte otimizados */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-2">
         
         {/* 1. Faturamento */}
         <div 
-          className="relative rounded-3xl md:rounded-[2.5rem] p-5 sm:p-6 md:p-7 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden"
+          className="relative rounded-3xl p-4 sm:p-5 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden"
           style={{
             background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
             boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
           }}
         >
-          <div className="flex flex-col justify-center min-w-0 pr-2">
-            <span className="text-[9px] sm:text-[10px] md:text-xs font-bold text-stone-400 uppercase tracking-wider truncate block">Faturamento</span>
-            <h3 className="text-lg sm:text-2xl md:text-3xl font-black text-white mt-1 truncate">R$ {faturamentoTotal.toFixed(0)}</h3>
-            <p className="text-[10px] text-emerald-400 font-medium mt-0.5">{atendimentosConcluidos.length} concluídos</p>
+          <div className="flex flex-col justify-center min-w-0 pr-1.5">
+            <span className="text-[9px] sm:text-[10px] xl:text-xs font-bold text-stone-400 uppercase tracking-wider truncate block">Faturamento</span>
+            <h3 className="text-base sm:text-xl xl:text-2xl font-black text-white mt-0.5 whitespace-nowrap">R$ {faturamentoTotal.toFixed(0)}</h3>
+            <p className="text-[10px] text-emerald-400 font-medium mt-0.5 truncate">{atendimentosConcluidos.length} concluídos</p>
           </div>
           <div 
-            className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center shrink-0"
+            className="w-9 h-9 sm:w-10 sm:h-10 xl:w-11 xl:h-11 rounded-full flex items-center justify-center shrink-0"
             style={{
               background: 'radial-gradient(circle at 30% 30%, #ffffff 0%, #d8e2ec 60%, #9fb3c8 100%)',
               boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 1), inset 0 -4px 6px rgba(0, 0, 0, 0.25)',
               border: '1px solid rgba(255, 255, 255, 0.9)'
             }}
           >
-            <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-stone-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]" />
+            <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-stone-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]" />
           </div>
         </div>
 
         {/* 2. Despesas */}
         <div 
-          className="relative rounded-3xl md:rounded-[2.5rem] p-5 sm:p-6 md:p-7 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden"
+          className="relative rounded-3xl p-4 sm:p-5 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden"
           style={{
             background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
             boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
           }}
         >
-          <div className="flex flex-col justify-center min-w-0 pr-2">
-            <span className="text-[9px] sm:text-[10px] md:text-xs font-bold text-stone-400 uppercase tracking-wider truncate block">Despesas</span>
-            <h3 className="text-lg sm:text-2xl md:text-3xl font-black text-white mt-1 truncate">R$ {custosTotais.toFixed(0)}</h3>
-            <p className="text-[10px] text-rose-400 font-medium mt-0.5">{despesasFiltradas.length} cadastradas</p>
+          <div className="flex flex-col justify-center min-w-0 pr-1.5">
+            <span className="text-[9px] sm:text-[10px] xl:text-xs font-bold text-stone-400 uppercase tracking-wider truncate block">Despesas</span>
+            <h3 className="text-base sm:text-xl xl:text-2xl font-black text-white mt-0.5 whitespace-nowrap">R$ {custosTotais.toFixed(0)}</h3>
+            <p className="text-[10px] text-rose-400 font-medium mt-0.5 truncate">{despesasFiltradas.length} cadastradas</p>
           </div>
           <div 
-            className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center shrink-0"
+            className="w-9 h-9 sm:w-10 sm:h-10 xl:w-11 xl:h-11 rounded-full flex items-center justify-center shrink-0"
             style={{
               background: 'radial-gradient(circle at 30% 30%, #ffffff 0%, #d8e2ec 60%, #9fb3c8 100%)',
               boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 1), inset 0 -4px 6px rgba(0, 0, 0, 0.25)',
               border: '1px solid rgba(255, 255, 255, 0.9)'
             }}
           >
-            <TrendingDown className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-stone-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]" />
+            <TrendingDown className="w-4 h-4 sm:w-5 sm:h-5 text-stone-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]" />
           </div>
         </div>
 
         {/* 3. Lucro Líquido */}
         <div 
-          className="relative rounded-3xl md:rounded-[2.5rem] p-5 sm:p-6 md:p-7 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden"
+          className="relative rounded-3xl p-4 sm:p-5 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden"
           style={{
             background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
             boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
           }}
         >
-          <div className="flex flex-col justify-center min-w-0 pr-2">
-            <span className="text-[9px] sm:text-[10px] md:text-xs font-bold text-stone-400 uppercase tracking-wider truncate block">Lucro Líquido</span>
-            <h3 className={`text-lg sm:text-2xl md:text-3xl font-black mt-1 truncate ${lucroLiquidoReal >= 0 ? 'text-sky-400' : 'text-rose-400'}`}>
+          <div className="flex flex-col justify-center min-w-0 pr-1.5">
+            <span className="text-[9px] sm:text-[10px] xl:text-xs font-bold text-stone-400 uppercase tracking-wider truncate block">Lucro Líquido</span>
+            <h3 className={`text-base sm:text-xl xl:text-2xl font-black mt-0.5 whitespace-nowrap ${lucroLiquidoReal >= 0 ? 'text-sky-400' : 'text-rose-400'}`}>
               R$ {lucroLiquidoReal.toFixed(0)}
             </h3>
-            <p className="text-[10px] text-stone-400 font-medium mt-0.5">Entradas - Saídas</p>
+            <p className="text-[10px] text-stone-400 font-medium mt-0.5 truncate">Entradas - Saídas</p>
           </div>
           <div 
-            className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center shrink-0"
+            className="w-9 h-9 sm:w-10 sm:h-10 xl:w-11 xl:h-11 rounded-full flex items-center justify-center shrink-0"
             style={{
               background: 'radial-gradient(circle at 30% 30%, #ffffff 0%, #d8e2ec 60%, #9fb3c8 100%)',
               boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 1), inset 0 -4px 6px rgba(0, 0, 0, 0.25)',
               border: '1px solid rgba(255, 255, 255, 0.9)'
             }}
           >
-            <DollarSign className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-stone-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]" />
+            <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-stone-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]" />
           </div>
         </div>
 
         {/* 4. Ticket Médio */}
         <div 
-          className="relative rounded-3xl md:rounded-[2.5rem] p-5 sm:p-6 md:p-7 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden"
+          className="relative rounded-3xl p-4 sm:p-5 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden"
           style={{
             background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
             boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
           }}
         >
-          <div className="flex flex-col justify-center min-w-0 pr-2">
-            <span className="text-[9px] sm:text-[10px] md:text-xs font-bold text-stone-400 uppercase tracking-wider truncate block">Ticket Médio</span>
-            <h3 className="text-lg sm:text-2xl md:text-3xl font-black text-white mt-1 truncate">R$ {ticketMedioCalculado.toFixed(0)}</h3>
-            <p className="text-[10px] text-stone-400 font-medium mt-0.5">Média por atendimento</p>
+          <div className="flex flex-col justify-center min-w-0 pr-1.5">
+            <span className="text-[9px] sm:text-[10px] xl:text-xs font-bold text-stone-400 uppercase tracking-wider truncate block">Ticket Médio</span>
+            <h3 className="text-base sm:text-xl xl:text-2xl font-black text-white mt-0.5 whitespace-nowrap">R$ {ticketMedioCalculado.toFixed(0)}</h3>
+            <p className="text-[10px] text-stone-400 font-medium mt-0.5 truncate">Média por atendimento</p>
           </div>
           <div 
-            className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center shrink-0"
+            className="w-9 h-9 sm:w-10 sm:h-10 xl:w-11 xl:h-11 rounded-full flex items-center justify-center shrink-0"
             style={{
               background: 'radial-gradient(circle at 30% 30%, #ffffff 0%, #d8e2ec 60%, #9fb3c8 100%)',
               boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 1), inset 0 -4px 6px rgba(0, 0, 0, 0.25)',
               border: '1px solid rgba(255, 255, 255, 0.9)'
             }}
           >
-            <PieChart className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-stone-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]" />
+            <PieChart className="w-4 h-4 sm:w-5 sm:h-5 text-stone-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]" />
           </div>
         </div>
 
@@ -279,21 +373,14 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
           </div>
         </div>
 
-        {/* CARROSSEL DE ABAS COM ROLAGEM OTIMIZADA */}
-        <div 
-          ref={scrollContainerRef}
-          className="flex overflow-x-auto pb-2 gap-3 no-scrollbar scroll-smooth snap-x snap-mandatory px-1"
-        >
+        {/* NAVEGAÇÃO DE ABAS EXPANDIDA */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 w-full gap-2.5 sm:gap-3">
           
-          {/* Aba 1: Atendimentos */}
           <button
-            onClick={(e) => {
-              setSecaoAtiva('atendimentos');
-              rolarParaBotao(e);
-            }}
-            className={`py-3.5 px-5 rounded-2xl transition-all cursor-pointer flex items-center justify-center gap-2 text-xs font-bold shrink-0 min-w-[140px] snap-center ${
+            onClick={() => setSecaoAtiva('atendimentos')}
+            className={`w-full py-4 px-4 rounded-2xl transition-all cursor-pointer flex items-center justify-center gap-2.5 text-xs sm:text-sm font-extrabold ${
               secaoAtiva === 'atendimentos'
-                ? 'text-white border border-stone-700/50 shadow-md scale-[1.02]'
+                ? 'text-white border border-stone-700/50 shadow-md scale-[1.01]'
                 : 'bg-white/90 hover:bg-white text-stone-700 border border-stone-200/80 shadow-xs'
             }`}
             style={secaoAtiva === 'atendimentos' ? {
@@ -301,19 +388,15 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
               boxShadow: 'inset 0 1px 2px rgba(255, 255, 255, 0.2)'
             } : {}}
           >
-            <CheckCircle2 className={`w-4 h-4 shrink-0 ${secaoAtiva === 'atendimentos' ? 'text-emerald-400' : 'text-stone-500'}`} />
+            <CheckCircle2 className={`w-4 h-4 sm:w-5 sm:h-5 shrink-0 ${secaoAtiva === 'atendimentos' ? 'text-emerald-400' : 'text-stone-500'}`} />
             <span>Atendimentos</span>
           </button>
 
-          {/* Aba 2: Comissões */}
           <button
-            onClick={(e) => {
-              setSecaoAtiva('comissoes');
-              rolarParaBotao(e);
-            }}
-            className={`py-3.5 px-5 rounded-2xl transition-all cursor-pointer flex items-center justify-center gap-2 text-xs font-bold shrink-0 min-w-[140px] snap-center ${
+            onClick={() => setSecaoAtiva('comissoes')}
+            className={`w-full py-4 px-4 rounded-2xl transition-all cursor-pointer flex items-center justify-center gap-2.5 text-xs sm:text-sm font-extrabold ${
               secaoAtiva === 'comissoes'
-                ? 'text-white border border-stone-700/50 shadow-md scale-[1.02]'
+                ? 'text-white border border-stone-700/50 shadow-md scale-[1.01]'
                 : 'bg-white/90 hover:bg-white text-stone-700 border border-stone-200/80 shadow-xs'
             }`}
             style={secaoAtiva === 'comissoes' ? {
@@ -321,19 +404,15 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
               boxShadow: 'inset 0 1px 2px rgba(255, 255, 255, 0.2)'
             } : {}}
           >
-            <Percent className={`w-4 h-4 shrink-0 ${secaoAtiva === 'comissoes' ? 'text-emerald-400' : 'text-stone-500'}`} />
+            <Percent className={`w-4 h-4 sm:w-5 sm:h-5 shrink-0 ${secaoAtiva === 'comissoes' ? 'text-emerald-400' : 'text-stone-500'}`} />
             <span>Comissões</span>
           </button>
 
-          {/* Aba 3: Despesas */}
           <button
-            onClick={(e) => {
-              setSecaoAtiva('despesas');
-              rolarParaBotao(e);
-            }}
-            className={`py-3.5 px-5 rounded-2xl transition-all cursor-pointer flex items-center justify-center gap-2 text-xs font-bold shrink-0 min-w-[140px] snap-center ${
+            onClick={() => setSecaoAtiva('despesas')}
+            className={`w-full py-4 px-4 rounded-2xl transition-all cursor-pointer flex items-center justify-center gap-2.5 text-xs sm:text-sm font-extrabold ${
               secaoAtiva === 'despesas'
-                ? 'text-white border border-stone-700/50 shadow-md scale-[1.02]'
+                ? 'text-white border border-stone-700/50 shadow-md scale-[1.01]'
                 : 'bg-white/90 hover:bg-white text-stone-700 border border-stone-200/80 shadow-xs'
             }`}
             style={secaoAtiva === 'despesas' ? {
@@ -341,19 +420,15 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
               boxShadow: 'inset 0 1px 2px rgba(255, 255, 255, 0.2)'
             } : {}}
           >
-            <Receipt className={`w-4 h-4 shrink-0 ${secaoAtiva === 'despesas' ? 'text-rose-400' : 'text-stone-500'}`} />
+            <Receipt className={`w-4 h-4 sm:w-5 sm:h-5 shrink-0 ${secaoAtiva === 'despesas' ? 'text-rose-400' : 'text-stone-500'}`} />
             <span>Despesas</span>
           </button>
 
-          {/* Aba 4: Cancelados */}
           <button
-            onClick={(e) => {
-              setSecaoAtiva('cancelados');
-              rolarParaBotao(e);
-            }}
-            className={`py-3.5 px-5 rounded-2xl transition-all cursor-pointer flex items-center justify-center gap-2 text-xs font-bold shrink-0 min-w-[140px] snap-center ${
+            onClick={() => setSecaoAtiva('cancelados')}
+            className={`w-full py-4 px-4 rounded-2xl transition-all cursor-pointer flex items-center justify-center gap-2.5 text-xs sm:text-sm font-extrabold ${
               secaoAtiva === 'cancelados'
-                ? 'text-white border border-stone-700/50 shadow-md scale-[1.02]'
+                ? 'text-white border border-stone-700/50 shadow-md scale-[1.01]'
                 : 'bg-white/90 hover:bg-white text-stone-700 border border-stone-200/80 shadow-xs'
             }`}
             style={secaoAtiva === 'cancelados' ? {
@@ -361,7 +436,7 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
               boxShadow: 'inset 0 1px 2px rgba(255, 255, 255, 0.2)'
             } : {}}
           >
-            <XCircle className={`w-4 h-4 shrink-0 ${secaoAtiva === 'cancelados' ? 'text-amber-400' : 'text-stone-500'}`} />
+            <XCircle className={`w-4 h-4 sm:w-5 sm:h-5 shrink-0 ${secaoAtiva === 'cancelados' ? 'text-amber-400' : 'text-stone-500'}`} />
             <span>Cancelados</span>
           </button>
 

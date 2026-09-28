@@ -108,38 +108,81 @@ export default function AgendamentoChat({ barbeariaId }) {
     }
   };
 
+  // =========================================================================
+  // GERAÇÃO DE HORÁRIOS SINCRONIZADA COM A ESCALA DO BARBEIRO SELECIONADO
+  // =========================================================================
   const getHorariosDisponiveisParaData = (dataStr) => {
     if (!dataStr || datasBloqueadas.includes(dataStr)) return [];
+
+    // Identificar o barbeiro ativo conforme a etapa (agendamento novo ou edição)
+    const barbeiroAtivo = etapa.startsWith('editar')
+      ? barbeiros.find(b => b.id === agendamentoEmEdicao?.barbeiro_id)
+      : barbeiroEscolhido;
 
     const [ano, mes, dia] = dataStr.split('-').map(Number);
     const dateObj = new Date(ano, mes - 1, dia);
     const diasSemanaMap = ['domingo', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado'];
     const nomeDia = diasSemanaMap[dateObj.getDay()];
 
-    const configHorarios = barbearia?.horarios;
+    // 1. Prioridade para a escala individual do barbeiro
+    let configHorariosBarbeiro = barbeiroAtivo?.horarios_trabalho?.[nomeDia];
+
+    let ativo = true;
     let aberturaStr = '08:00';
-    let fechamentoStr = '19:00';
-    let pausaInicio = '';
-    let pausaFim = '';
+    let fechamentoStr = '18:00';
+    let pausaInicioStr = '';
+    let pausaFimStr = '';
 
-    if (configHorarios && configHorarios[nomeDia]) {
-      const diaConfig = configHorarios[nomeDia];
-      if (!diaConfig.ativo) return [];
-
-      aberturaStr = diaConfig.abertura || '08:00';
-      fechamentoStr = diaConfig.fechamento || '19:00';
-      pausaInicio = diaConfig.pausaInicio;
-      pausaFim = diaConfig.pausaFim;
+    if (configHorariosBarbeiro) {
+      if (configHorariosBarbeiro.ativo === false) return []; // Barbeiro de folga
+      aberturaStr = configHorariosBarbeiro.abertura || '08:00';
+      fechamentoStr = configHorariosBarbeiro.fechamento || '18:00';
+      pausaInicioStr = configHorariosBarbeiro.pausaInicio || '';
+      pausaFimStr = configHorariosBarbeiro.pausaFim || '';
+    } else {
+      // 2. Fallback para os horários gerais da unidade se o barbeiro não tiver dados salvos
+      const configGeral = barbearia?.horarios?.[nomeDia];
+      if (configGeral) {
+        if (configGeral.ativo === false) return [];
+        aberturaStr = configGeral.abertura || '08:00';
+        fechamentoStr = configGeral.fechamento || '18:00';
+        pausaInicioStr = configGeral.pausaInicio || '';
+        pausaFimStr = configGeral.pausaFim || '';
+      }
     }
 
-    const [horaInicio] = aberturaStr.split(':').map(Number);
-    const [horaFim] = fechamentoStr.split(':').map(Number);
+    const paraMinutos = (horaStr) => {
+      if (!horaStr) return null;
+      const [h, m] = horaStr.split(':').map(Number);
+      return h * 60 + m;
+    };
+
+    const paraHoraStr = (minutos) => {
+      const h = Math.floor(minutos / 60).toString().padStart(2, '0');
+      const m = (minutos % 60).toString().padStart(2, '0');
+      return `${h}:${m}`;
+    };
+
+    const minAbertura = paraMinutos(aberturaStr);
+    const minFechamento = paraMinutos(fechamentoStr);
+    const minPausaInicio = paraMinutos(pausaInicioStr);
+    const minPausaFim = paraMinutos(pausaFimStr);
+
+    if (minAbertura === null || minFechamento === null || minAbertura >= minFechamento) {
+      return [];
+    }
 
     const horariosGerados = [];
-    for (let h = horaInicio; h < horaFim; h++) {
-      const horaFormatada = `${String(h).padStart(2, '0')}:00`;
-      if (pausaInicio && pausaFim && horaFormatada >= pausaInicio && horaFormatada < pausaFim) continue;
-      horariosGerados.push(horaFormatada);
+    const intervaloMinutos = 60; // Intervalo padrão entre agendamentos
+
+    for (let min = minAbertura; min < minFechamento; min += intervaloMinutos) {
+      // Ocultar os slots que coincidem com a pausa / almoço
+      if (minPausaInicio !== null && minPausaFim !== null) {
+        if (min >= minPausaInicio && min < minPausaFim) {
+          continue;
+        }
+      }
+      horariosGerados.push(paraHoraStr(min));
     }
 
     return horariosGerados;
@@ -454,7 +497,6 @@ export default function AgendamentoChat({ barbeariaId }) {
   };
 
   const renderCartaoFidelidade = () => {
-    // Se a barbearia desativou a fidelidade, não renderiza o componente
     if (barbearia?.fidelidade_ativa === false) return null;
 
     const selos = dadosFidelidade?.selos_atuais || 0;
@@ -691,17 +733,51 @@ export default function AgendamentoChat({ barbeariaId }) {
           )}
 
           {etapa === 'editar_horario' && !estaDigitando && (
-            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 pt-2">
+            <div className="space-y-3 pt-2">
               {horariosDisponiveisAtuais.filter(h => !horariosOcupados.includes(h)).length === 0 ? (
-                <p className="text-xs text-rose-500 font-semibold italic text-center col-span-full py-4">⚠️ Nenhum horário disponível nesta data.</p>
-              ) : (
-                horariosDisponiveisAtuais
-                  .filter(h => !horariosOcupados.includes(h))
-                  .map((h) => (
-                    <button key={h} disabled={loading} onClick={() => salvarEdicaoHorario(h)} className={`py-2.5 rounded-xl text-xs font-black border transition-all backdrop-blur-md cursor-pointer ${isClean ? 'bg-slate-100 text-slate-800 border-slate-300 hover:border-emerald-700' : 'bg-stone-900 text-white border-white/10 hover:border-white/30'}`}>
-                      {h}
+                <div className={`p-5 rounded-3xl border backdrop-blur-xl space-y-4 shadow-xl ${isClean ? 'bg-slate-50 border-slate-200 text-slate-900' : 'bg-stone-900 border-white/15 text-white'}`}>
+                  <div className="flex items-center gap-3 pb-3 border-b border-rose-500/20">
+                    <div className="w-9 h-9 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-500 flex items-center justify-center shrink-0">
+                      <AlertCircle className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-black text-rose-500 uppercase tracking-wider">Horários Indisponíveis</h4>
+                      <p className={`text-[11px] font-medium leading-tight mt-0.5 ${isClean ? 'text-slate-600' : 'text-slate-400'}`}>
+                        Nenhum horário livre nesta data (agenda cheia ou estabelecimento fechado).
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 pt-1">
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block px-1">
+                      O que deseja fazer?
+                    </span>
+                    <button
+                      onClick={() => {
+                        setDataEscolhida('');
+                        setEtapa('editar_data');
+                      }}
+                      className="w-full py-3.5 px-4 rounded-2xl text-xs font-black transition-all cursor-pointer flex items-center justify-between shadow-md hover:scale-[1.01]"
+                      style={{ backgroundColor: corTema, color: '#ffffff' }}
+                    >
+                      <span className="flex items-center gap-2">
+                        <CalendarIcon className="w-4 h-4" />
+                        <span>Escolher outra data</span>
+                      </span>
+                      <ArrowRight className="w-4 h-4" />
                     </button>
-                  ))
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                  {horariosDisponiveisAtuais
+                    .filter(h => !horariosOcupados.includes(h))
+                    .map((h) => (
+                      <button key={h} disabled={loading} onClick={() => salvarEdicaoHorario(h)} className={`py-2.5 rounded-xl text-xs font-black border transition-all backdrop-blur-md cursor-pointer ${isClean ? 'bg-slate-100 text-slate-800 border-slate-300 hover:border-emerald-700' : 'bg-stone-900 text-white border-white/10 hover:border-white/30'}`}>
+                        {h}
+                      </button>
+                    ))}
+                </div>
               )}
             </div>
           )}
@@ -752,30 +828,84 @@ export default function AgendamentoChat({ barbeariaId }) {
           )}
 
           {etapa === 'horario' && !estaDigitando && (
-            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 pt-2">
+            <div className="space-y-3 pt-2">
               {horariosDisponiveisAtuais.filter(h => !horariosOcupados.includes(h)).length === 0 ? (
-                <p className="text-xs text-rose-500 font-semibold italic text-center col-span-full py-4">⚠️ Nenhum horário disponível nesta data (Agenda cheia ou estabelecimento fechado).</p>
+                <div className={`p-5 rounded-3xl border backdrop-blur-xl space-y-4 shadow-xl ${isClean ? 'bg-slate-50 border-slate-200 text-slate-900' : 'bg-stone-900 border-white/15 text-white'}`}>
+                  <div className="flex items-center gap-3 pb-3 border-b border-rose-500/20">
+                    <div className="w-9 h-9 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-500 flex items-center justify-center shrink-0">
+                      <AlertCircle className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-black text-rose-500 uppercase tracking-wider">Horários Indisponíveis</h4>
+                      <p className={`text-[11px] font-medium leading-tight mt-0.5 ${isClean ? 'text-slate-600' : 'text-slate-400'}`}>
+                        Nenhum horário livre nesta data (agenda cheia ou profissional de folga).
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 pt-1">
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block px-1">
+                      O que deseja fazer?
+                    </span>
+
+                    <button
+                      onClick={() => {
+                        setDataEscolhida('');
+                        setEtapa('data');
+                      }}
+                      className="w-full py-3.5 px-4 rounded-2xl text-xs font-black transition-all cursor-pointer flex items-center justify-between shadow-md hover:scale-[1.01]"
+                      style={{ backgroundColor: corTema, color: '#ffffff' }}
+                    >
+                      <span className="flex items-center gap-2">
+                        <CalendarIcon className="w-4 h-4" />
+                        <span>Escolher outra data</span>
+                      </span>
+                      <ArrowRight className="w-4 h-4" />
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setBarbeiroEscolhido(null);
+                        setDataEscolhida('');
+                        setEtapa('barbeiro');
+                      }}
+                      className={`w-full py-3.5 px-4 rounded-2xl border text-xs font-black transition-all cursor-pointer flex items-center justify-between shadow-sm hover:scale-[1.01] ${
+                        isClean 
+                          ? 'bg-slate-100 border-slate-300 text-slate-800 hover:bg-slate-200' 
+                          : 'bg-stone-950 border-white/15 text-white hover:bg-stone-900'
+                      }`}
+                    >
+                      <span className="flex items-center gap-2">
+                        <User className="w-4 h-4 text-slate-400" />
+                        <span>Escolher outro profissional</span>
+                      </span>
+                      <ArrowRight className="w-4 h-4 text-slate-400" />
+                    </button>
+                  </div>
+                </div>
               ) : (
-                horariosDisponiveisAtuais
-                  .filter(h => !horariosOcupados.includes(h))
-                  .map((h) => {
-                    const selecionado = horaEscolhida === h;
-                    return (
-                      <button
-                        key={h}
-                        disabled={loading}
-                        onClick={() => selecionarHorario(h)}
-                        className={`py-2.5 rounded-xl text-xs font-black border transition-all backdrop-blur-md cursor-pointer ${
-                          selecionado
-                            ? 'text-white shadow-lg scale-105'
-                            : isClean ? 'bg-slate-100 text-slate-800 border-slate-300 hover:border-emerald-700' : 'bg-stone-900 text-white border-white/10 hover:border-white/30'
-                        }`}
-                        style={selecionado ? { backgroundColor: corTema, borderColor: corTema } : {}}
-                      >
-                        {h}
-                      </button>
-                    );
-                  })
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                  {horariosDisponiveisAtuais
+                    .filter(h => !horariosOcupados.includes(h))
+                    .map((h) => {
+                      const selecionado = horaEscolhida === h;
+                      return (
+                        <button
+                          key={h}
+                          disabled={loading}
+                          onClick={() => selecionarHorario(h)}
+                          className={`py-2.5 rounded-xl text-xs font-black border transition-all backdrop-blur-md cursor-pointer ${
+                            selecionado
+                              ? 'text-white shadow-lg scale-105'
+                              : isClean ? 'bg-slate-100 text-slate-800 border-slate-300 hover:border-emerald-700' : 'bg-stone-900 text-white border-white/10 hover:border-white/30'
+                          }`}
+                          style={selecionado ? { backgroundColor: corTema, borderColor: corTema } : {}}
+                        >
+                          {h}
+                        </button>
+                      );
+                    })}
+                </div>
               )}
             </div>
           )}
