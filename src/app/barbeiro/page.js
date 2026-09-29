@@ -1,10 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { Calendar, CheckCircle2, Clock, XCircle, RefreshCw, Wallet, TrendingUp } from 'lucide-react';
+import { Calendar, CheckCircle2, Clock, XCircle, RefreshCw, Wallet, TrendingUp, LogOut, Filter, X } from 'lucide-react';
 
 export default function PainelBarbeiro() {
+  const router = useRouter();
   const [agendamentos, setAgendamentos] = useState([]);
   const [comissaoPercentual, setComissaoPercentual] = useState(50);
   const [nomeBarbeiro, setNomeBarbeiro] = useState('');
@@ -15,6 +17,7 @@ export default function PainelBarbeiro() {
   const [processandoId, setProcessandoId] = useState(null);
 
   const [abaAtiva, setAbaAtiva] = useState('dia');
+  const [modalLogoutOpen, setModalLogoutOpen] = useState(false);
 
   const obterDataLocalIso = (d = new Date()) => {
     const ano = d.getFullYear();
@@ -29,6 +32,8 @@ export default function PainelBarbeiro() {
     const hoje = new Date();
     return `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}`;
   });
+
+  const [dataEspecificaHistorico, setDataEspecificaHistorico] = useState('');
 
   const extrairDataIso = (item) => {
     const dataStr = item.data_hora || item.data || item.created_at || '';
@@ -215,6 +220,17 @@ export default function PainelBarbeiro() {
     }
   };
 
+  // REDIRECIONAMENTO AJUSTADO PARA A ROTA CORRETA DO LOGIN ADMIN
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+      window.location.href = '/admin/login';
+    } catch (err) {
+      console.error('Erro ao sair:', err);
+      window.location.href = '/admin/login';
+    }
+  };
+
   const gerarProximosDias = () => {
     const dias = [];
     const hoje = new Date();
@@ -232,7 +248,6 @@ export default function PainelBarbeiro() {
 
   const proximaSemanaDias = gerarProximosDias();
 
-  // --- ATENDIMENTOS DO DIA (APENAS PENDENTES) ---
   const agendamentosDoDiaPendentes = agendamentos.filter(item => {
     const dataMatch = extrairDataIso(item) === dataSelecionada;
     const status = (item.status || 'AGENDADO').toLowerCase();
@@ -240,7 +255,6 @@ export default function PainelBarbeiro() {
     return dataMatch && isPendente;
   });
 
-  // --- CÁLCULO DE FATURAMENTO E COMISSÃO DO DIA (Baseado nos Concluídos do dia) ---
   const totalFaturadoDia = agendamentos
     .filter(item => {
       const dataMatch = extrairDataIso(item) === dataSelecionada;
@@ -255,14 +269,18 @@ export default function PainelBarbeiro() {
 
   const comissaoDia = totalFaturadoDia * (comissaoPercentual / 100);
 
-  // --- CÁLCULO DE FATURAMENTO E COMISSÃO DO MÊS ---
-  const agendamentosFiltradosMes = agendamentos.filter(item => {
-    const rawData = item.data_hora || item.data || item.created_at;
-    if (!rawData) return false;
-    return String(rawData).substring(0, 7) === mesSelecionado;
+  const agendamentosFiltradosHistorico = agendamentos.filter(item => {
+    const isoItem = extrairDataIso(item);
+    if (!isoItem) return false;
+
+    if (dataEspecificaHistorico) {
+      return isoItem === dataEspecificaHistorico;
+    }
+
+    return isoItem.substring(0, 7) === mesSelecionado;
   });
 
-  const totalFaturadoMes = agendamentosFiltradosMes
+  const totalFaturadoHistorico = agendamentosFiltradosHistorico
     .filter(item => {
       const s = (item.status || '').toLowerCase();
       return s.includes('concluid') || s.includes('realizado');
@@ -272,7 +290,7 @@ export default function PainelBarbeiro() {
       return acc + preco;
     }, 0);
 
-  const comissaoMes = totalFaturadoMes * (comissaoPercentual / 100);
+  const comissaoHistorico = totalFaturadoHistorico * (comissaoPercentual / 100);
 
   if (loading) {
     return (
@@ -284,7 +302,7 @@ export default function PainelBarbeiro() {
   }
 
   return (
-    <div className="max-w-xl mx-auto min-h-screen flex flex-col p-3.5 sm:p-5 bg-stone-50 font-sans pb-20 gap-3.5">
+    <div className="max-w-xl mx-auto min-h-screen flex flex-col p-3.5 sm:p-5 bg-stone-50 font-sans pb-24 gap-3.5 relative">
       
       {/* 1. CABEÇALHO DO PERFIL */}
       <div className="bg-white p-4 sm:p-5 rounded-3xl border border-stone-200/80 shadow-xs space-y-4 shrink-0">
@@ -326,7 +344,7 @@ export default function PainelBarbeiro() {
           </span>
         </div>
 
-        {/* CARDS DE GANHOS DO DIA E DO MÊS */}
+        {/* CARDS DE GANHOS DO DIA E DO MÊS/PERÍODO */}
         <div className="grid grid-cols-2 gap-2 pt-1">
           <div className={`p-3.5 rounded-2xl border transition-all ${abaAtiva === 'dia' ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-stone-50 border-stone-200/60'}`}>
             <div className="flex items-center gap-1.5 mb-1">
@@ -345,45 +363,18 @@ export default function PainelBarbeiro() {
             <div className="flex items-center gap-1.5 mb-1">
               <TrendingUp className={`w-3.5 h-3.5 ${abaAtiva === 'mes' ? 'text-emerald-700' : 'text-stone-500'}`} />
               <span className={`text-[10px] font-black uppercase tracking-wider ${abaAtiva === 'mes' ? 'text-emerald-800' : 'text-stone-500'}`}>
-                Comissão Mês
+                {dataEspecificaHistorico ? 'Comissão Data' : 'Comissão Mês'}
               </span>
             </div>
             <span className={`text-base sm:text-lg font-black block ${abaAtiva === 'mes' ? 'text-emerald-700' : 'text-stone-800'}`}>
-              R$ {comissaoMes.toFixed(2)}
+              R$ {comissaoHistorico.toFixed(2)}
             </span>
-            <span className="text-[9px] text-stone-400 font-bold">Total: R$ {totalFaturadoMes.toFixed(2)}</span>
+            <span className="text-[9px] text-stone-400 font-bold">Total: R$ {totalFaturadoHistorico.toFixed(2)}</span>
           </div>
-        </div>
-
-        {/* NAVEGAÇÃO ENTRE ABAS */}
-        <div className="grid grid-cols-2 gap-2 pt-1 border-t border-stone-100">
-          <button
-            onClick={() => setAbaAtiva('dia')}
-            className={`py-2.5 px-3 rounded-2xl text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-2 ${
-              abaAtiva === 'dia'
-                ? 'bg-stone-900 text-white shadow-sm'
-                : 'bg-stone-100 hover:bg-stone-200 text-stone-700'
-            }`}
-          >
-            <Clock className="w-3.5 h-3.5" />
-            <span>Agenda do Dia</span>
-          </button>
-
-          <button
-            onClick={() => setAbaAtiva('mes')}
-            className={`py-2.5 px-3 rounded-2xl text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-2 ${
-              abaAtiva === 'mes'
-                ? 'bg-stone-900 text-white shadow-sm'
-                : 'bg-stone-100 hover:bg-stone-200 text-stone-700'
-            }`}
-          >
-            <Calendar className="w-3.5 h-3.5" />
-            <span>Histórico Mês</span>
-          </button>
         </div>
       </div>
 
-      {/* 2. CONTEÚDO DA ABA 1: AGENDA DO DIA (SÓ PENDENTES) */}
+      {/* 2. CONTEÚDO DA ABA 1: AGENDA DO DIA */}
       {abaAtiva === 'dia' && (
         <div className="space-y-3.5">
           
@@ -529,47 +520,83 @@ export default function PainelBarbeiro() {
         </div>
       )}
 
-      {/* 3. CONTEÚDO DA ABA 2: HISTÓRICO MENSAL */}
+      {/* 3. CONTEÚDO DA ABA 2: HISTÓRICO */}
       {abaAtiva === 'mes' && (
         <div className="space-y-3.5">
           
           <div className="bg-white p-4 sm:p-5 rounded-3xl border border-stone-200/80 shadow-xs space-y-3">
-            <div className="flex items-center justify-between bg-stone-50 px-3.5 py-2 rounded-2xl border border-stone-200/60">
+            <div className="flex items-center justify-between border-b border-stone-100 pb-2">
               <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-stone-600">Filtrar Mês:</span>
-                <input 
-                  type="month" 
-                  value={mesSelecionado}
-                  onChange={(e) => setMesSelecionado(e.target.value)}
-                  className="bg-white border border-stone-200 text-stone-900 text-xs font-bold px-2.5 py-1 rounded-xl focus:outline-none cursor-pointer"
-                />
+                <Filter className="w-3.5 h-3.5 text-stone-500" />
+                <span className="text-xs font-black text-stone-900 uppercase tracking-wider">Filtros do Histórico</span>
               </div>
 
               <button
                 onClick={carregarPainelDoBarbeiro}
-                className="p-2 bg-white hover:bg-stone-100 border border-stone-200 text-stone-700 rounded-xl transition-colors active:scale-95 cursor-pointer shadow-xs"
-                title="Atualizar"
+                className="p-1.5 bg-stone-50 hover:bg-stone-100 border border-stone-200 text-stone-700 rounded-xl transition-colors active:scale-95 cursor-pointer shadow-xs"
+                title="Atualizar dados"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
               </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+              <div className="space-y-1">
+                <label className="text-[10px] font-extrabold uppercase text-stone-400 block">Mês Completo</label>
+                <input 
+                  type="month" 
+                  value={mesSelecionado}
+                  onChange={(e) => {
+                    setMesSelecionado(e.target.value);
+                    setDataEspecificaHistorico('');
+                  }}
+                  className="w-full bg-stone-50 border border-stone-200 text-stone-900 text-xs font-bold px-3 py-2 rounded-2xl focus:outline-none cursor-pointer"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <div className="flex justify-between items-center">
+                  <label className="text-[10px] font-extrabold uppercase text-stone-400 block">Dia Específico</label>
+                  {dataEspecificaHistorico && (
+                    <button 
+                      onClick={() => setDataEspecificaHistorico('')}
+                      className="text-[9px] font-bold text-rose-500 hover:text-rose-700 flex items-center gap-0.5 cursor-pointer"
+                    >
+                      <X className="w-3 h-3" /> Limpar dia
+                    </button>
+                  )}
+                </div>
+                <input 
+                  type="date" 
+                  value={dataEspecificaHistorico}
+                  onChange={(e) => setDataEspecificaHistorico(e.target.value)}
+                  className={`w-full border text-xs font-bold px-3 py-2 rounded-2xl focus:outline-none cursor-pointer transition-colors ${
+                    dataEspecificaHistorico 
+                      ? 'bg-emerald-50 border-emerald-300 text-emerald-900' 
+                      : 'bg-stone-50 border-stone-200 text-stone-900'
+                  }`}
+                />
+              </div>
             </div>
           </div>
 
           <div className="bg-white rounded-3xl border border-stone-200/80 shadow-xs p-4 sm:p-5 space-y-3">
             <div className="flex justify-between items-center pb-2 border-b border-stone-100">
               <h3 className="text-xs font-black text-stone-900 uppercase tracking-wide">
-                Todos os Registros do Mês
+                {dataEspecificaHistorico 
+                  ? `Registros do dia ${dataEspecificaHistorico.split('-').reverse().join('/')}` 
+                  : 'Todos os Registros do Mês'}
               </h3>
-              <span className="text-xs text-stone-400 font-bold">{agendamentosFiltradosMes.length} encontrados</span>
+              <span className="text-xs text-stone-400 font-bold">{agendamentosFiltradosHistorico.length} encontrados</span>
             </div>
 
-            {agendamentosFiltradosMes.length === 0 ? (
+            {agendamentosFiltradosHistorico.length === 0 ? (
               <div className="py-12 text-center text-stone-400 text-xs font-medium">
-                Nenhum agendamento registrado neste mês.
+                Nenhum agendamento encontrado para este filtro.
               </div>
             ) : (
               <div className="space-y-2.5">
-                {agendamentosFiltradosMes.map((item) => {
+                {agendamentosFiltradosHistorico.map((item) => {
                   const cliente = item.cliente_nome || item.cliente?.nome || item.clientes?.nome || item.nome_cliente || item.cliente || 'Cliente';
                   const servico = item.servico_nome || item.servico?.nome || item.servicos?.nome || item.nome_servico || item.servico || 'Serviço';
                   const valor = Number(item.valor_total || item.preco || item.servicos?.preco || item.servico?.preco || 0);
@@ -611,6 +638,100 @@ export default function PainelBarbeiro() {
             )}
           </div>
 
+        </div>
+      )}
+
+      {/* 4. RODAPÉ FIXO DE NAVEGAÇÃO DO BARBEIRO */}
+      <footer className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-stone-200 px-4 py-2 flex items-center justify-around max-w-xl mx-auto shadow-lg">
+        <button
+          type="button"
+          onClick={() => setAbaAtiva('dia')}
+          className={`flex flex-col items-center justify-center py-1 px-3 rounded-2xl transition-all cursor-pointer ${
+            abaAtiva === 'dia'
+              ? 'text-stone-900 font-black scale-105'
+              : 'text-stone-400 hover:text-stone-600 font-semibold'
+          }`}
+        >
+          <div
+            className={`p-2 rounded-xl transition-all ${
+              abaAtiva === 'dia' ? 'bg-stone-900 text-white shadow-sm' : 'bg-transparent'
+            }`}
+          >
+            <Clock className="w-4 h-4" />
+          </div>
+          <span className="text-[10px] mt-0.5 tracking-tight">Agenda</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setAbaAtiva('mes')}
+          className={`flex flex-col items-center justify-center py-1 px-3 rounded-2xl transition-all cursor-pointer ${
+            abaAtiva === 'mes'
+              ? 'text-stone-900 font-black scale-105'
+              : 'text-stone-400 hover:text-stone-600 font-semibold'
+          }`}
+        >
+          <div
+            className={`p-2 rounded-xl transition-all ${
+              abaAtiva === 'mes' ? 'bg-stone-900 text-white shadow-sm' : 'bg-transparent'
+            }`}
+          >
+            <Calendar className="w-4 h-4" />
+          </div>
+          <span className="text-[10px] mt-0.5 tracking-tight">Histórico</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setModalLogoutOpen(true)}
+          className="flex flex-col items-center justify-center py-1 px-3 rounded-2xl text-rose-600 hover:text-rose-700 font-semibold transition-all cursor-pointer"
+          title="Sair / Trocar de Conta"
+        >
+          <div className="p-2 rounded-xl bg-rose-50 text-rose-600 border border-rose-200/80 shadow-2xs">
+            <LogOut className="w-4 h-4" />
+          </div>
+          <span className="text-[10px] mt-0.5 tracking-tight font-black">Sair</span>
+        </button>
+      </footer>
+
+      {/* 5. MODAL CUSTOMIZADO DE CONFIRMAÇÃO DE SAÍDA */}
+      {modalLogoutOpen && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white border border-slate-200 rounded-3xl shadow-2xl w-full max-w-sm p-6 space-y-5 text-center relative text-slate-900">
+            
+            <div className="w-12 h-12 rounded-2xl bg-rose-100 text-rose-600 border border-rose-200 flex items-center justify-center mx-auto shadow-sm">
+              <LogOut className="w-6 h-6" />
+            </div>
+
+            <div className="space-y-1.5">
+              <h3 className="text-base font-black text-slate-900">Deseja realmente sair?</h3>
+              <p className="text-xs font-medium text-slate-500">
+                Você precisará fazer login novamente para acessar o seu painel de agendamentos.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setModalLogoutOpen(false)}
+                className="py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl text-xs font-bold transition-all cursor-pointer border border-slate-200 active:scale-95"
+              >
+                Cancelar
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setModalLogoutOpen(false);
+                  handleLogout();
+                }}
+                className="py-3 px-4 bg-rose-600 hover:bg-rose-700 text-white rounded-2xl text-xs font-bold transition-all cursor-pointer shadow-md active:scale-95 flex items-center justify-center gap-1.5"
+              >
+                <span>Sair da conta</span>
+              </button>
+            </div>
+
+          </div>
         </div>
       )}
 
