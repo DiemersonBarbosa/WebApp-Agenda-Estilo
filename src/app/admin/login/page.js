@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Scissors, Lock, Mail, Store, Phone } from 'lucide-react';
+import { Lock, Mail, Store, Phone, ArrowRight, ShieldCheck, Sparkles } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
 
 function AdminLoginForm() {
@@ -20,13 +20,11 @@ function AdminLoginForm() {
   const [telefone, setTelefone] = useState('');
 
   useEffect(() => {
-    // Se a URL veio com ?mode=register, ativa a aba de cadastro automaticamente
     if (mode === 'register') {
       setIsRegistering(true);
     }
   }, [mode]);
 
-  // Login
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -48,13 +46,11 @@ function AdminLoginForm() {
     }
   };
 
-  // Cadastro de nova barbearia
   const handleRegister = async (e) => {
     e.preventDefault();
     setLoading(true);
     setErrorMessage(null);
 
-    // Gerar slug
     const slug = nomeBarbearia
       .toLowerCase()
       .normalize('NFD')
@@ -74,8 +70,8 @@ function AdminLoginForm() {
 
       if (!res.ok) throw new Error(data.error);
 
-      // Cadastro feito com sucesso! Faça login ou redirecione
       alert('Barbearia cadastrada com sucesso!');
+      router.push('/admin');
     } catch (err) {
       setErrorMessage(err.message);
     } finally {
@@ -84,88 +80,123 @@ function AdminLoginForm() {
   };
 
   return (
-    <div className="min-h-screen bg-stone-100 flex items-center justify-center p-4 font-sans">
-      <div className="bg-white p-8 rounded-3xl shadow-xl border border-stone-200/80 max-w-md w-full space-y-6">
+    <div className="min-h-screen bg-[#f4f4f6] flex flex-col justify-center items-center p-4 sm:p-6 font-sans select-none">
+      
+      {/* CARD PRINCIPAL DE AUTENTICAÇÃO */}
+      <div className="w-full max-w-md bg-white rounded-[2.5rem] border border-stone-200/80 p-6 sm:p-10 shadow-2xl space-y-8 relative overflow-hidden">
         
-        <div className="text-center space-y-2">
-          <div className="w-12 h-12 rounded-2xl bg-stone-900 text-white flex items-center justify-center mx-auto shadow-md">
-            <Scissors className="w-6 h-6" />
+        {/* LOGOTIPO DA MARCA */}
+        <div className="flex flex-col items-center text-center space-y-3 pt-2">
+          <div className="bg-stone-50/80 p-4 rounded-3xl border border-stone-100 shadow-xs w-full flex items-center justify-center">
+            <img 
+              src="/images/logo.png" 
+              alt="Logo AgendaEstilo" 
+              className="h-14 sm:h-16 w-auto object-contain transition-transform hover:scale-105 duration-300"
+            />
           </div>
-          <h2 className="text-xl font-bold text-stone-900">
-            {isRegistering ? 'Cadastrar Minha Barbearia' : 'Painel Gestor'}
-          </h2>
-          <p className="text-xs text-stone-400">
-            {isRegistering ? 'Preencha os dados da sua empresa' : 'Entre com suas credenciais de acesso'}
+          <p className="text-xs text-stone-500 font-medium">
+            {isRegistering 
+              ? 'Preencha os dados da sua empresa' 
+              : 'Entre com suas credenciais de acesso'}
           </p>
         </div>
 
+        {/* ALTERNADOR DE ABAS (ENTRAR / CRIAR CONTA) */}
+        <div className="grid grid-cols-2 gap-1.5 bg-stone-100 p-1.5 rounded-2xl border border-stone-200/60">
+          <button
+            type="button"
+            onClick={() => { setIsRegistering(false); setErrorMessage(null); }}
+            className={`py-2.5 text-xs font-extrabold rounded-xl transition-all cursor-pointer ${
+              !isRegistering 
+                ? 'bg-stone-900 text-white shadow-md' 
+                : 'text-stone-500 hover:text-stone-900'
+            }`}
+          >
+            Entrar
+          </button>
+          <button
+            type="button"
+            onClick={() => { setIsRegistering(true); setErrorMessage(null); }}
+            className={`py-2.5 text-xs font-extrabold rounded-xl transition-all cursor-pointer ${
+              isRegistering 
+                ? 'bg-stone-900 text-white shadow-md' 
+                : 'text-stone-500 hover:text-stone-900'
+            }`}
+          >
+            Cadastrar
+          </button>
+        </div>
+
+        {/* MENSAGEM DE ERRO */}
         {errorMessage && (
-          <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl">
+          <div className="bg-rose-50 border border-rose-200 text-rose-700 p-3.5 rounded-2xl text-xs font-semibold text-center">
             {errorMessage}
           </div>
         )}
 
+        {/* FORMULÁRIO */}
         <form onSubmit={isRegistering ? handleRegister : handleLogin} className="space-y-4">
+          
           {isRegistering && (
             <>
-              <div>
-                <label className="block text-xs font-semibold text-stone-600 mb-1">Nome da Barbearia</label>
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-stone-700">Nome da Barbearia</label>
                 <div className="relative">
-                  <Store className="w-4 h-4 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <Store className="w-4 h-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
                     required
                     placeholder="Ex: Barbearia Navalha de Ouro"
                     value={nomeBarbearia}
                     onChange={(e) => setNomeBarbearia(e.target.value)}
-                    className="w-full pl-9 pr-3 py-3 rounded-xl bg-stone-50 border border-stone-200 text-xs text-stone-800 focus:outline-none focus:border-stone-900"
+                    className="w-full pl-10 pr-4 py-3 bg-stone-50 border border-stone-200 rounded-2xl text-xs text-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-900 font-medium"
                   />
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-stone-600 mb-1">Telefone / WhatsApp</label>
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-stone-700">Telefone / WhatsApp</label>
                 <div className="relative">
-                  <Phone className="w-4 h-4 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <Phone className="w-4 h-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
                     required
                     placeholder="(00) 00000-0000"
                     value={telefone}
                     onChange={(e) => setTelefone(e.target.value)}
-                    className="w-full pl-9 pr-3 py-3 rounded-xl bg-stone-50 border border-stone-200 text-xs text-stone-800 focus:outline-none focus:border-stone-900"
+                    className="w-full pl-10 pr-4 py-3 bg-stone-50 border border-stone-200 rounded-2xl text-xs text-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-900 font-medium"
                   />
                 </div>
               </div>
             </>
           )}
 
-          <div>
-            <label className="block text-xs font-semibold text-stone-600 mb-1">E-mail</label>
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-stone-700">E-mail</label>
             <div className="relative">
-              <Mail className="w-4 h-4 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <Mail className="w-4 h-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="email"
                 required
                 placeholder="seuemail@exemplo.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full pl-9 pr-3 py-3 rounded-xl bg-stone-50 border border-stone-200 text-xs text-stone-800 focus:outline-none focus:border-stone-900"
+                className="w-full pl-10 pr-4 py-3 bg-stone-50 border border-stone-200 rounded-2xl text-xs text-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-900 font-medium"
               />
             </div>
           </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-stone-600 mb-1">Senha</label>
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-stone-700">Senha</label>
             <div className="relative">
-              <Lock className="w-4 h-4 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <Lock className="w-4 h-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="password"
                 required
-                placeholder="••••••••"
+                placeholder="••••••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full pl-9 pr-3 py-3 rounded-xl bg-stone-50 border border-stone-200 text-xs text-stone-800 focus:outline-none focus:border-stone-900"
+                className="w-full pl-10 pr-4 py-3 bg-stone-50 border border-stone-200 rounded-2xl text-xs text-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-900 font-medium"
               />
             </div>
           </div>
@@ -173,26 +204,34 @@ function AdminLoginForm() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-stone-900 hover:bg-stone-800 text-white font-semibold py-3.5 rounded-2xl text-xs uppercase tracking-wider transition-all shadow-md disabled:opacity-50"
+            className="w-full py-4 bg-[#111111] hover:bg-stone-800 text-white text-xs font-extrabold rounded-2xl shadow-lg transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-2 mt-4 uppercase tracking-wider"
           >
-            {loading ? 'Processando...' : isRegistering ? 'Criar Conta e Cadastrar' : 'Entrar no Painel'}
+            <span>{loading ? 'Aguarde...' : isRegistering ? 'Criar Conta e Cadastrar' : 'Entrar no Painel'}</span>
+            <ArrowRight className="w-4 h-4" />
           </button>
         </form>
 
-        <div className="text-center pt-2">
-          <button
-            type="button"
-            onClick={() => {
-              setIsRegistering(!isRegistering);
-              setErrorMessage(null);
-            }}
-            className="text-xs text-stone-500 hover:text-stone-900 font-medium underline"
-          >
-            {isRegistering ? 'Já tem uma conta? Faça login' : 'Quer cadastrar sua barbearia? Clique aqui'}
-          </button>
-        </div>
+        {/* BENEFÍCIOS EXTRAS NO CADASTRO CENTRALIZADOS */}
+        {isRegistering && (
+          <div className="pt-3 border-t border-stone-100 flex flex-col items-center justify-center space-y-2 text-[11px] text-stone-500 text-center">
+            <div className="flex items-center justify-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>7 dias de teste grátis sem compromisso</span>
+            </div>
+            <div className="flex items-center justify-center gap-2">
+              <Sparkles className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>Acesso instantâneo ao painel completo</span>
+            </div>
+          </div>
+        )}
 
       </div>
+
+      {/* RODAPÉ */}
+      <div className="mt-8 text-center text-xs text-stone-400 font-medium">
+        <p>© 2026 Todos os direitos reservados.</p>
+      </div>
+
     </div>
   );
 }

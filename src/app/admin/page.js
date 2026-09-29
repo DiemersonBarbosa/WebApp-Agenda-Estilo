@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
-import {
+import { useRouter, useSearchParams } from 'next/navigation';
+import { 
   CalendarCheck,
   Users,
   DollarSign,
@@ -35,7 +35,12 @@ import {
   MessageCircleCheck,
   ShoppingCart,
   ShoppingBag,
-  Award
+  Award,
+  Mail,
+  ArrowRight,
+  ShieldCheck,
+  Sparkles,
+  Phone
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
@@ -72,6 +77,220 @@ async function criarAcessoBarbeiro(barbeiroId, emailBarbeiro, senhaTemporaria) {
   } catch (error) {
     alert('Erro: ' + error.message);
   }
+}
+
+/* COMPONENTE DE LOGIN E CADASTRO ATUALIZADO */
+function AuthForm({ onAuthSuccess }) {
+  const searchParams = useSearchParams();
+
+  const [isRegister, setIsRegister] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [nomeBarbearia, setNomeBarbearia] = useState('');
+  const [telefone, setTelefone] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+
+  useEffect(() => {
+    if (searchParams?.get('mode') === 'register') {
+      setIsRegister(true);
+    }
+  }, [searchParams]);
+
+  const handleAuth = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setErrorMsg('');
+
+    try {
+      if (isRegister) {
+        if (!nomeBarbearia.trim()) {
+          throw new Error('Por favor, informe o nome do seu estabelecimento.');
+        }
+
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+          email,
+          password,
+        });
+
+        if (authError) throw authError;
+
+        if (authData.user) {
+          const { error: barbError } = await supabase.from('barbearias').insert([
+            {
+              user_id: authData.user.id,
+              nome: nomeBarbearia,
+              telefone: telefone,
+              status_assinatura: 'teste',
+            },
+          ]);
+
+          if (barbError) throw barbError;
+          if (onAuthSuccess) onAuthSuccess();
+        }
+      } else {
+        const { error: loginError } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+        if (loginError) throw loginError;
+        if (onAuthSuccess) onAuthSuccess();
+      }
+    } catch (err) {
+      setErrorMsg(err.message || 'Ocorreu um erro ao processar. Tente novamente.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-[#f4f4f6] flex flex-col justify-center items-center p-4 sm:p-6 font-sans select-none">
+      <div className="w-full max-w-md bg-white rounded-[2.5rem] border border-stone-200/80 p-6 sm:p-10 shadow-2xl space-y-8 relative overflow-hidden">
+        
+        {/* LOGOTIPO DA MARCA */}
+        <div className="flex flex-col items-center text-center space-y-3 pt-2">
+          <div className="bg-stone-50/80 p-4 rounded-3xl border border-stone-100 shadow-xs w-full flex items-center justify-center">
+            <img 
+              src="/images/logo.png" 
+              alt="Logo AgendaEstilo" 
+              className="h-14 sm:h-16 w-auto object-contain transition-transform hover:scale-105 duration-300"
+            />
+          </div>
+          <p className="text-xs text-stone-500 font-medium">
+            {isRegister 
+              ? 'Preencha os dados da sua empresa' 
+              : 'Entre com suas credenciais de acesso'}
+          </p>
+        </div>
+
+        {/* ALTERNADOR DE ABAS (ENTRAR / CRIAR CONTA) */}
+        <div className="grid grid-cols-2 gap-1.5 bg-stone-100 p-1.5 rounded-2xl border border-stone-200/60">
+          <button
+            type="button"
+            onClick={() => { setIsRegister(false); setErrorMsg(''); }}
+            className={`py-2.5 text-xs font-extrabold rounded-xl transition-all cursor-pointer ${
+              !isRegister 
+                ? 'bg-stone-900 text-white shadow-md' 
+                : 'text-stone-500 hover:text-stone-900'
+            }`}
+          >
+            Entrar
+          </button>
+          <button
+            type="button"
+            onClick={() => { setIsRegister(true); setErrorMsg(''); }}
+            className={`py-2.5 text-xs font-extrabold rounded-xl transition-all cursor-pointer ${
+              isRegister 
+                ? 'bg-stone-900 text-white shadow-md' 
+                : 'text-stone-500 hover:text-stone-900'
+            }`}
+          >
+            Cadastrar
+          </button>
+        </div>
+
+        {/* MENSAGEM DE ERRO */}
+        {errorMsg && (
+          <div className="bg-rose-50 border border-rose-200 text-rose-700 p-3.5 rounded-2xl text-xs font-semibold text-center">
+            {errorMsg}
+          </div>
+        )}
+
+        {/* FORMULÁRIO */}
+        <form onSubmit={handleAuth} className="space-y-4">
+          {isRegister && (
+            <>
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-stone-700">Nome da Barbearia</label>
+                <div className="relative">
+                  <Store className="w-4 h-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ex: Barbearia Navalha de Ouro"
+                    value={nomeBarbearia}
+                    onChange={(e) => setNomeBarbearia(e.target.value)}
+                    className="w-full pl-10 pr-4 py-3 bg-stone-50 border border-stone-200 rounded-2xl text-xs text-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-900 font-medium"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-stone-700">Telefone / WhatsApp</label>
+                <div className="relative">
+                  <Phone className="w-4 h-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="tel"
+                    placeholder="(00) 00000-0000"
+                    value={telefone}
+                    onChange={(e) => setTelefone(e.target.value)}
+                    className="w-full pl-10 pr-4 py-3 bg-stone-50 border border-stone-200 rounded-2xl text-xs text-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-900 font-medium"
+                  />
+                </div>
+              </div>
+            </>
+          )}
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-stone-700">E-mail</label>
+            <div className="relative">
+              <Mail className="w-4 h-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="email"
+                required
+                placeholder="seuemail@exemplo.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full pl-10 pr-4 py-3 bg-stone-50 border border-stone-200 rounded-2xl text-xs text-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-900 font-medium"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-stone-700">Senha</label>
+            <div className="relative">
+              <Lock className="w-4 h-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="password"
+                required
+                placeholder="••••••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full pl-10 pr-4 py-3 bg-stone-50 border border-stone-200 rounded-2xl text-xs text-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-900 font-medium"
+              />
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-4 bg-[#111111] hover:bg-stone-800 text-white text-xs font-extrabold rounded-2xl shadow-lg transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-2 mt-4 uppercase tracking-wider"
+          >
+            <span>{loading ? 'Aguarde...' : isRegister ? 'Criar Conta e Cadastrar' : 'Entrar no Painel'}</span>
+            <ArrowRight className="w-4 h-4" />
+          </button>
+        </form>
+
+        {isRegister && (
+          <div className="pt-3 border-t border-stone-100 space-y-2 text-[11px] text-stone-500">
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>7 dias de teste grátis sem compromisso</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>Acesso instantâneo ao painel completo</span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="mt-8 text-center text-xs text-stone-400 font-medium">
+        <p>© 2026 Todos os direitos reservados.</p>
+      </div>
+    </div>
+  );
 }
 
 export default function AdminDashboard() {
@@ -299,49 +518,50 @@ export default function AdminDashboard() {
     }
   }, []);
 
-  useEffect(() => {
-    const checkAuthAndLoad = async () => {
-      setLoading(true);
+  const checkAuthAndLoad = useCallback(async () => {
+    setLoading(true);
 
-      const { data: { session } } = await supabase.auth.getSession();
+    const { data: { session } } = await supabase.auth.getSession();
 
-      if (!session) {
-        router.push('/admin/login');
-        return;
-      }
+    if (!session) {
+      setUser(null);
+      setLoading(false);
+      return;
+    }
 
-      const { data: barbeiroCheck } = await supabase
-        .from('barbeiros')
-        .select('id')
-        .eq('user_id', session.user.id)
-        .single();
+    const { data: barbeiroCheck } = await supabase
+      .from('barbeiros')
+      .select('id')
+      .eq('user_id', session.user.id)
+      .single();
 
-      if (barbeiroCheck) {
-        router.push('/barbeiro');
-        return;
-      }
+    if (barbeiroCheck) {
+      router.push('/barbeiro');
+      return;
+    }
 
-      setUser(session.user);
+    setUser(session.user);
 
-      const { data: barbData, error: barbError } = await supabase
-        .from('barbearias')
-        .select('*')
-        .eq('user_id', session.user.id)
-        .single();
+    const { data: barbData, error: barbError } = await supabase
+      .from('barbearias')
+      .select('*')
+      .eq('user_id', session.user.id)
+      .single();
 
-      if (barbError || !barbData) {
-        setErrorMessage('Barbearia não encontrada.');
-        setLoading(false);
-        return;
-      }
+    if (barbError || !barbData) {
+      setErrorMessage('Barbearia não encontrada.');
+      setLoading(false);
+      return;
+    }
 
-      setBarbearia(barbData);
-      verificarStatusAssinatura(barbData);
-      await loadDashboardData(barbData.id);
-    };
-
-    checkAuthAndLoad();
+    setBarbearia(barbData);
+    verificarStatusAssinatura(barbData);
+    await loadDashboardData(barbData.id);
   }, [router, loadDashboardData]);
+
+  useEffect(() => {
+    checkAuthAndLoad();
+  }, [checkAuthAndLoad]);
 
   useEffect(() => {
     let intervalId;
@@ -405,6 +625,7 @@ export default function AdminDashboard() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
+    setUser(null);
     router.push('/admin/login');
   };
 
@@ -760,6 +981,11 @@ export default function AdminDashboard() {
     );
   }
 
+  /* RENDERIZAÇÃO DO FORMULÁRIO DE LOGIN/CADASTRO QUANDO NÃO HÁ USUÁRIO AUTENTICADO */
+  if (!user) {
+    return <AuthForm onAuthSuccess={checkAuthAndLoad} />;
+  }
+
   return (
     <div className="min-h-screen bg-stone-100 text-stone-800 flex flex-col font-sans relative select-none">
       <style dangerouslySetInnerHTML={{ __html: `
@@ -788,26 +1014,18 @@ export default function AdminDashboard() {
           </div>
         )}
 
+        {/* HEADER MOBILE COM LOGOTIPO */}
         <header className="w-full sticky top-0 z-30 md:hidden">
           <div className="w-full bg-white/80 backdrop-blur-xl border-b border-white/80 px-5 py-2.5 flex items-center justify-between shadow-[0_10px_30px_rgba(0,0,0,0.04)]">
             <div className="flex items-center gap-3 min-w-0">
-              {barbearia?.logo || barbearia?.logo_url || barbearia?.avatar || barbearia?.imagem ? (
-                <div className="relative">
-                  <img 
-                    src={barbearia.logo || barbearia.logo_url || barbearia.avatar || barbearia.imagem} 
-                    alt="Logo" 
-                    className="w-10 h-10 rounded-2xl object-cover border border-white/90 shadow-sm"
-                  />
-                  <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 border-2 border-white rounded-full"></span>
-                </div>
-              ) : (
-                <div className="w-10 h-10 bg-stone-900 text-white rounded-2xl flex items-center justify-center font-bold text-sm shadow-sm">
-                  {(barbearia?.nome || 'B').charAt(0)}
-                </div>
-              )}
+              <img 
+                src="/images/logo.png" 
+                alt="AgendaEstilo" 
+                className="h-8 w-auto object-contain shrink-0"
+              />
               <div className="min-w-0">
-                <h1 className="font-black text-stone-900 text-sm tracking-tight truncate">
-                  {barbearia?.nome || 'Patyoliiiver'}
+                <h1 className="font-black text-stone-900 text-xs tracking-tight truncate">
+                  {barbearia?.nome || 'Minha Barbearia'}
                 </h1>
               </div>
             </div>
@@ -883,55 +1101,7 @@ export default function AdminDashboard() {
         )}
       </main>
 
-      <nav 
-        aria-label="Navegação inferior mobile"
-        style={{ display: mobileMenuOpen ? 'none' : undefined }}
-        className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-stone-200 px-4 py-2 z-40 flex items-center justify-between shadow-lg"
-      >
-        <button 
-          onClick={() => setActiveTab('financeiro')}
-          className={`flex flex-col items-center space-y-1 transition-colors cursor-pointer ${activeTab === 'financeiro' ? 'text-stone-900 font-bold' : 'text-stone-400 font-medium'}`}
-        >
-          <TrendingUp className="w-5 h-5" />
-          <span className="text-[10px]">Financeiro</span>
-        </button>
-
-        <button 
-          onClick={() => setActiveTab('agendamentos')}
-          className={`flex flex-col items-center space-y-1 transition-colors cursor-pointer ${activeTab === 'agendamentos' ? 'text-stone-900 font-bold' : 'text-stone-400 font-medium'}`}
-        >
-          <Calendar className="w-5 h-5" />
-          <span className="text-[10px]">Agenda</span>
-        </button>
-
-        <div className="relative -top-3">
-          <button 
-            onClick={() => setMobileMenuOpen(true)}
-            className="w-12 h-12 bg-stone-900 text-white rounded-full flex items-center justify-center shadow-md active:scale-95 transition-transform border-4 border-white cursor-pointer"
-            aria-label="Abrir Menu de Acesso Rápido"
-          >
-            <Menu className="w-5 h-5" />
-          </button>
-        </div>
-
-        <button 
-          onClick={() => setActiveTab('clientes')}
-          className={`flex flex-col items-center space-y-1 transition-colors cursor-pointer ${activeTab === 'clientes' ? 'text-stone-900 font-bold' : 'text-stone-400 font-medium'}`}
-        >
-          <Users className="w-5 h-5" />
-          <span className="text-[10px]">Clientes</span>
-        </button>
-
-        <button 
-          onClick={() => setActiveTab('configuracoes')}
-          className={`flex flex-col items-center space-y-1 transition-colors cursor-pointer ${activeTab === 'configuracoes' ? 'text-stone-900 font-bold' : 'text-stone-400 font-medium'}`}
-        >
-          <Settings className="w-5 h-5" />
-          <span className="text-[10px]">Ajustes</span>
-        </button>
-      </nav>
-
-      {/* PAINEL DE GAVETA DE APPS NO MOBILE (FECHA AO TOCAR FORA, MANTÉM TUDO VISÍVEL) */}
+      {/* PAINEL DE GAVETA DE APPS NO MOBILE */}
       {mobileMenuOpen && (
         <div className="fixed inset-0 z-[60] flex md:hidden items-end justify-center">
           <div 
@@ -1131,6 +1301,7 @@ export default function AdminDashboard() {
       )}
 
       <div className="flex flex-1">
+        {/* BARRA LATERAL DESKTOP COM LOGOTIPO */}
         <aside 
           className="hidden md:flex flex-col w-72 p-5 select-none shrink-0 fixed left-0 top-0 h-screen overflow-y-auto justify-between border-r border-slate-200 z-40 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-slate-50 [&::-webkit-scrollbar-thumb]:bg-slate-300 [&::-webkit-scrollbar-thumb]:rounded-full"
           style={{
@@ -1139,26 +1310,13 @@ export default function AdminDashboard() {
           }}
         >
           <div className="space-y-5 w-full">
-            <div 
-              className="flex items-center gap-3.5 px-4 py-3.5 rounded-2xl border border-slate-200/80 shadow-sm relative overflow-hidden bg-slate-50"
-            >
-              {barbearia?.logo || barbearia?.logo_url || barbearia?.avatar || barbearia?.imagem ? (
-                <img 
-                  src={barbearia.logo || barbearia.logo_url || barbearia.avatar || barbearia.imagem} 
-                  alt={barbearia?.nome || "Barbearia"} 
-                  className="w-10 h-10 rounded-xl object-cover border border-slate-200 shadow-sm shrink-0"
-                />
-              ) : (
-                <div className="w-10 h-10 rounded-xl bg-stone-900 text-white flex items-center justify-center shadow-md border border-stone-800 shrink-0">
-                  <Store className="w-5 h-5 text-slate-300" />
-                </div>
-              )}
-              <div className="min-w-0 pr-1">
-                <h1 className="font-black text-slate-900 text-xs leading-tight truncate" title={barbearia?.nome}>
-                  {barbearia?.nome || 'Minha Barbearia'}
-                </h1>
-                <span className="text-[9px] font-extrabold text-slate-500 uppercase tracking-widest block mt-0.5">Painel Gestor</span>
-              </div>
+            {/* LOGOTIPO NO TOPO DA SIDEBAR */}
+            <div className="flex items-center justify-center px-4 py-3.5 rounded-2xl border border-slate-200/80 shadow-xs bg-slate-50/50">
+              <img 
+                src="/images/logo.png" 
+                alt="AgendaEstilo" 
+                className="h-12 w-auto object-contain"
+              />
             </div>
 
             <nav className="space-y-1.5 pt-1 w-full">
