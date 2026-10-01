@@ -352,7 +352,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
   };
 
   return (
-    <div className="w-full px-2.5 sm:px-4 pt-3 pb-24 text-slate-950 font-sans">
+    <div className="w-full min-h-screen px-2.5 sm:px-4 pt-3 pb-32 text-slate-950 font-sans touch-pan-y overflow-y-auto">
       
       <form onSubmit={handleSubmit} className="space-y-6 w-full">
         
@@ -481,7 +481,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto overscroll-contain p-6 space-y-6">
+            <div className="flex-1 overflow-y-auto touch-pan-y overscroll-contain p-6 space-y-6">
               <div className="space-y-4">
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-700 block">Nome da Barbearia</label>
@@ -572,7 +572,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto overscroll-contain p-6 space-y-6">
+            <div className="flex-1 overflow-y-auto touch-pan-y overscroll-contain p-6 space-y-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* Upload Logo */}
                 <div className="space-y-2">
@@ -717,7 +717,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto overscroll-contain p-6 space-y-6">
+            <div className="flex-1 overflow-y-auto touch-pan-y overscroll-contain p-6 space-y-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 <div 
                   onClick={() => setModoAtendimento('conversacional')}
@@ -828,7 +828,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto overscroll-contain p-6 space-y-6">
+            <div className="flex-1 overflow-y-auto touch-pan-y overscroll-contain p-6 space-y-6">
               {/* SELETOR DE BARBEIROS (2 POR LINHA) */}
               <div className="space-y-2">
                 <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">
@@ -1020,7 +1020,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto overscroll-contain p-6 sm:p-8 space-y-6">
+            <div className="flex-1 overflow-y-auto touch-pan-y overscroll-contain p-6 sm:p-8 space-y-6">
               
               {/* Controle Geral */}
               <div className="bg-slate-50 rounded-2xl border border-slate-200 p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
@@ -1086,7 +1086,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                   ) : listaBloqueios.length === 0 ? (
                     <p className="text-[11px] text-slate-400 italic">Nenhuma data bloqueada cadastrada.</p>
                   ) : (
-                    <div className="space-y-1.5 max-h-40 overflow-y-auto overscroll-contain pr-1">
+                    <div className="space-y-1.5 max-h-40 overflow-y-auto touch-pan-y overscroll-contain pr-1">
                       {listaBloqueios.map((bloqueio) => {
                         const dataFmt = bloqueio.data_bloqueio.split('-').reverse().join('/');
                         return (
