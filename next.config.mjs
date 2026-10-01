@@ -1,5 +1,13 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Ativa a exportação estática de arquivos para o Capacitor ler na pasta 'out'
+  output: 'export',
+
+  // Desativa a otimização nativa de imagens do servidor do Next (necessário para o export estático)
+  images: {
+    unoptimized: true,
+  },
+
   // Desativa completamente o ícone de desenvolvimento nas versões mais novas
   devIndicators: false,
 
