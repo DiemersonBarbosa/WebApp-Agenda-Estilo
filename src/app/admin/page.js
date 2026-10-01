@@ -1014,35 +1014,54 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* HEADER MOBILE COM LOGOTIPO */}
-        <header className="w-full sticky top-0 z-30 md:hidden">
-          <div className="w-full bg-white/80 backdrop-blur-xl border-b border-white/80 px-5 py-2.5 flex items-center justify-between shadow-[0_10px_30px_rgba(0,0,0,0.04)]">
-            <div className="flex items-center gap-3 min-w-0">
-              <img 
-                src="/images/logo.png" 
-                alt="AgendaEstilo" 
-                className="h-8 w-auto object-contain shrink-0"
-              />
-              <div className="min-w-0">
-                <h1 className="font-black text-stone-900 text-xs tracking-tight truncate">
-                  {barbearia?.nome || 'Minha Barbearia'}
-                </h1>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <NotificacoesBell barbeariaId={barbearia?.id} supabase={supabase} />
-
-              <button 
-                onClick={() => setModalInfoAssinaturaOpen(true)} 
-                className="w-9 h-9 rounded-full bg-white border border-stone-200/80 flex items-center justify-center text-stone-700 shadow-xs hover:bg-stone-50 transition-colors cursor-pointer"
-                title="Ajustes"
-              >
-                <Settings className="w-4 h-4" />
-              </button>
-            </div>
+       {/* HEADER MOBILE MODERNO E PROFISSIONAL */}
+<header className="w-full sticky top-0 z-30 md:hidden">
+  <div className="w-full bg-white/90 backdrop-blur-xl border-b border-stone-200/80 px-4 py-3 flex items-center justify-between shadow-xs">
+    
+    {/* FOTO E NOME DA BARBEARIA */}
+    <div className="flex items-center gap-3 min-w-0">
+      <div className="relative shrink-0">
+        {barbearia?.logo_url || barbearia?.foto ? (
+          <img 
+            src={barbearia?.logo_url || barbearia?.foto} 
+            alt={barbearia?.nome || 'Barbearia'} 
+            className="w-10 h-10 rounded-2xl object-cover border border-stone-200/90 shadow-xs"
+          />
+        ) : (
+          <div className="w-10 h-10 rounded-2xl bg-stone-900 text-white font-extrabold flex items-center justify-center text-xs shadow-xs border border-stone-800">
+            {(barbearia?.nome || 'B').charAt(0).toUpperCase()}
           </div>
-        </header>
+        )}
+        
+        {/* Indicador de sistema ativo */}
+        <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full" />
+      </div>
+
+      <div className="flex flex-col min-w-0">
+        <h1 className="font-black text-stone-900 text-sm tracking-tight truncate leading-snug">
+          {barbearia?.nome || 'Minha Barbearia'}
+        </h1>
+        <span className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider">
+          Painel do Gestor
+        </span>
+      </div>
+    </div>
+
+    {/* SINO E CONFIGURAÇÕES MANTIDOS */}
+    <div className="flex items-center gap-2 shrink-0">
+      <NotificacoesBell barbeariaId={barbearia?.id} supabase={supabase} />
+
+      <button 
+        onClick={() => setModalInfoAssinaturaOpen(true)} 
+        className="w-9 h-9 rounded-full bg-white border border-stone-200/80 flex items-center justify-center text-stone-700 shadow-xs hover:bg-stone-50 transition-colors cursor-pointer"
+        title="Ajustes"
+      >
+        <Settings className="w-4 h-4" />
+      </button>
+    </div>
+
+  </div>
+</header>
       </div>
 
       <main className="...">

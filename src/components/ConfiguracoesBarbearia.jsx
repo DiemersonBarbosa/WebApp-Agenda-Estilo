@@ -81,30 +81,6 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
     ? `${window.location.origin}/agendar/${slug || barbearia?.slug || 'barbearia'}`
     : `https://seuapp.com/agendar/${slug || 'barbearia'}`;
 
-  // =========================================================================
-  // TRAVA A ROLAGEM E DESLIZE APENAS MIENTRAS ESTIVER NESTA TELA
-  // =========================================================================
-  useEffect(() => {
-    // Adiciona a classe de travamento no body
-    document.body.classList.add('travar-scroll-painel');
-
-    // Impede o evento touchmove (deslize do dedo) fora das modais
-    const travarTouchInvoluntario = (e) => {
-      if (e.target.closest('.overflow-y-auto')) {
-        return; // Permite rolar apenas dentro do conteúdo das modais
-      }
-      e.preventDefault();
-    };
-
-    document.addEventListener('touchmove', travarTouchInvoluntario, { passive: false });
-
-    // Remove o travamento automaticamente quando o componente for desmontado (troca de aba)
-    return () => {
-      document.body.classList.remove('travar-scroll-painel');
-      document.removeEventListener('touchmove', travarTouchInvoluntario);
-    };
-  }, []);
-
   useEffect(() => {
     async function carregarBarbeiros() {
       if (!barbearia?.id) return;
@@ -376,7 +352,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
   };
 
   return (
-    <div className="w-full overscroll-none px-2.5 sm:px-4 pt-3 pb-24 text-slate-950 font-sans">
+    <div className="w-full px-2.5 sm:px-4 pt-3 pb-24 text-slate-950 font-sans">
       
       <form onSubmit={handleSubmit} className="space-y-6 w-full">
         
@@ -483,8 +459,8 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
       {/* 1. MODAL: GERAL & PERFIL                  */}
       {/* ========================================== */}
       {modalAtiva === 'geral' && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-fade-in">
-          <div className="bg-white border border-slate-200 rounded-[2.5rem] shadow-2xl w-full max-w-xl max-h-[90vh] flex flex-col overflow-hidden relative text-slate-900">
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-[2.5rem] shadow-2xl w-full max-w-xl max-h-[85vh] flex flex-col overflow-hidden relative text-slate-900">
             
             <div className="flex items-center justify-between p-6 border-b border-slate-100 shrink-0 bg-slate-50">
               <div className="flex items-center gap-3">
@@ -505,7 +481,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+            <div className="flex-1 overflow-y-auto overscroll-contain p-6 space-y-6">
               <div className="space-y-4">
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-700 block">Nome da Barbearia</label>
@@ -574,8 +550,8 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
       {/* 2. MODAL: VISUAL & MÍDIA                  */}
       {/* ========================================== */}
       {modalAtiva === 'visual' && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-fade-in">
-          <div className="bg-white border border-slate-200 rounded-[2.5rem] shadow-2xl w-full max-w-xl max-h-[90vh] flex flex-col overflow-hidden relative text-slate-900">
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-[2.5rem] shadow-2xl w-full max-w-xl max-h-[85vh] flex flex-col overflow-hidden relative text-slate-900">
             
             <div className="flex items-center justify-between p-6 border-b border-slate-100 shrink-0 bg-slate-50">
               <div className="flex items-center gap-3">
@@ -596,7 +572,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+            <div className="flex-1 overflow-y-auto overscroll-contain p-6 space-y-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* Upload Logo */}
                 <div className="space-y-2">
@@ -719,8 +695,8 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
       {/* 3. MODAL: ATENDIMENTO                    */}
       {/* ========================================== */}
       {modalAtiva === 'atendimento' && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-fade-in">
-          <div className="bg-white border border-slate-200 rounded-[2.5rem] shadow-2xl w-full max-w-xl max-h-[90vh] flex flex-col overflow-hidden relative text-slate-900">
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-[2.5rem] shadow-2xl w-full max-w-xl max-h-[85vh] flex flex-col overflow-hidden relative text-slate-900">
             
             <div className="flex items-center justify-between p-6 border-b border-slate-100 shrink-0 bg-slate-50">
               <div className="flex items-center gap-3">
@@ -741,7 +717,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+            <div className="flex-1 overflow-y-auto overscroll-contain p-6 space-y-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 <div 
                   onClick={() => setModoAtendimento('conversacional')}
@@ -830,8 +806,8 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
       {/* 4. MODAL: CONFIGURAR HORÁRIOS (BARBEIROS)  */}
       {/* ========================================== */}
       {modalAtiva === 'barbeiros_horarios' && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-fade-in">
-          <div className="bg-white border border-slate-200 rounded-[2.5rem] shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden relative text-slate-900">
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-[2.5rem] shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden relative text-slate-900">
             
             <div className="flex items-center justify-between p-6 border-b border-slate-100 shrink-0 bg-slate-50">
               <div className="flex items-center gap-3">
@@ -852,7 +828,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+            <div className="flex-1 overflow-y-auto overscroll-contain p-6 space-y-6">
               {/* SELETOR DE BARBEIROS (2 POR LINHA) */}
               <div className="space-y-2">
                 <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">
@@ -1022,8 +998,8 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
       {/* MODAL SECUNDÁRIA: FUNCIONAMENTO GERAL       */}
       {/* ========================================== */}
       {modalHorariosGeraisOpen && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-fade-in">
-          <div className="bg-white border border-slate-200 rounded-[2.5rem] shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden relative text-slate-900">
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-[2.5rem] shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden relative text-slate-900">
             
             <div className="flex items-center justify-between p-6 sm:p-8 border-b border-slate-100 shrink-0 bg-slate-50">
               <div className="flex items-center gap-3">
@@ -1044,7 +1020,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-6 sm:p-8 space-y-6">
+            <div className="flex-1 overflow-y-auto overscroll-contain p-6 sm:p-8 space-y-6">
               
               {/* Controle Geral */}
               <div className="bg-slate-50 rounded-2xl border border-slate-200 p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
@@ -1110,7 +1086,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                   ) : listaBloqueios.length === 0 ? (
                     <p className="text-[11px] text-slate-400 italic">Nenhuma data bloqueada cadastrada.</p>
                   ) : (
-                    <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+                    <div className="space-y-1.5 max-h-40 overflow-y-auto overscroll-contain pr-1">
                       {listaBloqueios.map((bloqueio) => {
                         const dataFmt = bloqueio.data_bloqueio.split('-').reverse().join('/');
                         return (
@@ -1183,7 +1159,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
 
       {/* MODAL DE COMPARTILHAMENTO */}
       {modalCompartilharOpen && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-fade-in">
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
           <div className="bg-white border border-slate-200 rounded-3xl shadow-2xl w-full max-w-md p-6 sm:p-8 space-y-6 relative text-slate-900">
             <button 
               type="button"
