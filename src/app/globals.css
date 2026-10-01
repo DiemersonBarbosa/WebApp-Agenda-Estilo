@@ -76,3 +76,13 @@ body.travar-scroll-painel {
   overscroll-behavior: none !important;
   touch-action: none !important;
 }
+
+
+/* Garante scroll suave e contínuo no Android WebView */
+html, body {
+  height: auto !important;
+  min-height: 100% !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: none; /* Impede travamento do gesto de scroll no Android */
+}
