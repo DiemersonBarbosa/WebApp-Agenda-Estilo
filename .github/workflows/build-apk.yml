@@ -19,13 +19,15 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
 
       - name: Instalar Dependências
-        run: npm ci
+        run: npm install
 
       - name: Compilar Projeto Next.js (Export)
         run: npm run build
+
+      - name: Instalar Capacitor CLI
+        run: npm install @capacitor/cli @capacitor/core @capacitor/android
 
       - name: Sincronizar Capacitor com Android
         run: npx cap sync android
