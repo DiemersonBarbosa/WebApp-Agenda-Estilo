@@ -83,7 +83,9 @@ export default function AgendamentoChat({ barbeariaId }) {
         diaAtivo = configHorarios[nomeDiaSemana].ativo;
       }
 
-      const bloqueado = datasBloqueadas.includes(dataIso) || !diaAtivo;
+      // Verificação corrigida com isolamento YYYY-MM-DD
+      const estaBloqueadoNoBanco = datasBloqueadas.some(b => b.startsWith(dataIso));
+      const bloqueado = estaBloqueadoNoBanco || !diaAtivo;
 
       dias.push({
         dataIso,
@@ -112,14 +114,20 @@ export default function AgendamentoChat({ barbeariaId }) {
   // GERAÇÃO DE HORÁRIOS SINCRONIZADA COM A ESCALA DO BARBEIRO SELECIONADO
   // =========================================================================
   const getHorariosDisponiveisParaData = (dataStr) => {
-    if (!dataStr || datasBloqueadas.includes(dataStr)) return [];
+    if (!dataStr) return [];
+
+    // Normalizar string de data para YYYY-MM-DD e verificar bloqueio
+    const dataFmt = dataStr.split('T')[0];
+    if (datasBloqueadas.some(b => b.startsWith(dataFmt))) {
+      return [];
+    }
 
     // Identificar o barbeiro ativo conforme a etapa (agendamento novo ou edição)
     const barbeiroAtivo = etapa.startsWith('editar')
       ? barbeiros.find(b => b.id === agendamentoEmEdicao?.barbeiro_id)
       : barbeiroEscolhido;
 
-    const [ano, mes, dia] = dataStr.split('-').map(Number);
+    const [ano, mes, dia] = dataFmt.split('-').map(Number);
     const dateObj = new Date(ano, mes - 1, dia);
     const diasSemanaMap = ['domingo', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado'];
     const nomeDia = diasSemanaMap[dateObj.getDay()];
@@ -216,7 +224,14 @@ export default function AgendamentoChat({ barbeariaId }) {
 
         setServicos(resServicos.data || []);
         setBarbeiros(resBarbeiros.data || []);
-        setDatasBloqueadas((resBloqueios.data || []).map(b => b.data_bloqueio));
+
+        // Tratamento e normalização das datas de bloqueio retornadas pelo banco
+        const bloqueiosFormatados = (resBloqueios.data || []).map(b => {
+          if (!b.data_bloqueio) return '';
+          return String(b.data_bloqueio).split('T')[0];
+        }).filter(Boolean);
+
+        setDatasBloqueadas(bloqueiosFormatados);
 
         adicionarMensagemBotComDelay('Olá! Seja muito bem-vindo. Para começarmos, por favor, informe o seu celular/WhatsApp:');
       } catch (err) {
@@ -233,8 +248,9 @@ export default function AgendamentoChat({ barbeariaId }) {
       if (!barbIdParaConsulta || !dataEscolhida) return;
 
       try {
-        const inicio = `${dataEscolhida}T00:00:00`;
-        const fim = `${dataEscolhida}T23:59:59`;
+        const dataFmt = dataEscolhida.split('T')[0];
+        const inicio = `${dataFmt}T00:00:00`;
+        const fim = `${dataFmt}T23:59:59`;
 
         const { data } = await supabase
           .from('agendamentos')
@@ -417,14 +433,15 @@ export default function AgendamentoChat({ barbeariaId }) {
   };
 
   const confirmarDataModerna = (dataSelecionada, bloqueado) => {
-    if (bloqueado) {
+    const dataFmt = dataSelecionada.split('T')[0];
+    if (bloqueado || datasBloqueadas.some(b => b.startsWith(dataFmt))) {
       setErro('⚠️ Esta data está bloqueada ou o estabelecimento está fechado.');
       return;
     }
     setErro(null);
-    setDataEscolhida(dataSelecionada);
-    const dataFmt = dataSelecionada.split('-').reverse().join('/');
-    setMensagens((prev) => [...prev, { remetente: 'usuario', texto: dataFmt }]);
+    setDataEscolhida(dataFmt);
+    const dataExibicao = dataFmt.split('-').reverse().join('/');
+    setMensagens((prev) => [...prev, { remetente: 'usuario', texto: dataExibicao }]);
     
     if (etapa.startsWith('editar')) {
       adicionarMensagemBotComDelay('Agora, selecione o novo horário disponível:', 'editar_horario');
@@ -436,11 +453,12 @@ export default function AgendamentoChat({ barbeariaId }) {
   const salvarEdicaoHorario = async (hora) => {
     setLoading(true);
     try {
-      const dataHoraIso = new Date(`${dataEscolhida}T${hora}:00`).toISOString();
+      const dataFmt = dataEscolhida.split('T')[0];
+      const dataHoraIso = new Date(`${dataFmt}T${hora}:00`).toISOString();
       await supabase.from('agendamentos').update({ data_hora: dataHoraIso }).eq('id', agendamentoEmEdicao.id);
       await carregarDadosCliente(clienteId);
       setMensagens((prev) => [...prev, { remetente: 'usuario', texto: hora }]);
-      adicionarMensagemBotComDelay(`Agendamento atualizado com sucesso para ${dataEscolhida.split('-').reverse().join('/')} às ${hora}!`, 'sucesso');
+      adicionarMensagemBotComDelay(`Agendamento atualizado com sucesso para ${dataFmt.split('-').reverse().join('/')} às ${hora}!`, 'sucesso');
     } catch (err) {
       setErro('Erro ao atualizar agendamento.');
     } finally {
@@ -467,14 +485,15 @@ export default function AgendamentoChat({ barbeariaId }) {
   };
 
   const confirmarAgendamentoFinal = async () => {
-    if (barbearia?.permite_agendamentos === false || datasBloqueadas.includes(dataEscolhida)) {
+    const dataFmt = dataEscolhida.split('T')[0];
+    if (barbearia?.permite_agendamentos === false || datasBloqueadas.some(b => b.startsWith(dataFmt))) {
       setErro('Os agendamentos online estão pausados ou esta data está bloqueada.');
       return;
     }
 
     setLoading(true);
     try {
-      const dataHoraIso = new Date(`${dataEscolhida}T${horaEscolhida}:00`).toISOString();
+      const dataHoraIso = new Date(`${dataFmt}T${horaEscolhida}:00`).toISOString();
       await supabase.from('agendamentos').insert([{
         barbearia_id: barbeariaId,
         cliente_id: clienteId,
@@ -488,7 +507,7 @@ export default function AgendamentoChat({ barbeariaId }) {
 
       await carregarDadosCliente(clienteId);
       setMensagens((prev) => [...prev, { remetente: 'usuario', texto: 'Confirmar Agendamento' }]);
-      adicionarMensagemBotComDelay(`Tudo pronto! O seu agendamento foi confirmado com sucesso para ${dataEscolhida.split('-').reverse().join('/')} às ${horaEscolhida}. Aguardamos a sua visita!`, 'sucesso');
+      adicionarMensagemBotComDelay(`Tudo pronto! O seu agendamento foi confirmado com sucesso para ${dataFmt.split('-').reverse().join('/')} às ${horaEscolhida}. Aguardamos a sua visita!`, 'sucesso');
     } catch (err) {
       setErro('Erro ao concluir agendamento.');
     } finally {
@@ -916,7 +935,7 @@ export default function AgendamentoChat({ barbeariaId }) {
               <div className="space-y-1 text-xs">
                 <p>✂️ <strong>Serviço:</strong> {servicoEscolhido?.nome} (R$ {Number(servicoEscolhido?.preco || 0).toFixed(2)})</p>
                 <p>👤 <strong>Profissional:</strong> {barbeiroEscolhido?.nome}</p>
-                <p>📅 <strong>Data:</strong> {dataEscolhida.split('-').reverse().join('/')}</p>
+                <p>📅 <strong>Data:</strong> {dataEscolhida.split('T')[0].split('-').reverse().join('/')}</p>
                 <p>⏰ <strong>Horário:</strong> {horaEscolhida}</p>
                 <p>👤 <strong>Cliente:</strong> {nome} ({telefone})</p>
               </div>

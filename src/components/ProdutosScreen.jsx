@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Package, Plus, Edit, Trash2, Search, X, CheckCircle, DollarSign, ShoppingCart, TrendingUp, AlertCircle, Calendar, Clock, ChevronRight, FolderPlus, Settings, ShoppingBag } from 'lucide-react';
+import { Package, Plus, Edit, Trash2, Search, X, CheckCircle, DollarSign, ShoppingCart, TrendingUp, AlertCircle, Calendar, Clock, ChevronRight, FolderPlus, Settings, ShoppingBag, Eye, Filter } from 'lucide-react';
 
 export default function ProdutosScreen({ produtos = [], barbeariaId, supabase, onReload }) {
   const [busca, setBusca] = useState('');
@@ -22,6 +22,19 @@ export default function ProdutosScreen({ produtos = [], barbeariaId, supabase, o
 
   // Estados de Faturamento de Produtos
   const [vendasPdV, setVendasPdV] = useState([]);
+
+  // Estados do Filtro de Vendas por Data/Mês
+  const obterMesAtualIso = () => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  };
+
+  const [tipoFiltro, setTipoFiltro] = useState('mes'); // 'hoje' | 'dia' | 'mes'
+  const [dataFiltro, setDataFiltro] = useState(obterDataLocalIso());
+  const [mesFiltro, setMesFiltro] = useState(obterMesAtualIso());
+
+  // Estado do Modal de Detalhes da Venda
+  const [vendaSelecionada, setVendaSelecionada] = useState(null);
 
   // Form State para Produto
   const [nome, setNome] = useState('');
@@ -137,12 +150,12 @@ export default function ProdutosScreen({ produtos = [], barbeariaId, supabase, o
     }
   };
 
-  const obterDataLocalIso = (d = new Date()) => {
+  function obterDataLocalIso(d = new Date()) {
     const ano = d.getFullYear();
     const mes = String(d.getMonth() + 1).padStart(2, '0');
     const dia = String(d.getDate()).padStart(2, '0');
     return `${ano}-${mes}-${dia}`;
-  };
+  }
 
   const extrairDataIso = (item) => {
     const dataStr = item.criado_em || '';
@@ -173,6 +186,23 @@ export default function ProdutosScreen({ produtos = [], barbeariaId, supabase, o
   }, 0);
   
   const valorTotalEstoque = produtos.reduce((acc, p) => acc + (Number(p.preco) * Number(p.estoque || 0)), 0);
+
+  // Filtragem dinâmica de vendas para a seção de histórico
+  const vendasFiltradas = vendasPdV.filter(v => {
+    const dataIso = extrairDataIso(v);
+    if (tipoFiltro === 'hoje') {
+      return dataIso === hojeStr;
+    }
+    if (tipoFiltro === 'dia') {
+      return dataIso === dataFiltro;
+    }
+    if (tipoFiltro === 'mes') {
+      return dataIso.startsWith(mesFiltro);
+    }
+    return true;
+  });
+
+  const totalVendasFiltradas = vendasFiltradas.reduce((acc, v) => acc + Number(v.total), 0);
 
   const handleNovoProduto = () => {
     setProdutoEmEdicao(null);
@@ -236,7 +266,7 @@ export default function ProdutosScreen({ produtos = [], barbeariaId, supabase, o
   return (
     <div className="max-w-7xl mx-auto px-2 sm:px-0 space-y-6 pb-28 font-sans">
       
-      {/* 4 CARDS DE MÉTRICAS (Com tamanhos de texto ajustados para não cortar) */}
+      {/* 4 CARDS DE MÉTRICAS */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 md:gap-5 mb-6">
         
         {/* 1. Faturamento Hoje */}
@@ -349,19 +379,7 @@ export default function ProdutosScreen({ produtos = [], barbeariaId, supabase, o
           boxShadow: '0 20px 40px rgba(0, 0, 0, 0.08), inset 0 2px 4px rgba(255, 255, 255, 0.9), inset 0 -3px 6px rgba(0, 0, 0, 0.05)'
         }}
       >
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-5 border-b border-stone-300/60 gap-4">
-          <div className="flex items-center gap-3.5">
-            <div className="w-11 h-11 rounded-2xl bg-stone-900 text-white flex items-center justify-center shadow-md shrink-0">
-              <ShoppingBag className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="text-base sm:text-lg font-extrabold text-stone-900 tracking-tight">Catálogo de Produtos & Categorias</h3>
-              <p className="text-xs text-stone-500">Gerencie suas categorias e os itens de balcão disponíveis no PDV.</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Botões de Ação (Com flex-1 para manter o mesmo tamanho) */}
+        {/* Botões de Ação */}
         <div className="flex flex-wrap items-center gap-2.5">
           <button
             onClick={() => setModalGerenciarCatAberto(true)}
@@ -421,49 +439,172 @@ export default function ProdutosScreen({ produtos = [], barbeariaId, supabase, o
         </div>
       </div>
 
-      {/* HISTÓRICO DE VENDAS DO DIA (Adaptado para cards responsivos sem estourar a tela) */}
-      <div className="bg-white rounded-[2.5rem] border border-stone-200/85 shadow-[0_10px_30px_rgba(0,0,0,0.03)] p-6 sm:p-8 space-y-4">
-        <div className="flex items-center justify-between pb-3.5 border-b border-stone-100 gap-2">
+      {/* HISTÓRICO DE VENDAS COM FILTRO DISCRETO POR DATA / MÊS */}
+      <div className="bg-white rounded-[2.5rem] border border-stone-200/85 shadow-[0_10px_30px_rgba(0,0,0,0.03)] p-6 sm:p-8 space-y-5">
+        
+        {/* Cabeçalho do Histórico com Filtros Discretos */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between pb-4 border-b border-stone-100 gap-4">
           <div className="min-w-0">
             <h3 className="text-xs sm:text-sm font-black text-stone-900 tracking-wider uppercase flex items-center gap-2 truncate">
-              <Clock className="w-4 h-4 text-emerald-600 shrink-0" /> <span className="truncate">Vendas de Balcão Realizadas Hoje</span>
+              <Clock className="w-4 h-4 text-emerald-600 shrink-0" /> 
+              <span className="truncate">Histórico de Vendas de Balcão</span>
             </h3>
-            <p className="text-[11px] text-stone-400 mt-0.5 truncate">Fluxo de caixa dos produtos vendidos hoje.</p>
+            <p className="text-[11px] text-stone-400 mt-0.5 truncate">
+              Total no período selecionado: <strong className="text-stone-900 font-black">R$ {totalVendasFiltradas.toFixed(2)}</strong> ({vendasFiltradas.length} vendas)
+            </p>
           </div>
-          <span className="text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-full shrink-0">
-            {vendasHoje.length} venda(s)
-          </span>
+
+          {/* Filtros Discretos */}
+          <div className="flex flex-wrap items-center gap-2 bg-stone-50 p-1.5 rounded-2xl border border-stone-200/70">
+            <button
+              onClick={() => setTipoFiltro('hoje')}
+              className={`px-3 py-1.5 text-[11px] font-bold rounded-xl transition-all cursor-pointer ${
+                tipoFiltro === 'hoje' ? 'bg-stone-900 text-white shadow-xs' : 'text-stone-500 hover:text-stone-800'
+              }`}
+            >
+              Hoje
+            </button>
+
+            <button
+              onClick={() => setTipoFiltro('dia')}
+              className={`px-3 py-1.5 text-[11px] font-bold rounded-xl transition-all cursor-pointer ${
+                tipoFiltro === 'dia' ? 'bg-stone-900 text-white shadow-xs' : 'text-stone-500 hover:text-stone-800'
+              }`}
+            >
+              Por Dia
+            </button>
+
+            <button
+              onClick={() => setTipoFiltro('mes')}
+              className={`px-3 py-1.5 text-[11px] font-bold rounded-xl transition-all cursor-pointer ${
+                tipoFiltro === 'mes' ? 'bg-stone-900 text-white shadow-xs' : 'text-stone-500 hover:text-stone-800'
+              }`}
+            >
+              Por Mês
+            </button>
+
+            {/* Selector de Data Específica */}
+            {tipoFiltro === 'dia' && (
+              <input
+                type="date"
+                value={dataFiltro}
+                onChange={(e) => setDataFiltro(e.target.value)}
+                className="px-2.5 py-1 bg-white border border-stone-200 rounded-xl text-[11px] font-bold text-stone-800 focus:outline-none cursor-pointer"
+              />
+            )}
+
+            {/* Selector de Mês Específico */}
+            {tipoFiltro === 'mes' && (
+              <input
+                type="month"
+                value={mesFiltro}
+                onChange={(e) => setMesFiltro(e.target.value)}
+                className="px-2.5 py-1 bg-white border border-stone-200 rounded-xl text-[11px] font-bold text-stone-800 focus:outline-none cursor-pointer"
+              />
+            )}
+          </div>
         </div>
         
-        {vendasHoje.length === 0 ? (
+        {vendasFiltradas.length === 0 ? (
           <div className="p-10 text-center text-stone-400 text-xs border border-dashed border-stone-200 rounded-3xl">
-            Nenhuma venda de produto registrada hoje até o momento.
+            Nenhuma venda encontrada para o período selecionado.
           </div>
         ) : (
           <div className="space-y-3">
-            {vendasHoje.map((venda) => (
+            {vendasFiltradas.map((venda) => (
               <div key={venda.id} className="p-4 rounded-2xl bg-stone-50 border border-stone-200/70 space-y-2.5">
                 <div className="flex justify-between items-start gap-2">
                   <div className="min-w-0">
-                    <span className="font-bold text-stone-900 text-xs block truncate">{venda.cliente_nome}</span>
+                    <span className="font-bold text-stone-900 text-xs block truncate">{venda.cliente_nome || 'Cliente Balcão'}</span>
                     <span className="text-[11px] text-stone-500 block truncate">
                       {(venda.itens || []).map(i => `${i.quantidade}x ${i.nome}`).join(', ')}
                     </span>
                   </div>
-                  <span className="font-black text-emerald-600 text-xs shrink-0">R$ {Number(venda.total).toFixed(2)}</span>
+                  <div className="text-right shrink-0">
+                    <span className="font-black text-emerald-600 text-xs block">R$ {Number(venda.total).toFixed(2)}</span>
+                    <button
+                      onClick={() => setVendaSelecionada(venda)}
+                      className="mt-1 text-[10px] font-bold text-stone-600 hover:text-stone-900 bg-white border border-stone-200/80 px-2 py-0.5 rounded-lg flex items-center gap-1 shadow-xs cursor-pointer ml-auto"
+                    >
+                      <Eye className="w-3 h-3 text-stone-500" /> Ver detalhes
+                    </button>
+                  </div>
                 </div>
                 
                 <div className="flex justify-between items-center pt-2 border-t border-stone-200/60 text-[11px] text-stone-500 font-medium">
                   <span className="bg-stone-200/70 text-stone-700 px-2 py-0.5 rounded-lg uppercase text-[10px] font-bold">
                     {venda.forma_pagamento}
                   </span>
-                  <span>🕒 {new Date(venda.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
+                  <span>
+                    📅 {new Date(venda.criado_em).toLocaleDateString('pt-BR')} às {new Date(venda.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                  </span>
                 </div>
               </div>
             ))}
           </div>
         )}
       </div>
+
+      {/* MODAL DE DETALHES DA VENDA */}
+      {vendaSelecionada && (
+        <div className="fixed inset-0 bg-stone-950/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-md rounded-[2.5rem] p-6 sm:p-8 shadow-2xl space-y-5 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between pb-3.5 border-b border-stone-100">
+              <div>
+                <span className="text-[10px] font-extrabold text-stone-400 uppercase tracking-wider block">Comanda / Venda PDV</span>
+                <h4 className="font-black text-stone-900 text-base">{vendaSelecionada.cliente_nome || 'Cliente Balcão'}</h4>
+              </div>
+              <button onClick={() => setVendaSelecionada(null)} className="text-stone-400 hover:text-stone-600 p-1 rounded-lg">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-stone-400 block">Itens Comprados</span>
+              <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                {(vendaSelecionada.itens || []).map((item, idx) => (
+                  <div key={idx} className="flex justify-between items-center p-3 rounded-2xl bg-stone-50 border border-stone-200/70 text-xs">
+                    <div>
+                      <span className="font-bold text-stone-900 block">{item.nome}</span>
+                      <span className="text-[10px] text-stone-500">{item.quantidade}x R$ {Number(item.preco_unitario || item.preco || 0).toFixed(2)}</span>
+                    </div>
+                    <span className="font-extrabold text-stone-900">
+                      R$ {(Number(item.quantidade) * Number(item.preco_unitario || item.preco || 0)).toFixed(2)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="pt-3 border-t border-stone-100 space-y-2 text-xs">
+                <div className="flex justify-between items-center">
+                  <span className="text-stone-500 font-semibold">Forma de Pagamento:</span>
+                  <span className="font-extrabold uppercase bg-stone-100 px-2.5 py-0.5 rounded-lg text-stone-800">
+                    {vendaSelecionada.forma_pagamento}
+                  </span>
+                </div>
+
+                <div className="flex justify-between items-center">
+                  <span className="text-stone-500 font-semibold">Data e Hora:</span>
+                  <span className="font-bold text-stone-800">
+                    {new Date(vendaSelecionada.criado_em).toLocaleDateString('pt-BR')} às {new Date(vendaSelecionada.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </div>
+
+                <div className="flex justify-between items-center pt-2 border-t border-stone-200">
+                  <span className="text-sm font-black text-stone-900">Total da Venda:</span>
+                  <span className="text-base font-black text-emerald-600">R$ {Number(vendaSelecionada.total).toFixed(2)}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-3 border-t border-stone-100">
+              <button onClick={() => setVendaSelecionada(null)} className="w-full py-3 bg-[#111111] hover:bg-stone-800 text-white text-xs font-bold rounded-2xl shadow-md">
+                Fechar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* MODAL PARA CRIAR NOVA CATEGORIA */}
       {modalCategoriaAberto && (

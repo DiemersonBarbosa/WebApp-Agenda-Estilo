@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   Calendar, 
@@ -18,10 +18,26 @@ import {
 
 export default function LandingPageCleanModern() {
   const router = useRouter();
-  
+  const [redirecionando, setRedirecionando] = useState(true);
+
+  // Redireciona automaticamente para o painel de administração ao carregar
+  useEffect(() => {
+    router.replace('/admin');
+  }, [router]);
+
   // Controle de alternância de telas e dispositivos
   const [dispositivoAtivo, setDispositivoAtivo] = useState('desktop');
   const [telaAtiva, setTelaAtiva] = useState('financeiro');
+
+  // Se estiver redirecionando, exibe uma tela de carregamento limpa
+  if (redirecionando) {
+    return (
+      <div className="min-h-screen bg-[#fafafa] flex flex-col items-center justify-center space-y-4">
+        <div className="w-8 h-8 border-4 border-stone-200 border-t-stone-900 rounded-full animate-spin" />
+        <p className="text-xs font-bold text-stone-500 tracking-wider uppercase">Carregando...</p>
+      </div>
+    );
+  }
 
   // Mapeamento dos prints mantendo .png no financeiro
   const previews = {
@@ -54,7 +70,7 @@ export default function LandingPageCleanModern() {
   return (
     <div className="min-h-screen bg-[#fafafa] text-stone-900 font-sans selection:bg-stone-900 selection:text-white relative">
       
-      {/* 1. NAVEGAÇÃO TOPO MODERNA COM LOGO AMPLIO */}
+      {/* 1. NAVEGAÇÃO TOPO MODERNA COM LOGO AMPLIADO */}
       <header className="fixed top-0 left-0 right-0 bg-white/90 backdrop-blur-md border-b border-stone-200/60 z-50">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-20 sm:h-24 flex items-center justify-between gap-2">
           

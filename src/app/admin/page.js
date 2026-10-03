@@ -40,7 +40,10 @@ import {
   ArrowRight,
   ShieldCheck,
   Sparkles,
-  Phone
+  Phone,
+  KeyRound,
+  ChevronDown,
+  UserCheck
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
@@ -296,6 +299,9 @@ function AuthForm({ onAuthSuccess }) {
 export default function AdminDashboard() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('agendamentos');
+  const [subTabEquipe, setSubTabEquipe] = useState('servicos'); // 'servicos' | 'barbeiros'
+  const [openAcessoId, setOpenAcessoId] = useState(null); // ID do barbeiro com menu de acesso aberto
+
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState(null);
 
@@ -403,44 +409,61 @@ export default function AdminDashboard() {
   };
 
   const verificarStatusAssinatura = (dadosBarbearia) => {
-    if (!dadosBarbearia) return;
+  if (!dadosBarbearia) return;
 
-    const status = dadosBarbearia?.status_assinatura?.trim().toLowerCase();
+  const status = dadosBarbearia?.status_assinatura?.trim().toLowerCase();
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
 
-    if (status === 'ativo') {
-      setModalAssinaturaOpen(false);
-      setAssinaturaExpirada(false);
-      return;
-    }
+  // 1. Verificação para contas ativas
+  if (status === 'ativo') {
+    const dataVencStr = dadosBarbearia?.data_vencimento;
+    
+    if (dataVencStr) {
+      // Ajusta o parsing para evitar discrepâncias de fuso horário
+      const partes = dataVencStr.split('T')[0].split('-');
+      const dataVencimento = new Date(partes[0], partes[1] - 1, partes[2]);
+      dataVencimento.setHours(0, 0, 0, 0);
 
-    const dataCriacaoStr = dadosBarbearia?.created_at;
-    if (dataCriacaoStr) {
-      const dataCriacao = new Date(dataCriacaoStr);
-      const hoje = new Date();
-      
-      dataCriacao.setHours(0, 0, 0, 0);
-      hoje.setHours(0, 0, 0, 0);
-
-      const diferencaEmMilissegundos = hoje - dataCriacao;
-      const diasPassados = Math.floor(diferencaEmMilissegundos / (1000 * 60 * 60 * 24));
-      const restante = Math.max(0, 7 - diasPassados);
-
-      if (typeof setDiasRestantes === 'function') {
-        setDiasRestantes(restante);
-      }
-
-      if (restante <= 0 && status !== 'ativo') {
+      // Se a data de vencimento for menor que hoje, a assinatura expirou
+      if (dataVencimento < hoje) {
         setModalAssinaturaOpen(true);
         setAssinaturaExpirada(true);
-      } else {
-        setModalAssinaturaOpen(false);
-        setAssinaturaExpirada(false);
+        return;
       }
-    } else {
+    }
+
+    setModalAssinaturaOpen(false);
+    setAssinaturaExpirada(false);
+    return;
+  }
+
+  // 2. Verificação para contas em período de teste
+  const dataCriacaoStr = dadosBarbearia?.created_at;
+  if (dataCriacaoStr) {
+    const dataCriacao = new Date(dataCriacaoStr);
+    dataCriacao.setHours(0, 0, 0, 0);
+
+    const diferencaEmMilissegundos = hoje - dataCriacao;
+    const diasPassados = Math.floor(diferencaEmMilissegundos / (1000 * 60 * 60 * 24));
+    const restante = Math.max(0, 7 - diasPassados);
+
+    if (typeof setDiasRestantes === 'function') {
+      setDiasRestantes(restante);
+    }
+
+    if (restante <= 0) {
       setModalAssinaturaOpen(true);
       setAssinaturaExpirada(true);
+    } else {
+      setModalAssinaturaOpen(false);
+      setAssinaturaExpirada(false);
     }
-  };
+  } else {
+    setModalAssinaturaOpen(true);
+    setAssinaturaExpirada(true);
+  }
+};
 
   const loadDashboardData = useCallback(async (barbeariaId) => {
     setLoading(true);
@@ -1679,230 +1702,356 @@ export default function AdminDashboard() {
             </div>
           )}
 
+          {/* ABA REFORMULADA DE SERVIÇOS & EQUIPE */}
           {activeTab === 'servicos' && (
-            <div className="space-y-8">
-              <div className="bg-white rounded-3xl border border-stone-200/80 shadow-sm overflow-hidden p-6 space-y-6">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-stone-100">
-                  <div>
-                    <h3 className="text-base font-bold text-stone-900">Serviços Oferecidos</h3>
-                    <p className="text-xs text-stone-400">Configure cortes, barbas e valores.</p>
+            <div className="space-y-6">
+              
+              {/* CABEÇALHO DA SEÇÃO E SELETOR DE ABAS */}
+              <div className="bg-white rounded-3xl border border-stone-200/80 p-5 sm:p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex items-center gap-3.5">
+                  <div className="w-12 h-12 rounded-2xl bg-stone-900 text-white flex items-center justify-center shadow-md shrink-0">
+                    <Scissors className="w-6 h-6" />
                   </div>
-                  <button
-                    onClick={() => handleOpenServicoModal()}
-                    className="bg-stone-900 hover:bg-stone-800 text-white px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer"
-                  >
-                    <Plus className="w-4 h-4" /> Novo Serviço
-                  </button>
+                  <div>
+                    <h2 className="text-lg font-black text-stone-900 tracking-tight">Serviços & Equipe</h2>
+                    <p className="text-xs text-stone-500">Gerencie os tratamentos oferecidos e os profissionais da unidade.</p>
+                  </div>
                 </div>
 
-                {servicos.length === 0 ? (
-                  <div className="p-8 text-center text-stone-400 text-xs">Nenhum serviço cadastrado.</div>
-                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {servicos.map((s) => (
-                      <div key={s.id} className="bg-stone-50/70 p-4 rounded-2xl border border-stone-200/70 flex justify-between items-start">
-                        <div className="space-y-1">
-                          <h4 className="font-bold text-stone-900 text-sm">{s.nome}</h4>
-                          <span className="text-xs text-stone-500 block font-medium">R$ {Number(s.preco).toFixed(2)}</span>
-                          <span className="text-[11px] text-stone-400 flex items-center gap-1">
-                            <Clock className="w-3 h-3" /> {s.duracao_minutos} min
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <button onClick={() => handleOpenServicoModal(s)} className="p-1.5 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-lg cursor-pointer">
-                            <Edit className="w-3.5 h-3.5" />
-                          </button>
-                          <button onClick={() => handleDeleteServico(s.id)} className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg cursor-pointer">
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                {/* NAVEGAÇÃO ENTRE SUB-ABAS */}
+                <div className="flex items-center bg-stone-100 p-1.5 rounded-2xl border border-stone-200/60 self-start md:self-auto w-full md:w-auto">
+                  <button
+                    onClick={() => setSubTabEquipe('servicos')}
+                    className={`flex-1 md:flex-none px-5 py-2.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-2 ${
+                      subTabEquipe === 'servicos'
+                        ? 'bg-stone-900 text-white shadow-md'
+                        : 'text-stone-500 hover:text-stone-900'
+                    }`}
+                  >
+                    <Scissors className="w-3.5 h-3.5" />
+                    <span>Serviços ({servicos.length})</span>
+                  </button>
+
+                  <button
+                    onClick={() => setSubTabEquipe('barbeiros')}
+                    className={`flex-1 md:flex-none px-5 py-2.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-2 ${
+                      subTabEquipe === 'barbeiros'
+                        ? 'bg-stone-900 text-white shadow-md'
+                        : 'text-stone-500 hover:text-stone-900'
+                    }`}
+                  >
+                    <Users className="w-3.5 h-3.5" />
+                    <span>Equipe ({barbeiros.length})</span>
+                  </button>
+                </div>
               </div>
 
-              <div className="bg-white rounded-3xl border border-stone-200/80 shadow-sm overflow-hidden p-6 space-y-6">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-stone-100">
-                  <div>
-                    <h3 className="text-base font-bold text-stone-900">Equipe de Barbeiros</h3>
-                    <p className="text-xs text-stone-400">Profissionais disponíveis para agendamento.</p>
+              {/* VIEW 1: CATÁLOGO DE SERVIÇOS */}
+              {subTabEquipe === 'servicos' && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-stone-500 uppercase tracking-wider">Catálogo Ativo</span>
+                    <button
+                      onClick={() => handleOpenServicoModal()}
+                      className="bg-stone-900 hover:bg-stone-800 text-white px-4 py-2.5 rounded-xl text-xs font-extrabold flex items-center gap-2 shadow-md transition-all cursor-pointer active:scale-95"
+                    >
+                      <Plus className="w-4 h-4" /> Cadastrar Serviço
+                    </button>
                   </div>
-                  <button
-                    onClick={() => handleOpenBarbeiroModal()}
-                    className="bg-stone-900 hover:bg-stone-800 text-white px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer"
-                  >
-                    <Plus className="w-4 h-4" /> Novo Barbeiro
-                  </button>
-                </div>
 
-                {barbeiros.length === 0 ? (
-                  <div className="p-8 text-center text-stone-400 text-xs">Nenhum barbeiro cadastrado.</div>
-                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {barbeiros.map((b) => (
-                      <div key={b.id} className="bg-stone-50/70 p-4 rounded-2xl border border-stone-200/80 space-y-3">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3 overflow-hidden">
-                            {b.foto ? (
-                              <img 
-                                src={b.foto} 
-                                alt={b.nome} 
-                                className="w-11 h-11 rounded-full object-cover border border-stone-200 shrink-0 shadow-sm" 
-                              />
-                            ) : (
-                              <div className="w-11 h-11 rounded-full bg-stone-900 text-white font-bold flex items-center justify-center text-xs shrink-0">
-                                {(b.nome || 'P').charAt(0).toUpperCase()}
+                  {servicos.length === 0 ? (
+                    <div className="bg-white rounded-3xl border border-stone-200/80 p-12 text-center text-stone-400 space-y-2">
+                      <Scissors className="w-8 h-8 mx-auto text-stone-300" />
+                      <p className="text-xs font-medium">Nenhum serviço cadastrado até o momento.</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {servicos.map((s) => (
+                        <div 
+                          key={s.id} 
+                          className="bg-white rounded-3xl border border-stone-200/80 p-5 hover:border-stone-400 transition-all shadow-xs flex flex-col justify-between space-y-4 group"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-2xl bg-stone-50 border border-stone-100 flex items-center justify-center text-stone-800 shrink-0 group-hover:bg-stone-900 group-hover:text-white transition-colors">
+                                <Scissors className="w-5 h-5" />
                               </div>
-                            )}
-                            <div className="space-y-0.5 overflow-hidden">
-                              <h4 className="font-bold text-stone-900 text-sm truncate">{b.nome}</h4>
-                              <span className="text-xs text-stone-500 block truncate">{b.especialidade || 'Profissional'}</span>
+                              <div>
+                                <h4 className="font-extrabold text-stone-900 text-sm tracking-tight">{s.nome}</h4>
+                                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-stone-500 mt-0.5">
+                                  <Clock className="w-3 h-3 text-stone-400" /> {s.duracao_minutos || 30} minutos
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-1 opacity-90 group-hover:opacity-100 transition-opacity">
+                              <button 
+                                onClick={() => handleOpenServicoModal(s)} 
+                                className="p-2 bg-stone-50 hover:bg-stone-100 text-stone-700 rounded-xl border border-stone-200/60 transition-colors cursor-pointer"
+                                title="Editar serviço"
+                              >
+                                <Edit className="w-3.5 h-3.5" />
+                              </button>
+                              <button 
+                                onClick={() => handleDeleteServico(s.id)} 
+                                className="p-2 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl border border-rose-100 transition-colors cursor-pointer"
+                                title="Excluir serviço"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-1 shrink-0">
-                            <button onClick={() => handleOpenBarbeiroModal(b)} className="p-1.5 bg-white border border-stone-200 rounded-xl hover:bg-stone-100 cursor-pointer">
-                              <Edit className="w-3.5 h-3.5 text-stone-700" />
-                            </button>
-                            <button onClick={() => handleDeleteBarbeiro(b.id)} className="p-1.5 bg-white border border-stone-200 rounded-xl hover:bg-red-50 text-red-500 cursor-pointer">
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
+                          <div className="pt-3 border-t border-stone-100 flex items-center justify-between">
+                            <span className="text-[10px] font-extrabold text-stone-400 uppercase tracking-wider">Valor do Atendimento</span>
+                            <span className="text-base font-black text-stone-900">
+                              R$ {Number(s.preco).toFixed(2)}
+                            </span>
                           </div>
                         </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
 
-                        <div className="pt-3 border-t border-stone-200/60 space-y-2">
-                          <p className="text-[11px] font-bold text-stone-700">Acesso ao Painel</p>
-                          <input 
-                            type="email" 
-                            placeholder="E-mail de acesso" 
-                            id={`email-${b.id}`}
-                            className="w-full px-3 py-1.5 bg-white border border-stone-200 rounded-xl text-xs text-stone-900 focus:outline-none"
-                          />
-                          <input 
-                            type="password" 
-                            placeholder="Senha temporária" 
-                            id={`senha-${b.id}`}
-                            className="w-full px-3 py-1.5 bg-white border border-stone-200 rounded-xl text-xs text-stone-900 focus:outline-none"
-                          />
-                          <button
-                            onClick={() => {
-                              const emailInput = document.getElementById(`email-${b.id}`).value;
-                              const senhaInput = document.getElementById(`senha-${b.id}`).value;
-
-                              if (!emailInput || !senhaInput) {
-                                alert('Preencha o e-mail e a senha.');
-                                return;
-                              }
-
-                              criarAcessoBarbeiro(b.id, emailInput, senhaInput);
-                            }}
-                            className="w-full py-1.5 bg-stone-900 text-white rounded-xl text-xs font-bold hover:bg-stone-800 transition-colors cursor-pointer"
-                          >
-                            Gerar Acesso
-                          </button>
-                        </div>
-                      </div>
-                    ))}
+              {/* VIEW 2: EQUIPE DE BARBEIROS */}
+              {subTabEquipe === 'barbeiros' && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-stone-500 uppercase tracking-wider">Profissionais da Casa</span>
+                    <button
+                      onClick={() => handleOpenBarbeiroModal()}
+                      className="bg-stone-900 hover:bg-stone-800 text-white px-4 py-2.5 rounded-xl text-xs font-extrabold flex items-center gap-2 shadow-md transition-all cursor-pointer active:scale-95"
+                    >
+                      <Plus className="w-4 h-4" /> Novo Barbeiro
+                    </button>
                   </div>
-                )}
 
-                {modalBarbeiroOpen && (
-                  <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 relative">
-                      <button 
-                        onClick={() => setModalBarbeiroOpen(false)}
-                        className="absolute top-4 right-4 p-1.5 bg-stone-100 rounded-full hover:bg-stone-200 text-stone-600 cursor-pointer"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
+                  {barbeiros.length === 0 ? (
+                    <div className="bg-white rounded-3xl border border-stone-200/80 p-12 text-center text-stone-400 space-y-2">
+                      <Users className="w-8 h-8 mx-auto text-stone-300" />
+                      <p className="text-xs font-medium">Nenhum barbeiro cadastrado até o momento.</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {barbeiros.map((b) => {
+                        const isMenuAcessoAberto = openAcessoId === b.id;
 
-                      <h3 className="font-bold text-stone-900 text-base">
-                        {barbeiroParaEditar ? 'Editar Profissional' : 'Novo Profissional'}
-                      </h3>
+                        return (
+                          <div 
+                            key={b.id} 
+                            className="bg-white rounded-3xl border border-stone-200/80 p-5 hover:border-stone-300 transition-all shadow-xs flex flex-col justify-between space-y-4"
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex items-center gap-3 overflow-hidden">
+                                <div className="relative shrink-0">
+                                  {b.foto ? (
+                                    <img 
+                                      src={b.foto} 
+                                      alt={b.nome} 
+                                      className="w-12 h-12 rounded-2xl object-cover border border-stone-200 shadow-xs" 
+                                    />
+                                  ) : (
+                                    <div className="w-12 h-12 rounded-2xl bg-stone-900 text-white font-extrabold flex items-center justify-center text-sm shadow-xs border border-stone-800">
+                                      {(b.nome || 'P').charAt(0).toUpperCase()}
+                                    </div>
+                                  )}
+                                  <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-emerald-500 border-2 border-white rounded-full" />
+                                </div>
 
-                      <form onSubmit={handleSaveBarbeiro} className="space-y-4">
-                        <div>
-                          <label className="block text-xs font-semibold text-stone-600 mb-1">Nome</label>
-                          <input 
-                            type="text" 
-                            required
-                            value={nome} 
-                            onChange={(e) => setNome(e.target.value)} 
-                            className="w-full p-3 rounded-xl bg-stone-50 border border-stone-200 text-xs text-stone-800 focus:outline-none"
-                            placeholder="Ex: Thais"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-xs font-semibold text-stone-600 mb-1">Especialidade</label>
-                          <input 
-                            type="text" 
-                            value={especialidade} 
-                            onChange={(e) => setEspecialidade(e.target.value)} 
-                            className="w-full p-3 rounded-xl bg-stone-50 border border-stone-200 text-xs text-stone-800 focus:outline-none"
-                            placeholder="Ex: Designer de sobrancelhas"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-xs font-semibold text-stone-600 mb-1">Taxa de Comissão (%)</label>
-                          <input 
-                            type="number" 
-                            value={taxaComissao} 
-                            onChange={(e) => setTaxaComissao(e.target.value)} 
-                            className="w-full p-3 rounded-xl bg-stone-50 border border-stone-200 text-xs text-stone-800 focus:outline-none"
-                            placeholder="Ex: 50"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-xs font-semibold text-stone-600 mb-1">Foto de Perfil</label>
-                          <div className="flex items-center gap-3">
-                            {fotoUrl ? (
-                              <img 
-                                src={fotoUrl} 
-                                alt="Preview" 
-                                className="w-12 h-12 rounded-full object-cover border border-stone-200 shrink-0 shadow-sm" 
-                              />
-                            ) : (
-                              <div className="w-12 h-12 rounded-full bg-stone-100 border border-stone-200 flex items-center justify-center text-stone-400 text-[10px] shrink-0 font-bold">
-                                Sem foto
+                                <div className="min-w-0">
+                                  <h4 className="font-extrabold text-stone-900 text-sm tracking-tight truncate">{b.nome}</h4>
+                                  <span className="text-[11px] font-semibold text-stone-500 block truncate">{b.especialidade || 'Profissional'}</span>
+                                </div>
                               </div>
-                            )}
 
+                              <div className="flex items-center gap-1 shrink-0">
+                                <button 
+                                  onClick={() => handleOpenBarbeiroModal(b)} 
+                                  className="p-2 bg-stone-50 hover:bg-stone-100 text-stone-700 rounded-xl border border-stone-200/60 transition-colors cursor-pointer"
+                                  title="Editar barbeiro"
+                                >
+                                  <Edit className="w-3.5 h-3.5" />
+                                </button>
+                                <button 
+                                  onClick={() => handleDeleteBarbeiro(b.id)} 
+                                  className="p-2 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl border border-rose-100 transition-colors cursor-pointer"
+                                  title="Excluir barbeiro"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
+
+                            <div className="pt-3 border-t border-stone-100 space-y-3">
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="font-semibold text-stone-500">Taxa de Comissão:</span>
+                                <span className="font-extrabold text-stone-900 bg-stone-100 px-2.5 py-0.5 rounded-full border border-stone-200/60">
+                                  {b.taxa_comissao || 50}%
+                                </span>
+                              </div>
+
+                              {/* GAVETA COLAPSÁVEL DE GERAR ACESSO */}
+                              <div className="bg-stone-50 rounded-2xl border border-stone-200/60 overflow-hidden">
+                                <button
+                                  onClick={() => setOpenAcessoId(isMenuAcessoAberto ? null : b.id)}
+                                  className="w-full px-3.5 py-2.5 flex items-center justify-between text-xs font-extrabold text-stone-700 hover:text-stone-900 cursor-pointer"
+                                >
+                                  <span className="flex items-center gap-2">
+                                    <KeyRound className="w-3.5 h-3.5 text-stone-500" />
+                                    <span>Gerar Acesso ao Painel</span>
+                                  </span>
+                                  <ChevronDown className={`w-4 h-4 transition-transform ${isMenuAcessoAberto ? 'rotate-180' : ''}`} />
+                                </button>
+
+                                {isMenuAcessoAberto && (
+                                  <div className="p-3 pt-1 border-t border-stone-200/60 space-y-2 bg-white">
+                                    <div className="space-y-1">
+                                      <label className="text-[10px] font-bold text-stone-500">E-mail do Barbeiro</label>
+                                      <input 
+                                        type="email" 
+                                        placeholder="barbeiro@exemplo.com" 
+                                        id={`email-${b.id}`}
+                                        className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-900 font-medium"
+                                      />
+                                    </div>
+
+                                    <div className="space-y-1">
+                                      <label className="text-[10px] font-bold text-stone-500">Senha Temporária</label>
+                                      <input 
+                                        type="password" 
+                                        placeholder="••••••••" 
+                                        id={`senha-${b.id}`}
+                                        className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-900 font-medium"
+                                      />
+                                    </div>
+
+                                    <button
+                                      onClick={() => {
+                                        const emailInput = document.getElementById(`email-${b.id}`).value;
+                                        const senhaInput = document.getElementById(`senha-${b.id}`).value;
+
+                                        if (!emailInput || !senhaInput) {
+                                          alert('Preencha o e-mail e a senha.');
+                                          return;
+                                        }
+
+                                        criarAcessoBarbeiro(b.id, emailInput, senhaInput);
+                                      }}
+                                      className="w-full py-2 bg-stone-900 hover:bg-stone-800 text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs mt-1"
+                                    >
+                                      Criar Credenciais
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* MODAL MANTIDO PARA CRIAÇÃO/EDIÇÃO DE BARBEIROS */}
+                  {modalBarbeiroOpen && (
+                    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                      <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 relative">
+                        <button 
+                          onClick={() => setModalBarbeiroOpen(false)}
+                          className="absolute top-4 right-4 p-1.5 bg-stone-100 rounded-full hover:bg-stone-200 text-stone-600 cursor-pointer"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+
+                        <h3 className="font-bold text-stone-900 text-base">
+                          {barbeiroParaEditar ? 'Editar Profissional' : 'Novo Profissional'}
+                        </h3>
+
+                        <form onSubmit={handleSaveBarbeiro} className="space-y-4">
+                          <div>
+                            <label className="block text-xs font-semibold text-stone-600 mb-1">Nome</label>
                             <input 
-                              type="file" 
-                              accept="image/*"
-                              onChange={handleUploadFoto}
-                              disabled={uploading}
-                              className="w-full text-xs text-stone-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-stone-900 file:text-white hover:file:bg-stone-800 cursor-pointer"
+                              type="text" 
+                              required
+                              value={nome} 
+                              onChange={(e) => setNome(e.target.value)} 
+                              className="w-full p-3 rounded-xl bg-stone-50 border border-stone-200 text-xs text-stone-800 focus:outline-none"
+                              placeholder="Ex: Thais"
                             />
                           </div>
-                          {uploading && <p className="text-[10px] text-amber-600 mt-1 font-medium">Enviando imagem...</p>}
-                        </div>
 
-                        <div className="pt-2 flex gap-2">
-                          <button
-                            type="button"
-                            onClick={() => setModalBarbeiroOpen(false)}
-                            className="w-1/2 py-3 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-2xl text-xs font-semibold cursor-pointer transition-colors"
-                          >
-                            Cancelar
-                          </button>
-                          <button 
-                            type="submit" 
-                            disabled={uploading}
-                            className="w-1/2 bg-stone-900 text-white font-semibold py-3 rounded-2xl text-xs uppercase tracking-wider shadow-md hover:bg-stone-800 cursor-pointer disabled:opacity-50 transition-all"
-                          >
-                            {uploading ? 'Aguarde...' : 'Salvar'}
-                          </button>
-                        </div>
-                      </form>
+                          <div>
+                            <label className="block text-xs font-semibold text-stone-600 mb-1">Especialidade</label>
+                            <input 
+                              type="text" 
+                              value={especialidade} 
+                              onChange={(e) => setEspecialidade(e.target.value)} 
+                              className="w-full p-3 rounded-xl bg-stone-50 border border-stone-200 text-xs text-stone-800 focus:outline-none"
+                              placeholder="Ex: Designer de sobrancelhas"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-semibold text-stone-600 mb-1">Taxa de Comissão (%)</label>
+                            <input 
+                              type="number" 
+                              value={taxaComissao} 
+                              onChange={(e) => setTaxaComissao(e.target.value)} 
+                              className="w-full p-3 rounded-xl bg-stone-50 border border-stone-200 text-xs text-stone-800 focus:outline-none"
+                              placeholder="Ex: 50"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-semibold text-stone-600 mb-1">Foto de Perfil</label>
+                            <div className="flex items-center gap-3">
+                              {fotoUrl ? (
+                                <img 
+                                  src={fotoUrl} 
+                                  alt="Preview" 
+                                  className="w-12 h-12 rounded-full object-cover border border-stone-200 shrink-0 shadow-sm" 
+                                />
+                              ) : (
+                                <div className="w-12 h-12 rounded-full bg-stone-100 border border-stone-200 flex items-center justify-center text-stone-400 text-[10px] shrink-0 font-bold">
+                                  Sem foto
+                                </div>
+                              )}
+
+                              <input 
+                                type="file" 
+                                accept="image/*"
+                                onChange={handleUploadFoto}
+                                disabled={uploading}
+                                className="w-full text-xs text-stone-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-stone-900 file:text-white hover:file:bg-stone-800 cursor-pointer"
+                              />
+                            </div>
+                            {uploading && <p className="text-[10px] text-amber-600 mt-1 font-medium">Enviando imagem...</p>}
+                          </div>
+
+                          <div className="pt-2 flex gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setModalBarbeiroOpen(false)}
+                              className="w-1/2 py-3 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-2xl text-xs font-semibold cursor-pointer transition-colors"
+                            >
+                              Cancelar
+                            </button>
+                            <button 
+                              type="submit" 
+                              disabled={uploading}
+                              className="w-1/2 bg-stone-900 text-white font-semibold py-3 rounded-2xl text-xs uppercase tracking-wider shadow-md hover:bg-stone-800 cursor-pointer disabled:opacity-50 transition-all"
+                            >
+                              {uploading ? 'Aguarde...' : 'Salvar'}
+                            </button>
+                          </div>
+                        </form>
+                      </div>
                     </div>
-                  </div>
-                )}
-              </div>
+                  )}
+                </div>
+              )}
+
             </div>
           )}
         </main>

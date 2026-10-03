@@ -38,7 +38,7 @@ function AdminLoginForm() {
 
       if (error) throw error;
 
-      router.push('/admin');
+      window.location.href = '/admin';
     } catch (err) {
       setErrorMessage(err.message || 'Erro ao realizar login.');
     } finally {
@@ -47,37 +47,60 @@ function AdminLoginForm() {
   };
 
   const handleRegister = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setErrorMessage(null);
+  e.preventDefault();
+  setLoading(true);
+  setErrorMessage(null);
 
-    const slug = nomeBarbearia
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-z0-9]/g, '-')
-      .replace(/-+/g, '-')
-      .replace(/^-|-$/g, '');
+  // 1. Gera o slug limpo no próprio frontend para evitar o erro de 'null value in column slug'
+  const slugLimpo = nomeBarbearia
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
 
-    try {
-      const res = await fetch('/api/admin/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, nomeBarbearia, telefone, slug }),
-      });
+  const slug = slugLimpo || `barbearia-${Date.now()}`;
 
-      const data = await res.json();
+  try {
+    // 2. Cria o usuário no Supabase Auth
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email,
+      password,
+    });
 
-      if (!res.ok) throw new Error(data.error);
+    if (authError) throw authError;
 
-      alert('Barbearia cadastrada com sucesso!');
-      router.push('/admin');
-    } catch (err) {
-      setErrorMessage(err.message);
-    } finally {
-      setLoading(false);
+    if (!authData.user) {
+      throw new Error('Não foi possível criar a conta do usuário.');
     }
-  };
+
+    // 3. Insere a barbearia na tabela do banco
+    const { error: dbError } = await supabase
+      .from('barbearias')
+      .insert([
+        {
+          user_id: authData.user.id,
+          nome: nomeBarbearia,
+          slug: slug,
+          telefone: telefone,
+          status_assinatura: 'teste',
+          created_at: new Date().toISOString(),
+        },
+      ]);
+
+    if (dbError) throw dbError;
+
+    // 4. Exibe notificação de sucesso e redireciona para o admin
+    alert('🎉 Barbearia cadastrada com sucesso!');
+    window.location.href = '/admin';
+
+  } catch (err) {
+    setErrorMessage(err.message || 'Erro ao realizar o cadastro.');
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="min-h-screen bg-[#f4f4f6] flex flex-col justify-center items-center p-4 sm:p-6 font-sans select-none">
