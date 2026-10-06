@@ -59,6 +59,9 @@ import NotificacoesBell from '@/components/NotificacoesBell';
 import AdminModoAgendamento from '@/components/AdminModoAgendamento';
 import FidelizacaoAdmin from '@/components/FidelizacaoAdmin';
 
+// URL base para chamadas de API do servidor (necessária no app nativo Capacitor/Android)
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://agendaestilo.com.br';
+
 /* HOOK PARA NOTIFICAÇÕES NATIVAS DO ANDROID (SUPABASE REALTIME) */
 function usePushNotifications(barbeariaId) {
   useEffect(() => {
@@ -113,7 +116,7 @@ function usePushNotifications(barbeariaId) {
 
 async function criarAcessoBarbeiro(barbeiroId, emailBarbeiro, senhaTemporaria) {
   try {
-    const response = await fetch('/api/criar-acesso', {
+    const response = await fetch(`${API_BASE_URL}/api/criar-acesso`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -567,7 +570,7 @@ export default function AdminDashboard() {
         payer_name: paymentData.payer_name || 'Gestor'
       };
 
-      const response = await fetch('/api/gerar-pix', {
+      const response = await fetch(`${API_BASE_URL}/api/gerar-pix`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -647,7 +650,7 @@ export default function AdminDashboard() {
     if (modalAssinaturaOpen && metodoPagamento === 'pix' && pixDataMP?.paymentId && !processandoPagamento) {
       intervalId = setInterval(async () => {
         try {
-          const res = await fetch('/api/verificar-pagamento', {
+          const res = await fetch(`${API_BASE_URL}/api/verificar-pagamento`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ paymentId: pixDataMP.paymentId })
@@ -721,7 +724,7 @@ export default function AdminDashboard() {
           return;
         }
 
-        const res = await fetch('/api/verificar-pagamento', {
+        const res = await fetch(`${API_BASE_URL}/api/verificar-pagamento`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ paymentId: pixDataMP.paymentId })
