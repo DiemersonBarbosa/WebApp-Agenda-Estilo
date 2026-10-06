@@ -21,7 +21,8 @@ export async function POST(request) {
       body = {};
     }
 
-    const { transaction_amount, description, payer_email, payer_name } = body;
+    // Adicionado o 'barbeariaId' (ou 'userId') para vincular ao webhook
+    const { transaction_amount, description, payer_email, payer_name, barbeariaId } = body;
     const valorFinal = Number(transaction_amount) || 9.90;
 
     const accessTokenMP = process.env.MERCADO_PAGO_ACCESS_TOKEN;
@@ -44,6 +45,7 @@ export async function POST(request) {
         transaction_amount: valorFinal,
         description: description || 'Assinatura Mensal Gestor',
         payment_method_id: 'pix',
+        external_reference: barbeariaId || null, // <--- VINCULA O ID PARA O WEBHOOK ATUALIZAR O SUPABASE
         payer: {
           email: payer_email || 'diemersonlimabarbosa@gmail.com',
           first_name: payer_name || 'Gestor'
