@@ -59,7 +59,7 @@ import NotificacoesBell from '@/components/NotificacoesBell';
 import AdminModoAgendamento from '@/components/AdminModoAgendamento';
 import FidelizacaoAdmin from '@/components/FidelizacaoAdmin';
 
-import { Capacitor, CapacitorHttp } from '@capacitor/core';
+
 
 // URL base fixa para chamadas de API no app nativo Capacitor/Android
 const API_BASE_URL = 'https://agendaestilo.com.br';
@@ -562,49 +562,52 @@ export default function AdminDashboard() {
       payer_name: paymentData.payer_name || 'Gestor'
     };
 
-    // Adicionada a barra no final (/api/gerar-pix/) para evitar o redirecionamento 307
     const url = 'https://agendaestilo.com.br/api/gerar-pix/';
     let data;
 
-    if (Capacitor.isNativePlatform()) {
-      const options = {
-        url: url,
-        headers: { 'Content-Type': 'application/json' },
-        data: payload,
-      };
+    // Garante que o código roda exclusivamente no navegador/cliente
+    if (typeof window !== 'undefined') {
+      const { Capacitor, CapacitorHttp } = await import('@capacitor/core');
 
-      const response = await CapacitorHttp.post(options);
-
-      // Se por algum motivo ainda retornar redirecionamento (301, 302, 307, 308)
-      if (response.status >= 300 && response.status < 400 && response.headers?.Location) {
-        const redirectUrl = response.headers.Location;
-        const redirectResponse = await CapacitorHttp.post({
-          url: redirectUrl,
+      if (Capacitor.isNativePlatform()) {
+        const options = {
+          url: url,
           headers: { 'Content-Type': 'application/json' },
           data: payload,
-        });
-        data = typeof redirectResponse.data === 'string' ? JSON.parse(redirectResponse.data) : redirectResponse.data;
-      } else if (response.status !== 200) {
-        throw new Error(response.data?.error?.message || response.data?.message || `Erro no servidor (${response.status})`);
+        };
+
+        const response = await CapacitorHttp.post(options);
+
+        if (response.status >= 300 && response.status < 400 && response.headers?.Location) {
+          const redirectResponse = await CapacitorHttp.post({
+            url: response.headers.Location,
+            headers: { 'Content-Type': 'application/json' },
+            data: payload,
+          });
+          data = typeof redirectResponse.data === 'string' ? JSON.parse(redirectResponse.data) : redirectResponse.data;
+        } else if (response.status !== 200) {
+          throw new Error(response.data?.error?.message || response.data?.message || `Erro no servidor (${response.status})`);
+        } else {
+          data = typeof response.data === 'string' ? JSON.parse(response.data) : response.data;
+        }
       } else {
-        data = typeof response.data === 'string' ? JSON.parse(response.data) : response.data;
-      }
-    } else {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
+        // Fluxo para navegador Web
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
 
-      const textResponse = await response.text();
-      try {
-        data = JSON.parse(textResponse);
-      } catch (e) {
-        throw new Error(`Resposta inválida do servidor (${response.status})`);
-      }
+        const textResponse = await response.text();
+        try {
+          data = JSON.parse(textResponse);
+        } catch (e) {
+          throw new Error(`Resposta inválida do servidor (${response.status})`);
+        }
 
-      if (!response.ok) {
-        throw new Error(data.error?.message || data.message || 'Falha ao processar no servidor.');
+        if (!response.ok) {
+          throw new Error(data.error?.message || data.message || 'Falha ao processar no servidor.');
+        }
       }
     }
 
