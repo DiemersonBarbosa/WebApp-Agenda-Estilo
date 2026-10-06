@@ -559,7 +559,8 @@ export default function AdminDashboard() {
       transaction_amount: Number(paymentData.transaction_amount) || 9.90,
       description: paymentData.description || 'Assinatura Mensal Gestor',
       payer_email: paymentData.payer_email || 'diemersonlimabarbosa@gmail.com',
-      payer_name: paymentData.payer_name || 'Gestor'
+      payer_name: paymentData.payer_name || 'Gestor',
+      barbeariaId: barbearia?.id // <--- ADICIONADO AQUI PARA VINCULAR AO WEBHOOK
     };
 
     // URL Exata com www e barra no final
@@ -620,7 +621,7 @@ export default function AdminDashboard() {
     console.error('Falha ao gerar PIX:', error);
     alert(`Erro ao gerar Pix: ${error.message}`);
   }
-}, []);
+}, [barbearia?.id]);
 
   const checkAuthAndLoad = useCallback(async () => {
     setLoading(true);
