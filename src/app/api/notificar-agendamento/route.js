@@ -1,9 +1,6 @@
 import { NextResponse } from 'next/server';
 import admin from 'firebase-admin';
 
-// Força o Next.js a tratar esta rota de forma estritamente dinâmica (sem pré-renderização no build)
-export const dynamic = 'force-dynamic';
-
 function initFirebaseAdmin() {
   if (admin.apps.length > 0) {
     return admin.app();
@@ -13,9 +10,7 @@ function initFirebaseAdmin() {
   const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
   const privateKey = process.env.FIREBASE_PRIVATE_KEY;
 
-  // Se as variáveis não estiverem carregadas no momento do build, evita quebrar a compilação
   if (!projectId || !clientEmail || !privateKey) {
-    console.warn('Credenciais do Firebase Admin ausentes no ambiente.');
     return null;
   }
 
