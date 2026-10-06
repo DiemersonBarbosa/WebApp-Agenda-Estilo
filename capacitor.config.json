@@ -2,5 +2,8 @@
   "appId": "com.agendaestilo.app",
   "appName": "barbearia-webapp",
   "webDir": "out",
-  "bundledWebRuntime": false
+  "server": {
+    "androidScheme": "https",
+    "cleartext": true
+  }
 }
