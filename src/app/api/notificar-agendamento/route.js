@@ -1,40 +1,76 @@
 import { NextResponse } from 'next/server';
 import admin from 'firebase-admin';
 
-// Inicializa a SDK do Firebase Admin no servidor (apenas uma vez)
-if (!admin.apps.length) {
-  admin.initializeApp({
+// Força o Next.js a tratar esta rota de forma estritamente dinâmica (sem pré-renderização no build)
+export const dynamic = 'force-dynamic';
+
+function initFirebaseAdmin() {
+  if (admin.apps.length > 0) {
+    return admin.app();
+  }
+
+  const projectId = process.env.FIREBASE_PROJECT_ID;
+  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+  const privateKey = process.env.FIREBASE_PRIVATE_KEY;
+
+  // Se as variáveis não estiverem carregadas no momento do build, evita quebrar a compilação
+  if (!projectId || !clientEmail || !privateKey) {
+    console.warn('Credenciais do Firebase Admin ausentes no ambiente.');
+    return null;
+  }
+
+  return admin.initializeApp({
     credential: admin.credential.cert({
-      projectId: process.env.FIREBASE_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+      projectId,
+      clientEmail,
+      privateKey: privateKey.replace(/\\n/g, '\n'),
     }),
   });
 }
 
 export async function POST(req) {
   try {
+    const firebaseApp = initFirebaseAdmin();
+
+    if (!firebaseApp) {
+      return NextResponse.json(
+        { error: 'Serviço Firebase Admin não configurado no servidor.' },
+        { status: 500 }
+      );
+    }
+
     const { fcmToken, titulo, corpo } = await req.json();
 
     if (!fcmToken) {
       return NextResponse.json({ error: 'Token FCM não fornecido' }, { status: 400 });
     }
 
-    // Monta a estrutura da mensagem Push
     const message = {
       notification: {
         title: titulo || '📅 Novo Agendamento!',
-        body: corpo || 'A sua agenda recebeu uma nova marcação.',
+        body: corpo || 'Sua agenda recebeu uma nova atualização.',
       },
-      token: fcmToken, // Token do telemóvel guardado no banco de dados
+      data: {
+        title: titulo || '📅 Novo Agendamento!',
+        body: corpo || 'Sua agenda recebeu uma nova atualização.',
+      },
+      android: {
+        priority: 'high',
+        notification: {
+          sound: 'default',
+          priority: 'max',
+          visibility: 'public',
+          channelId: 'agendamentos_channel',
+        },
+      },
+      token: fcmToken,
     };
 
-    // Envia a notificação diretamente para o Google Firebase
     const response = await admin.messaging().send(message);
 
     return NextResponse.json({ success: true, messageId: response });
   } catch (error) {
-    console.error('Erro ao enviar Push via Firebase:', error);
+    console.error('Erro na rota /api/notificar-agendamento:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
