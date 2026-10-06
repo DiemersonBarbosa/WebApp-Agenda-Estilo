@@ -1,51 +1,52 @@
 import { NextResponse } from 'next/server';
 
+function corsHeaders() {
+  return {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  };
+}
+
+export async function OPTIONS() {
+  return NextResponse.json({}, { headers: corsHeaders() });
+}
+
 export async function POST(request) {
   try {
-    const body = await request.json().catch(() => ({}));
-    const paymentId = body.paymentId || body.id;
+    const { paymentId } = await request.json();
 
     if (!paymentId) {
       return NextResponse.json(
-        { status: 'error', message: 'ID do pagamento não fornecido' }, 
-        { status: 400 }
+        { error: 'ID de pagamento não fornecido' }, 
+        { status: 400, headers: corsHeaders() }
       );
     }
 
     const accessTokenMP = process.env.MERCADO_PAGO_ACCESS_TOKEN;
 
-    if (!accessTokenMP) {
-      return NextResponse.json(
-        { status: 'error', message: 'Token do Mercado Pago não configurado no servidor' }, 
-        { status: 500 }
-      );
-    }
-
-    const response = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
+    const res = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${accessTokenMP}`
-      }
+        'Authorization': `Bearer ${accessTokenMP}`,
+        'Content-Type': 'application/json',
+      },
     });
 
-    const data = await response.json();
+    const data = await res.json();
 
-    if (!response.ok) {
+    if (!res.ok) {
       return NextResponse.json(
-        { status: 'error', message: data.message || 'Erro ao consultar pagamento' }, 
-        { status: response.status }
+        { error: 'Erro ao consultar Mercado Pago' }, 
+        { status: res.status, headers: corsHeaders() }
       );
     }
 
-    return NextResponse.json({ 
-      status: data.status, 
-      status_detail: data.status_detail 
-    });
-
+    return NextResponse.json({ status: data.status }, { headers: corsHeaders() });
   } catch (error) {
     return NextResponse.json(
-      { status: 'error', message: error.message || 'Erro interno' }, 
-      { status: 500 }
+      { error: error.message }, 
+      { status: 500, headers: corsHeaders() }
     );
   }
 }
