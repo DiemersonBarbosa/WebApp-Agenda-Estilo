@@ -562,37 +562,49 @@ export default function AdminDashboard() {
       payer_name: paymentData.payer_name || 'Gestor'
     };
 
-    const url = 'https://agendaestilo.com.br/api/gerar-pix/';
+    const baseUrl = 'https://www.agendaestilo.com.br';
+    let targetUrl = `${baseUrl}/api/gerar-pix`;
     let data;
 
-    // Garante que o código roda exclusivamente no navegador/cliente
     if (typeof window !== 'undefined') {
       const { Capacitor, CapacitorHttp } = await import('@capacitor/core');
 
       if (Capacitor.isNativePlatform()) {
-        const options = {
-          url: url,
+        let response = await CapacitorHttp.post({
+          url: targetUrl,
           headers: { 'Content-Type': 'application/json' },
           data: payload,
-        };
+        });
 
-        const response = await CapacitorHttp.post(options);
+        // Trata redirecionamentos (301, 302, 307, 308)
+        if (response.status >= 300 && response.status < 400) {
+          let redirectUrl = response.headers?.Location || response.headers?.location;
+          
+          if (redirectUrl) {
+            // Se a Vercel devolver uma URL relativa (ex: /api/gerar-pix/), converte para absoluta
+            if (redirectUrl.startsWith('/')) {
+              redirectUrl = `${baseUrl}${redirectUrl}`;
+            }
 
-        if (response.status >= 300 && response.status < 400 && response.headers?.Location) {
-          const redirectResponse = await CapacitorHttp.post({
-            url: response.headers.Location,
-            headers: { 'Content-Type': 'application/json' },
-            data: payload,
-          });
-          data = typeof redirectResponse.data === 'string' ? JSON.parse(redirectResponse.data) : redirectResponse.data;
-        } else if (response.status !== 200) {
-          throw new Error(response.data?.error?.message || response.data?.message || `Erro no servidor (${response.status})`);
-        } else {
-          data = typeof response.data === 'string' ? JSON.parse(response.data) : response.data;
+            response = await CapacitorHttp.post({
+              url: redirectUrl,
+              headers: { 'Content-Type': 'application/json' },
+              data: payload,
+            });
+          }
         }
+
+        if (response.status !== 200 && response.status !== 201) {
+          const errorMsg = typeof response.data === 'object' 
+            ? (response.data?.error?.message || response.data?.message)
+            : response.data;
+          throw new Error(errorMsg || `Erro no servidor (${response.status})`);
+        }
+
+        data = typeof response.data === 'string' ? JSON.parse(response.data) : response.data;
       } else {
         // Fluxo para navegador Web
-        const response = await fetch(url, {
+        const response = await fetch(targetUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
