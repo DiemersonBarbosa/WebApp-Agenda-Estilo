@@ -4,6 +4,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Bot, Send, CheckCircle2, AlertCircle, Clock, ArrowRight, Calendar as CalendarIcon, XCircle, Edit3, Scissors, User, Award, Gift, Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
+// URL base para chamadas de API do servidor (necessária no app nativo Capacitor/Android)
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://agendaestilo.com.br';
+
 export default function AgendamentoChat({ barbeariaId }) {
   const [barbearia, setBarbearia] = useState(null);
   const [servicos, setServicos] = useState([]);
@@ -506,7 +509,7 @@ export default function AgendamentoChat({ barbeariaId }) {
           .single();
 
         if (barbData?.fcm_token) {
-          await fetch('/api/notificar-agendamento', {
+          await fetch(`${API_BASE_URL}/api/notificar-agendamento`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

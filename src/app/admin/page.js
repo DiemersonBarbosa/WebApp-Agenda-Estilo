@@ -59,8 +59,8 @@ import NotificacoesBell from '@/components/NotificacoesBell';
 import AdminModoAgendamento from '@/components/AdminModoAgendamento';
 import FidelizacaoAdmin from '@/components/FidelizacaoAdmin';
 
-// URL base para chamadas de API do servidor (necessária no app nativo Capacitor/Android)
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://agendaestilo.com.br';
+// URL base fixa para chamadas de API no app nativo Capacitor/Android
+const API_BASE_URL = 'https://agendaestilo.com.br';
 
 /* HOOK PARA NOTIFICAÇÕES NATIVAS DO ANDROID (SUPABASE REALTIME) */
 function usePushNotifications(barbeariaId) {
@@ -68,21 +68,18 @@ function usePushNotifications(barbeariaId) {
     if (!barbeariaId) return;
 
     async function registrarPush() {
-      // 1. Verifica se está a rodar num dispositivo nativo (Android/iOS)
       if (!Capacitor.isNativePlatform()) {
         console.log('Push Notifications nativas ignoradas no ambiente Web.');
         return;
       }
 
       try {
-        // Pedir permissão ao Android
         let permStatus = await PushNotifications.checkPermissions();
         if (permStatus.receive !== 'granted') {
           permStatus = await PushNotifications.requestPermissions();
         }
 
         if (permStatus.receive === 'granted') {
-          // Registrar dispositivo no Firebase
           await PushNotifications.register();
         }
       } catch (err) {
@@ -92,13 +89,11 @@ function usePushNotifications(barbeariaId) {
 
     registrarPush();
 
-    // Evento disparado quando o token do Firebase é gerado
     let listener;
     if (Capacitor.isNativePlatform()) {
       listener = PushNotifications.addListener('registration', async (token) => {
         console.log('FCM Token Gerado:', token.value);
 
-        // Salva o token FCM da barbearia no banco de dados Supabase
         await supabase
           .from('barbearias')
           .update({ fcm_token: token.value })
@@ -208,7 +203,6 @@ function AuthForm({ onAuthSuccess }) {
     <div className="min-h-screen bg-[#f4f4f6] flex flex-col justify-center items-center p-4 sm:p-6 font-sans select-none">
       <div className="w-full max-w-md bg-white rounded-[2.5rem] border border-stone-200/80 p-6 sm:p-10 shadow-2xl space-y-8 relative overflow-hidden">
         
-        {/* LOGOTIPO DA MARCA */}
         <div className="flex flex-col items-center text-center space-y-3 pt-2">
           <div className="bg-stone-50/80 p-4 rounded-3xl border border-stone-100 shadow-xs w-full flex items-center justify-center">
             <img 
@@ -224,7 +218,6 @@ function AuthForm({ onAuthSuccess }) {
           </p>
         </div>
 
-        {/* ALTERNADOR DE ABAS (ENTRAR / CRIAR CONTA) */}
         <div className="grid grid-cols-2 gap-1.5 bg-stone-100 p-1.5 rounded-2xl border border-stone-200/60">
           <button
             type="button"
@@ -250,14 +243,12 @@ function AuthForm({ onAuthSuccess }) {
           </button>
         </div>
 
-        {/* MENSAGEM DE ERRO */}
         {errorMsg && (
           <div className="bg-rose-50 border border-rose-200 text-rose-700 p-3.5 rounded-2xl text-xs font-semibold text-center">
             {errorMsg}
           </div>
         )}
 
-        {/* FORMULÁRIO */}
         <form onSubmit={handleAuth} className="space-y-4">
           {isRegister && (
             <>
@@ -356,8 +347,8 @@ function AuthForm({ onAuthSuccess }) {
 export default function AdminDashboard() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('agendamentos');
-  const [subTabEquipe, setSubTabEquipe] = useState('servicos'); // 'servicos' | 'barbeiros'
-  const [openAcessoId, setOpenAcessoId] = useState(null); // ID do barbeiro com menu de acesso aberto
+  const [subTabEquipe, setSubTabEquipe] = useState('servicos');
+  const [openAcessoId, setOpenAcessoId] = useState(null);
 
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState(null);
@@ -386,7 +377,6 @@ export default function AdminDashboard() {
   const [user, setUser] = useState(null);
   const [barbearia, setBarbearia] = useState(null);
 
-  // ESCUTA AS NOTIFICAÇÕES NATIVAS DO ANDROID EM TEMPO REAL
   usePushNotifications(barbearia?.id);
 
   const [diasRestantes, setDiasRestantes] = useState(7);
@@ -578,21 +568,29 @@ export default function AdminDashboard() {
         body: JSON.stringify(payload),
       });
 
-      if (!response.ok) {
-        const textError = await response.text();
-        console.error('Resposta do Servidor:', textError);
-        throw new Error(`Erro na rota de pagamento (${response.status}).`);
+      const textResponse = await response.text();
+
+      let data;
+      try {
+        data = JSON.parse(textResponse);
+      } catch (e) {
+        console.error('Resposta não-JSON recebida:', textResponse);
+        alert(`Servidor retornou resposta inesperada (${response.status}):\n${textResponse.substring(0, 150)}`);
+        return;
       }
 
-      const data = await response.json();
-      
+      if (!response.ok) {
+        alert(`Erro no Pagamento: ${data.error?.message || data.message || 'Falha ao processar no servidor.'}`);
+        return;
+      }
+
       setPixDataMP({
         qrCodeBase64: data.qrCodeBase64 || '',
         copiaECola: data.copiaECola || '',
         paymentId: data.paymentId || null
       });
 
-      return data; 
+      return data;
     } catch (error) {
       console.error('Falha ao gerar PIX:', error);
       alert(`Erro ao gerar Pix: ${error.message}`);
@@ -656,7 +654,13 @@ export default function AdminDashboard() {
             body: JSON.stringify({ paymentId: pixDataMP.paymentId })
           });
           
-          const data = await res.json();
+          const textRes = await res.text();
+          let data;
+          try {
+            data = JSON.parse(textRes);
+          } catch(e) {
+            return;
+          }
 
           if (res.ok && data.status === 'approved') {
             clearInterval(intervalId);
@@ -730,7 +734,13 @@ export default function AdminDashboard() {
           body: JSON.stringify({ paymentId: pixDataMP.paymentId })
         });
 
-        const data = await res.json();
+        const textRes = await res.text();
+        let data;
+        try {
+          data = JSON.parse(textRes);
+        } catch (e) {
+          throw new Error('Servidor retornou resposta inválida ao verificar pagamento.');
+        }
 
         if (!res.ok) {
           throw new Error(data.message || 'Erro ao comunicar com o servidor de pagamento.');
@@ -1062,7 +1072,6 @@ export default function AdminDashboard() {
     );
   }
 
-  /* RENDERIZAÇÃO DO FORMULÁRIO DE LOGIN/CADASTRO QUANDO NÃO HÁ USUÁRIO AUTENTICADO */
   if (!user) {
     return <AuthForm onAuthSuccess={checkAuthAndLoad} />;
   }
@@ -1095,10 +1104,8 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* HEADER MOBILE MODERNO E PROFISSIONAL */}
         <header className="w-full sticky top-0 z-30 md:hidden">
           <div className="w-full bg-white/90 backdrop-blur-xl border-b border-stone-200/80 px-4 py-3 flex items-center justify-between shadow-xs">
-            
             <div className="flex items-center gap-3 min-w-0">
               <div className="relative shrink-0">
                 {barbearia?.logo_url || barbearia?.foto ? (
@@ -1112,7 +1119,6 @@ export default function AdminDashboard() {
                     {(barbearia?.nome || 'B').charAt(0).toUpperCase()}
                   </div>
                 )}
-                
                 <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full" />
               </div>
 
@@ -1128,7 +1134,6 @@ export default function AdminDashboard() {
 
             <div className="flex items-center gap-2 shrink-0">
               <NotificacoesBell barbeariaId={barbearia?.id} supabase={supabase} />
-
               <button 
                 onClick={() => setModalInfoAssinaturaOpen(true)} 
                 className="w-9 h-9 rounded-full bg-white border border-stone-200/80 flex items-center justify-center text-stone-700 shadow-xs hover:bg-stone-50 transition-colors cursor-pointer"
@@ -1137,7 +1142,6 @@ export default function AdminDashboard() {
                 <Settings className="w-4 h-4" />
               </button>
             </div>
-
           </div>
         </header>
       </div>
@@ -1198,7 +1202,6 @@ export default function AdminDashboard() {
         )}
       </main>
 
-      {/* PAINEL DE GAVETA DE APPS NO MOBILE */}
       {mobileMenuOpen && (
         <div className="fixed inset-0 z-[60] flex md:hidden items-end justify-center">
           <div 
@@ -1398,7 +1401,6 @@ export default function AdminDashboard() {
       )}
 
       <div className="flex flex-1">
-        {/* BARRA LATERAL DESKTOP COM LOGOTIPO */}
         <aside 
           className="hidden md:flex flex-col w-72 p-5 select-none shrink-0 fixed left-0 top-0 h-screen overflow-y-auto justify-between border-r border-slate-200 z-40 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-slate-50 [&::-webkit-scrollbar-thumb]:bg-slate-300 [&::-webkit-scrollbar-thumb]:rounded-full"
           style={{
@@ -2285,7 +2287,7 @@ export default function AdminDashboard() {
                             setCopiado(true);
                             setTimeout(() => setCopiado(false), 3000);
                           } catch (err) {
-                            executarFallbackManual(texto);
+                            alert('Copie manualmente o código selecionado.');
                           }
                         }}
                         className="w-full bg-stone-900 hover:bg-stone-800 text-white py-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-lg relative z-50"

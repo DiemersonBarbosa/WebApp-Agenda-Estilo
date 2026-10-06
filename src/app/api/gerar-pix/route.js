@@ -1,5 +1,17 @@
 import { NextResponse } from 'next/server';
 
+function corsHeaders() {
+  return {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  };
+}
+
+export async function OPTIONS() {
+  return NextResponse.json({}, { headers: corsHeaders() });
+}
+
 export async function POST(request) {
   try {
     let body = {};
@@ -17,7 +29,7 @@ export async function POST(request) {
     if (!accessTokenMP) {
       return NextResponse.json(
         { error: { message: 'Token do Mercado Pago não configurado no servidor' } }, 
-        { status: 500 }
+        { status: 500, headers: corsHeaders() }
       );
     }
 
@@ -46,14 +58,14 @@ export async function POST(request) {
     } catch (e) {
       return NextResponse.json(
         { error: { message: `Erro no formato de resposta do Mercado Pago` } }, 
-        { status: 500 }
+        { status: 500, headers: corsHeaders() }
       );
     }
 
     if (!mpResponse.ok) {
       return NextResponse.json(
         { error: { message: data.message || 'Erro ao processar pagamento no Mercado Pago' } }, 
-        { status: 400 }
+        { status: 400, headers: corsHeaders() }
       );
     }
 
@@ -63,12 +75,12 @@ export async function POST(request) {
       qrCodeBase64: pointOfInteraction?.qr_code_base64 || '',
       copiaECola: pointOfInteraction?.qr_code || '',
       paymentId: data.id
-    });
+    }, { headers: corsHeaders() });
 
   } catch (error) {
     return NextResponse.json(
       { error: { message: error.message || 'Erro interno no servidor' } }, 
-      { status: 500 }
+      { status: 500, headers: corsHeaders() }
     );
   }
 }

@@ -1,6 +1,9 @@
 'use client';
 import { useState, useEffect } from 'react';
 
+// URL base para chamadas de API do servidor (necessária no app nativo Capacitor/Android)
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://agendaestilo.com.br';
+
 export default function GerenciarAssinaturaPage() {
   const [loading, setLoading] = useState(true);
   const [assinatura, setAssinatura] = useState(null);
@@ -13,10 +16,6 @@ export default function GerenciarAssinaturaPage() {
   useEffect(() => {
     async function carregarDadosAssinatura() {
       try {
-        // Substitua pela sua chamada real ao Supabase ou API para buscar os dados da barbearia logada
-        // Exemplo: const res = await fetch('/api/minha-assinatura');
-        // const data = await res.json();
-        
         // Exemplo fictício para demonstração:
         const dadosMock = {
           status_assinatura: 'ativo', // 'ativo' ou 'pendente'
@@ -47,7 +46,8 @@ export default function GerenciarAssinaturaPage() {
   // Função para gerar o Pix de renovação utilizando a rota que criamos anteriormente
   async function handleGerarPixRenovacao() {
     try {
-      const response = await fetch('/api/gerar-pix', {
+      // UTILIZA A URL COMPLETA PARA FUNCIONAR NO ANDROID E NA WEB
+      const response = await fetch(`${API_BASE_URL}/api/gerar-pix`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -108,7 +108,7 @@ export default function GerenciarAssinaturaPage() {
           </span>
         </div>
 
-        {/* Botão de Ação (Renovar caso esteja próximo de vencer ou expirado) */}
+        {/* Botão de Ação */}
         <div className="pt-4">
           <button
             onClick={handleGerarPixRenovacao}
@@ -122,7 +122,7 @@ export default function GerenciarAssinaturaPage() {
         </div>
       </div>
 
-      {/* Modal Simples de Exibição do Pix (Caso queira integrar na mesma página) */}
+      {/* Modal do Pix */}
       {modalPixAberto && dadosPix && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <div className="bg-white p-6 rounded-2xl max-w-md w-full shadow-xl space-y-4">
