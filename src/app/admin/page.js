@@ -59,6 +59,8 @@ import NotificacoesBell from '@/components/NotificacoesBell';
 import AdminModoAgendamento from '@/components/AdminModoAgendamento';
 import FidelizacaoAdmin from '@/components/FidelizacaoAdmin';
 
+import { Capacitor, CapacitorHttp } from '@capacitor/core';
+
 // URL base fixa para chamadas de API no app nativo Capacitor/Android
 const API_BASE_URL = 'https://agendaestilo.com.br';
 
@@ -552,50 +554,72 @@ export default function AdminDashboard() {
   }, []);
 
   const gerarPixMercadoPago = useCallback(async (paymentData) => {
-    try {
-      const payload = {
-        transaction_amount: Number(paymentData.transaction_amount) || 9.90,
-        description: paymentData.description || 'Assinatura Mensal Gestor',
-        payer_email: paymentData.payer_email || 'diemersonlimabarbosa@gmail.com',
-        payer_name: paymentData.payer_name || 'Gestor'
+  try {
+    const payload = {
+      transaction_amount: Number(paymentData.transaction_amount) || 9.90,
+      description: paymentData.description || 'Assinatura Mensal Gestor',
+      payer_email: paymentData.payer_email || 'diemersonlimabarbosa@gmail.com',
+      payer_name: paymentData.payer_name || 'Gestor'
+    };
+
+    // Adicionada a barra no final (/api/gerar-pix/) para evitar o redirecionamento 307
+    const url = 'https://agendaestilo.com.br/api/gerar-pix/';
+    let data;
+
+    if (Capacitor.isNativePlatform()) {
+      const options = {
+        url: url,
+        headers: { 'Content-Type': 'application/json' },
+        data: payload,
       };
 
-      const response = await fetch(`${API_BASE_URL}/api/gerar-pix`, {
+      const response = await CapacitorHttp.post(options);
+
+      // Se por algum motivo ainda retornar redirecionamento (301, 302, 307, 308)
+      if (response.status >= 300 && response.status < 400 && response.headers?.Location) {
+        const redirectUrl = response.headers.Location;
+        const redirectResponse = await CapacitorHttp.post({
+          url: redirectUrl,
+          headers: { 'Content-Type': 'application/json' },
+          data: payload,
+        });
+        data = typeof redirectResponse.data === 'string' ? JSON.parse(redirectResponse.data) : redirectResponse.data;
+      } else if (response.status !== 200) {
+        throw new Error(response.data?.error?.message || response.data?.message || `Erro no servidor (${response.status})`);
+      } else {
+        data = typeof response.data === 'string' ? JSON.parse(response.data) : response.data;
+      }
+    } else {
+      const response = await fetch(url, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
 
       const textResponse = await response.text();
-
-      let data;
       try {
         data = JSON.parse(textResponse);
       } catch (e) {
-        console.error('Resposta não-JSON recebida:', textResponse);
-        alert(`Servidor retornou resposta inesperada (${response.status}):\n${textResponse.substring(0, 150)}`);
-        return;
+        throw new Error(`Resposta inválida do servidor (${response.status})`);
       }
 
       if (!response.ok) {
-        alert(`Erro no Pagamento: ${data.error?.message || data.message || 'Falha ao processar no servidor.'}`);
-        return;
+        throw new Error(data.error?.message || data.message || 'Falha ao processar no servidor.');
       }
-
-      setPixDataMP({
-        qrCodeBase64: data.qrCodeBase64 || '',
-        copiaECola: data.copiaECola || '',
-        paymentId: data.paymentId || null
-      });
-
-      return data;
-    } catch (error) {
-      console.error('Falha ao gerar PIX:', error);
-      alert(`Erro ao gerar Pix: ${error.message}`);
     }
-  }, []);
+
+    setPixDataMP({
+      qrCodeBase64: data.qrCodeBase64 || '',
+      copiaECola: data.copiaECola || '',
+      paymentId: data.paymentId || null
+    });
+
+    return data;
+  } catch (error) {
+    console.error('Falha ao gerar PIX:', error);
+    alert(`Erro ao gerar Pix: ${error.message}`);
+  }
+}, []);
 
   const checkAuthAndLoad = useCallback(async () => {
     setLoading(true);
