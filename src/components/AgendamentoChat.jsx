@@ -83,7 +83,6 @@ export default function AgendamentoChat({ barbeariaId }) {
         diaAtivo = configHorarios[nomeDiaSemana].ativo;
       }
 
-      // Verificação corrigida com isolamento YYYY-MM-DD
       const estaBloqueadoNoBanco = datasBloqueadas.some(b => b.startsWith(dataIso));
       const bloqueado = estaBloqueadoNoBanco || !diaAtivo;
 
@@ -110,19 +109,14 @@ export default function AgendamentoChat({ barbeariaId }) {
     }
   };
 
-  // =========================================================================
-  // GERAÇÃO DE HORÁRIOS SINCRONIZADA COM A ESCALA DO BARBEIRO SELECIONADO
-  // =========================================================================
   const getHorariosDisponiveisParaData = (dataStr) => {
     if (!dataStr) return [];
 
-    // Normalizar string de data para YYYY-MM-DD e verificar bloqueio
     const dataFmt = dataStr.split('T')[0];
     if (datasBloqueadas.some(b => b.startsWith(dataFmt))) {
       return [];
     }
 
-    // Identificar o barbeiro ativo conforme a etapa (agendamento novo ou edição)
     const barbeiroAtivo = etapa.startsWith('editar')
       ? barbeiros.find(b => b.id === agendamentoEmEdicao?.barbeiro_id)
       : barbeiroEscolhido;
@@ -132,7 +126,6 @@ export default function AgendamentoChat({ barbeariaId }) {
     const diasSemanaMap = ['domingo', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado'];
     const nomeDia = diasSemanaMap[dateObj.getDay()];
 
-    // 1. Prioridade para a escala individual do barbeiro
     let configHorariosBarbeiro = barbeiroAtivo?.horarios_trabalho?.[nomeDia];
 
     let ativo = true;
@@ -142,13 +135,12 @@ export default function AgendamentoChat({ barbeariaId }) {
     let pausaFimStr = '';
 
     if (configHorariosBarbeiro) {
-      if (configHorariosBarbeiro.ativo === false) return []; // Barbeiro de folga
+      if (configHorariosBarbeiro.ativo === false) return [];
       aberturaStr = configHorariosBarbeiro.abertura || '08:00';
       fechamentoStr = configHorariosBarbeiro.fechamento || '18:00';
       pausaInicioStr = configHorariosBarbeiro.pausaInicio || '';
       pausaFimStr = configHorariosBarbeiro.pausaFim || '';
     } else {
-      // 2. Fallback para os horários gerais da unidade se o barbeiro não tiver dados salvos
       const configGeral = barbearia?.horarios?.[nomeDia];
       if (configGeral) {
         if (configGeral.ativo === false) return [];
@@ -181,10 +173,9 @@ export default function AgendamentoChat({ barbeariaId }) {
     }
 
     const horariosGerados = [];
-    const intervaloMinutos = 60; // Intervalo padrão entre agendamentos
+    const intervaloMinutos = 60;
 
     for (let min = minAbertura; min < minFechamento; min += intervaloMinutos) {
-      // Ocultar os slots que coincidem com a pausa / almoço
       if (minPausaInicio !== null && minPausaFim !== null) {
         if (min >= minPausaInicio && min < minPausaFim) {
           continue;
@@ -225,7 +216,6 @@ export default function AgendamentoChat({ barbeariaId }) {
         setServicos(resServicos.data || []);
         setBarbeiros(resBarbeiros.data || []);
 
-        // Tratamento e normalização das datas de bloqueio retornadas pelo banco
         const bloqueiosFormatados = (resBloqueios.data || []).map(b => {
           if (!b.data_bloqueio) return '';
           return String(b.data_bloqueio).split('T')[0];
@@ -494,6 +484,8 @@ export default function AgendamentoChat({ barbeariaId }) {
     setLoading(true);
     try {
       const dataHoraIso = new Date(`${dataFmt}T${horaEscolhida}:00`).toISOString();
+      
+      // 1. Grava o agendamento no Supabase
       await supabase.from('agendamentos').insert([{
         barbearia_id: barbeariaId,
         cliente_id: clienteId,
@@ -504,6 +496,29 @@ export default function AgendamentoChat({ barbeariaId }) {
         status: 'agendado',
         lido: false
       }]);
+
+      // 2. DISPARO DA NOTIFICAÇÃO PUSH PARA O APLICATIVO DO GESTOR VIA FCM
+      try {
+        const { data: barbData } = await supabase
+          .from('barbearias')
+          .select('fcm_token')
+          .eq('id', barbeariaId)
+          .single();
+
+        if (barbData?.fcm_token) {
+          await fetch('/api/notificar-agendamento', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              fcmToken: barbData.fcm_token,
+              titulo: '📅 Novo Agendamento!',
+              corpo: `${nome} agendou ${servicoEscolhido.nome} para o dia ${dataFmt.split('-').reverse().join('/')} às ${horaEscolhida}.`
+            })
+          });
+        }
+      } catch (pushErr) {
+        console.error('Erro ao enviar Push para o servidor:', pushErr);
+      }
 
       await carregarDadosCliente(clienteId);
       setMensagens((prev) => [...prev, { remetente: 'usuario', texto: 'Confirmar Agendamento' }]);

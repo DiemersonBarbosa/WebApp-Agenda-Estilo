@@ -46,6 +46,8 @@ import {
   UserCheck
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { Capacitor } from '@capacitor/core';
+import { PushNotifications } from '@capacitor/push-notifications';
 
 import ConfiguracoesBarbearia from '@/components/ConfiguracoesBarbearia';
 import PainelAgendaDia from '@/components/PainelAgendaDia';
@@ -56,6 +58,58 @@ import ProdutosScreen from '@/components/ProdutosScreen';
 import NotificacoesBell from '@/components/NotificacoesBell'; 
 import AdminModoAgendamento from '@/components/AdminModoAgendamento';
 import FidelizacaoAdmin from '@/components/FidelizacaoAdmin';
+
+/* HOOK PARA NOTIFICAÇÕES NATIVAS DO ANDROID (SUPABASE REALTIME) */
+function usePushNotifications(barbeariaId) {
+  useEffect(() => {
+    if (!barbeariaId) return;
+
+    async function registrarPush() {
+      // 1. Verifica se está a rodar num dispositivo nativo (Android/iOS)
+      if (!Capacitor.isNativePlatform()) {
+        console.log('Push Notifications nativas ignoradas no ambiente Web.');
+        return;
+      }
+
+      try {
+        // Pedir permissão ao Android
+        let permStatus = await PushNotifications.checkPermissions();
+        if (permStatus.receive !== 'granted') {
+          permStatus = await PushNotifications.requestPermissions();
+        }
+
+        if (permStatus.receive === 'granted') {
+          // Registrar dispositivo no Firebase
+          await PushNotifications.register();
+        }
+      } catch (err) {
+        console.error('Erro ao registrar Push:', err);
+      }
+    }
+
+    registrarPush();
+
+    // Evento disparado quando o token do Firebase é gerado
+    let listener;
+    if (Capacitor.isNativePlatform()) {
+      listener = PushNotifications.addListener('registration', async (token) => {
+        console.log('FCM Token Gerado:', token.value);
+
+        // Salva o token FCM da barbearia no banco de dados Supabase
+        await supabase
+          .from('barbearias')
+          .update({ fcm_token: token.value })
+          .eq('id', barbeariaId);
+      });
+    }
+
+    return () => {
+      if (listener) {
+        listener.remove();
+      }
+    };
+  }, [barbeariaId]);
+}
 
 async function criarAcessoBarbeiro(barbeiroId, emailBarbeiro, senhaTemporaria) {
   try {
@@ -329,6 +383,9 @@ export default function AdminDashboard() {
   const [user, setUser] = useState(null);
   const [barbearia, setBarbearia] = useState(null);
 
+  // ESCUTA AS NOTIFICAÇÕES NATIVAS DO ANDROID EM TEMPO REAL
+  usePushNotifications(barbearia?.id);
+
   const [diasRestantes, setDiasRestantes] = useState(7);
   const [assinaturaExpirada, setAssinaturaExpirada] = useState(false);
   const [modalAssinaturaOpen, setModalAssinaturaOpen] = useState(false);
@@ -409,61 +466,57 @@ export default function AdminDashboard() {
   };
 
   const verificarStatusAssinatura = (dadosBarbearia) => {
-  if (!dadosBarbearia) return;
+    if (!dadosBarbearia) return;
 
-  const status = dadosBarbearia?.status_assinatura?.trim().toLowerCase();
-  const hoje = new Date();
-  hoje.setHours(0, 0, 0, 0);
+    const status = dadosBarbearia?.status_assinatura?.trim().toLowerCase();
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
 
-  // 1. Verificação para contas ativas
-  if (status === 'ativo') {
-    const dataVencStr = dadosBarbearia?.data_vencimento;
-    
-    if (dataVencStr) {
-      // Ajusta o parsing para evitar discrepâncias de fuso horário
-      const partes = dataVencStr.split('T')[0].split('-');
-      const dataVencimento = new Date(partes[0], partes[1] - 1, partes[2]);
-      dataVencimento.setHours(0, 0, 0, 0);
+    if (status === 'ativo') {
+      const dataVencStr = dadosBarbearia?.data_vencimento;
+      
+      if (dataVencStr) {
+        const partes = dataVencStr.split('T')[0].split('-');
+        const dataVencimento = new Date(partes[0], partes[1] - 1, partes[2]);
+        dataVencimento.setHours(0, 0, 0, 0);
 
-      // Se a data de vencimento for menor que hoje, a assinatura expirou
-      if (dataVencimento < hoje) {
-        setModalAssinaturaOpen(true);
-        setAssinaturaExpirada(true);
-        return;
+        if (dataVencimento < hoje) {
+          setModalAssinaturaOpen(true);
+          setAssinaturaExpirada(true);
+          return;
+        }
       }
-    }
 
-    setModalAssinaturaOpen(false);
-    setAssinaturaExpirada(false);
-    return;
-  }
-
-  // 2. Verificação para contas em período de teste
-  const dataCriacaoStr = dadosBarbearia?.created_at;
-  if (dataCriacaoStr) {
-    const dataCriacao = new Date(dataCriacaoStr);
-    dataCriacao.setHours(0, 0, 0, 0);
-
-    const diferencaEmMilissegundos = hoje - dataCriacao;
-    const diasPassados = Math.floor(diferencaEmMilissegundos / (1000 * 60 * 60 * 24));
-    const restante = Math.max(0, 7 - diasPassados);
-
-    if (typeof setDiasRestantes === 'function') {
-      setDiasRestantes(restante);
-    }
-
-    if (restante <= 0) {
-      setModalAssinaturaOpen(true);
-      setAssinaturaExpirada(true);
-    } else {
       setModalAssinaturaOpen(false);
       setAssinaturaExpirada(false);
+      return;
     }
-  } else {
-    setModalAssinaturaOpen(true);
-    setAssinaturaExpirada(true);
-  }
-};
+
+    const dataCriacaoStr = dadosBarbearia?.created_at;
+    if (dataCriacaoStr) {
+      const dataCriacao = new Date(dataCriacaoStr);
+      dataCriacao.setHours(0, 0, 0, 0);
+
+      const diferencaEmMilissegundos = hoje - dataCriacao;
+      const diasPassados = Math.floor(diferencaEmMilissegundos / (1000 * 60 * 60 * 24));
+      const restante = Math.max(0, 7 - diasPassados);
+
+      if (typeof setDiasRestantes === 'function') {
+        setDiasRestantes(restante);
+      }
+
+      if (restante <= 0) {
+        setModalAssinaturaOpen(true);
+        setAssinaturaExpirada(true);
+      } else {
+        setModalAssinaturaOpen(false);
+        setAssinaturaExpirada(false);
+      }
+    } else {
+      setModalAssinaturaOpen(true);
+      setAssinaturaExpirada(true);
+    }
+  };
 
   const loadDashboardData = useCallback(async (barbeariaId) => {
     setLoading(true);
@@ -522,11 +575,13 @@ export default function AdminDashboard() {
         body: JSON.stringify(payload),
       });
 
-      const data = await response.json();
-
       if (!response.ok) {
-        throw new Error(data.error?.message || 'Erro ao gerar PIX');
+        const textError = await response.text();
+        console.error('Resposta do Servidor:', textError);
+        throw new Error(`Erro na rota de pagamento (${response.status}).`);
       }
+
+      const data = await response.json();
       
       setPixDataMP({
         qrCodeBase64: data.qrCodeBase64 || '',
@@ -1037,54 +1092,51 @@ export default function AdminDashboard() {
           </div>
         )}
 
-       {/* HEADER MOBILE MODERNO E PROFISSIONAL */}
-<header className="w-full sticky top-0 z-30 md:hidden">
-  <div className="w-full bg-white/90 backdrop-blur-xl border-b border-stone-200/80 px-4 py-3 flex items-center justify-between shadow-xs">
-    
-    {/* FOTO E NOME DA BARBEARIA */}
-    <div className="flex items-center gap-3 min-w-0">
-      <div className="relative shrink-0">
-        {barbearia?.logo_url || barbearia?.foto ? (
-          <img 
-            src={barbearia?.logo_url || barbearia?.foto} 
-            alt={barbearia?.nome || 'Barbearia'} 
-            className="w-10 h-10 rounded-2xl object-cover border border-stone-200/90 shadow-xs"
-          />
-        ) : (
-          <div className="w-10 h-10 rounded-2xl bg-stone-900 text-white font-extrabold flex items-center justify-center text-xs shadow-xs border border-stone-800">
-            {(barbearia?.nome || 'B').charAt(0).toUpperCase()}
+        {/* HEADER MOBILE MODERNO E PROFISSIONAL */}
+        <header className="w-full sticky top-0 z-30 md:hidden">
+          <div className="w-full bg-white/90 backdrop-blur-xl border-b border-stone-200/80 px-4 py-3 flex items-center justify-between shadow-xs">
+            
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="relative shrink-0">
+                {barbearia?.logo_url || barbearia?.foto ? (
+                  <img 
+                    src={barbearia?.logo_url || barbearia?.foto} 
+                    alt={barbearia?.nome || 'Barbearia'} 
+                    className="w-10 h-10 rounded-2xl object-cover border border-stone-200/90 shadow-xs"
+                  />
+                ) : (
+                  <div className="w-10 h-10 rounded-2xl bg-stone-900 text-white font-extrabold flex items-center justify-center text-xs shadow-xs border border-stone-800">
+                    {(barbearia?.nome || 'B').charAt(0).toUpperCase()}
+                  </div>
+                )}
+                
+                <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full" />
+              </div>
+
+              <div className="flex flex-col min-w-0">
+                <h1 className="font-black text-stone-900 text-sm tracking-tight truncate leading-snug">
+                  {barbearia?.nome || 'Minha Barbearia'}
+                </h1>
+                <span className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider">
+                  Painel do Gestor
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <NotificacoesBell barbeariaId={barbearia?.id} supabase={supabase} />
+
+              <button 
+                onClick={() => setModalInfoAssinaturaOpen(true)} 
+                className="w-9 h-9 rounded-full bg-white border border-stone-200/80 flex items-center justify-center text-stone-700 shadow-xs hover:bg-stone-50 transition-colors cursor-pointer"
+                title="Ajustes"
+              >
+                <Settings className="w-4 h-4" />
+              </button>
+            </div>
+
           </div>
-        )}
-        
-        {/* Indicador de sistema ativo */}
-        <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full" />
-      </div>
-
-      <div className="flex flex-col min-w-0">
-        <h1 className="font-black text-stone-900 text-sm tracking-tight truncate leading-snug">
-          {barbearia?.nome || 'Minha Barbearia'}
-        </h1>
-        <span className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider">
-          Painel do Gestor
-        </span>
-      </div>
-    </div>
-
-    {/* SINO E CONFIGURAÇÕES MANTIDOS */}
-    <div className="flex items-center gap-2 shrink-0">
-      <NotificacoesBell barbeariaId={barbearia?.id} supabase={supabase} />
-
-      <button 
-        onClick={() => setModalInfoAssinaturaOpen(true)} 
-        className="w-9 h-9 rounded-full bg-white border border-stone-200/80 flex items-center justify-center text-stone-700 shadow-xs hover:bg-stone-50 transition-colors cursor-pointer"
-        title="Ajustes"
-      >
-        <Settings className="w-4 h-4" />
-      </button>
-    </div>
-
-  </div>
-</header>
+        </header>
       </div>
 
       <main className="...">
@@ -1352,7 +1404,6 @@ export default function AdminDashboard() {
           }}
         >
           <div className="space-y-5 w-full">
-            {/* LOGOTIPO NO TOPO DA SIDEBAR */}
             <div className="flex items-center justify-center px-4 py-3.5 rounded-2xl border border-slate-200/80 shadow-xs bg-slate-50/50">
               <img 
                 src="/images/logo.png" 
@@ -1544,9 +1595,7 @@ export default function AdminDashboard() {
           )}
 
           {activeTab === 'comissoes' && (
-            <div 
-              className="rounded-[2.5rem] border border-stone-200/85 shadow-[0_10px_30px_rgba(0,0,0,0.03)] p-5 sm:p-8 space-y-6 bg-white"
-            >
+            <div className="rounded-[2.5rem] border border-stone-200/85 shadow-[0_10px_30px_rgba(0,0,0,0.03)] p-5 sm:p-8 space-y-6 bg-white">
               <div className="pb-4 border-b border-stone-200/60 flex items-center gap-3">
                 <div className="w-10 h-10 rounded-2xl bg-[#111111] text-white flex items-center justify-center shadow-md">
                   <Percent className="w-5 h-5 text-stone-200" />
@@ -1702,11 +1751,8 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          {/* ABA REFORMULADA DE SERVIÇOS & EQUIPE */}
           {activeTab === 'servicos' && (
             <div className="space-y-6">
-              
-              {/* CABEÇALHO DA SEÇÃO E SELETOR DE ABAS */}
               <div className="bg-white rounded-3xl border border-stone-200/80 p-5 sm:p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex items-center gap-3.5">
                   <div className="w-12 h-12 rounded-2xl bg-stone-900 text-white flex items-center justify-center shadow-md shrink-0">
@@ -1718,7 +1764,6 @@ export default function AdminDashboard() {
                   </div>
                 </div>
 
-                {/* NAVEGAÇÃO ENTRE SUB-ABAS */}
                 <div className="flex items-center bg-stone-100 p-1.5 rounded-2xl border border-stone-200/60 self-start md:self-auto w-full md:w-auto">
                   <button
                     onClick={() => setSubTabEquipe('servicos')}
@@ -1746,7 +1791,6 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              {/* VIEW 1: CATÁLOGO DE SERVIÇOS */}
               {subTabEquipe === 'servicos' && (
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
@@ -1815,7 +1859,6 @@ export default function AdminDashboard() {
                 </div>
               )}
 
-              {/* VIEW 2: EQUIPE DE BARBEIROS */}
               {subTabEquipe === 'barbeiros' && (
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
@@ -1892,7 +1935,6 @@ export default function AdminDashboard() {
                                 </span>
                               </div>
 
-                              {/* GAVETA COLAPSÁVEL DE GERAR ACESSO */}
                               <div className="bg-stone-50 rounded-2xl border border-stone-200/60 overflow-hidden">
                                 <button
                                   onClick={() => setOpenAcessoId(isMenuAcessoAberto ? null : b.id)}
@@ -1953,7 +1995,6 @@ export default function AdminDashboard() {
                     </div>
                   )}
 
-                  {/* MODAL MANTIDO PARA CRIAÇÃO/EDIÇÃO DE BARBEIROS */}
                   {modalBarbeiroOpen && (
                     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
                       <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 relative">

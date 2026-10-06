@@ -21,6 +21,7 @@ jobs:
           node-version: 20
 
       - name: Instalar Dependências
+<<<<<<< HEAD
         run: npm install
 
       - name: Compilar Projeto Next.js (Export)
@@ -31,6 +32,22 @@ jobs:
 
       - name: Sincronizar Capacitor com Android
         run: npx cap sync android
+=======
+        run: npm install --legacy-peer-deps
+
+      - name: Compilar Projeto Next.js (Export)
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://xyzcompany.supabase.co' }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSJ9.placeholder' }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSJ9.placeholder' }}
+          NODE_ENV: production
+        run: npx next build || npm run build
+
+      - name: Adicionar Plataforma Android no Capacitor
+        run: |
+          npx cap add android || true
+          npx cap sync android
+>>>>>>> 8716b1bc093549488f4f9170d99de493f13c0e28
 
       - name: Configurar Java JDK 17
         uses: actions/setup-java@v4
@@ -50,4 +67,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: app-debug
+<<<<<<< HEAD
           path: android/app/build/outputs/apk/debug/app-debug.apk
+=======
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+>>>>>>> 8716b1bc093549488f4f9170d99de493f13c0e28

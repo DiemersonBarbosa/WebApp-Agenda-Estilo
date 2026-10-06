@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "588705080089",
+    "project_id": "agendaestilo",
+    "storage_bucket": "agendaestilo.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:588705080089:android:bace5ad60ea58a3b8fdb88",
+        "android_client_info": {
+          "package_name": "com.agendaestilo.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAWk97ffgpHOu_8x0V4KK2AEiDGkM3qc54"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
