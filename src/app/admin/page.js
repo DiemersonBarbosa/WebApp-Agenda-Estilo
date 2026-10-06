@@ -562,17 +562,16 @@ export default function AdminDashboard() {
       payer_name: paymentData.payer_name || 'Gestor'
     };
 
-    // Aponta diretamente para o endpoint com www
-    const baseUrl = 'https://www.agendaestilo.com.br';
-    const targetUrl = `${baseUrl}/api/gerar-pix`;
+    // URL Exata com www e barra no final
+    const url = 'https://www.agendaestilo.com.br/api/gerar-pix/';
     let data;
 
     if (typeof window !== 'undefined') {
       const { Capacitor, CapacitorHttp } = await import('@capacitor/core');
 
       if (Capacitor.isNativePlatform()) {
-        let response = await CapacitorHttp.post({
-          url: targetUrl,
+        const response = await CapacitorHttp.post({
+          url: url,
           headers: { 
             'Content-Type': 'application/json',
             'Accept': 'application/json'
@@ -580,34 +579,8 @@ export default function AdminDashboard() {
           data: payload,
         });
 
-        // Se o servidor devolver redirecionamento, forçamos um novo POST explícito para a nova URL
-        if (response.status >= 300 && response.status < 400) {
-          let redirectUrl = response.headers?.Location || response.headers?.location;
-          
-          if (redirectUrl) {
-            if (redirectUrl.startsWith('/')) {
-              redirectUrl = `${baseUrl}${redirectUrl}`;
-            }
-
-            // Refaz a chamada explicitamente via POST com os mesmos dados
-            response = await CapacitorHttp.post({
-              url: redirectUrl,
-              headers: { 
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-              },
-              data: payload,
-            });
-          }
-        }
-
-        // Garante que o retorno seja tratado de acordo com o formato
         let responseData = response.data;
         if (typeof responseData === 'string') {
-          // Se retornar HTML em vez de JSON, lança um erro amigável de rota
-          if (responseData.trim().startsWith('<')) {
-            throw new Error('Servidor retornou uma página HTML em vez da API JSON. Verifique a rota na Vercel.');
-          }
           responseData = JSON.parse(responseData);
         }
 
@@ -617,8 +590,8 @@ export default function AdminDashboard() {
 
         data = responseData;
       } else {
-        // Fluxo para navegador Web
-        const response = await fetch(targetUrl, {
+        // Fluxo Web
+        const response = await fetch(url, {
           method: 'POST',
           headers: { 
             'Content-Type': 'application/json',
@@ -628,11 +601,7 @@ export default function AdminDashboard() {
         });
 
         const textResponse = await response.text();
-        try {
-          data = JSON.parse(textResponse);
-        } catch (e) {
-          throw new Error(`Resposta inválida do servidor (${response.status})`);
-        }
+        data = JSON.parse(textResponse);
 
         if (!response.ok) {
           throw new Error(data.error?.message || data.message || 'Falha ao processar no servidor.');
