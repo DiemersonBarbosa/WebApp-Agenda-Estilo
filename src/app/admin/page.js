@@ -674,21 +674,34 @@ export default function AdminDashboard() {
     if (modalAssinaturaOpen && metodoPagamento === 'pix' && pixDataMP?.paymentId && !processandoPagamento) {
       intervalId = setInterval(async () => {
         try {
-          const res = await fetch(`${API_BASE_URL}/api/verificar-pagamento`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ paymentId: pixDataMP.paymentId })
-          });
-          
-          const textRes = await res.text();
+          const urlVerificacao = `https://www.agendaestilo.com.br/api/verificar-pagamento`;
           let data;
-          try {
-            data = JSON.parse(textRes);
-          } catch(e) {
-            return;
+
+          if (typeof window !== 'undefined') {
+            const { Capacitor, CapacitorHttp } = await import('@capacitor/core');
+
+            if (Capacitor.isNativePlatform()) {
+              const response = await CapacitorHttp.post({
+                url: urlVerificacao,
+                headers: { 
+                  'Content-Type': 'application/json',
+                  'Accept': 'application/json'
+                },
+                data: { paymentId: pixDataMP.paymentId }
+              });
+
+              data = typeof response.data === 'string' ? JSON.parse(response.data) : response.data;
+            } else {
+              const res = await fetch(urlVerificacao, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ paymentId: pixDataMP.paymentId })
+              });
+              data = await res.json();
+            }
           }
 
-          if (res.ok && data.status === 'approved') {
+          if (data && data.status === 'approved') {
             clearInterval(intervalId);
             handleProcessarPagamentoMercadoPago();
           }
@@ -754,22 +767,31 @@ export default function AdminDashboard() {
           return;
         }
 
-        const res = await fetch(`${API_BASE_URL}/api/verificar-pagamento`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ paymentId: pixDataMP.paymentId })
-        });
-
-        const textRes = await res.text();
+        const urlVerificacao = `https://www.agendaestilo.com.br/api/verificar-pagamento`;
         let data;
-        try {
-          data = JSON.parse(textRes);
-        } catch (e) {
-          throw new Error('Servidor retornou resposta inválida ao verificar pagamento.');
-        }
 
-        if (!res.ok) {
-          throw new Error(data.message || 'Erro ao comunicar com o servidor de pagamento.');
+        if (typeof window !== 'undefined') {
+          const { Capacitor, CapacitorHttp } = await import('@capacitor/core');
+
+          if (Capacitor.isNativePlatform()) {
+            const response = await CapacitorHttp.post({
+              url: urlVerificacao,
+              headers: { 
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+              },
+              data: { paymentId: pixDataMP.paymentId }
+            });
+
+            data = typeof response.data === 'string' ? JSON.parse(response.data) : response.data;
+          } else {
+            const res = await fetch(urlVerificacao, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ paymentId: pixDataMP.paymentId })
+            });
+            data = await res.json();
+          }
         }
 
         if (data.status !== 'approved') {
@@ -778,7 +800,7 @@ export default function AdminDashboard() {
           return;
         }
 
-       if (barbearia?.id) {
+        if (barbearia?.id) {
           const dataInicio = new Date();
           const dataExpiracao = new Date();
           dataExpiracao.setMonth(dataExpiracao.getMonth() + 1);
@@ -799,12 +821,9 @@ export default function AdminDashboard() {
             throw new Error('Erro ao atualizar assinatura: ' + updateError.message);
           }
 
-          if (!updateData || updateData.length === 0) {
-            throw new Error('O Supabase não encontrou nenhuma barbearia com este ID para atualizar.');
-          }
-
           setBarbearia(prev => ({ ...prev, ...novosDadosAssinatura }));
         }
+
         alert('Pagamento aprovado com sucesso! Acesso liberado.');
         setModalAssinaturaOpen(false);
         setAssinaturaExpirada(false);
