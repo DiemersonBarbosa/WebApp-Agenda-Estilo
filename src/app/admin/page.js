@@ -562,8 +562,9 @@ export default function AdminDashboard() {
       payer_name: paymentData.payer_name || 'Gestor'
     };
 
+    // Aponta diretamente para o endpoint com www
     const baseUrl = 'https://www.agendaestilo.com.br';
-    let targetUrl = `${baseUrl}/api/gerar-pix`;
+    const targetUrl = `${baseUrl}/api/gerar-pix`;
     let data;
 
     if (typeof window !== 'undefined') {
@@ -572,41 +573,57 @@ export default function AdminDashboard() {
       if (Capacitor.isNativePlatform()) {
         let response = await CapacitorHttp.post({
           url: targetUrl,
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
           data: payload,
         });
 
-        // Trata redirecionamentos (301, 302, 307, 308)
+        // Se o servidor devolver redirecionamento, forçamos um novo POST explícito para a nova URL
         if (response.status >= 300 && response.status < 400) {
           let redirectUrl = response.headers?.Location || response.headers?.location;
           
           if (redirectUrl) {
-            // Se a Vercel devolver uma URL relativa (ex: /api/gerar-pix/), converte para absoluta
             if (redirectUrl.startsWith('/')) {
               redirectUrl = `${baseUrl}${redirectUrl}`;
             }
 
+            // Refaz a chamada explicitamente via POST com os mesmos dados
             response = await CapacitorHttp.post({
               url: redirectUrl,
-              headers: { 'Content-Type': 'application/json' },
+              headers: { 
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+              },
               data: payload,
             });
           }
         }
 
-        if (response.status !== 200 && response.status !== 201) {
-          const errorMsg = typeof response.data === 'object' 
-            ? (response.data?.error?.message || response.data?.message)
-            : response.data;
-          throw new Error(errorMsg || `Erro no servidor (${response.status})`);
+        // Garante que o retorno seja tratado de acordo com o formato
+        let responseData = response.data;
+        if (typeof responseData === 'string') {
+          // Se retornar HTML em vez de JSON, lança um erro amigável de rota
+          if (responseData.trim().startsWith('<')) {
+            throw new Error('Servidor retornou uma página HTML em vez da API JSON. Verifique a rota na Vercel.');
+          }
+          responseData = JSON.parse(responseData);
         }
 
-        data = typeof response.data === 'string' ? JSON.parse(response.data) : response.data;
+        if (response.status !== 200 && response.status !== 201) {
+          throw new Error(responseData?.error?.message || responseData?.message || `Erro no servidor (${response.status})`);
+        }
+
+        data = responseData;
       } else {
         // Fluxo para navegador Web
         const response = await fetch(targetUrl, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
           body: JSON.stringify(payload),
         });
 
