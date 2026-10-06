@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Desativa a otimização nativa de imagens do Next se necessário
+  output: 'export',
   images: {
     unoptimized: true,
   },

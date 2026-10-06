@@ -1,5 +1,6 @@
 {
   "appId": "com.agendaestilo.app",
-  "appName": "AgendaEstilo",
-  "webDir": "out"
+  "appName": "barbearia-webapp",
+  "webDir": "out",
+  "bundledWebRuntime": false
 }
