@@ -5,6 +5,9 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Lock, Mail, Store, Phone, ArrowRight, ShieldCheck, Sparkles, Eye, EyeOff, HelpCircle } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
 
+
+
+
 function AdminLoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -55,7 +58,7 @@ function AdminLoginForm() {
 
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: 'https://www.agendaestilo.com.br/admin',
+        redirectTo: 'https://www.agendaestilo.com.br/admin/login',
       });
       if (error) throw error;
       alert('E-mail de recuperação enviado com sucesso! Verifique sua caixa de entrada.');
@@ -117,8 +120,13 @@ function AdminLoginForm() {
   };
 
   return (
+
+
+    
     <div className="min-h-screen h-screen bg-[#f4f4f6] flex flex-col justify-center items-center p-4 sm:p-6 overflow-hidden font-sans select-none">
       
+
+
       <div className="w-full max-w-md bg-white rounded-[2.5rem] border border-stone-200/90 p-6 sm:p-8 shadow-2xl flex flex-col justify-between relative min-h-[680px] max-h-[94vh] my-auto">
         
         <div className="space-y-4 shrink-0">
