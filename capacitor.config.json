@@ -9,7 +9,7 @@
     "Keyboard": {
       "resize": "none",
       "style": "dark",
-      "resizeOnFullScreen": true
+      "resizeOnFullScreen": false
     }
   }
 }

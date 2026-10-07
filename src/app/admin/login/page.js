@@ -99,66 +99,64 @@ function AdminLoginForm() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f4f4f6] flex flex-col justify-start sm:justify-center items-center p-4 sm:p-6 overflow-y-auto pb-56 font-sans select-none">
+    <div className="min-h-screen bg-[#f4f4f6] flex flex-col justify-start sm:justify-center items-center p-4 sm:p-6 overflow-y-auto pb-48 font-sans select-none">
       
-      {/* CARD PRINCIPAL DE AUTENTICAÇÃO */}
-      <div className="w-full max-w-md bg-white rounded-[2.5rem] border border-stone-200/80 p-6 sm:p-10 shadow-2xl space-y-8 relative my-4 sm:my-auto">
+      {/* CARD PRINCIPAL COM ALTURA MÍNIMA AMPLIADA E DISTRIBUIÇÃO ESPAÇADA */}
+      <div className="w-full max-w-md bg-white rounded-[2.5rem] border border-stone-200/85 p-6 sm:p-8 shadow-xl flex flex-col justify-between relative min-h-[560px] my-auto">
         
-        {/* LOGOTIPO DA MARCA */}
-        <div className="flex flex-col items-center text-center space-y-3 pt-2">
-          <div className="bg-stone-50/80 p-4 rounded-3xl border border-stone-100 shadow-xs w-full flex items-center justify-center">
+        {/* TOPO: LOGOTIPO E ABAS */}
+        <div className="space-y-6">
+          <div className="flex flex-col items-center text-center space-y-2 pt-2">
             <img 
               src="/images/logo.png" 
               alt="Logo AgendaEstilo" 
-              className="h-14 sm:h-16 w-auto object-contain transition-transform hover:scale-105 duration-300"
+              className="h-12 sm:h-14 w-auto object-contain transition-transform hover:scale-105 duration-300"
             />
+            <p className="text-xs text-stone-500 font-semibold tracking-wide">
+              {isRegistering 
+                ? 'Preencha os dados da sua empresa' 
+                : 'Entre com suas credenciais de acesso'}
+            </p>
           </div>
-          <p className="text-xs text-stone-500 font-medium">
-            {isRegistering 
-              ? 'Preencha os dados da sua empresa' 
-              : 'Entre com suas credenciais de acesso'}
-          </p>
+
+          <div className="grid grid-cols-2 gap-1.5 bg-stone-100 p-1.5 rounded-2xl border border-stone-200/60">
+            <button
+              type="button"
+              onClick={() => { setIsRegistering(false); setErrorMessage(null); }}
+              className={`py-2.5 text-xs font-extrabold rounded-xl transition-all cursor-pointer ${
+                !isRegistering 
+                  ? 'bg-stone-900 text-white shadow-md' 
+                  : 'text-stone-500 hover:text-stone-900'
+              }`}
+            >
+              Entrar
+            </button>
+            <button
+              type="button"
+              onClick={() => { setIsRegistering(true); setErrorMessage(null); }}
+              className={`py-2.5 text-xs font-extrabold rounded-xl transition-all cursor-pointer ${
+                isRegistering 
+                  ? 'bg-stone-900 text-white shadow-md' 
+                  : 'text-stone-500 hover:text-stone-900'
+              }`}
+            >
+              Cadastrar
+            </button>
+          </div>
+
+          {errorMessage && (
+            <div className="bg-rose-50 border border-rose-200 text-rose-700 p-3.5 rounded-2xl text-xs font-semibold text-center">
+              {errorMessage}
+            </div>
+          )}
         </div>
 
-        {/* ALTERNADOR DE ABAS (ENTRAR / CRIAR CONTA) */}
-        <div className="grid grid-cols-2 gap-1.5 bg-stone-100 p-1.5 rounded-2xl border border-stone-200/60">
-          <button
-            type="button"
-            onClick={() => { setIsRegistering(false); setErrorMessage(null); }}
-            className={`py-2.5 text-xs font-extrabold rounded-xl transition-all cursor-pointer ${
-              !isRegistering 
-                ? 'bg-stone-900 text-white shadow-md' 
-                : 'text-stone-500 hover:text-stone-900'
-            }`}
-          >
-            Entrar
-          </button>
-          <button
-            type="button"
-            onClick={() => { setIsRegistering(true); setErrorMessage(null); }}
-            className={`py-2.5 text-xs font-extrabold rounded-xl transition-all cursor-pointer ${
-              isRegistering 
-                ? 'bg-stone-900 text-white shadow-md' 
-                : 'text-stone-500 hover:text-stone-900'
-            }`}
-          >
-            Cadastrar
-          </button>
-        </div>
-
-        {/* MENSAGEM DE ERRO */}
-        {errorMessage && (
-          <div className="bg-rose-50 border border-rose-200 text-rose-700 p-3.5 rounded-2xl text-xs font-semibold text-center">
-            {errorMessage}
-          </div>
-        )}
-
-        {/* FORMULÁRIO */}
-        <form onSubmit={isRegistering ? handleRegister : handleLogin} className="space-y-4">
+        {/* MEIO: INPUTS CENTRALIZADOS */}
+        <form onSubmit={isRegistering ? handleRegister : handleLogin} className="space-y-4 my-auto py-6">
           
           {isRegistering && (
             <>
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 animate-in fade-in duration-200">
                 <label className="text-xs font-bold text-stone-700">Nome da Barbearia</label>
                 <div className="relative">
                   <Store className="w-4 h-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -173,7 +171,7 @@ function AdminLoginForm() {
                 </div>
               </div>
 
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 animate-in fade-in duration-200">
                 <label className="text-xs font-bold text-stone-700">Telefone / WhatsApp</label>
                 <div className="relative">
                   <Phone className="w-4 h-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -223,26 +221,28 @@ function AdminLoginForm() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-4 bg-[#111111] hover:bg-stone-800 text-white text-xs font-extrabold rounded-2xl shadow-lg transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-2 mt-4 uppercase tracking-wider"
+            className="w-full py-4 bg-[#111111] hover:bg-stone-800 text-white text-xs font-extrabold rounded-2xl shadow-lg transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-2 mt-6 uppercase tracking-wider"
           >
             <span>{loading ? 'Aguarde...' : isRegistering ? 'Criar Conta e Cadastrar' : 'Entrar no Painel'}</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </form>
 
-        {/* BENEFÍCIOS EXTRAS NO CADASTRO */}
-        {isRegistering && (
-          <div className="pt-3 border-t border-stone-100 flex flex-col items-center justify-center space-y-2 text-[11px] text-stone-500 text-center">
-            <div className="flex items-center justify-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-              <span>7 dias de teste grátis sem compromisso</span>
+        {/* BASE: BENEFÍCIOS DO CADASTRO */}
+        <div className="mt-auto">
+          {isRegistering && (
+            <div className="pt-3 border-t border-stone-100 flex flex-col items-center justify-center space-y-2 text-[11px] text-stone-500 text-center animate-in fade-in duration-200">
+              <div className="flex items-center justify-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>7 dias de teste grátis sem compromisso</span>
+              </div>
+              <div className="flex items-center justify-center gap-2">
+                <Sparkles className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>Acesso instantâneo ao painel completo</span>
+              </div>
             </div>
-            <div className="flex items-center justify-center gap-2">
-              <Sparkles className="w-4 h-4 text-emerald-600 shrink-0" />
-              <span>Acesso instantâneo ao painel completo</span>
-            </div>
-          </div>
-        )}
+          )}
+        </div>
 
       </div>
 
