@@ -1,6 +1,5 @@
 import AgendamentoClientPage from './AgendamentoClientPage';
 
-// DEVOLVE PELO MENOS UM SLUG PADRÃO PARA CUMPRIR A EXIGÊNCIA DO "output: 'export'"
 export async function generateStaticParams() {
   return [{ slug: 'default' }];
 }
