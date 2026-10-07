@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  skipTrailingSlashRedirect: true, // Impede o redirecionamento 308 automático em rotas de API
+  output: 'export',
+  distDir: 'out', // Garante que a build vai exatamente para a pasta 'out'
   images: {
     unoptimized: true,
   },
