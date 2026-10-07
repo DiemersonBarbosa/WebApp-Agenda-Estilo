@@ -43,7 +43,10 @@ import {
   Phone,
   KeyRound,
   ChevronDown,
-  UserCheck
+  UserCheck,
+  Eye,
+  EyeOff,
+  HelpCircle
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { Capacitor } from '@capacitor/core';
@@ -58,9 +61,6 @@ import ProdutosScreen from '@/components/ProdutosScreen';
 import NotificacoesBell from '@/components/NotificacoesBell'; 
 import AdminModoAgendamento from '@/components/AdminModoAgendamento';
 import FidelizacaoAdmin from '@/components/FidelizacaoAdmin';
-
-
-
 
 // URL base fixa para chamadas de API no app nativo Capacitor/Android
 const API_BASE_URL = 'https://agendaestilo.com.br';
@@ -138,12 +138,14 @@ async function criarAcessoBarbeiro(barbeiroId, emailBarbeiro, senhaTemporaria) {
 }
 
 /* COMPONENTE DE LOGIN E CADASTRO ATUALIZADO */
+/* COMPONENTE DE LOGIN E CADASTRO COM TRANSIÇÃO SUAVE */
 function AuthForm({ onAuthSuccess }) {
   const searchParams = useSearchParams();
 
   const [isRegister, setIsRegister] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [nomeBarbearia, setNomeBarbearia] = useState('');
   const [telefone, setTelefone] = useState('');
   const [loading, setLoading] = useState(false);
@@ -204,9 +206,9 @@ function AuthForm({ onAuthSuccess }) {
 
   return (
     <div className="min-h-screen bg-[#f4f4f6] flex flex-col justify-center items-center p-4 sm:p-6 font-sans select-none">
-      <div className="w-full max-w-md bg-white rounded-[2.5rem] border border-stone-200/80 p-6 sm:p-10 shadow-2xl space-y-8 relative overflow-hidden">
+      <div className="w-full max-w-md bg-white rounded-[2.5rem] border border-stone-200/80 p-6 sm:p-10 shadow-2xl space-y-6 relative overflow-hidden transition-all duration-300">
         
-        <div className="flex flex-col items-center text-center space-y-3 pt-2">
+        <div className="flex flex-col items-center text-center space-y-3 pt-1">
           <div className="bg-stone-50/80 p-4 rounded-3xl border border-stone-100 shadow-xs w-full flex items-center justify-center">
             <img 
               src="/images/logo.png" 
@@ -214,20 +216,20 @@ function AuthForm({ onAuthSuccess }) {
               className="h-14 sm:h-16 w-auto object-contain transition-transform hover:scale-105 duration-300"
             />
           </div>
-          <p className="text-xs text-stone-500 font-medium">
+          <p className="text-xs text-stone-500 font-medium transition-opacity duration-300">
             {isRegister 
               ? 'Preencha os dados da sua empresa' 
               : 'Entre com suas credenciais de acesso'}
           </p>
         </div>
 
-        <div className="grid grid-cols-2 gap-1.5 bg-stone-100 p-1.5 rounded-2xl border border-stone-200/60">
+        <div className="grid grid-cols-2 gap-1.5 bg-stone-100 p-1.5 rounded-2xl border border-stone-200/60 relative">
           <button
             type="button"
             onClick={() => { setIsRegister(false); setErrorMsg(''); }}
-            className={`py-2.5 text-xs font-extrabold rounded-xl transition-all cursor-pointer ${
+            className={`py-2.5 text-xs font-extrabold rounded-xl transition-all duration-300 cursor-pointer relative z-10 ${
               !isRegister 
-                ? 'bg-stone-900 text-white shadow-md' 
+                ? 'text-white shadow-md' 
                 : 'text-stone-500 hover:text-stone-900'
             }`}
           >
@@ -236,36 +238,44 @@ function AuthForm({ onAuthSuccess }) {
           <button
             type="button"
             onClick={() => { setIsRegister(true); setErrorMsg(''); }}
-            className={`py-2.5 text-xs font-extrabold rounded-xl transition-all cursor-pointer ${
+            className={`py-2.5 text-xs font-extrabold rounded-xl transition-all duration-300 cursor-pointer relative z-10 ${
               isRegister 
-                ? 'bg-stone-900 text-white shadow-md' 
+                ? 'text-white shadow-md' 
                 : 'text-stone-500 hover:text-stone-900'
             }`}
           >
             Cadastrar
           </button>
+
+          {/* Fundo deslizante animado do menu */}
+          <div 
+            className={`absolute top-1.5 bottom-1.5 w-[calc(50%-6px)] bg-stone-900 rounded-xl transition-transform duration-300 ease-in-out ${
+              isRegister ? 'translate-x-[calc(100%+4px)]' : 'translate-x-0'
+            }`}
+          />
         </div>
 
         {errorMsg && (
-          <div className="bg-rose-50 border border-rose-200 text-rose-700 p-3.5 rounded-2xl text-xs font-semibold text-center">
+          <div className="bg-rose-50 border border-rose-200 text-rose-700 p-3.5 rounded-2xl text-xs font-semibold text-center animate-in fade-in duration-200">
             {errorMsg}
           </div>
         )}
 
         <form onSubmit={handleAuth} className="space-y-4">
-          {isRegister && (
-            <>
+          {/* Container com transição suave de opacidade e escala ao alternar os campos */}
+          <div className="space-y-4 transition-all duration-300 ease-in-out">
+            <div className={`space-y-4 overflow-hidden transition-all duration-300 ease-in-out ${isRegister ? 'max-h-[250px] opacity-100' : 'max-h-0 opacity-0 pointer-events-none'}`}>
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-stone-700">Nome da Barbearia</label>
                 <div className="relative">
                   <Store className="w-4 h-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
-                    required
+                    required={isRegister}
                     placeholder="Ex: Barbearia Navalha de Ouro"
                     value={nomeBarbearia}
                     onChange={(e) => setNomeBarbearia(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 bg-stone-50 border border-stone-200 rounded-2xl text-xs text-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-900 font-medium"
+                    className="w-full pl-10 pr-4 py-3 bg-stone-50 border border-stone-200 rounded-2xl text-xs text-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-900 font-medium transition-all"
                   />
                 </div>
               </div>
@@ -279,40 +289,47 @@ function AuthForm({ onAuthSuccess }) {
                     placeholder="(00) 00000-0000"
                     value={telefone}
                     onChange={(e) => setTelefone(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 bg-stone-50 border border-stone-200 rounded-2xl text-xs text-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-900 font-medium"
+                    className="w-full pl-10 pr-4 py-3 bg-stone-50 border border-stone-200 rounded-2xl text-xs text-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-900 font-medium transition-all"
                   />
                 </div>
               </div>
-            </>
-          )}
-
-          <div className="space-y-1.5">
-            <label className="text-xs font-bold text-stone-700">E-mail</label>
-            <div className="relative">
-              <Mail className="w-4 h-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-              <input
-                type="email"
-                required
-                placeholder="seuemail@exemplo.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 bg-stone-50 border border-stone-200 rounded-2xl text-xs text-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-900 font-medium"
-              />
             </div>
-          </div>
 
-          <div className="space-y-1.5">
-            <label className="text-xs font-bold text-stone-700">Senha</label>
-            <div className="relative">
-              <Lock className="w-4 h-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-              <input
-                type="password"
-                required
-                placeholder="••••••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 bg-stone-50 border border-stone-200 rounded-2xl text-xs text-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-900 font-medium"
-              />
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-stone-700">E-mail</label>
+              <div className="relative">
+                <Mail className="w-4 h-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="email"
+                  required
+                  placeholder="seuemail@exemplo.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 bg-stone-50 border border-stone-200 rounded-2xl text-xs text-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-900 font-medium transition-all"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-stone-700">Senha</label>
+              <div className="relative">
+                <Lock className="w-4 h-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  placeholder="••••••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full pl-10 pr-10 py-3 bg-stone-50 border border-stone-200 rounded-2xl text-xs text-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-900 font-medium transition-all"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700 cursor-pointer"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
             </div>
           </div>
 
@@ -321,26 +338,40 @@ function AuthForm({ onAuthSuccess }) {
             disabled={loading}
             className="w-full py-4 bg-[#111111] hover:bg-stone-800 text-white text-xs font-extrabold rounded-2xl shadow-lg transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-2 mt-4 uppercase tracking-wider"
           >
-            <span>{loading ? 'Aguarde...' : isRegister ? 'Criar Conta e Cadastrar' : 'Entrar no Painel'}</span>
+            <span>{loading ? 'Aguarde...' : isRegister ? 'Criar Conta' : 'Entrar no Painel'}</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </form>
 
-        {isRegister && (
-          <div className="pt-3 border-t border-stone-100 space-y-2 text-[11px] text-stone-500">
-            <div className="flex items-center gap-2">
+        <div className={`transition-all duration-300 overflow-hidden ${isRegister ? 'max-h-24 opacity-100' : 'max-h-0 opacity-0 pointer-events-none'}`}>
+          <div className="pt-2 border-t border-stone-100 flex flex-col items-center justify-center space-y-1.5 text-[11px] text-stone-500 text-center">
+            <div className="flex items-center justify-center gap-2">
               <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
               <span>7 dias de teste grátis sem compromisso</span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center justify-center gap-2">
               <Sparkles className="w-4 h-4 text-emerald-600 shrink-0" />
               <span>Acesso instantâneo ao painel completo</span>
             </div>
           </div>
-        )}
+        </div>
+
+        <div className={`transition-all duration-300 overflow-hidden ${!isRegister ? 'max-h-16 opacity-100' : 'max-h-0 opacity-0 pointer-events-none'}`}>
+          <div className="pt-2 border-t border-stone-100 text-center">
+            <a
+              href="https://wa.me/5542998040396?text=Olá,%20preciso%20de%20suporte%20com%20o%20sistema%20AgendaEstilo."
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center gap-2 text-xs font-bold text-stone-600 hover:text-stone-900 transition-colors py-1 cursor-pointer"
+            >
+              <MessageCircleCheck className="w-4 h-4 text-emerald-600" />
+              <span>Suporte WhatsApp</span>
+            </a>
+          </div>
+        </div>
       </div>
 
-      <div className="mt-8 text-center text-xs text-stone-400 font-medium">
+      <div className="mt-6 text-center text-xs text-stone-400 font-medium">
         <p>© 2026 Todos os direitos reservados.</p>
       </div>
     </div>
@@ -561,10 +592,9 @@ export default function AdminDashboard() {
       description: paymentData.description || 'Assinatura Mensal Gestor',
       payer_email: paymentData.payer_email || 'diemersonlimabarbosa@gmail.com',
       payer_name: paymentData.payer_name || 'Gestor',
-      barbeariaId: barbearia?.id // <--- ADICIONADO AQUI PARA VINCULAR AO WEBHOOK
+      barbeariaId: barbearia?.id
     };
 
-    // URL Exata com www e barra no final
     const url = 'https://www.agendaestilo.com.br/api/gerar-pix/';
     let data;
 
@@ -592,7 +622,6 @@ export default function AdminDashboard() {
 
         data = responseData;
       } else {
-        // Fluxo Web
         const response = await fetch(url, {
           method: 'POST',
           headers: { 
@@ -751,7 +780,7 @@ export default function AdminDashboard() {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setUser(null);
-    router.push('/admin/login');
+    router.push('/admin');
   };
 
   const handleProcessarPagamentoMercadoPago = async (e) => {
