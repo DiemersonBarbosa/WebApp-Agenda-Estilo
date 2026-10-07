@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Lock, Mail, Store, Phone, ArrowRight, ShieldCheck, Sparkles, Eye, EyeOff, HelpCircle, KeyRound } from 'lucide-react';
+import { Lock, Mail, Store, Phone, ArrowRight, ShieldCheck, Sparkles, Eye, EyeOff, HelpCircle } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
 
 function AdminLoginForm() {
@@ -119,10 +119,8 @@ function AdminLoginForm() {
   return (
     <div className="min-h-screen h-screen bg-[#f4f4f6] flex flex-col justify-center items-center p-4 sm:p-6 overflow-hidden font-sans select-none">
       
-      {/* CARD PRINCIPAL COM ALTURA RIGOROSAMENTE FIXA */}
       <div className="w-full max-w-md bg-white rounded-[2.5rem] border border-stone-200/90 p-6 sm:p-8 shadow-2xl flex flex-col justify-between relative min-h-[680px] max-h-[94vh] my-auto">
         
-        {/* TOPO FIXO: LOGO E ABAS */}
         <div className="space-y-4 shrink-0">
           <div className="flex flex-col items-center text-center space-y-1.5 pt-1">
             <img 
@@ -169,7 +167,6 @@ function AdminLoginForm() {
           )}
         </div>
 
-        {/* CENTRO: FORMULÁRIO */}
         <form onSubmit={isRegistering ? handleRegister : handleLogin} className="space-y-3.5 my-auto shrink-0 w-full">
           
           <div className={`space-y-3.5 transition-all ${isRegistering ? 'opacity-100 block' : 'opacity-0 invisible h-0 overflow-hidden'}`}>
@@ -252,7 +249,6 @@ function AdminLoginForm() {
             </div>
           </div>
 
-          {/* BOTÃO DE AÇÃO */}
           <button
             type="submit"
             disabled={loading}
@@ -263,7 +259,6 @@ function AdminLoginForm() {
           </button>
         </form>
 
-        {/* BASE FIXA / SUPORTE E BENEFÍCIOS */}
         <div className="shrink-0 pt-2 border-t border-stone-100 flex flex-col items-center justify-center space-y-2">
           {isRegistering ? (
             <div className="flex flex-col items-center justify-center space-y-1 text-[11px] text-stone-500 text-center animate-in fade-in duration-200 w-full">
@@ -294,7 +289,6 @@ function AdminLoginForm() {
 
       </div>
 
-      {/* RODAPÉ FIXO */}
       <div className="mt-3 text-center text-xs text-stone-400 font-medium shrink-0">
         <p>© 2026 Todos os direitos reservados.</p>
       </div>
@@ -305,8 +299,8 @@ function AdminLoginForm() {
 
 export default function AdminLogin() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-stone-100 flex items-center justify-center text-xs text-stone-500">Carregando...</div>}>
+    <React.Suspense fallback={<div className="min-h-screen bg-stone-100 flex items-center justify-center text-xs text-stone-500">A carregar...</div>}>
       <AdminLoginForm />
-    </Suspense>
+    </React.Suspense>
   );
 }
