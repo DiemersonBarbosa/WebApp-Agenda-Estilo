@@ -61,6 +61,7 @@ import FidelizacaoAdmin from '@/components/FidelizacaoAdmin';
 
 
 
+
 // URL base fixa para chamadas de API no app nativo Capacitor/Android
 const API_BASE_URL = 'https://agendaestilo.com.br';
 
