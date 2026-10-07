@@ -1,9 +1,15 @@
 {
   "appId": "com.agendaestilo.app",
-  "appName": "barbearia-webapp",
+  "appName": "BarberGestor",
   "webDir": "out",
-  "server": {
-    "androidScheme": "https",
-    "cleartext": true
+  "plugins": {
+    "CapacitorHttp": {
+      "enabled": true
+    },
+    "Keyboard": {
+      "resize": "none",
+      "style": "dark",
+      "resizeOnFullScreen": true
+    }
   }
 }

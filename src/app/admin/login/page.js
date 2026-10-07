@@ -47,66 +47,62 @@ function AdminLoginForm() {
   };
 
   const handleRegister = async (e) => {
-  e.preventDefault();
-  setLoading(true);
-  setErrorMessage(null);
+    e.preventDefault();
+    setLoading(true);
+    setErrorMessage(null);
 
-  // 1. Gera o slug limpo no próprio frontend para evitar o erro de 'null value in column slug'
-  const slugLimpo = nomeBarbearia
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9]/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '');
+    const slugLimpo = nomeBarbearia
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '');
 
-  const slug = slugLimpo || `barbearia-${Date.now()}`;
+    const slug = slugLimpo || `barbearia-${Date.now()}`;
 
-  try {
-    // 2. Cria o usuário no Supabase Auth
-    const { data: authData, error: authError } = await supabase.auth.signUp({
-      email,
-      password,
-    });
+    try {
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email,
+        password,
+      });
 
-    if (authError) throw authError;
+      if (authError) throw authError;
 
-    if (!authData.user) {
-      throw new Error('Não foi possível criar a conta do usuário.');
+      if (!authData.user) {
+        throw new Error('Não foi possível criar a conta do usuário.');
+      }
+
+      const { error: dbError } = await supabase
+        .from('barbearias')
+        .insert([
+          {
+            user_id: authData.user.id,
+            nome: nomeBarbearia,
+            slug: slug,
+            telefone: telefone,
+            status_assinatura: 'teste',
+            created_at: new Date().toISOString(),
+          },
+        ]);
+
+      if (dbError) throw dbError;
+
+      alert('🎉 Barbearia cadastrada com sucesso!');
+      window.location.href = '/admin';
+
+    } catch (err) {
+      setErrorMessage(err.message || 'Erro ao realizar o cadastro.');
+    } finally {
+      setLoading(false);
     }
-
-    // 3. Insere a barbearia na tabela do banco
-    const { error: dbError } = await supabase
-      .from('barbearias')
-      .insert([
-        {
-          user_id: authData.user.id,
-          nome: nomeBarbearia,
-          slug: slug,
-          telefone: telefone,
-          status_assinatura: 'teste',
-          created_at: new Date().toISOString(),
-        },
-      ]);
-
-    if (dbError) throw dbError;
-
-    // 4. Exibe notificação de sucesso e redireciona para o admin
-    alert('🎉 Barbearia cadastrada com sucesso!');
-    window.location.href = '/admin';
-
-  } catch (err) {
-    setErrorMessage(err.message || 'Erro ao realizar o cadastro.');
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   return (
-    <div className="min-h-screen bg-[#f4f4f6] flex flex-col justify-center items-center p-4 sm:p-6 font-sans select-none">
+    <div className="min-h-screen bg-[#f4f4f6] flex flex-col justify-start sm:justify-center items-center p-4 sm:p-6 overflow-y-auto pb-56 font-sans select-none">
       
       {/* CARD PRINCIPAL DE AUTENTICAÇÃO */}
-      <div className="w-full max-w-md bg-white rounded-[2.5rem] border border-stone-200/80 p-6 sm:p-10 shadow-2xl space-y-8 relative overflow-hidden">
+      <div className="w-full max-w-md bg-white rounded-[2.5rem] border border-stone-200/80 p-6 sm:p-10 shadow-2xl space-y-8 relative my-4 sm:my-auto">
         
         {/* LOGOTIPO DA MARCA */}
         <div className="flex flex-col items-center text-center space-y-3 pt-2">
@@ -234,7 +230,7 @@ function AdminLoginForm() {
           </button>
         </form>
 
-        {/* BENEFÍCIOS EXTRAS NO CADASTRO CENTRALIZADOS */}
+        {/* BENEFÍCIOS EXTRAS NO CADASTRO */}
         {isRegistering && (
           <div className="pt-3 border-t border-stone-100 flex flex-col items-center justify-center space-y-2 text-[11px] text-stone-500 text-center">
             <div className="flex items-center justify-center gap-2">
@@ -251,7 +247,7 @@ function AdminLoginForm() {
       </div>
 
       {/* RODAPÉ */}
-      <div className="mt-8 text-center text-xs text-stone-400 font-medium">
+      <div className="my-6 text-center text-xs text-stone-400 font-medium shrink-0">
         <p>© 2026 Todos os direitos reservados.</p>
       </div>
 
