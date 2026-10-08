@@ -113,36 +113,70 @@ function usePushNotifications(barbeariaId) {
 }
 
 async function criarAcessoBarbeiro(barbeiroId, emailBarbeiro, senhaTemporaria) {
- try {
- const response = await fetch(`${API_BASE_URL}/api/criar-acesso`, {
- method: 'POST',
- headers: { 'Content-Type': 'application/json' },
- body: JSON.stringify({
- barbeiroId,
- email: emailBarbeiro,
- password: senhaTemporaria
- })
- });
+  try {
+    const payload = {
+      barbeiroId,
+      email: emailBarbeiro,
+      password: senhaTemporaria
+    };
 
- const textoResposta = await response.text();
- let resultado;
+    const url = `${API_BASE_URL}/api/criar-acesso`;
+    let textoResposta = '';
 
- try {
- resultado = JSON.parse(textoResposta);
- } catch (e) {
- throw new Error(textoResposta || 'Erro desconhecido no servidor');
- }
+    if (typeof window !== 'undefined') {
+      const { Capacitor, CapacitorHttp } = await import('@capacitor/core');
 
- if (!response.ok) {
- throw new Error(resultado.error || 'Erro ao criar acesso');
- }
+      if (Capacitor.isNativePlatform()) {
+        const response = await CapacitorHttp.post({
+          url: url,
+          headers: { 
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          data: payload,
+        });
 
- alert('Acesso do barbeiro criado com sucesso!');
- window.location.reload();
- } catch (error) {
- alert('Erro: ' + error.message);
- }
+        textoResposta = typeof response.data === 'string' ? response.data : JSON.stringify(response.data);
+        
+        if (response.status !== 200 && response.status !== 201) {
+          throw new Error(textoResposta || `Erro no servidor (${response.status})`);
+        }
+      } else {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify(payload),
+        });
+
+        textoResposta = await response.text();
+
+        if (!response.ok) {
+          throw new Error(textoResposta || 'Erro ao criar acesso');
+        }
+      }
+    }
+
+    let resultado;
+    try {
+      resultado = JSON.parse(textoResposta);
+    } catch (e) {
+      throw new Error(textoResposta || 'Erro desconhecido no servidor');
+    }
+
+    if (resultado.error) {
+      throw new Error(resultado.error);
+    }
+
+    alert('Acesso do barbeiro criado com sucesso!');
+    window.location.reload();
+  } catch (error) {
+    alert('Erro: ' + error.message);
+  }
 }
+
 
 /* COMPONENTE DE LOGIN E CADASTRO COM TRANSIÇÃO SUAVE */
 function AuthForm({ onAuthSuccess }) {
