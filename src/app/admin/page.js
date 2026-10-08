@@ -114,60 +114,28 @@ function usePushNotifications(barbeariaId) {
 
 async function criarAcessoBarbeiro(barbeiroId, emailBarbeiro, senhaTemporaria) {
   try {
-    const payload = {
-      barbeiroId,
+    // 1. Cria o usuário no Supabase Auth
+    const { data: authData, error: authError } = await supabase.auth.signUp({
       email: emailBarbeiro,
-      password: senhaTemporaria
-    };
+      password: senhaTemporaria,
+    });
 
-    const url = `${API_BASE_URL}/api/criar-acesso`;
-    let textoResposta = '';
-
-    if (typeof window !== 'undefined') {
-      const { Capacitor, CapacitorHttp } = await import('@capacitor/core');
-
-      if (Capacitor.isNativePlatform()) {
-        const response = await CapacitorHttp.post({
-          url: url,
-          headers: { 
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          },
-          data: payload,
-        });
-
-        textoResposta = typeof response.data === 'string' ? response.data : JSON.stringify(response.data);
-        
-        if (response.status !== 200 && response.status !== 201) {
-          throw new Error(textoResposta || `Erro no servidor (${response.status})`);
-        }
-      } else {
-        const response = await fetch(url, {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          },
-          body: JSON.stringify(payload),
-        });
-
-        textoResposta = await response.text();
-
-        if (!response.ok) {
-          throw new Error(textoResposta || 'Erro ao criar acesso');
-        }
-      }
+    if (authError) {
+      throw new Error(authError.message);
     }
 
-    let resultado;
-    try {
-      resultado = JSON.parse(textoResposta);
-    } catch (e) {
-      throw new Error(textoResposta || 'Erro desconhecido no servidor');
+    if (!authData.user) {
+      throw new Error('Não foi possível criar o usuário de acesso.');
     }
 
-    if (resultado.error) {
-      throw new Error(resultado.error);
+    // 2. Atualiza a tabela 'barbeiros' vinculando o user_id criado ao barbeiro correspondente
+    const { error: updateError } = await supabase
+      .from('barbeiros')
+      .update({ user_id: authData.user.id })
+      .eq('id', barbeiroId);
+
+    if (updateError) {
+      throw new Error('Erro ao vincular o usuário ao barbeiro: ' + updateError.message);
     }
 
     alert('Acesso do barbeiro criado com sucesso!');
@@ -176,6 +144,7 @@ async function criarAcessoBarbeiro(barbeiroId, emailBarbeiro, senhaTemporaria) {
     alert('Erro: ' + error.message);
   }
 }
+
 
 
 /* COMPONENTE DE LOGIN E CADASTRO COM TRANSIÇÃO SUAVE */
