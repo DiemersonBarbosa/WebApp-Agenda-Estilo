@@ -1,0 +1,18 @@
+{
+  "appId": "com.agendaestilo.app",
+  "appName": "BarberGestor",
+  "webDir": "out",
+  "plugins": {
+    "CapacitorHttp": {
+      "enabled": true
+    },
+    "Keyboard": {
+      "resize": "none",
+      "style": "dark",
+      "resizeOnFullScreen": false
+    },
+    "PushNotifications": {
+      "presentationOptions": ["badge", "sound", "alert"]
+    }
+  }
+}
