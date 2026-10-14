@@ -1,6 +1,9 @@
 import AgendamentoClientPage from './AgendamentoClientPage';
 import { supabase } from '@/lib/supabase';
 
+// Permite carregar dinamicamente slugs criados após o build estático
+export const dynamicParams = true;
+
 export async function generateStaticParams() {
   try {
     const { data: barbearias, error } = await supabase

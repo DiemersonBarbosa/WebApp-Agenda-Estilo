@@ -2,6 +2,10 @@
   "appId": "com.agendaestilo.app",
   "appName": "BarberGestor",
   "webDir": "out",
+  "server": {
+    "url": "https://www.agendaestilo.com.br",
+    "cleartext": true
+  },
   "plugins": {
     "CapacitorHttp": {
       "enabled": true
