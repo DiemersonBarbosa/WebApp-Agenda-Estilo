@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'export',
-  distDir: 'out', // Garante que a build vai exatamente para a pasta 'out'
+  // output: 'export',
+  // distDir: 'out',
   images: {
     unoptimized: true,
   },

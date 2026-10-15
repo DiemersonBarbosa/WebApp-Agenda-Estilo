@@ -31,8 +31,12 @@ export default function AgendamentoClientPage({ slug: initialSlug }) {
           .eq('slug', slug)
           .single();
 
+        console.log('Resultado Supabase - Dados:', data, 'Erro:', error);
+
         if (!error && data) {
           setBarbearia(data);
+        } else {
+          console.error('Falha ao encontrar barbearia:', error);
         }
       } catch (err) {
         console.error('Erro ao buscar barbearia:', err);
