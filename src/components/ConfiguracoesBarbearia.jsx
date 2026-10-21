@@ -80,7 +80,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
   // Garante que links de agendamento nunca utilizem localhost (Capacitor/Android)
   const baseUrl = typeof window !== 'undefined' && !window.location.origin.includes('localhost')
     ? window.location.origin
-    : 'https://agendaestilo.com.br';
+    : 'http://184.107.106.72:3001';
 
   const urlCliente = `${baseUrl}/agendar/${slug || barbearia?.slug || 'barbearia'}`;
 
