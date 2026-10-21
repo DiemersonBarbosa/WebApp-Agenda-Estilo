@@ -82,8 +82,13 @@ export default function AgendamentoChat({ barbeariaId }) {
 
       const configHorarios = barbearia?.horarios;
       let diaAtivo = true;
-      if (configHorarios && configHorarios[nomeDiaSemana]) {
-        diaAtivo = configHorarios[nomeDiaSemana].ativo;
+      if (configHorarios && configHorarios[nomeDiaSemana] !== undefined) {
+        const val = configHorarios[nomeDiaSemana];
+        if (typeof val === 'boolean') {
+          diaAtivo = val;
+        } else if (typeof val === 'object' && val !== null) {
+          diaAtivo = val.ativo !== false;
+        }
       }
 
       const estaBloqueadoNoBanco = datasBloqueadas.some(b => b.startsWith(dataIso));
@@ -145,8 +150,9 @@ export default function AgendamentoChat({ barbeariaId }) {
       pausaFimStr = configHorariosBarbeiro.pausaFim || '';
     } else {
       const configGeral = barbearia?.horarios?.[nomeDia];
-      if (configGeral) {
-        if (configGeral.ativo === false) return [];
+      if (configGeral !== undefined) {
+        if (typeof configGeral === 'boolean' && configGeral === false) return [];
+        if (typeof configGeral === 'object' && configGeral !== null && configGeral.ativo === false) return [];
         aberturaStr = configGeral.abertura || '08:00';
         fechamentoStr = configGeral.fechamento || '18:00';
         pausaInicioStr = configGeral.pausaInicio || '';
