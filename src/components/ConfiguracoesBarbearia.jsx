@@ -217,13 +217,13 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
       const filePath = `${fileName}`;
 
       const { error: uploadError } = await supabase.storage
-        .from('barbearias')
+        .from('barbearia-bucket')
         .upload(filePath, arquivoOtimizado, { upsert: true });
 
       if (uploadError) throw uploadError;
 
       const { data: publicURLData } = supabase.storage
-        .from('barbearias')
+        .from('barbearia-bucket')
         .getPublicUrl(filePath);
 
       const urlPublica = publicURLData.publicUrl;
