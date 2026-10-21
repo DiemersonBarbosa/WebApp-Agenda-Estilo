@@ -584,7 +584,7 @@ export default function AdminDashboard() {
 
         if (Capacitor.isNativePlatform()) {
           const response = await CapacitorHttp.post({
-            url: 'https://www.agendaestilo.com.br/api/gerar-pix',
+            url: `${window.location.origin}/api/gerar-pix`,
             headers: { 
               'Content-Type': 'application/json',
               'Accept': 'application/json'
@@ -603,8 +603,7 @@ export default function AdminDashboard() {
 
           data = responseData;
         } else {
-          const fullUrl = url.startsWith('http') ? url : `https://www.agendaestilo.com.br${url}`;
-
+          const fullUrl = url.startsWith('http') ? url : `${window.location.origin}${url}`;
           const response = await fetch(fullUrl, {
             method: 'POST',
             headers: {
