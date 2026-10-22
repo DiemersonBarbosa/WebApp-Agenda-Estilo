@@ -1276,7 +1276,7 @@ export default function AdminDashboard() {
                 { id: 'configuracoes', label: 'Configurações', icon: Settings, action: () => setActiveTab('configuracoes') },
                 { id: 'despesas', label: 'Despesas', icon: TrendingDown, action: () => setActiveTab('despesas') },
                 { id: 'comissoes', label: 'Comissões', icon: Percent, action: () => setActiveTab('comissoes') },
-                { id: 'servicos', label: 'Equipa', icon: Scissors, action: () => setActiveTab('servicos') },
+                { id: 'servicos', label: 'Equipe', icon: Scissors, action: () => setActiveTab('servicos') },
                 { id: 'assinatura', label: 'Assinatura', icon: ClipboardPenLine, action: () => setModalInfoAssinaturaOpen(true) },
                 { id: 'pdv', label: 'PDV', icon: ShoppingCart, action: () => setActiveTab('pdv') },
                 { id: 'produtos', label: 'Produtos', icon: ShoppingBag, action: () => setActiveTab('produtos') },
@@ -1482,7 +1482,7 @@ export default function AdminDashboard() {
                 { id: 'fidelidade', label: 'Fidelização', icon: Award },
                 { id: 'financeiro', label: 'Relatório Financeiro', icon: DollarSign },
                 { id: 'despesas', label: 'Custos & Despesas', icon: TrendingDown },
-                { id: 'servicos', label: 'Serviços & Equipa', icon: Scissors },
+                { id: 'servicos', label: 'Serviços & Equipe', icon: Scissors },
                 { id: 'comissoes', label: 'Comissões', icon: Percent },
                 { id: 'configuracoes', label: 'Configurações', icon: Store },
               ].map((item) => {
@@ -1820,7 +1820,7 @@ export default function AdminDashboard() {
                     <Scissors className="w-6 h-6" />
                   </div>
                   <div>
-                    <h2 className="text-lg font-black text-stone-900 tracking-tight">Serviços & Equipa</h2>
+                    <h2 className="text-lg font-black text-stone-900 tracking-tight">Serviços & Equipe</h2>
                     <p className="text-xs text-stone-500">Gerencie os tratamentos oferecidos e os profissionais da unidade.</p>
                   </div>
                 </div>
@@ -1847,7 +1847,7 @@ export default function AdminDashboard() {
                     }`}
                   >
                     <Users className="w-3.5 h-3.5" />
-                    <span>Equipa ({barbeiros.length})</span>
+                    <span>Equipe ({barbeiros.length})</span>
                   </button>
                 </div>
               </div>
