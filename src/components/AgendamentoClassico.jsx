@@ -15,6 +15,7 @@ export default function AgendamentoClassico({ barbeariaId }) {
   const [servicos, setServicos] = useState([]);
   const [barbeiros, setBarbeiros] = useState([]);
   const [horariosOcupados, setHorariosOcupados] = useState([]);
+  const [datasBloqueadas, setDatasBloqueadas] = useState([]);
 
   const [etapa, setEtapa] = useState('telefone');
   const [telefone, setTelefone] = useState('');
@@ -32,7 +33,9 @@ export default function AgendamentoClassico({ barbeariaId }) {
   const [erro, setErro] = useState(null);
 
   const isClean = barbearia?.cor_tema === 'clean';
-  const corTema = isClean ? '#0ea5e9' : '#10b981';
+  // Prioriza a cor dinâmica da barbearia configurada no painel
+  const corTema = barbearia?.cor_primaria || (isClean ? '#0ea5e9' : '#10b981');
+
   const estiloFundoContainer = isClean 
     ? 'bg-gradient-to-br from-[#f8fafc] via-[#f1f5f9] to-[#e2e8f0] border-slate-300 text-slate-900 shadow-[0_30px_90px_rgba(0,0,0,0.15)]' 
     : 'bg-gradient-to-br from-[#0c0d10] via-[#050507] to-[#000000] border-white/10 text-white shadow-[0_30px_90px_rgba(0,0,0,0.9)]';
@@ -50,13 +53,15 @@ export default function AgendamentoClassico({ barbeariaId }) {
 
         if (barb) setBarbearia(barb);
 
-        const [resServicos, resBarbeiros] = await Promise.all([
+        const [resServicos, resBarbeiros, resBloqueios] = await Promise.all([
           supabase.from('servicos').select('*').eq('barbearia_id', barbeariaId),
-          supabase.from('barbeiros').select('*').eq('barbearia_id', barbeariaId)
+          supabase.from('barbeiros').select('*').eq('barbearia_id', barbeariaId),
+          supabase.from('datas_bloqueadas').select('data').eq('barbearia_id', barbeariaId)
         ]);
 
         setServicos(resServicos.data || []);
         setBarbeiros(resBarbeiros.data || []);
+        setDatasBloqueadas((resBloqueios.data || []).map(b => b.data));
       } catch (err) {
         console.error('Erro ao carregar dados:', err);
       }
@@ -93,6 +98,63 @@ export default function AgendamentoClassico({ barbeariaId }) {
     }
     buscarOcupados();
   }, [barbeiroEscolhido, agendamentoEmEdicao, dataEscolhida, etapa]);
+
+  // Função para validar se o dia está ativo (considerando acentos e objetos no BD)
+  const checarDiaAtivo = (configObj, dataObj) => {
+    if (!configObj || !dataObj) return true;
+    const diasSemanaMap = ['domingo', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado'];
+    const diasSemanaComAcento = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
+    
+    const indexDia = dataObj.getDay();
+    const nomeSemAcento = diasSemanaMap[indexDia];
+    const nomeComAcento = diasSemanaComAcento[indexDia];
+
+    const conf = configObj[nomeSemAcento] !== undefined ? configObj[nomeSemAcento] : configObj[nomeComAcento];
+    if (conf === undefined) return true;
+
+    if (typeof conf === 'boolean') return conf;
+    if (typeof conf === 'object' && conf !== null) {
+      if (conf.ativo !== undefined) return conf.ativo !== false;
+      if (conf.trabalha !== undefined) return conf.trabalha !== false;
+    }
+    return true;
+  };
+
+  // Gerar dias do calendário respeitando folgas
+  const gerarDiasDisponiveis = () => {
+    const dias = [];
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+
+    const barbeiroAtivo = etapa.startsWith('editar') 
+      ? barbeiros.find(b => b.id === agendamentoEmEdicao?.barbeiro_id)
+      : barbeiroEscolhido;
+
+    for (let i = 0; i < 30; i++) {
+      const d = new Date();
+      d.setDate(hoje.getDate() + i);
+
+      const anoIso = d.getFullYear();
+      const mesIso = String(d.getMonth() + 1).padStart(2, '0');
+      const diaIso = String(d.getDate()).padStart(2, '0');
+      const dataIso = `${anoIso}-${mesIso}-${diaIso}`;
+
+      const estaBloqueadoNoBanco = datasBloqueadas?.some(b => b.startsWith(dataIso));
+      const ativoBarbeiro = barbeiroAtivo ? checarDiaAtivo(barbeiroAtivo.horarios_trabalho, d) : true;
+      const ativoBarbearia = checarDiaAtivo(barbearia?.horarios, d);
+
+      const bloqueado = estaBloqueadoNoBanco || !ativoBarbeiro || !ativoBarbearia;
+
+      dias.push({
+        dataIso,
+        diaNum: diaIso,
+        mesStr: d.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', ''),
+        diaSemanaStr: d.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', ''),
+        bloqueado
+      });
+    }
+    return dias;
+  };
 
   const atualizarAgendamentosAtivos = async (cliId) => {
     const { data: agsAtivos } = await supabase
@@ -350,7 +412,7 @@ export default function AgendamentoClassico({ barbeariaId }) {
                   </div>
                   <div className="flex items-center gap-1.5">
                     <button
-                      onClick={() => { setAgendamentoEmEdicao(ag); setEtapa('editar_data'); }}
+                      onClick={() => { setAgendamentoEmEdicao(ag); setDataEscolhida(''); setEtapa('editar_data'); }}
                       className="px-3 py-2 rounded-xl bg-sky-500/20 border border-sky-500/40 text-sky-500 text-[10px] font-bold cursor-pointer"
                     >
                       Editar
@@ -375,7 +437,7 @@ export default function AgendamentoClassico({ barbeariaId }) {
           </div>
         )}
 
-        {/* ESCOLHA DE SERVIÇO EM GRID (LADO A LADO) */}
+        {/* ESCOLHA DE SERVIÇO EM GRID */}
         {etapa === 'servico' && (
           <div className="space-y-3">
             <h3 className={`text-xs font-black uppercase tracking-wider ${isClean ? 'text-slate-600' : 'text-slate-400'}`}>1. Escolha o Serviço</h3>
@@ -405,7 +467,7 @@ export default function AgendamentoClassico({ barbeariaId }) {
           </div>
         )}
 
-        {/* ESCOLHA DE PROFISSIONAL EM GRID (LADO A LADO) COM FOTOS QUADRADAS */}
+        {/* ESCOLHA DE PROFISSIONAL EM GRID */}
         {etapa === 'barbeiro' && (
           <div className="space-y-3">
             <h3 className={`text-xs font-black uppercase tracking-wider ${isClean ? 'text-slate-600' : 'text-slate-400'}`}>2. Escolha o Profissional</h3>
@@ -415,7 +477,7 @@ export default function AgendamentoClassico({ barbeariaId }) {
                 return (
                   <button
                     key={b.id}
-                    onClick={() => { setBarbeiroEscolhido(b); setEtapa('data'); }}
+                    onClick={() => { setBarbeiroEscolhido(b); setDataEscolhida(''); setEtapa('data'); }}
                     className={`p-3.5 rounded-3xl border text-left flex flex-col items-center text-center transition-all cursor-pointer backdrop-blur-xl hover:scale-[1.02] shadow-lg ${
                       isClean ? 'bg-white/80 border-slate-200 hover:border-sky-500' : 'bg-gradient-to-br from-black/80 via-black/50 to-stone-900/60 border-white/10 hover:border-white/30'
                     }`}
@@ -440,7 +502,7 @@ export default function AgendamentoClassico({ barbeariaId }) {
           </div>
         )}
 
-        {/* CALENDÁRIO PROFISSIONAL INTEGRADO */}
+        {/* CALENDÁRIO COM RESPEITO DE FOLGAS E BLOQUEIOS */}
         {etapa === 'data' && (
           <div className={`p-5 rounded-3xl border backdrop-blur-xl space-y-4 shadow-xl ${isClean ? 'bg-white/90 border-slate-200' : 'bg-gradient-to-br from-black/80 via-black/60 to-stone-900 border-white/15'}`}>
             <div className="flex items-center gap-2 pb-3 border-b border-white/10">
@@ -450,35 +512,53 @@ export default function AgendamentoClassico({ barbeariaId }) {
               <span className="text-xs font-black uppercase tracking-wider">3. Escolha a Data do Atendimento</span>
             </div>
 
-            <div className="space-y-3">
-              <input 
-                type="date"
-                required
-                min={new Date().toISOString().split('T')[0]}
-                value={dataEscolhida}
-                onChange={(e) => setDataEscolhida(e.target.value)}
-                className={`w-full p-4 rounded-2xl border text-xs font-bold focus:outline-none backdrop-blur-md cursor-pointer shadow-inner ${
-                  isClean ? 'bg-slate-50 border-slate-300 text-slate-900' : 'bg-black/90 border-white/20 text-white [color-scheme:dark]'
-                }`}
-                style={{ borderColor: dataEscolhida ? corTema : undefined }}
-              />
-              <button
-                disabled={!dataEscolhida}
-                onClick={() => setEtapa('horario')}
-                className="w-full py-3.5 rounded-2xl text-white font-black text-xs uppercase tracking-widest cursor-pointer shadow-lg disabled:opacity-40 transition-all hover:brightness-110 flex items-center justify-center gap-2"
-                style={{ backgroundColor: corTema }}
-              >
-                <span>Avançar para Horários</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2.5 max-h-[280px] overflow-y-auto pr-1">
+              {gerarDiasDisponiveis().map((d) => {
+                const isSelected = dataEscolhida === d.dataIso;
+                return (
+                  <button
+                    key={d.dataIso}
+                    type="button"
+                    disabled={d.bloqueado}
+                    onClick={() => setDataEscolhida(d.dataIso)}
+                    className={`p-3 rounded-2xl border text-center transition-all flex flex-col items-center justify-center ${
+                      d.bloqueado
+                        ? 'opacity-30 border-slate-800 bg-slate-950/40 cursor-not-allowed'
+                        : isSelected
+                        ? 'border-2 font-bold shadow-lg scale-[1.02]'
+                        : isClean
+                        ? 'bg-slate-100 border-slate-300 hover:border-slate-400'
+                        : 'bg-black/50 border-white/10 hover:border-white/30'
+                    }`}
+                    style={isSelected && !d.bloqueado ? { borderColor: corTema, backgroundColor: `${corTema}15` } : {}}
+                  >
+                    <span className="text-[9px] font-extrabold uppercase text-slate-400">{d.diaSemanaStr}</span>
+                    <span className={`text-base font-black my-0.5 ${isClean ? 'text-slate-900' : 'text-white'}`}>{d.diaNum}</span>
+                    <span className="text-[9px] font-bold uppercase" style={{ color: d.bloqueado ? '#f43f5e' : corTema }}>
+                      {d.bloqueado ? 'Fechado' : d.mesStr}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
+
+            <button
+              disabled={!dataEscolhida}
+              onClick={() => setEtapa('horario')}
+              className="w-full py-3.5 rounded-2xl text-white font-black text-xs uppercase tracking-widest cursor-pointer shadow-lg disabled:opacity-40 transition-all hover:brightness-110 flex items-center justify-center gap-2 mt-2"
+              style={{ backgroundColor: corTema }}
+            >
+              <span>Avançar para Horários</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
           </div>
         )}
 
+        {/* ESCOLHA DE HORÁRIO */}
         {etapa === 'horario' && (
           <div className="space-y-3">
             <h3 className={`text-xs font-black uppercase tracking-wider ${isClean ? 'text-slate-600' : 'text-slate-400'}`}>4. Escolha o Horário</h3>
-            <div className="grid grid-cols-3 gap-2 max-h-[250px] overflow-y-auto">
+            <div className="grid grid-cols-3 gap-2 max-h-[250px] overflow-y-auto pr-1">
               {HORARIOS_DISPONIVEIS.map((h) => {
                 const ocupado = horariosOcupados.includes(h);
                 return (
@@ -500,41 +580,70 @@ export default function AgendamentoClassico({ barbeariaId }) {
           </div>
         )}
 
+        {/* EDITAR DATA (GERENCIAMENTO) */}
         {etapa === 'editar_data' && (
-          <div className={`p-4 rounded-3xl border backdrop-blur-xl space-y-3 ${isClean ? 'bg-white border-slate-200' : 'bg-black/60 border-white/10'}`}>
-            <div className="flex items-center gap-2 pb-2 border-b border-white/10">
+          <div className={`p-5 rounded-3xl border backdrop-blur-xl space-y-4 shadow-xl ${isClean ? 'bg-white/90 border-slate-200' : 'bg-gradient-to-br from-black/80 via-black/60 to-stone-900 border-white/15'}`}>
+            <div className="flex items-center gap-2 pb-3 border-b border-white/10">
               <CalendarIcon className="w-4 h-4" style={{ color: corTema }} />
-              <span className="text-xs font-black uppercase tracking-wider">Nova Data</span>
+              <span className="text-xs font-black uppercase tracking-wider">Selecione a Nova Data</span>
             </div>
-            <input 
-              type="date"
-              required
-              min={new Date().toISOString().split('T')[0]}
-              value={dataEscolhida}
-              onChange={(e) => setDataEscolhida(e.target.value)}
-              className={`w-full p-3.5 rounded-2xl border text-xs ${isClean ? 'bg-white border-slate-300 text-slate-900' : 'bg-black/50 border-white/10 text-white [color-scheme:dark]'}`}
-            />
+
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2.5 max-h-[280px] overflow-y-auto pr-1">
+              {gerarDiasDisponiveis().map((d) => {
+                const isSelected = dataEscolhida === d.dataIso;
+                return (
+                  <button
+                    key={d.dataIso}
+                    type="button"
+                    disabled={d.bloqueado}
+                    onClick={() => setDataEscolhida(d.dataIso)}
+                    className={`p-3 rounded-2xl border text-center transition-all flex flex-col items-center justify-center ${
+                      d.bloqueado
+                        ? 'opacity-30 border-slate-800 bg-slate-950/40 cursor-not-allowed'
+                        : isSelected
+                        ? 'border-2 font-bold shadow-lg scale-[1.02]'
+                        : isClean
+                        ? 'bg-slate-100 border-slate-300 hover:border-slate-400'
+                        : 'bg-black/50 border-white/10 hover:border-white/30'
+                    }`}
+                    style={isSelected && !d.bloqueado ? { borderColor: corTema, backgroundColor: `${corTema}15` } : {}}
+                  >
+                    <span className="text-[9px] font-extrabold uppercase text-slate-400">{d.diaSemanaStr}</span>
+                    <span className={`text-base font-black my-0.5 ${isClean ? 'text-slate-900' : 'text-white'}`}>{d.diaNum}</span>
+                    <span className="text-[9px] font-bold uppercase" style={{ color: d.bloqueado ? '#f43f5e' : corTema }}>
+                      {d.bloqueado ? 'Fechado' : d.mesStr}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
             <button
               disabled={!dataEscolhida}
               onClick={() => setEtapa('editar_horario')}
-              className="w-full py-3.5 rounded-2xl text-white font-black text-xs uppercase"
+              className="w-full py-3.5 rounded-2xl text-white font-black text-xs uppercase tracking-widest cursor-pointer shadow-lg disabled:opacity-40 transition-all hover:brightness-110"
               style={{ backgroundColor: corTema }}
             >
-              Escolher Horário
+              Escolher Novo Horário
             </button>
           </div>
         )}
 
+        {/* EDITAR HORÁRIO (GERENCIAMENTO) */}
         {etapa === 'editar_horario' && (
           <div className="space-y-3">
             <h3 className={`text-xs font-black uppercase tracking-wider ${isClean ? 'text-slate-600' : 'text-slate-400'}`}>Novo Horário</h3>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-3 gap-2 max-h-[250px] overflow-y-auto pr-1">
               {HORARIOS_DISPONIVEIS.map((h) => (
                 <button
                   key={h}
                   disabled={horariosOcupados.includes(h) || loading}
                   onClick={() => confirmarEdicaoHorario(h)}
-                  className={`py-2.5 rounded-xl text-xs font-black border cursor-pointer ${isClean ? 'bg-white text-slate-800 border-slate-300' : 'bg-black/50 text-white border-white/10'}`}
+                  className={`py-2.5 rounded-xl text-xs font-black border cursor-pointer transition-all ${
+                    horariosOcupados.includes(h)
+                      ? 'bg-slate-500/10 text-slate-400 border-slate-200 line-through opacity-40 cursor-not-allowed'
+                      : isClean ? 'bg-white text-slate-800 border-slate-300 hover:border-sky-500' : 'bg-black/50 text-white border-white/10 hover:border-white/30'
+                  }`}
                 >
                   {h}
                 </button>
@@ -543,10 +652,11 @@ export default function AgendamentoClassico({ barbeariaId }) {
           </div>
         )}
 
+        {/* RESUMO DO AGENDAMENTO */}
         {etapa === 'resumo' && (
-          <div className={`p-4 rounded-2xl border space-y-3 backdrop-blur-md ${isClean ? 'bg-white border-sky-500/40 text-slate-800' : 'bg-black/60 border-emerald-500/40 text-slate-200'}`} style={{ borderColor: `${corTema}66` }}>
+          <div className={`p-5 rounded-3xl border space-y-3 backdrop-blur-md shadow-xl ${isClean ? 'bg-white border-sky-500/40 text-slate-800' : 'bg-black/60 border-emerald-500/40 text-slate-200'}`} style={{ borderColor: `${corTema}66` }}>
             <h4 className="text-xs font-black uppercase tracking-wider" style={{ color: corTema }}>Resumo do Agendamento</h4>
-            <div className="space-y-1 text-xs">
+            <div className="space-y-1.5 text-xs">
               <p>✂️ <strong className={isClean ? 'text-slate-950' : 'text-white'}>Serviço:</strong> {servicoEscolhido?.nome} (R$ {Number(servicoEscolhido?.preco || 0).toFixed(2)})</p>
               <p>👤 <strong className={isClean ? 'text-slate-950' : 'text-white'}>Profissional:</strong> {barbeiroEscolhido?.nome}</p>
               <p>📅 <strong className={isClean ? 'text-slate-950' : 'text-white'}>Data:</strong> {dataEscolhida.split('-').reverse().join('/')}</p>
@@ -556,7 +666,7 @@ export default function AgendamentoClassico({ barbeariaId }) {
             <button
               disabled={loading}
               onClick={confirmarAgendamentoFinal}
-              className="w-full mt-2 py-3.5 rounded-xl text-white font-black text-xs uppercase tracking-widest cursor-pointer shadow-lg hover:brightness-110"
+              className="w-full mt-2 py-3.5 rounded-2xl text-white font-black text-xs uppercase tracking-widest cursor-pointer shadow-lg hover:brightness-110 transition-all"
               style={{ backgroundColor: corTema }}
             >
               {loading ? 'A confirmar...' : 'Confirmar Agendamento'}
@@ -564,6 +674,7 @@ export default function AgendamentoClassico({ barbeariaId }) {
           </div>
         )}
 
+        {/* TELA DE SUCESSO */}
         {etapa === 'sucesso' && (
           <div className="py-4 text-center space-y-3">
             <div className="w-12 h-12 rounded-2xl text-white flex items-center justify-center mx-auto shadow-lg" style={{ backgroundColor: corTema }}>
@@ -575,7 +686,7 @@ export default function AgendamentoClassico({ barbeariaId }) {
             <div className="grid grid-cols-1 gap-2 pt-2">
               <button
                 onClick={() => setEtapa('servico')}
-                className="w-full py-3 rounded-2xl text-white font-bold text-xs transition-all cursor-pointer shadow-md"
+                className="w-full py-3 rounded-2xl text-white font-bold text-xs transition-all cursor-pointer shadow-md hover:brightness-110"
                 style={{ backgroundColor: corTema }}
               >
                 Fazer Novo Agendamento
