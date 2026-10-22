@@ -77,18 +77,52 @@ export default function AgendamentoChat({ barbeariaId }) {
       const diaIso = String(d.getDate()).padStart(2, '0');
       const dataIso = `${anoIso}-${mesIso}-${diaIso}`;
 
+      // Mapeamento sem acento
       const diasSemanaMap = ['domingo', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado'];
       const nomeDiaSemana = diasSemanaMap[d.getDay()];
 
-      const configHorarios = barbearia?.horarios;
-      let diaAtivo = d.getDay() !== 0; // Por predefinição, domingo começa fechado se não houver regra explícita
-      
-      if (configHorarios && configHorarios[nomeDiaSemana] !== undefined) {
-        const val = configHorarios[nomeDiaSemana];
-        if (typeof val === 'boolean') {
-          diaAtivo = val;
-        } else if (typeof val === 'object' && val !== null) {
-          diaAtivo = val.ativo !== false;
+      // Mapeamento com acento (para garantir compatibilidade com o painel)
+      const diasSemanaComAcento = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
+      const nomeDiaComAcento = diasSemanaComAcento[d.getDay()];
+
+     const barbeiroAtivo = etapa.startsWith('editar')
+        ? barbeiros.find(b => b.id === agendamentoEmEdicao?.barbeiro_id)
+        : barbeiroEscolhido;
+
+      // ADICIONE ESTA LINHA PARA TESTAR NO CONSOLE DO NAVEGADOR (F12)
+      console.log("Horários JSON:", JSON.stringify(barbeiroAtivo?.horarios_trabalho, null, 2));
+
+      // Função auxiliar para testar se um dia está ativo na config
+      const checarDiaAtivo = (configObj) => {
+        if (!configObj) return undefined;
+        
+        // Busca a chave com ou sem acento
+        const conf = configObj[nomeDiaSemana] !== undefined ? configObj[nomeDiaSemana] : configObj[nomeDiaComAcento];
+        if (conf === undefined) return undefined;
+
+        if (typeof conf === 'boolean') return conf;
+        if (typeof conf === 'object' && conf !== null) {
+          if (conf.ativo !== undefined) return conf.ativo !== false;
+          if (conf.trabalha !== undefined) return conf.trabalha !== false;
+        }
+        return true;
+      };
+
+      let diaAtivo = true;
+
+      // 1. Tenta pegar a configuração do barbeiro
+      const ativoBarbeiro = checarDiaAtivo(barbeiroAtivo?.horarios_trabalho);
+
+      if (ativoBarbeiro !== undefined) {
+        diaAtivo = ativoBarbeiro;
+      } else {
+        // 2. Se o barbeiro não tiver configuração específica, usa a da barbearia
+        const ativoBarbearia = checarDiaAtivo(barbearia?.horarios);
+        if (ativoBarbearia !== undefined) {
+          diaAtivo = ativoBarbearia;
+        } else if (d.getDay() === 0 || d.getDay() === 6) {
+          // Por padrão, se não configurado, sábado/domingo ficam como folga
+          diaAtivo = false;
         }
       }
 
