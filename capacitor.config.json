@@ -3,7 +3,7 @@
   "appName": "BarberGestor",
   "webDir": "out",
   "server": {
-    "url": "https://www.agendaestilo.com.br",
+    "url": "https://agendaestilo.com.br",
     "cleartext": true
   },
   "plugins": {

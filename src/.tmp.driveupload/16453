@@ -81,7 +81,8 @@ export default function AgendamentoChat({ barbeariaId }) {
       const nomeDiaSemana = diasSemanaMap[d.getDay()];
 
       const configHorarios = barbearia?.horarios;
-      let diaAtivo = true;
+      let diaAtivo = d.getDay() !== 0; // Por predefinição, domingo começa fechado se não houver regra explícita
+      
       if (configHorarios && configHorarios[nomeDiaSemana] !== undefined) {
         const val = configHorarios[nomeDiaSemana];
         if (typeof val === 'boolean') {
