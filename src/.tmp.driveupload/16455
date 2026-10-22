@@ -17,9 +17,11 @@ export default function AgendamentoClassico({ barbeariaId }) {
   const [clienteId, setClienteId] = useState(null);
   const [clienteIdentificado, setClienteIdentificado] = useState(false);
   const [isNovoCliente, setIsNovoCliente] = useState(false);
-  const [pontosFidelidade, setPontosFidelidade] = useState(0);
+  
+  // Dados de Fidelidade exatamente como no Chat
+  const [dadosFidelidade, setDadosFidelidade] = useState({ selos_atuais: 0, total_resgates: 0, id: null });
   const [agendamentosAtivos, setAgendamentosAtivos] = useState([]);
-  const [modoVisualizacao, setModoVisualizacao] = useState('agendar'); // Padrão: Novo Agendamento
+  const [modoVisualizacao, setModoVisualizacao] = useState('agendar');
 
   // Seleções
   const [agendamentoEmEdicao, setAgendamentoEmEdicao] = useState(null);
@@ -32,6 +34,8 @@ export default function AgendamentoClassico({ barbeariaId }) {
   const [erro, setErro] = useState(null);
   const [sucesso, setSucesso] = useState(false);
 
+  const metaSelos = 10;
+
   // Refs para Scroll Automático
   const servicoRef = useRef(null);
   const barbeiroRef = useRef(null);
@@ -40,10 +44,8 @@ export default function AgendamentoClassico({ barbeariaId }) {
   const resumoRef = useRef(null);
 
   const isClean = barbearia?.cor_tema === 'clean';
-  // Paleta estilo Black Piano para o tema Clean e Verde Neon para o escuro
   const corTema = barbearia?.cor_primaria || (isClean ? '#0f172a' : '#10b981');
 
-  // Estilos nobre Black Piano / Slate
   const estiloFundoContainer = isClean 
     ? 'bg-white text-slate-900 border-slate-200/90 shadow-[0_20px_50px_rgba(0,0,0,0.1)]' 
     : 'bg-[#0b0c10]/95 text-white border-white/10 shadow-[0_25px_70px_rgba(0,0,0,0.85)]';
@@ -55,23 +57,24 @@ export default function AgendamentoClassico({ barbeariaId }) {
   useEffect(() => {
     async function carregarDados() {
       try {
-        const { data: barb } = await supabase
-          .from('barbearias')
-          .select('*')
-          .eq('id', barbeariaId)
-          .single();
-
+        const { data: barb } = await supabase.from('barbearias').select('*').eq('id', barbeariaId).single();
         if (barb) setBarbearia(barb);
 
         const [resServicos, resBarbeiros, resBloqueios] = await Promise.all([
           supabase.from('servicos').select('*').eq('barbearia_id', barbeariaId),
           supabase.from('barbeiros').select('*').eq('barbearia_id', barbeariaId),
-          supabase.from('datas_bloqueadas').select('data').eq('barbearia_id', barbeariaId)
+          supabase.from('bloqueios_agenda').select('data_bloqueio').eq('barbearia_id', barbeariaId)
         ]);
 
         setServicos(resServicos.data || []);
         setBarbeiros(resBarbeiros.data || []);
-        setDatasBloqueadas((resBloqueios.data || []).map(b => b.data));
+
+        const bloqueiosFormatados = (resBloqueios.data || []).map(b => {
+          if (!b.data_bloqueio) return '';
+          return String(b.data_bloqueio).split('T')[0];
+        }).filter(Boolean);
+
+        setDatasBloqueadas(bloqueiosFormatados);
       } catch (err) {
         console.error('Erro ao carregar dados:', err);
       }
@@ -85,8 +88,9 @@ export default function AgendamentoClassico({ barbeariaId }) {
       if (!bId || !dataEscolhida) return;
 
       try {
-        const inicio = `${dataEscolhida}T00:00:00`;
-        const fim = `${dataEscolhida}T23:59:59`;
+        const dataFmt = dataEscolhida.split('T')[0];
+        const inicio = `${dataFmt}T00:00:00`;
+        const fim = `${dataFmt}T23:59:59`;
 
         const { data } = await supabase
           .from('agendamentos')
@@ -109,29 +113,43 @@ export default function AgendamentoClassico({ barbeariaId }) {
     buscarOcupados();
   }, [barbeiroEscolhido, agendamentoEmEdicao, dataEscolhida]);
 
-  const carregarAgendamentosCliente = async (cliId) => {
-    const { data: ags } = await supabase
-      .from('agendamentos')
-      .select('*, servicos(nome, preco), barbeiros(nome)')
-      .eq('cliente_id', cliId)
-      .neq('status', 'cancelado')
-      .gte('data_hora', new Date().toISOString());
+  const carregarDadosCliente = async (cliId) => {
+    try {
+      const { data: agsAtivos } = await supabase
+        .from('agendamentos')
+        .select('*, servicos(nome, preco), barbeiros(nome)')
+        .eq('cliente_id', cliId)
+        .neq('status', 'cancelado')
+        .order('data_hora', { ascending: true });
 
-    setAgendamentosAtivos(ags || []);
-    return ags || [];
+      setAgendamentosAtivos(agsAtivos || []);
+
+      const { data: fidData } = await supabase
+        .from('fidelidade_clientes')
+        .select('*')
+        .eq('cliente_id', cliId)
+        .maybeSingle();
+
+      setDadosFidelidade(fidData || { selos_atuais: 0, total_resgates: 0, id: null });
+      return agsAtivos || [];
+    } catch (err) {
+      console.error('Erro ao carregar cliente:', err);
+      return [];
+    }
   };
 
   const checarDiaAtivo = (configObj, dataObj) => {
-    if (!configObj || !dataObj) return true;
+    if (!configObj) return undefined;
+    
     const diasSemanaMap = ['domingo', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado'];
     const diasSemanaComAcento = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
-    
     const indexDia = dataObj.getDay();
+    
     const nomeSemAcento = diasSemanaMap[indexDia];
     const nomeComAcento = diasSemanaComAcento[indexDia];
 
     const conf = configObj[nomeSemAcento] !== undefined ? configObj[nomeSemAcento] : configObj[nomeComAcento];
-    if (conf === undefined) return true;
+    if (conf === undefined) return undefined;
 
     if (typeof conf === 'boolean') return conf;
     if (typeof conf === 'object' && conf !== null) {
@@ -146,6 +164,8 @@ export default function AgendamentoClassico({ barbeariaId }) {
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
 
+    const barbeiroAtivo = barbeiroEscolhido || barbeiros.find(b => b.id === agendamentoEmEdicao?.barbeiro_id);
+
     for (let i = 0; i < 30; i++) {
       const d = new Date();
       d.setDate(hoje.getDate() + i);
@@ -155,11 +175,22 @@ export default function AgendamentoClassico({ barbeariaId }) {
       const diaIso = String(d.getDate()).padStart(2, '0');
       const dataIso = `${anoIso}-${mesIso}-${diaIso}`;
 
-      const estaBloqueadoNoBanco = datasBloqueadas?.some(b => b.startsWith(dataIso));
-      const ativoBarbeiro = barbeiroEscolhido ? checarDiaAtivo(barbeiroEscolhido.horarios_trabalho, d) : true;
-      const ativoBarbearia = checarDiaAtivo(barbearia?.horarios, d);
+      let diaAtivo = true;
+      const ativoBarbeiro = checarDiaAtivo(barbeiroAtivo?.horarios_trabalho, d);
 
-      const bloqueado = estaBloqueadoNoBanco || !ativoBarbeiro || !ativoBarbearia;
+      if (ativoBarbeiro !== undefined) {
+        diaAtivo = ativoBarbeiro;
+      } else {
+        const ativoBarbearia = checarDiaAtivo(barbearia?.horarios, d);
+        if (ativoBarbearia !== undefined) {
+          diaAtivo = ativoBarbearia;
+        } else if (d.getDay() === 0 || d.getDay() === 6) {
+          diaAtivo = false;
+        }
+      }
+
+      const estaBloqueadoNoBanco = datasBloqueadas.some(b => b.startsWith(dataIso));
+      const bloqueado = estaBloqueadoNoBanco || !diaAtivo;
 
       dias.push({
         dataIso,
@@ -174,44 +205,82 @@ export default function AgendamentoClassico({ barbeariaId }) {
 
   const gerarHorariosDisponiveisDinamico = () => {
     if (!dataEscolhida) return [];
-    
-    const d = new Date(`${dataEscolhida}T00:00:00`);
-    const diasSemanaMap = ['domingo', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado'];
-    const diasSemanaComAcento = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
-    const indexDia = d.getDay();
+
+    const dataFmt = dataEscolhida.split('T')[0];
+    if (datasBloqueadas.some(b => b.startsWith(dataFmt))) {
+      return [];
+    }
 
     const barbeiroAtivo = barbeiroEscolhido || barbeiros.find(b => b.id === agendamentoEmEdicao?.barbeiro_id);
-    const configBarbeiro = barbeiroAtivo?.horarios_trabalho?.[diasSemanaMap[indexDia]] || barbeiroAtivo?.horarios_trabalho?.[diasSemanaComAcento[indexDia]];
-    const configBarbearia = barbearia?.horarios?.[diasSemanaMap[indexDia]] || barbearia?.horarios?.[diasSemanaComAcento[indexDia]];
+    const [ano, mes, dia] = dataFmt.split('-').map(Number);
+    const dateObj = new Date(ano, mes - 1, dia);
 
-    const configUsar = configBarbeiro || configBarbearia || {};
+    const diasSemanaMap = ['domingo', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado'];
+    const diasSemanaComAcento = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
+    const indexDia = dateObj.getDay();
 
-    let horaInicio = '08:00';
-    let horaFim = '18:00';
-    let pausaInicio = null;
-    let pausaFim = null;
+    const nomeSemAcento = diasSemanaMap[indexDia];
+    const nomeComAcento = diasSemanaComAcento[indexDia];
 
-    if (typeof configUsar === 'object' && configUsar !== null) {
-      if (configUsar.inicio || configUsar.abertura) horaInicio = configUsar.inicio || configUsar.abertura;
-      if (configUsar.fim || configUsar.fechamento) horaFim = configUsar.fim || configUsar.fechamento;
-      if (configUsar.pausa_inicio || configUsar.almoco_inicio) pausaInicio = configUsar.pausa_inicio || configUsar.almoco_inicio;
-      if (configUsar.pausa_fim || configUsar.almoco_fim) pausaFim = configUsar.pausa_fim || configUsar.almoco_fim;
-    }
+    let configHorariosBarbeiro = barbeiroAtivo?.horarios_trabalho?.[nomeSemAcento] || barbeiroAtivo?.horarios_trabalho?.[nomeComAcento];
 
-    const [hInicio] = horaInicio.split(':').map(Number);
-    const [hFim] = horaFim.split(':').map(Number);
+    let aberturaStr = '08:00';
+    let fechamentoStr = '18:00';
+    let pausaInicioStr = '';
+    let pausaFimStr = '';
 
-    const horarios = [];
-    for (let h = hInicio; h < hFim; h++) {
-      const horaStr = `${String(h).padStart(2, '0')}:00`;
-      
-      if (pausaInicio && pausaFim && horaStr >= pausaInicio && horaStr < pausaFim) {
-        continue;
+    if (configHorariosBarbeiro) {
+      if (configHorariosBarbeiro.ativo === false) return [];
+      aberturaStr = configHorariosBarbeiro.abertura || '08:00';
+      fechamentoStr = configHorariosBarbeiro.fechamento || '18:00';
+      pausaInicioStr = configHorariosBarbeiro.pausaInicio || '';
+      pausaFimStr = configHorariosBarbeiro.pausaFim || '';
+    } else {
+      const configGeral = barbearia?.horarios?.[nomeSemAcento] || barbearia?.horarios?.[nomeComAcento];
+      if (configGeral !== undefined) {
+        if (typeof configGeral === 'boolean' && configGeral === false) return [];
+        if (typeof configGeral === 'object' && configGeral !== null && configGeral.ativo === false) return [];
+        aberturaStr = configGeral.abertura || '08:00';
+        fechamentoStr = configGeral.fechamento || '18:00';
+        pausaInicioStr = configGeral.pausaInicio || '';
+        pausaFimStr = configGeral.pausaFim || '';
       }
-      horarios.push(horaStr);
     }
 
-    return horarios.length > 0 ? horarios : ['08:00', '09:00', '10:00', '11:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00'];
+    const paraMinutos = (horaStr) => {
+      if (!horaStr) return null;
+      const [h, m] = horaStr.split(':').map(Number);
+      return h * 60 + m;
+    };
+
+    const paraHoraStr = (minutos) => {
+      const h = Math.floor(minutos / 60).toString().padStart(2, '0');
+      const m = (minutos % 60).toString().padStart(2, '0');
+      return `${h}:${m}`;
+    };
+
+    const minAbertura = paraMinutos(aberturaStr);
+    const minFechamento = paraMinutos(fechamentoStr);
+    const minPausaInicio = paraMinutos(pausaInicioStr);
+    const minPausaFim = paraMinutos(pausaFimStr);
+
+    if (minAbertura === null || minFechamento === null || minAbertura >= minFechamento) {
+      return [];
+    }
+
+    const horariosGerados = [];
+    const intervaloMinutos = 60;
+
+    for (let min = minAbertura; min < minFechamento; min += intervaloMinutos) {
+      if (minPausaInicio !== null && minPausaFim !== null) {
+        if (min >= minPausaInicio && min < minPausaFim) {
+          continue;
+        }
+      }
+      horariosGerados.push(paraHoraStr(min));
+    }
+
+    return horariosGerados;
   };
 
   const handleVerificarTelefone = async (e) => {
@@ -234,12 +303,11 @@ export default function AgendamentoClassico({ barbeariaId }) {
       if (cli) {
         setClienteId(cli.id);
         setNome(cli.nome);
-        setPontosFidelidade(cli.pontos_fidelidade || 0);
         setClienteIdentificado(true);
         setIsNovoCliente(false);
         
-        await carregarAgendamentosCliente(cli.id);
-        setModoVisualizacao('agendar'); // Padrão
+        await carregarDadosCliente(cli.id);
+        setModoVisualizacao('agendar');
         setTimeout(() => servicoRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
       } else {
         setIsNovoCliente(true);
@@ -269,9 +337,9 @@ export default function AgendamentoClassico({ barbeariaId }) {
 
       if (novoCli) {
         setClienteId(novoCli.id);
-        setPontosFidelidade(0);
         setClienteIdentificado(true);
         setIsNovoCliente(false);
+        await carregarDadosCliente(novoCli.id);
         setModoVisualizacao('agendar');
         setTimeout(() => servicoRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
       }
@@ -290,7 +358,7 @@ export default function AgendamentoClassico({ barbeariaId }) {
         .eq('id', agId);
 
       if (error) throw error;
-      await carregarAgendamentosCliente(clienteId);
+      await carregarDadosCliente(clienteId);
     } catch (err) {
       setErro('Erro ao cancelar agendamento.');
     }
@@ -299,14 +367,15 @@ export default function AgendamentoClassico({ barbeariaId }) {
   const confirmarEdicaoHorario = async (hora) => {
     setLoading(true);
     try {
-      const dataHoraIso = new Date(`${dataEscolhida}T${hora}:00`).toISOString();
+      const dataFmt = dataEscolhida.split('T')[0];
+      const dataHoraIso = new Date(`${dataFmt}T${hora}:00`).toISOString();
       const { error } = await supabase
         .from('agendamentos')
         .update({ data_hora: dataHoraIso })
         .eq('id', agendamentoEmEdicao.id);
 
       if (error) throw error;
-      await carregarAgendamentosCliente(clienteId);
+      await carregarDadosCliente(clienteId);
       setAgendamentoEmEdicao(null);
       setSucesso(true);
     } catch (err) {
@@ -324,7 +393,8 @@ export default function AgendamentoClassico({ barbeariaId }) {
 
     setLoading(true);
     try {
-      const dataHoraIso = new Date(`${dataEscolhida}T${horaEscolhida}:00`).toISOString();
+      const dataFmt = dataEscolhida.split('T')[0];
+      const dataHoraIso = new Date(`${dataFmt}T${horaEscolhida}:00`).toISOString();
       const { error } = await supabase.from('agendamentos').insert([{
         barbearia_id: barbeariaId,
         cliente_id: clienteId,
@@ -337,7 +407,7 @@ export default function AgendamentoClassico({ barbeariaId }) {
       }]);
 
       if (error) throw error;
-      await carregarAgendamentosCliente(clienteId);
+      await carregarDadosCliente(clienteId);
       setSucesso(true);
     } catch (err) {
       setErro('Erro ao concluir agendamento.');
@@ -346,10 +416,43 @@ export default function AgendamentoClassico({ barbeariaId }) {
     }
   };
 
+  const renderCartaoFidelidade = () => {
+    if (barbearia?.fidelidade_ativa === false) return null;
+
+    const selos = dadosFidelidade?.selos_atuais || 0;
+    const atingiuMeta = selos >= metaSelos;
+
+    return (
+      <div className={`p-4 rounded-3xl border flex items-center justify-between gap-3 shadow-sm relative overflow-hidden ${
+        isClean ? 'bg-slate-900 text-white border-slate-800' : 'bg-white/5 border-white/10'
+      }`}>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 shadow-sm bg-white/10 text-white">
+            <Gift className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <p className="text-xs font-black">{nome}</p>
+              <span className="text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-full border bg-white/10 border-white/20 text-white">
+                Cliente VIP
+              </span>
+            </div>
+            <p className="text-[10px] text-slate-400 mt-0.5">Programa de Fidelidade</p>
+          </div>
+        </div>
+
+        <div className="text-right">
+          <span className="text-xs font-black block text-slate-100">{selos} / {metaSelos} Selos</span>
+          <span className="text-[9px] font-semibold text-slate-400">{atingiuMeta ? '🎁 Resgate Disponível!' : 'Cartão Ativo'}</span>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className={`w-full max-w-xl mx-auto rounded-[2.5rem] border overflow-hidden relative backdrop-blur-2xl transition-all duration-300 ${estiloFundoContainer}`}>
       
-      {/* FRISO SUPERIOR BLACK PIANO */}
+      {/* FRISO SUPERIOR */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-[3px] z-30 shadow-lg" style={{ background: `linear-gradient(to right, transparent, ${corTema}, transparent)` }} />
 
       {/* CAPA DA UNIDADE */}
@@ -445,30 +548,8 @@ export default function AgendamentoClassico({ barbeariaId }) {
           /* PASSO SEGUINTE: CLIENTE AUTENTICADO */
           <div className="space-y-6">
             
-            {/* CARD VIP DE FIDELIDADE (Design Black Piano) */}
-            <div className={`p-4 rounded-3xl border flex items-center justify-between gap-3 shadow-sm relative overflow-hidden ${
-              isClean ? 'bg-slate-900 text-white border-slate-800' : 'bg-white/5 border-white/10'
-            }`}>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 shadow-sm bg-white/10 text-white">
-                  <Gift className="w-5 h-5" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <p className="text-xs font-black">{nome}</p>
-                    <span className="text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-full border bg-white/10 border-white/20 text-white">
-                      Cliente VIP
-                    </span>
-                  </div>
-                  <p className="text-[10px] text-slate-400 mt-0.5">Programa de Fidelidade</p>
-                </div>
-              </div>
-
-              <div className="text-right">
-                <span className="text-xs font-black block text-slate-100">{pontosFidelidade} / 10 Selos</span>
-                <span className="text-[9px] font-semibold text-slate-400">Cartão Ativo</span>
-              </div>
-            </div>
+            {/* CARTÃO VIP DE FIDELIDADE */}
+            {renderCartaoFidelidade()}
 
             {/* BARRA DE ALTERNÂNCIA (Novo Agendamento) */}
             <div className={`flex gap-1.5 p-1 rounded-2xl border ${
@@ -508,38 +589,50 @@ export default function AgendamentoClassico({ barbeariaId }) {
                 {agendamentosAtivos.length === 0 ? (
                   <p className="text-xs text-slate-400 italic text-center py-4">Você não possui agendamentos ativos no momento.</p>
                 ) : (
-                  agendamentosAtivos.map((ag) => (
-                    <div key={ag.id} className={`p-4 rounded-2xl border flex items-center justify-between gap-3 ${
-                      isClean ? 'bg-slate-50 border-slate-200' : 'bg-white/5 border-white/10'
-                    }`}>
-                      <div>
-                        <p className={`text-xs font-bold ${isClean ? 'text-slate-900' : 'text-white'}`}>{ag.servicos?.nome}</p>
-                        <p className="text-[10px] font-bold" style={{ color: corTema }}>{ag.barbeiros?.nome}</p>
-                        <p className={`text-[10px] mt-0.5 ${isClean ? 'text-slate-500' : 'text-slate-400'}`}>
-                          📅 {new Date(ag.data_hora).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
-                        </p>
+                  agendamentosAtivos.map((ag) => {
+                    const isConcluido = ag.status === 'concluido';
+
+                    return (
+                      <div key={ag.id} className={`p-4 rounded-2xl border flex items-center justify-between gap-3 ${
+                        isClean ? 'bg-slate-50 border-slate-200' : 'bg-white/5 border-white/10'
+                      }`}>
+                        <div>
+                          <p className={`text-xs font-bold ${isClean ? 'text-slate-900' : 'text-white'}`}>{ag.servicos?.nome}</p>
+                          <p className="text-[10px] font-bold" style={{ color: corTema }}>{ag.barbeiros?.nome}</p>
+                          <p className={`text-[10px] mt-0.5 ${isClean ? 'text-slate-500' : 'text-slate-400'}`}>
+                            📅 {new Date(ag.data_hora).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-1.5 shrink-0 ml-auto">
+                          {isConcluido ? (
+                            <span className="text-[9px] font-extrabold uppercase px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-600 border border-emerald-500/30 shadow-sm">
+                              Concluído
+                            </span>
+                          ) : (
+                            <>
+                              <button
+                                onClick={() => {
+                                  setAgendamentoEmEdicao(ag);
+                                  setDataEscolhida('');
+                                  setHoraEscolhida('');
+                                  setModoVisualizacao('agendar');
+                                }}
+                                className="p-2 rounded-xl bg-slate-900 border border-slate-800 text-white text-[10px] font-bold flex items-center gap-1 cursor-pointer hover:bg-slate-800"
+                              >
+                                <Edit3 className="w-3.5 h-3.5" /> Editar
+                              </button>
+                              <button
+                                onClick={() => cancelarAgendamento(ag.id)}
+                                className="p-2 rounded-xl bg-rose-50 border border-rose-200 text-rose-600 text-[10px] font-bold flex items-center gap-1 cursor-pointer hover:bg-rose-100"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" /> Cancelar
+                              </button>
+                            </>
+                          )}
+                        </div>
                       </div>
-                      <div className="flex items-center gap-1.5">
-                        <button
-                          onClick={() => {
-                            setAgendamentoEmEdicao(ag);
-                            setDataEscolhida('');
-                            setHoraEscolhida('');
-                            setModoVisualizacao('agendar');
-                          }}
-                          className="p-2 rounded-xl bg-slate-900 border border-slate-800 text-white text-[10px] font-bold flex items-center gap-1 cursor-pointer hover:bg-slate-800"
-                        >
-                          <Edit3 className="w-3.5 h-3.5" /> Editar
-                        </button>
-                        <button
-                          onClick={() => cancelarAgendamento(ag.id)}
-                          className="p-2 rounded-xl bg-rose-50 border border-rose-200 text-rose-600 text-[10px] font-bold flex items-center gap-1 cursor-pointer hover:bg-rose-100"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" /> Cancelar
-                        </button>
-                      </div>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
                 <button
                   onClick={() => setModoVisualizacao('agendar')}
@@ -734,7 +827,7 @@ export default function AgendamentoClassico({ barbeariaId }) {
                     <div className="space-y-1.5 text-xs text-slate-300">
                       <p>✂️ <strong>Serviço:</strong> {servicoEscolhido?.nome} (R$ {Number(servicoEscolhido?.preco || 0).toFixed(2)})</p>
                       <p>👤 <strong>Profissional:</strong> {barbeiroEscolhido?.nome}</p>
-                      <p>📅 <strong>Data:</strong> {dataEscolhida.split('-').reverse().join('/')}</p>
+                      <p>📅 <strong>Data:</strong> {dataEscolhida.split('T')[0].split('-').reverse().join('/')}</p>
                       <p>⏰ <strong>Horário:</strong> {horaEscolhida}</p>
                       <p>📱 <strong>Cliente:</strong> {nome} ({telefone})</p>
                     </div>
@@ -758,7 +851,7 @@ export default function AgendamentoClassico({ barbeariaId }) {
                     </div>
                     <h3 className={`text-base font-black ${isClean ? 'text-slate-900' : 'text-white'}`}>Agendamento Concluído!</h3>
                     <p className={`text-xs ${isClean ? 'text-slate-500' : 'text-slate-400'}`}>
-                      Horário registado com sucesso para {dataEscolhida.split('-').reverse().join('/')} às {horaEscolhida}.
+                      Horário registado com sucesso para {dataEscolhida.split('T')[0].split('-').reverse().join('/')} às {horaEscolhida}.
                     </p>
                     
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">

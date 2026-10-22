@@ -5,7 +5,7 @@ import { createClient } from '@supabase/supabase-js';
 import { 
   Calendar, CheckCircle2, DollarSign, TrendingUp, TrendingDown, 
   Users, Settings, Percent, Scissors, ClipboardPenLine, ShoppingCart, 
-  ShoppingBag, MessageCircleCheck, LogOut, History, X, Search, Filter, Clock, Trash2, ChevronRight, ChevronLeft 
+  ShoppingBag, MessageCircleCheck, LogOut, History, X, Search, Filter, Clock, Trash2, ChevronRight, ChevronLeft, Plus, Phone 
 } from 'lucide-react';
 
 import NotificacoesBell from '@/components/NotificacoesBell';
@@ -20,6 +20,28 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
   const [erroFatal, setErroFatal] = useState(null);
   const [processandoId, setProcessandoId] = useState(null);
   
+  // Estados para o Modal de Novo Agendamento Admin
+  const [modalCriarOpen, setModalCriarOpen] = useState(false);
+  const [servicosAdmin, setServicosAdmin] = useState([]);
+  const [barbeirosAdmin, setBarbeirosAdmin] = useState([]);
+  const [clientesAdmin, setClientesAdmin] = useState([]);
+  const [horariosOcupadosAdmin, setHorariosOcupadosAdmin] = useState([]);
+  const [datasBloqueadasAdmin, setDatasBloqueadasAdmin] = useState([]);
+
+  const [buscaCliente, setBuscaCliente] = useState('');
+  const [clienteSelecionado, setClienteSelecionado] = useState(null);
+  const [novoNomeCliente, setNovoNomeCliente] = useState('');
+  const [novoTelefoneCliente, setNovoTelefoneCliente] = useState('');
+  const [isCadastrandoNovo, setIsCadastrandoNovo] = useState(false);
+
+  const [servicoEscolhidoAdmin, setServicoEscolhidoAdmin] = useState(null);
+  const [barbeiroEscolhidoAdmin, setBarbeiroEscolhidoAdmin] = useState(null);
+  const [dataEscolhidaAdmin, setDataEscolhidaAdmin] = useState('');
+  const [horaEscolhidaAdmin, setHoraEscolhidaAdmin] = useState('');
+  const [loadingCriar, setLoadingCriar] = useState(false);
+  const [erroCriar, setErroCriar] = useState(null);
+  const [sucessoCriar, setSucessoCriar] = useState(false);
+
   const obterDataLocalIso = (d = new Date()) => {
     const ano = d.getFullYear();
     const mes = String(d.getMonth() + 1).padStart(2, '0');
@@ -152,6 +174,203 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
     };
   }, [barbeariaId, profissionalId]);
 
+  useEffect(() => {
+    if (modalCriarOpen) {
+      carregarDadosAdminModal();
+    }
+  }, [modalCriarOpen]);
+
+  const carregarDadosAdminModal = async () => {
+    try {
+      let bId = barbeariaId;
+      if (!bId) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data: barb } = await supabase.from('barbearias').select('id').eq('user_id', user.id).single();
+          if (barb) bId = barb.id;
+        }
+      }
+      if (!bId) return;
+
+      const [resServicos, resBarbeiros, resClientes, resBloqueios] = await Promise.all([
+        supabase.from('servicos').select('*').eq('barbearia_id', bId),
+        supabase.from('barbeiros').select('*').eq('barbearia_id', bId),
+        supabase.from('clientes').select('*').eq('barbearia_id', bId).order('nome', { ascending: true }),
+        supabase.from('bloqueios_agenda').select('data_bloqueio').eq('barbearia_id', bId)
+      ]);
+
+      setServicosAdmin(resServicos.data || []);
+      setBarbeirosAdmin(resBarbeiros.data || []);
+      setClientesAdmin(resClientes.data || []);
+      const bloqueiosFmt = (resBloqueios.data || []).map(b => String(b.data_bloqueio).split('T')[0]).filter(Boolean);
+      setDatasBloqueadasAdmin(bloqueiosFmt);
+    } catch (err) {
+      console.error('Erro ao carregar dados admin:', err);
+    }
+  };
+
+  useEffect(() => {
+    async function buscarOcupadosAdmin() {
+      if (!barbeiroEscolhidoAdmin || !dataEscolhidaAdmin) return;
+      try {
+        let bId = barbeariaId;
+        if (!bId) {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            const { data: barb } = await supabase.from('barbearias').select('id').eq('user_id', user.id).single();
+            if (barb) bId = barb.id;
+          }
+        }
+
+        const inicio = `${dataEscolhidaAdmin}T00:00:00`;
+        const fim = `${dataEscolhidaAdmin}T23:59:59`;
+
+        const { data } = await supabase
+          .from('agendamentos')
+          .select('data_hora')
+          .eq('barbeiro_id', barbeiroEscolhidoAdmin.id)
+          .neq('status', 'cancelado')
+          .gte('data_hora', new Date(inicio).toISOString())
+          .lte('data_hora', new Date(fim).toISOString());
+
+        const ocupados = (data || []).map((ag) => {
+          const d = new Date(ag.data_hora);
+          return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+        });
+        setHorariosOcupadosAdmin(ocupados);
+      } catch (err) {
+        console.error('Erro horários ocupados admin:', err);
+      }
+    }
+    buscarOcupadosAdmin();
+  }, [barbeiroEscolhidoAdmin, dataEscolhidaAdmin, barbeariaId]);
+
+  const gerarDiasDisponiveisAdmin = () => {
+    const dias = [];
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+
+    for (let i = 0; i < 30; i++) {
+      const d = new Date();
+      d.setDate(hoje.getDate() + i);
+
+      const anoIso = d.getFullYear();
+      const mesIso = String(d.getMonth() + 1).padStart(2, '0');
+      const diaIso = String(d.getDate()).padStart(2, '0');
+      const dataIso = `${anoIso}-${mesIso}-${diaIso}`;
+
+      const bloqueado = datasBloqueadasAdmin.includes(dataIso);
+      dias.push({
+        dataIso,
+        diaNum: diaIso.split('-')[2],
+        mesStr: d.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', ''),
+        diaSemanaStr: d.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', ''),
+        bloqueado
+      });
+    }
+    return dias;
+  };
+
+  const gerarHorariosDinamicosAdmin = () => {
+    if (!dataEscolhidaAdmin) return [];
+    const [ano, mes, dia] = dataEscolhidaAdmin.split('-').map(Number);
+    const dateObj = new Date(ano, mes - 1, dia);
+    const diasSemanaMap = ['domingo', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado'];
+    const nomeDia = diasSemanaMap[dateObj.getDay()];
+
+    const configBarbeiro = barbeiroEscolhidoAdmin?.horarios_trabalho?.[nomeDia];
+    let abertura = configBarbeiro?.abertura || '08:00';
+    let fechamento = configBarbeiro?.fechamento || '18:00';
+
+    const [hIni] = abertura.split(':').map(Number);
+    const [hFim] = fechamento.split(':').map(Number);
+
+    const horarios = [];
+    for (let h = hIni; h < hFim; h++) {
+      horarios.push(`${String(h).padStart(2, '0')}:00`);
+    }
+    return horarios.length > 0 ? horarios : ['08:00', '09:00', '10:00', '11:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00'];
+  };
+
+  const handleSalvarAgendamentoAdmin = async (e) => {
+    e.preventDefault();
+    setErroCriar(null);
+
+    let bId = barbeariaId;
+    if (!bId) {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: barb } = await supabase.from('barbearias').select('id').eq('user_id', user.id).single();
+        if (barb) bId = barb.id;
+      }
+    }
+
+    let finalClienteId = clienteSelecionado?.id;
+
+    if (isCadastrandoNovo) {
+      if (!novoNomeCliente || !novoTelefoneCliente) {
+        setErroCriar('Preencha o nome e o telefone do novo cliente.');
+        return;
+      }
+      try {
+        const { data: novoCli, error: errCli } = await supabase
+          .from('clientes')
+          .insert([{ barbearia_id: bId, nome: novoNomeCliente, telefone: novoTelefoneCliente }])
+          .select('id')
+          .single();
+        if (errCli) throw errCli;
+        finalClienteId = novoCli.id;
+      } catch (err) {
+        setErroCriar('Erro ao cadastrar novo cliente: ' + err.message);
+        return;
+      }
+    }
+
+    if (!finalClienteId || !servicoEscolhidoAdmin || !barbeiroEscolhidoAdmin || !dataEscolhidaAdmin || !horaEscolhidaAdmin) {
+      setErroCriar('Preencha todas as etapas para concluir o agendamento.');
+      return;
+    }
+
+    setLoadingCriar(true);
+    try {
+      const dataHoraIso = new Date(`${dataEscolhidaAdmin}T${horaEscolhidaAdmin}:00`).toISOString();
+      const { error } = await supabase.from('agendamentos').insert([{
+        barbearia_id: bId,
+        cliente_id: finalClienteId,
+        barbeiro_id: barbeiroEscolhidoAdmin.id,
+        servico_id: servicoEscolhidoAdmin.id,
+        valor_total: servicoEscolhidoAdmin.preco,
+        data_hora: dataHoraIso,
+        status: 'agendado',
+        lido: true
+      }]);
+
+      if (error) throw error;
+      setSucessoCriar(true);
+      carregarAgenda();
+
+      setTimeout(() => {
+        setModalCriarOpen(false);
+        setSucessoCriar(false);
+        setClienteSelecionado(null);
+        setServicoEscolhidoAdmin(null);
+        setBarbeiroEscolhidoAdmin(null);
+        setDataEscolhidaAdmin('');
+        setHoraEscolhidaAdmin('');
+        setIsCadastrandoNovo(false);
+      }, 1500);
+    } catch (err) {
+      setErroCriar('Erro ao criar agendamento no banco: ' + err.message);
+    } finally {
+      setLoadingCriar(false);
+    }
+  };
+
+  const clientesFiltradosAdmin = clientesAdmin.filter(c => 
+    c.nome.toLowerCase().includes(buscaCliente.toLowerCase()) || 
+    c.telefone.includes(buscaCliente)
+  );
+
   const concluirAgendamento = async (id) => {
     try {
       setProcessandoId(id);
@@ -232,7 +451,7 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
   const proximaSemanaDias = gerarProximosDias();
 
   return (
-    <div className="max-w-7xl mx-auto px-2 sm:px-0 space-y-5 pb-24">
+    <div className="max-w-7xl mx-auto px-2 sm:px-0 space-y-5 pb-32 relative">
       
       {erroFatal && (
         <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-2xl shadow-sm">
@@ -519,6 +738,246 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
           <span>Ver Histórico Completo & Outros Dias</span>
         </button>
       </div>
+
+      {/* BOTÃO FLUTUANTE FIXO (FAB) REDUZIDO - APENAS ÍCONE */}
+      <button
+        onClick={() => setModalCriarOpen(true)}
+        title="Novo Agendamento"
+        className="fixed bottom-20 right-5 z-40 w-14 h-14 rounded-full bg-slate-900 text-white shadow-[0_10px_30px_rgba(0,0,0,0.5)] flex items-center justify-center transition-all hover:bg-slate-800 hover:scale-110 active:scale-95 cursor-pointer border-2 border-slate-700"
+      >
+        <Plus className="w-6 h-6 text-white stroke-[3]" />
+      </button>
+
+      {/* MODAL DE CRIAÇÃO DE AGENDAMENTO (ADMIN) */}
+      {modalCriarOpen && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
+          <div className="w-full max-w-lg bg-white rounded-[2rem] shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh]">
+            
+            <div className="px-6 py-4 bg-slate-900 text-white flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-2">
+                <Scissors className="w-5 h-5 text-slate-400" />
+                <h3 className="text-sm font-black uppercase tracking-wider">Novo Agendamento (Balcão / Admin)</h3>
+              </div>
+              <button 
+                onClick={() => setModalCriarOpen(false)}
+                className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4 text-white" />
+              </button>
+            </div>
+
+            <div className="p-6 overflow-y-auto space-y-5 text-slate-800">
+              {sucessoCriar ? (
+                <div className="py-12 text-center space-y-3">
+                  <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto">
+                    <CheckCircle2 className="w-10 h-10" />
+                  </div>
+                  <h4 className="text-base font-black text-slate-900">Agendamento Criado com Sucesso!</h4>
+                  <p className="text-xs text-slate-500">O horário já foi alocado na agenda da barbearia.</p>
+                </div>
+              ) : (
+                <>
+                  <div className="space-y-2">
+                    <label className="text-xs font-black uppercase tracking-wider text-slate-600 block">
+                      1. Selecionar Cliente
+                    </label>
+
+                    {!isCadastrandoNovo ? (
+                      <div className="space-y-2">
+                        <input
+                          type="text"
+                          placeholder="Pesquisar por nome ou celular..."
+                          value={buscaCliente}
+                          onChange={(e) => setBuscaCliente(e.target.value)}
+                          className="w-full px-4 py-3 rounded-2xl bg-slate-100 border border-slate-200 text-xs font-bold focus:outline-none focus:border-slate-800"
+                        />
+                        
+                        {clienteSelecionado ? (
+                          <div className="p-3.5 rounded-2xl bg-slate-900 text-white flex items-center justify-between text-xs font-bold">
+                            <span>✅ Cliente: <strong>{clienteSelecionado.nome}</strong> ({clienteSelecionado.telefone})</span>
+                            <button onClick={() => setClienteSelecionado(null)} className="text-xs underline text-slate-300">Alterar</button>
+                          </div>
+                        ) : (
+                          <div className="max-h-40 overflow-y-auto space-y-1.5 border border-slate-200 rounded-2xl p-2 bg-slate-50">
+                            {clientesFiltradosAdmin.length === 0 ? (
+                              <div className="p-3 text-center">
+                                <p className="text-xs text-slate-500 mb-2">Nenhum cliente encontrado.</p>
+                                <button
+                                  type="button"
+                                  onClick={() => setIsCadastrandoNovo(true)}
+                                  className="px-3 py-2 rounded-xl bg-slate-900 text-white text-[11px] font-bold"
+                                >
+                                  + Cadastrar Novo Cliente
+                                </button>
+                              </div>
+                            ) : (
+                              clientesFiltradosAdmin.map((c) => (
+                                <div
+                                  key={c.id}
+                                  onClick={() => setClienteSelecionado(c)}
+                                  className="p-2.5 rounded-xl hover:bg-slate-200 cursor-pointer flex items-center justify-between text-xs font-bold"
+                                >
+                                  <span>{c.nome}</span>
+                                  <span className="text-slate-500 text-[11px]">{c.telefone}</span>
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        )}
+
+                        {!clienteSelecionado && clientesFiltradosAdmin.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setIsCadastrandoNovo(true)}
+                            className="text-xs font-bold text-slate-600 underline block pt-1"
+                          >
+                            + Ou cadastrar um novo cliente rápido
+                          </button>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="p-4 rounded-2xl bg-slate-100 border border-slate-300 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-black uppercase text-slate-800">Novo Cliente Rápido</span>
+                          <button onClick={() => setIsCadastrandoNovo(false)} className="text-xs text-rose-600 font-bold">Cancelar</button>
+                        </div>
+                        <input
+                          type="text"
+                          placeholder="Nome Completo"
+                          value={novoNomeCliente}
+                          onChange={(e) => setNovoNomeCliente(e.target.value)}
+                          className="w-full px-3 py-2.5 rounded-xl bg-white border border-slate-200 text-xs font-bold"
+                        />
+                        <input
+                          type="tel"
+                          placeholder="Celular / WhatsApp"
+                          value={novoTelefoneCliente}
+                          onChange={(e) => setNovoTelefoneCliente(e.target.value)}
+                          className="w-full px-3 py-2.5 rounded-xl bg-white border border-slate-200 text-xs font-bold"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-2 pt-2 border-t border-slate-200">
+                    <label className="text-xs font-black uppercase tracking-wider text-slate-600 block">
+                      2. Escolher Serviço
+                    </label>
+                    <div className="grid grid-cols-2 gap-2 max-h-36 overflow-y-auto">
+                      {servicosAdmin.map((s) => {
+                        const isSelected = servicoEscolhidoAdmin?.id === s.id;
+                        return (
+                          <button
+                            key={s.id}
+                            type="button"
+                            onClick={() => setServicoEscolhidoAdmin(s)}
+                            className={`p-3 rounded-2xl border text-left transition-all ${
+                              isSelected ? 'bg-slate-900 text-white border-slate-900 font-bold' : 'bg-slate-50 border-slate-200 text-slate-800'
+                            }`}
+                          >
+                            <p className="text-xs font-black">{s.nome}</p>
+                            <p className="text-[10px] opacity-80">R$ {Number(s.preco).toFixed(2)}</p>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 pt-2 border-t border-slate-200">
+                    <label className="text-xs font-black uppercase tracking-wider text-slate-600 block">
+                      3. Escolher Profissional
+                    </label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {barbeirosAdmin.map((b) => {
+                        const isSelected = barbeiroEscolhidoAdmin?.id === b.id;
+                        return (
+                          <button
+                            key={b.id}
+                            type="button"
+                            onClick={() => setBarbeiroEscolhidoAdmin(b)}
+                            className={`p-2.5 rounded-2xl border text-center transition-all ${
+                              isSelected ? 'bg-slate-900 text-white border-slate-900 font-bold' : 'bg-slate-50 border-slate-200 text-slate-800'
+                            }`}
+                          >
+                            <p className="text-xs font-bold truncate">{b.nome}</p>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {barbeiroEscolhidoAdmin && (
+                    <div className="space-y-3 pt-2 border-t border-slate-200">
+                      <label className="text-xs font-black uppercase tracking-wider text-slate-600 block">
+                        4. Data e Horário
+                      </label>
+                      
+                      <div className="flex gap-2 overflow-x-auto pb-2">
+                        {gerarDiasDisponiveisAdmin().map((d) => {
+                          const isSelected = dataEscolhidaAdmin === d.dataIso;
+                          return (
+                            <button
+                              key={d.dataIso}
+                              type="button"
+                              disabled={d.bloqueado}
+                              onClick={() => setDataEscolhidaAdmin(d.dataIso)}
+                              className={`shrink-0 w-16 p-2 rounded-xl border text-center flex flex-col items-center ${
+                                d.bloqueado ? 'opacity-30 bg-slate-100' : isSelected ? 'bg-slate-900 text-white font-bold' : 'bg-slate-50 text-slate-800'
+                              }`}
+                            >
+                              <span className="text-[9px] uppercase">{d.diaSemanaStr}</span>
+                              <span className="text-sm font-black">{d.diaNum}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {dataEscolhidaAdmin && (
+                        <div className="grid grid-cols-4 gap-1.5 max-h-32 overflow-y-auto">
+                          {gerarHorariosDinamicosAdmin().map((h) => {
+                            const ocupado = horariosOcupadosAdmin.includes(h);
+                            const isSelected = horaEscolhidaAdmin === h;
+                            return (
+                              <button
+                                key={h}
+                                type="button"
+                                disabled={ocupado}
+                                onClick={() => setHoraEscolhidaAdmin(h)}
+                                className={`py-2 rounded-xl text-xs font-bold border ${
+                                  ocupado ? 'opacity-30 line-through bg-slate-100' : isSelected ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-800'
+                                }`}
+                              >
+                                {h}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {erroCriar && (
+                    <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-600 text-xs flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4 shrink-0" />
+                      <span>{erroCriar}</span>
+                    </div>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={handleSalvarAgendamentoAdmin}
+                    disabled={loadingCriar}
+                    className="w-full py-3.5 rounded-2xl bg-slate-900 text-white font-black text-xs uppercase tracking-widest shadow-lg hover:bg-slate-800 cursor-pointer mt-4"
+                  >
+                    {loadingCriar ? 'A criar agendamento...' : 'Confirmar Agendamento na Agenda'}
+                  </button>
+                </>
+              )}
+            </div>
+
+          </div>
+        </div>
+      )}
 
       {/* MODAL DE HISTÓRICO */}
       {modalHistoricoOpen && (
