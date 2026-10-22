@@ -84,6 +84,19 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
 
   const urlCliente = `${baseUrl}/agendar/${slug || barbearia?.slug || 'barbearia'}`;
 
+  // Garante a existência do bucket no Storage do Supabase automaticamente ao carregar
+  useEffect(() => {
+    async function garantirBucket() {
+      const { error } = await supabase.storage.getBucket('barbearia-bucket');
+      if (error) {
+        await supabase.storage.createBucket('barbearia-bucket', { public: true }).catch(err => {
+          console.error('Erro ao criar bucket via API:', err);
+        });
+      }
+    }
+    garantirBucket();
+  }, []);
+
   useEffect(() => {
     async function carregarBarbeiros() {
       if (!barbearia?.id) return;
