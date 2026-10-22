@@ -1,14 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Calendar as CalendarIcon, Clock, Scissors, User, CheckCircle2, AlertCircle, ArrowRight, XCircle, Edit3 } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Calendar as CalendarIcon, Clock, Scissors, User, Check, CheckCircle2, AlertCircle, ArrowRight, Gift, Sparkles, Edit3, Trash2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-
-const HORARIOS_DISPONIVEIS = [
-  '08:00', '09:00', '10:00', '11:00', 
-  '13:00', '14:00', '15:00', '16:00', 
-  '17:00', '18:00', '19:00'
-];
 
 export default function AgendamentoClassico({ barbeariaId }) {
   const [barbearia, setBarbearia] = useState(null);
@@ -17,12 +11,17 @@ export default function AgendamentoClassico({ barbeariaId }) {
   const [horariosOcupados, setHorariosOcupados] = useState([]);
   const [datasBloqueadas, setDatasBloqueadas] = useState([]);
 
-  const [etapa, setEtapa] = useState('telefone');
+  // Estado da Identificação do Cliente
   const [telefone, setTelefone] = useState('');
   const [nome, setNome] = useState('');
   const [clienteId, setClienteId] = useState(null);
-  const [agendamentosCliente, setAgendamentosCliente] = useState([]);
+  const [clienteIdentificado, setClienteIdentificado] = useState(false);
+  const [isNovoCliente, setIsNovoCliente] = useState(false);
+  const [pontosFidelidade, setPontosFidelidade] = useState(0);
+  const [agendamentosAtivos, setAgendamentosAtivos] = useState([]);
+  const [modoVisualizacao, setModoVisualizacao] = useState('agendar'); // Padrão: Novo Agendamento
 
+  // Seleções
   const [agendamentoEmEdicao, setAgendamentoEmEdicao] = useState(null);
   const [servicoEscolhido, setServicoEscolhido] = useState(null);
   const [barbeiroEscolhido, setBarbeiroEscolhido] = useState(null);
@@ -31,16 +30,27 @@ export default function AgendamentoClassico({ barbeariaId }) {
 
   const [loading, setLoading] = useState(false);
   const [erro, setErro] = useState(null);
+  const [sucesso, setSucesso] = useState(false);
+
+  // Refs para Scroll Automático
+  const servicoRef = useRef(null);
+  const barbeiroRef = useRef(null);
+  const dataRef = useRef(null);
+  const horarioRef = useRef(null);
+  const resumoRef = useRef(null);
 
   const isClean = barbearia?.cor_tema === 'clean';
-  // Prioriza a cor dinâmica da barbearia configurada no painel
-  const corTema = barbearia?.cor_primaria || (isClean ? '#0ea5e9' : '#10b981');
+  // Paleta estilo Black Piano para o tema Clean e Verde Neon para o escuro
+  const corTema = barbearia?.cor_primaria || (isClean ? '#0f172a' : '#10b981');
 
+  // Estilos nobre Black Piano / Slate
   const estiloFundoContainer = isClean 
-    ? 'bg-gradient-to-br from-[#f8fafc] via-[#f1f5f9] to-[#e2e8f0] border-slate-300 text-slate-900 shadow-[0_30px_90px_rgba(0,0,0,0.15)]' 
-    : 'bg-gradient-to-br from-[#0c0d10] via-[#050507] to-[#000000] border-white/10 text-white shadow-[0_30px_90px_rgba(0,0,0,0.9)]';
+    ? 'bg-white text-slate-900 border-slate-200/90 shadow-[0_20px_50px_rgba(0,0,0,0.1)]' 
+    : 'bg-[#0b0c10]/95 text-white border-white/10 shadow-[0_25px_70px_rgba(0,0,0,0.85)]';
 
-  const estiloInput = isClean ? 'bg-white border-slate-300 text-slate-900 placeholder-slate-400' : 'bg-black/60 border-white/10 text-white placeholder-slate-500';
+  const estiloInput = isClean 
+    ? 'bg-slate-100 border-slate-200 text-slate-900 placeholder-slate-400 focus:border-slate-800 focus:bg-white' 
+    : 'bg-black/60 border-white/10 text-white placeholder-slate-500 focus:border-white/30';
 
   useEffect(() => {
     async function carregarDados() {
@@ -71,8 +81,8 @@ export default function AgendamentoClassico({ barbeariaId }) {
 
   useEffect(() => {
     async function buscarOcupados() {
-      const barbIdParaConsulta = etapa.startsWith('editar') ? agendamentoEmEdicao?.barbeiro_id : barbeiroEscolhido?.id;
-      if (!barbIdParaConsulta || !dataEscolhida) return;
+      const bId = barbeiroEscolhido?.id || agendamentoEmEdicao?.barbeiro_id;
+      if (!bId || !dataEscolhida) return;
 
       try {
         const inicio = `${dataEscolhida}T00:00:00`;
@@ -81,7 +91,7 @@ export default function AgendamentoClassico({ barbeariaId }) {
         const { data } = await supabase
           .from('agendamentos')
           .select('data_hora')
-          .eq('barbeiro_id', barbIdParaConsulta)
+          .eq('barbeiro_id', bId)
           .neq('status', 'cancelado')
           .gte('data_hora', new Date(inicio).toISOString())
           .lte('data_hora', new Date(fim).toISOString());
@@ -97,9 +107,20 @@ export default function AgendamentoClassico({ barbeariaId }) {
       }
     }
     buscarOcupados();
-  }, [barbeiroEscolhido, agendamentoEmEdicao, dataEscolhida, etapa]);
+  }, [barbeiroEscolhido, agendamentoEmEdicao, dataEscolhida]);
 
-  // Função para validar se o dia está ativo (considerando acentos e objetos no BD)
+  const carregarAgendamentosCliente = async (cliId) => {
+    const { data: ags } = await supabase
+      .from('agendamentos')
+      .select('*, servicos(nome, preco), barbeiros(nome)')
+      .eq('cliente_id', cliId)
+      .neq('status', 'cancelado')
+      .gte('data_hora', new Date().toISOString());
+
+    setAgendamentosAtivos(ags || []);
+    return ags || [];
+  };
+
   const checarDiaAtivo = (configObj, dataObj) => {
     if (!configObj || !dataObj) return true;
     const diasSemanaMap = ['domingo', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado'];
@@ -120,15 +141,10 @@ export default function AgendamentoClassico({ barbeariaId }) {
     return true;
   };
 
-  // Gerar dias do calendário respeitando folgas
   const gerarDiasDisponiveis = () => {
     const dias = [];
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
-
-    const barbeiroAtivo = etapa.startsWith('editar') 
-      ? barbeiros.find(b => b.id === agendamentoEmEdicao?.barbeiro_id)
-      : barbeiroEscolhido;
 
     for (let i = 0; i < 30; i++) {
       const d = new Date();
@@ -140,7 +156,7 @@ export default function AgendamentoClassico({ barbeariaId }) {
       const dataIso = `${anoIso}-${mesIso}-${diaIso}`;
 
       const estaBloqueadoNoBanco = datasBloqueadas?.some(b => b.startsWith(dataIso));
-      const ativoBarbeiro = barbeiroAtivo ? checarDiaAtivo(barbeiroAtivo.horarios_trabalho, d) : true;
+      const ativoBarbeiro = barbeiroEscolhido ? checarDiaAtivo(barbeiroEscolhido.horarios_trabalho, d) : true;
       const ativoBarbearia = checarDiaAtivo(barbearia?.horarios, d);
 
       const bloqueado = estaBloqueadoNoBanco || !ativoBarbeiro || !ativoBarbearia;
@@ -156,48 +172,77 @@ export default function AgendamentoClassico({ barbeariaId }) {
     return dias;
   };
 
-  const atualizarAgendamentosAtivos = async (cliId) => {
-    const { data: agsAtivos } = await supabase
-      .from('agendamentos')
-      .select('*, servicos(nome), barbeiros(nome)')
-      .eq('cliente_id', cliId)
-      .neq('status', 'cancelado')
-      .gte('data_hora', new Date().toISOString());
+  const gerarHorariosDisponiveisDinamico = () => {
+    if (!dataEscolhida) return [];
+    
+    const d = new Date(`${dataEscolhida}T00:00:00`);
+    const diasSemanaMap = ['domingo', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado'];
+    const diasSemanaComAcento = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
+    const indexDia = d.getDay();
 
-    setAgendamentosCliente(agsAtivos || []);
-    return agsAtivos || [];
+    const barbeiroAtivo = barbeiroEscolhido || barbeiros.find(b => b.id === agendamentoEmEdicao?.barbeiro_id);
+    const configBarbeiro = barbeiroAtivo?.horarios_trabalho?.[diasSemanaMap[indexDia]] || barbeiroAtivo?.horarios_trabalho?.[diasSemanaComAcento[indexDia]];
+    const configBarbearia = barbearia?.horarios?.[diasSemanaMap[indexDia]] || barbearia?.horarios?.[diasSemanaComAcento[indexDia]];
+
+    const configUsar = configBarbeiro || configBarbearia || {};
+
+    let horaInicio = '08:00';
+    let horaFim = '18:00';
+    let pausaInicio = null;
+    let pausaFim = null;
+
+    if (typeof configUsar === 'object' && configUsar !== null) {
+      if (configUsar.inicio || configUsar.abertura) horaInicio = configUsar.inicio || configUsar.abertura;
+      if (configUsar.fim || configUsar.fechamento) horaFim = configUsar.fim || configUsar.fechamento;
+      if (configUsar.pausa_inicio || configUsar.almoco_inicio) pausaInicio = configUsar.pausa_inicio || configUsar.almoco_inicio;
+      if (configUsar.pausa_fim || configUsar.almoco_fim) pausaFim = configUsar.pausa_fim || configUsar.almoco_fim;
+    }
+
+    const [hInicio] = horaInicio.split(':').map(Number);
+    const [hFim] = horaFim.split(':').map(Number);
+
+    const horarios = [];
+    for (let h = hInicio; h < hFim; h++) {
+      const horaStr = `${String(h).padStart(2, '0')}:00`;
+      
+      if (pausaInicio && pausaFim && horaStr >= pausaInicio && horaStr < pausaFim) {
+        continue;
+      }
+      horarios.push(horaStr);
+    }
+
+    return horarios.length > 0 ? horarios : ['08:00', '09:00', '10:00', '11:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00'];
   };
 
   const handleVerificarTelefone = async (e) => {
     e.preventDefault();
     if (telefone.length < 8) {
-      setErro('Por favor, informe um número de celular válido.');
+      setErro('Informe um número de celular / WhatsApp válido.');
       return;
     }
     setErro(null);
     setLoading(true);
 
     try {
-      const { data: cliExistente } = await supabase
+      const { data: cli } = await supabase
         .from('clientes')
-        .select('id, nome')
+        .select('*')
         .eq('barbearia_id', barbeariaId)
         .eq('telefone', telefone)
         .maybeSingle();
 
-      if (cliExistente) {
-        setClienteId(cliExistente.id);
-        setNome(cliExistente.nome);
-
-        const agsAtivos = await atualizarAgendamentosAtivos(cliExistente.id);
-
-        if (agsAtivos.length > 0) {
-          setEtapa('menu_inicial');
-        } else {
-          setEtapa('servico');
-        }
+      if (cli) {
+        setClienteId(cli.id);
+        setNome(cli.nome);
+        setPontosFidelidade(cli.pontos_fidelidade || 0);
+        setClienteIdentificado(true);
+        setIsNovoCliente(false);
+        
+        await carregarAgendamentosCliente(cli.id);
+        setModoVisualizacao('agendar'); // Padrão
+        setTimeout(() => servicoRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
       } else {
-        setEtapa('nome');
+        setIsNovoCliente(true);
       }
     } catch (err) {
       setErro('Erro ao verificar cliente.');
@@ -206,27 +251,32 @@ export default function AgendamentoClassico({ barbeariaId }) {
     }
   };
 
-  const handleCadastrarNome = async (e) => {
+  const handleCadastrarNovoCliente = async (e) => {
     e.preventDefault();
     if (nome.length < 2) {
-      setErro('Por favor, informe um nome válido.');
+      setErro('Por favor, digite seu nome completo.');
       return;
     }
     setErro(null);
     setLoading(true);
 
     try {
-      const { data: novoCli, error: errCli } = await supabase
+      const { data: novoCli } = await supabase
         .from('clientes')
         .insert([{ barbearia_id: barbeariaId, nome, telefone }])
-        .select('id')
+        .select('*')
         .single();
 
-      if (errCli) throw errCli;
-      setClienteId(novoCli.id);
-      setEtapa('servico');
+      if (novoCli) {
+        setClienteId(novoCli.id);
+        setPontosFidelidade(0);
+        setClienteIdentificado(true);
+        setIsNovoCliente(false);
+        setModoVisualizacao('agendar');
+        setTimeout(() => servicoRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+      }
     } catch (err) {
-      setErro('Erro ao cadastrar cliente.');
+      setErro('Erro ao cadastrar novo cliente.');
     } finally {
       setLoading(false);
     }
@@ -240,7 +290,7 @@ export default function AgendamentoClassico({ barbeariaId }) {
         .eq('id', agId);
 
       if (error) throw error;
-      await atualizarAgendamentosAtivos(clienteId);
+      await carregarAgendamentosCliente(clienteId);
     } catch (err) {
       setErro('Erro ao cancelar agendamento.');
     }
@@ -256,8 +306,9 @@ export default function AgendamentoClassico({ barbeariaId }) {
         .eq('id', agendamentoEmEdicao.id);
 
       if (error) throw error;
-      await atualizarAgendamentosAtivos(clienteId);
-      setEtapa('sucesso');
+      await carregarAgendamentosCliente(clienteId);
+      setAgendamentoEmEdicao(null);
+      setSucesso(true);
     } catch (err) {
       setErro('Erro ao atualizar agendamento.');
     } finally {
@@ -265,7 +316,12 @@ export default function AgendamentoClassico({ barbeariaId }) {
     }
   };
 
-  const confirmarAgendamentoFinal = async () => {
+  const confirmarAgendamento = async () => {
+    if (!servicoEscolhido || !barbeiroEscolhido || !dataEscolhida || !horaEscolhida) {
+      setErro('Selecione todos os dados para finalizar o agendamento.');
+      return;
+    }
+
     setLoading(true);
     try {
       const dataHoraIso = new Date(`${dataEscolhida}T${horaEscolhida}:00`).toISOString();
@@ -281,8 +337,8 @@ export default function AgendamentoClassico({ barbeariaId }) {
       }]);
 
       if (error) throw error;
-      await atualizarAgendamentosAtivos(clienteId);
-      setEtapa('sucesso');
+      await carregarAgendamentosCliente(clienteId);
+      setSucesso(true);
     } catch (err) {
       setErro('Erro ao concluir agendamento.');
     } finally {
@@ -291,420 +347,459 @@ export default function AgendamentoClassico({ barbeariaId }) {
   };
 
   return (
-    <div className={`w-full max-w-xl mx-auto rounded-[2.5rem] border overflow-hidden relative backdrop-blur-2xl ${estiloFundoContainer}`}>
+    <div className={`w-full max-w-xl mx-auto rounded-[2.5rem] border overflow-hidden relative backdrop-blur-2xl transition-all duration-300 ${estiloFundoContainer}`}>
       
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-4/5 h-[3px] z-30" style={{ background: `linear-gradient(to right, transparent, ${corTema}, transparent)` }}></div>
+      {/* FRISO SUPERIOR BLACK PIANO */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-[3px] z-30 shadow-lg" style={{ background: `linear-gradient(to right, transparent, ${corTema}, transparent)` }} />
 
-      <div className="relative h-32 w-full bg-stone-900 overflow-hidden">
+      {/* CAPA DA UNIDADE */}
+      <div className="relative h-36 w-full bg-slate-900 overflow-hidden">
         {barbearia?.capa_url ? (
           <img src={barbearia.capa_url} alt="Capa" className="w-full h-full object-cover" />
         ) : (
-          <div className="w-full h-full bg-gradient-to-r from-stone-900 via-stone-800 to-stone-900 flex items-center justify-center">
-            <span className="text-[10px] font-bold text-stone-500 tracking-wider uppercase">Capa da Unidade</span>
+          <div className="w-full h-full bg-slate-900 flex items-center justify-center">
+            <span className="text-[10px] font-bold text-slate-500 tracking-widest uppercase">Capa da Unidade</span>
           </div>
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent"></div>
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
       </div>
 
-      <div className="px-6 pb-4 pt-0 relative flex flex-col items-center text-center -mt-10 mb-2 z-10">
-        <div className="w-20 h-20 rounded-[1.8rem] bg-black/80 p-1 shadow-2xl border border-white/20 overflow-hidden flex items-center justify-center backdrop-blur-xl mb-2">
+      {/* HEADER: LOGO E NOME */}
+      <div className="px-6 pb-2 pt-0 relative flex flex-col items-center text-center -mt-12 mb-3 z-10">
+        <div className="w-20 h-20 rounded-[1.8rem] bg-white p-1 shadow-2xl border border-slate-200 overflow-hidden flex items-center justify-center mb-2">
           {barbearia?.logo_url ? (
             <img src={barbearia.logo_url} alt={barbearia.nome} className="w-full h-full object-cover rounded-[1.4rem]" />
           ) : (
-            <div className="w-full h-full bg-gradient-to-br from-stone-800 to-black text-white rounded-[1.4rem] flex items-center justify-center font-black text-lg">
+            <div className="w-full h-full text-white rounded-[1.4rem] flex items-center justify-center font-black text-xl" style={{ backgroundColor: corTema }}>
               {barbearia?.nome?.charAt(0) || 'B'}
             </div>
           )}
         </div>
-        <h2 className={`text-base font-black tracking-tight ${isClean ? 'text-slate-900' : 'text-white'}`}>{barbearia?.nome}</h2>
-        <p className="text-[10px] font-semibold uppercase tracking-wider mt-0.5" style={{ color: corTema }}>Agendamento Online Clássico</p>
+        <h2 className={`text-lg font-black tracking-tight ${isClean ? 'text-slate-900' : 'text-white'}`}>{barbearia?.nome}</h2>
+        <p className="text-[10px] font-extrabold uppercase tracking-widest mt-0.5 flex items-center gap-1" style={{ color: corTema }}>
+          <Sparkles className="w-3 h-3" /> Agendamento Online
+        </p>
       </div>
 
-      <div className="p-6 sm:p-8 pt-0 space-y-5">
+      <div className="p-6 sm:p-8 pt-0 space-y-6">
 
-        {etapa === 'telefone' && (
-          <form onSubmit={handleVerificarTelefone} className="space-y-4">
-            <div className="space-y-1.5">
-              <label className={`text-[10px] font-extrabold uppercase tracking-wider block ${isClean ? 'text-slate-600' : 'text-slate-400'}`}>Informe o seu celular / WhatsApp</label>
-              <input
-                type="tel"
-                required
-                placeholder="(00) 00000-0000"
-                value={telefone}
-                onChange={(e) => setTelefone(e.target.value)}
-                className={`w-full rounded-2xl px-4 py-3.5 text-xs font-bold focus:outline-none shadow-inner backdrop-blur-md ${estiloInput}`}
-              />
-            </div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-3.5 rounded-2xl text-white font-black text-xs uppercase tracking-widest cursor-pointer shadow-lg flex items-center justify-center gap-2 transition-all hover:brightness-110"
-              style={{ backgroundColor: corTema }}
-            >
-              <span>Continuar</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
-          </form>
-        )}
-
-        {etapa === 'nome' && (
-          <form onSubmit={handleCadastrarNome} className="space-y-4">
-            <div className="space-y-1.5">
-              <label className={`text-[10px] font-extrabold uppercase tracking-wider block ${isClean ? 'text-slate-600' : 'text-slate-400'}`}>Primeira vez por aqui? Digite seu nome completo:</label>
-              <input
-                type="text"
-                required
-                placeholder="Seu Nome Completo"
-                value={nome}
-                onChange={(e) => setNome(e.target.value)}
-                className={`w-full rounded-2xl px-4 py-3.5 text-xs font-bold focus:outline-none shadow-inner backdrop-blur-md ${estiloInput}`}
-              />
-            </div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-3.5 rounded-2xl text-white font-black text-xs uppercase tracking-widest cursor-pointer shadow-lg flex items-center justify-center gap-2 transition-all hover:brightness-110"
-              style={{ backgroundColor: corTema }}
-            >
-              <span>Avançar para Serviços</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
-          </form>
-        )}
-
-        {etapa === 'menu_inicial' && (
+        {/* IDENTIFICAÇÃO WHATSAPP */}
+        {!clienteIdentificado ? (
           <div className="space-y-4">
-            <div className={`p-4 rounded-2xl border backdrop-blur-md text-center ${isClean ? 'bg-white border-slate-200 text-slate-900' : 'bg-black/50 border-white/10 text-white'}`}>
-              <p className="text-xs font-bold">Olá, {nome}! Notamos que você tem agendamentos ativos.</p>
-            </div>
-            <div className="grid grid-cols-1 gap-2.5">
-              <button
-                onClick={() => setEtapa('servico')}
-                className="p-3.5 rounded-2xl border text-left flex items-center justify-between transition-all cursor-pointer backdrop-blur-md font-bold text-xs"
-                style={{ backgroundColor: `${corTema}15`, borderColor: `${corTema}40`, color: isClean ? '#0f172a' : '#ffffff' }}
-              >
-                <span>Fazer novo agendamento</span>
-                <ArrowRight className="w-4 h-4" style={{ color: corTema }} />
-              </button>
-              <button
-                onClick={() => { atualizarAgendamentosAtivos(clienteId); setEtapa('gerenciar'); }}
-                className={`p-3.5 rounded-2xl border text-left flex items-center justify-between transition-all cursor-pointer backdrop-blur-md font-bold text-xs ${isClean ? 'bg-white border-slate-200 text-slate-800' : 'bg-black/50 border-white/10 text-white'}`}
-              >
-                <span>Ver / Gerenciar meus agendamentos</span>
-                <CalendarIcon className="w-4 h-4 text-slate-400" />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {etapa === 'gerenciar' && (
-          <div className="space-y-3">
-            <h3 className={`text-xs font-black uppercase tracking-wider ${isClean ? 'text-slate-600' : 'text-slate-400'}`}>Seus Agendamentos Ativos</h3>
-            {agendamentosCliente.length === 0 ? (
-              <p className="text-xs text-slate-400 italic text-center py-2">Nenhum agendamento ativo.</p>
+            {!isNovoCliente ? (
+              <form onSubmit={handleVerificarTelefone} className="space-y-3.5">
+                <div className="space-y-1">
+                  <label className={`text-[10px] font-black uppercase tracking-wider block ${isClean ? 'text-slate-600' : 'text-slate-400'}`}>
+                    1. Informe seu Celular / WhatsApp
+                  </label>
+                  <input
+                    type="tel"
+                    required
+                    placeholder="(00) 00000-0000"
+                    value={telefone}
+                    onChange={(e) => setTelefone(e.target.value)}
+                    className={`w-full rounded-2xl px-4 py-3.5 text-xs font-bold focus:outline-none transition-all ${estiloInput}`}
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full py-3.5 rounded-2xl text-white font-black text-xs uppercase tracking-widest shadow-lg flex items-center justify-center gap-2 cursor-pointer transition-all hover:brightness-110 active:scale-98"
+                  style={{ backgroundColor: corTema }}
+                >
+                  <span>{loading ? 'A verificar...' : 'Avançar'}</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </form>
             ) : (
-              agendamentosCliente.map((ag) => (
-                <div key={ag.id} className={`p-4 rounded-2xl border flex items-center justify-between gap-3 backdrop-blur-md ${isClean ? 'bg-white border-slate-200' : 'bg-black/60 border-white/10'}`}>
-                  <div>
-                    <p className={`text-xs font-bold ${isClean ? 'text-slate-900' : 'text-white'}`}>{ag.servicos?.nome}</p>
-                    <p className="text-[10px] font-medium" style={{ color: corTema }}>{ag.barbeiros?.nome}</p>
-                    <p className={`text-[10px] mt-0.5 ${isClean ? 'text-slate-600' : 'text-slate-300'}`}>📅 {new Date(ag.data_hora).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</p>
+              <form onSubmit={handleCadastrarNovoCliente} className="space-y-3.5">
+                <div className="p-3.5 rounded-2xl bg-slate-100 border border-slate-300 text-slate-800 text-xs font-semibold">
+                  Seja bem-vindo(a)! Notamos que é o seu primeiro agendamento.
+                </div>
+                <div className="space-y-1">
+                  <label className={`text-[10px] font-black uppercase tracking-wider block ${isClean ? 'text-slate-600' : 'text-slate-400'}`}>
+                    Qual o seu nome completo?
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Seu Nome Completo"
+                    value={nome}
+                    onChange={(e) => setNome(e.target.value)}
+                    className={`w-full rounded-2xl px-4 py-3.5 text-xs font-bold focus:outline-none transition-all ${estiloInput}`}
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full py-3.5 rounded-2xl text-white font-black text-xs uppercase tracking-widest shadow-lg flex items-center justify-center gap-2 cursor-pointer transition-all hover:brightness-110 active:scale-98"
+                  style={{ backgroundColor: corTema }}
+                >
+                  <span>Iniciar Agendamento</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </form>
+            )}
+          </div>
+        ) : (
+          /* PASSO SEGUINTE: CLIENTE AUTENTICADO */
+          <div className="space-y-6">
+            
+            {/* CARD VIP DE FIDELIDADE (Design Black Piano) */}
+            <div className={`p-4 rounded-3xl border flex items-center justify-between gap-3 shadow-sm relative overflow-hidden ${
+              isClean ? 'bg-slate-900 text-white border-slate-800' : 'bg-white/5 border-white/10'
+            }`}>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 shadow-sm bg-white/10 text-white">
+                  <Gift className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <p className="text-xs font-black">{nome}</p>
+                    <span className="text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-full border bg-white/10 border-white/20 text-white">
+                      Cliente VIP
+                    </span>
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    <button
-                      onClick={() => { setAgendamentoEmEdicao(ag); setDataEscolhida(''); setEtapa('editar_data'); }}
-                      className="px-3 py-2 rounded-xl bg-sky-500/20 border border-sky-500/40 text-sky-500 text-[10px] font-bold cursor-pointer"
-                    >
-                      Editar
-                    </button>
-                    <button
-                      onClick={() => cancelarAgendamento(ag.id)}
-                      className="px-3 py-2 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-500 text-[10px] font-bold cursor-pointer"
-                    >
-                      Cancelar
-                    </button>
+                  <p className="text-[10px] text-slate-400 mt-0.5">Programa de Fidelidade</p>
+                </div>
+              </div>
+
+              <div className="text-right">
+                <span className="text-xs font-black block text-slate-100">{pontosFidelidade} / 10 Selos</span>
+                <span className="text-[9px] font-semibold text-slate-400">Cartão Ativo</span>
+              </div>
+            </div>
+
+            {/* BARRA DE ALTERNÂNCIA (Novo Agendamento) */}
+            <div className={`flex gap-1.5 p-1 rounded-2xl border ${
+              isClean ? 'bg-slate-100 border-slate-200' : 'bg-black/40 border-white/10'
+            }`}>
+              <button
+                onClick={() => setModoVisualizacao('agendar')}
+                className={`flex-1 py-2.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
+                  modoVisualizacao === 'agendar'
+                    ? 'text-white shadow-md'
+                    : isClean ? 'text-slate-600 hover:text-slate-900' : 'text-slate-400 hover:text-white'
+                }`}
+                style={modoVisualizacao === 'agendar' ? { backgroundColor: corTema } : {}}
+              >
+                Novo Agendamento
+              </button>
+              
+              {agendamentosAtivos.length > 0 && (
+                <button
+                  onClick={() => setModoVisualizacao('gerenciar')}
+                  className={`flex-1 py-2.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
+                    modoVisualizacao === 'gerenciar'
+                      ? 'text-white shadow-md'
+                      : isClean ? 'text-slate-600 hover:text-slate-900' : 'text-slate-400 hover:text-white'
+                  }`}
+                  style={modoVisualizacao === 'gerenciar' ? { backgroundColor: corTema } : {}}
+                >
+                  Meus Agendamentos ({agendamentosAtivos.length})
+                </button>
+              )}
+            </div>
+
+            {/* MODO GERENCIAR MEUS AGENDAMENTOS */}
+            {modoVisualizacao === 'gerenciar' ? (
+              <div className="space-y-3">
+                <h3 className={`text-xs font-black uppercase tracking-wider ${isClean ? 'text-slate-600' : 'text-slate-400'}`}>Seus Agendamentos Ativos</h3>
+                {agendamentosAtivos.length === 0 ? (
+                  <p className="text-xs text-slate-400 italic text-center py-4">Você não possui agendamentos ativos no momento.</p>
+                ) : (
+                  agendamentosAtivos.map((ag) => (
+                    <div key={ag.id} className={`p-4 rounded-2xl border flex items-center justify-between gap-3 ${
+                      isClean ? 'bg-slate-50 border-slate-200' : 'bg-white/5 border-white/10'
+                    }`}>
+                      <div>
+                        <p className={`text-xs font-bold ${isClean ? 'text-slate-900' : 'text-white'}`}>{ag.servicos?.nome}</p>
+                        <p className="text-[10px] font-bold" style={{ color: corTema }}>{ag.barbeiros?.nome}</p>
+                        <p className={`text-[10px] mt-0.5 ${isClean ? 'text-slate-500' : 'text-slate-400'}`}>
+                          📅 {new Date(ag.data_hora).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={() => {
+                            setAgendamentoEmEdicao(ag);
+                            setDataEscolhida('');
+                            setHoraEscolhida('');
+                            setModoVisualizacao('agendar');
+                          }}
+                          className="p-2 rounded-xl bg-slate-900 border border-slate-800 text-white text-[10px] font-bold flex items-center gap-1 cursor-pointer hover:bg-slate-800"
+                        >
+                          <Edit3 className="w-3.5 h-3.5" /> Editar
+                        </button>
+                        <button
+                          onClick={() => cancelarAgendamento(ag.id)}
+                          className="p-2 rounded-xl bg-rose-50 border border-rose-200 text-rose-600 text-[10px] font-bold flex items-center gap-1 cursor-pointer hover:bg-rose-100"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" /> Cancelar
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+                <button
+                  onClick={() => setModoVisualizacao('agendar')}
+                  className="w-full py-3.5 rounded-2xl text-white font-bold text-xs uppercase tracking-wider cursor-pointer shadow-md mt-2"
+                  style={{ backgroundColor: corTema }}
+                >
+                  Fazer Novo Agendamento
+                </button>
+              </div>
+            ) : (
+              /* MODO NOVO AGENDAMENTO */
+              <>
+                {/* SELEÇÃO 1: SERVIÇO */}
+                <div ref={servicoRef} className="space-y-3 scroll-mt-6">
+                  <div className="flex items-center justify-between">
+                    <label className={`text-xs font-black uppercase tracking-wider flex items-center gap-2 ${isClean ? 'text-slate-700' : 'text-slate-400'}`}>
+                      <Scissors className="w-4 h-4" style={{ color: corTema }} />
+                      1. Escolha o Serviço
+                    </label>
+                    {servicoEscolhido && (
+                      <span className="text-[10px] font-bold text-slate-900 flex items-center gap-1">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-slate-900" /> Selecionado
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-[220px] overflow-y-auto pr-1">
+                    {servicos.map((s) => {
+                      const isSelected = servicoEscolhido?.id === s.id;
+                      return (
+                        <button
+                          key={s.id}
+                          onClick={() => {
+                            setServicoEscolhido(s);
+                            setBarbeiroEscolhido(null);
+                            setDataEscolhida('');
+                            setHoraEscolhida('');
+                            setTimeout(() => barbeiroRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150);
+                          }}
+                          className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer flex items-center justify-between ${
+                            isSelected 
+                              ? 'border-2 shadow-md bg-slate-900 text-white border-slate-900 scale-[1.01]' 
+                              : isClean ? 'bg-slate-50 border-slate-200 hover:border-slate-300 text-slate-900' : 'bg-white/5 border-white/10 hover:border-white/20'
+                          }`}
+                        >
+                          <div>
+                            <p className="text-xs font-black">{s.nome}</p>
+                            <p className={`text-[10px] mt-0.5 ${isSelected ? 'text-slate-300' : 'text-slate-500'}`}>{s.duracao_minutos || 30} min</p>
+                          </div>
+                          <span className={`text-xs font-black shrink-0 ml-2 ${isSelected ? 'text-white' : ''}`} style={!isSelected ? { color: corTema } : {}}>
+                            R$ {Number(s.preco).toFixed(2)}
+                          </span>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
-              ))
-            )}
-            <button
-              onClick={() => setEtapa('servico')}
-              className="w-full py-3 rounded-2xl border text-xs font-bold cursor-pointer mt-2"
-              style={{ backgroundColor: `${corTema}20`, color: corTema, borderColor: `${corTema}40` }}
-            >
-              Fazer novo agendamento
-            </button>
-          </div>
-        )}
 
-        {/* ESCOLHA DE SERVIÇO EM GRID */}
-        {etapa === 'servico' && (
-          <div className="space-y-3">
-            <h3 className={`text-xs font-black uppercase tracking-wider ${isClean ? 'text-slate-600' : 'text-slate-400'}`}>1. Escolha o Serviço</h3>
-            <div className="grid grid-cols-2 gap-3 max-h-[320px] overflow-y-auto pr-1">
-              {servicos.map((s) => (
-                <button
-                  key={s.id}
-                  onClick={() => { setServicoEscolhido(s); setEtapa('barbeiro'); }}
-                  className={`p-4 rounded-3xl border text-left flex flex-col justify-between transition-all cursor-pointer backdrop-blur-xl hover:scale-[1.02] shadow-lg ${
-                    isClean ? 'bg-white/80 border-slate-200 hover:border-sky-500 text-slate-900' : 'bg-gradient-to-br from-black/80 via-black/50 to-stone-900/60 border-white/10 hover:border-white/30 text-white'
-                  }`}
-                >
-                  <div className="w-8 h-8 rounded-xl flex items-center justify-center mb-3 shadow-inner" style={{ backgroundColor: `${corTema}25`, color: corTema }}>
-                    <Scissors className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-extrabold tracking-tight">{s.nome}</p>
-                    <p className={`text-[10px] mt-0.5 ${isClean ? 'text-slate-500' : 'text-slate-400'}`}>{s.duracao_minutos || 30} min</p>
-                  </div>
-                  <div className="mt-3 pt-2 border-t border-white/5 flex items-center justify-between">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase">Preço</span>
-                    <span className="text-xs font-black" style={{ color: corTema }}>R$ {Number(s.preco).toFixed(2)}</span>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+                {/* SELEÇÃO 2: PROFISSIONAL */}
+                {servicoEscolhido && (
+                  <div ref={barbeiroRef} className={`space-y-3 pt-4 border-t scroll-mt-6 ${isClean ? 'border-slate-200' : 'border-white/10'}`}>
+                    <label className={`text-xs font-black uppercase tracking-wider flex items-center gap-2 ${isClean ? 'text-slate-700' : 'text-slate-400'}`}>
+                      <User className="w-4 h-4" style={{ color: corTema }} />
+                      2. Escolha o Profissional
+                    </label>
 
-        {/* ESCOLHA DE PROFISSIONAL EM GRID */}
-        {etapa === 'barbeiro' && (
-          <div className="space-y-3">
-            <h3 className={`text-xs font-black uppercase tracking-wider ${isClean ? 'text-slate-600' : 'text-slate-400'}`}>2. Escolha o Profissional</h3>
-            <div className="grid grid-cols-2 gap-3">
-              {barbeiros.map((b) => {
-                const foto = b.foto || b.avatar || b.imagem;
-                return (
-                  <button
-                    key={b.id}
-                    onClick={() => { setBarbeiroEscolhido(b); setDataEscolhida(''); setEtapa('data'); }}
-                    className={`p-3.5 rounded-3xl border text-left flex flex-col items-center text-center transition-all cursor-pointer backdrop-blur-xl hover:scale-[1.02] shadow-lg ${
-                      isClean ? 'bg-white/80 border-slate-200 hover:border-sky-500' : 'bg-gradient-to-br from-black/80 via-black/50 to-stone-900/60 border-white/10 hover:border-white/30'
-                    }`}
-                  >
-                    <div className="w-20 h-20 rounded-2xl overflow-hidden border-2 mb-3 shadow-2xl relative" style={{ borderColor: `${corTema}66` }}>
-                      {foto ? (
-                        <img src={foto} alt={b.nome} className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full text-white flex items-center justify-center font-black text-lg" style={{ backgroundColor: corTema }}>
-                          {b.nome?.charAt(0)}
-                        </div>
-                      )}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                      {barbeiros.map((b) => {
+                        const isSelected = barbeiroEscolhido?.id === b.id;
+                        const foto = b.foto || b.avatar || b.imagem;
+                        return (
+                          <button
+                            key={b.id}
+                            onClick={() => {
+                              setBarbeiroEscolhido(b);
+                              setDataEscolhida('');
+                              setHoraEscolhida('');
+                              setTimeout(() => dataRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150);
+                            }}
+                            className={`p-3 rounded-2xl border text-center flex flex-col items-center transition-all cursor-pointer ${
+                              isSelected 
+                                ? 'border-2 shadow-md bg-slate-900 text-white border-slate-900 scale-[1.02]' 
+                                : isClean ? 'bg-slate-50 border-slate-200 hover:border-slate-300 text-slate-900' : 'bg-white/5 border-white/10 hover:border-white/20'
+                            }`}
+                          >
+                            <div className="w-12 h-12 rounded-full overflow-hidden border-2 mb-1.5 shrink-0 border-slate-300">
+                              {foto ? (
+                                <img src={foto} alt={b.nome} className="w-full h-full object-cover" />
+                              ) : (
+                                <div className="w-full h-full text-white flex items-center justify-center font-black text-sm bg-slate-900">
+                                  {b.nome?.charAt(0)}
+                                </div>
+                              )}
+                            </div>
+                            <p className="text-xs font-bold line-clamp-1">{b.nome}</p>
+                          </button>
+                        );
+                      })}
                     </div>
-                    <p className={`text-xs font-black tracking-tight line-clamp-1 ${isClean ? 'text-slate-900' : 'text-white'}`}>{b.nome}</p>
-                    <span className="text-[9px] font-semibold mt-0.5 px-2 py-0.5 rounded-full border" style={{ backgroundColor: `${corTema}15`, color: corTema, borderColor: `${corTema}33` }}>
-                      Profissional
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
+                  </div>
+                )}
 
-        {/* CALENDÁRIO COM RESPEITO DE FOLGAS E BLOQUEIOS */}
-        {etapa === 'data' && (
-          <div className={`p-5 rounded-3xl border backdrop-blur-xl space-y-4 shadow-xl ${isClean ? 'bg-white/90 border-slate-200' : 'bg-gradient-to-br from-black/80 via-black/60 to-stone-900 border-white/15'}`}>
-            <div className="flex items-center gap-2 pb-3 border-b border-white/10">
-              <div className="w-7 h-7 rounded-xl flex items-center justify-center shadow" style={{ backgroundColor: `${corTema}20`, color: corTema }}>
-                <CalendarIcon className="w-4 h-4" />
-              </div>
-              <span className="text-xs font-black uppercase tracking-wider">3. Escolha a Data do Atendimento</span>
-            </div>
+                {/* SELEÇÃO 3: DATA */}
+                {(barbeiroEscolhido || agendamentoEmEdicao) && (
+                  <div ref={dataRef} className={`space-y-3 pt-4 border-t scroll-mt-6 ${isClean ? 'border-slate-200' : 'border-white/10'}`}>
+                    <label className={`text-xs font-black uppercase tracking-wider flex items-center gap-2 ${isClean ? 'text-slate-700' : 'text-slate-400'}`}>
+                      <CalendarIcon className="w-4 h-4" style={{ color: corTema }} />
+                      3. Escolha a Data
+                    </label>
 
-            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2.5 max-h-[280px] overflow-y-auto pr-1">
-              {gerarDiasDisponiveis().map((d) => {
-                const isSelected = dataEscolhida === d.dataIso;
-                return (
-                  <button
-                    key={d.dataIso}
-                    type="button"
-                    disabled={d.bloqueado}
-                    onClick={() => setDataEscolhida(d.dataIso)}
-                    className={`p-3 rounded-2xl border text-center transition-all flex flex-col items-center justify-center ${
-                      d.bloqueado
-                        ? 'opacity-30 border-slate-800 bg-slate-950/40 cursor-not-allowed'
-                        : isSelected
-                        ? 'border-2 font-bold shadow-lg scale-[1.02]'
-                        : isClean
-                        ? 'bg-slate-100 border-slate-300 hover:border-slate-400'
-                        : 'bg-black/50 border-white/10 hover:border-white/30'
-                    }`}
-                    style={isSelected && !d.bloqueado ? { borderColor: corTema, backgroundColor: `${corTema}15` } : {}}
-                  >
-                    <span className="text-[9px] font-extrabold uppercase text-slate-400">{d.diaSemanaStr}</span>
-                    <span className={`text-base font-black my-0.5 ${isClean ? 'text-slate-900' : 'text-white'}`}>{d.diaNum}</span>
-                    <span className="text-[9px] font-bold uppercase" style={{ color: d.bloqueado ? '#f43f5e' : corTema }}>
-                      {d.bloqueado ? 'Fechado' : d.mesStr}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
+                    <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
+                      {gerarDiasDisponiveis().map((d) => {
+                        const isSelected = dataEscolhida === d.dataIso;
+                        return (
+                          <button
+                            key={d.dataIso}
+                            disabled={d.bloqueado}
+                            onClick={() => {
+                              setDataEscolhida(d.dataIso);
+                              setHoraEscolhida('');
+                              setTimeout(() => horarioRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150);
+                            }}
+                            className={`shrink-0 w-20 p-3 rounded-2xl border text-center transition-all flex flex-col items-center ${
+                              d.bloqueado
+                                ? 'opacity-30 border-slate-200 bg-slate-100 cursor-not-allowed'
+                                : isSelected
+                                ? 'border-2 font-bold shadow-md bg-slate-900 text-white border-slate-900 scale-[1.02]'
+                                : isClean
+                                ? 'bg-slate-50 border-slate-200 hover:border-slate-300 text-slate-900'
+                                : 'bg-white/5 border-white/10 hover:border-white/20'
+                            }`}
+                          >
+                            <span className={`text-[9px] font-extrabold uppercase ${isSelected ? 'text-slate-300' : 'text-slate-500'}`}>{d.diaSemanaStr}</span>
+                            <span className="text-base font-black my-0.5">{d.diaNum}</span>
+                            <span className="text-[9px] font-bold uppercase" style={{ color: d.bloqueado ? '#f43f5e' : (isSelected ? '#ffffff' : corTema) }}>
+                              {d.bloqueado ? 'Fechado' : d.mesStr}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
 
-            <button
-              disabled={!dataEscolhida}
-              onClick={() => setEtapa('horario')}
-              className="w-full py-3.5 rounded-2xl text-white font-black text-xs uppercase tracking-widest cursor-pointer shadow-lg disabled:opacity-40 transition-all hover:brightness-110 flex items-center justify-center gap-2 mt-2"
-              style={{ backgroundColor: corTema }}
-            >
-              <span>Avançar para Horários</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
-          </div>
-        )}
+                {/* SELEÇÃO 4: HORÁRIO */}
+                {dataEscolhida && (
+                  <div ref={horarioRef} className={`space-y-3 pt-4 border-t scroll-mt-6 ${isClean ? 'border-slate-200' : 'border-white/10'}`}>
+                    <label className={`text-xs font-black uppercase tracking-wider flex items-center gap-2 ${isClean ? 'text-slate-700' : 'text-slate-400'}`}>
+                      <Clock className="w-4 h-4" style={{ color: corTema }} />
+                      4. Escolha o Horário
+                    </label>
 
-        {/* ESCOLHA DE HORÁRIO */}
-        {etapa === 'horario' && (
-          <div className="space-y-3">
-            <h3 className={`text-xs font-black uppercase tracking-wider ${isClean ? 'text-slate-600' : 'text-slate-400'}`}>4. Escolha o Horário</h3>
-            <div className="grid grid-cols-3 gap-2 max-h-[250px] overflow-y-auto pr-1">
-              {HORARIOS_DISPONIVEIS.map((h) => {
-                const ocupado = horariosOcupados.includes(h);
-                return (
-                  <button
-                    key={h}
-                    disabled={ocupado}
-                    onClick={() => { setHoraEscolhida(h); setEtapa('resumo'); }}
-                    className={`py-2.5 rounded-xl text-xs font-black border transition-all ${
-                      ocupado 
-                        ? 'bg-slate-500/10 text-slate-400 border-slate-200 line-through opacity-40 cursor-not-allowed' 
-                        : isClean ? 'bg-white text-slate-800 border-slate-300 cursor-pointer hover:border-sky-500' : 'bg-black/50 text-white border-white/10 cursor-pointer hover:border-white/30'
-                    }`}
-                  >
-                    {h}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
+                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-[180px] overflow-y-auto pr-1">
+                      {gerarHorariosDisponiveisDinamico().map((h) => {
+                        const ocupado = horariosOcupados.includes(h);
+                        const isSelected = horaEscolhida === h;
+                        return (
+                          <button
+                            key={h}
+                            disabled={ocupado}
+                            onClick={() => {
+                              setHoraEscolhida(h);
+                              if (agendamentoEmEdicao) {
+                                confirmarEdicaoHorario(h);
+                              } else {
+                                setTimeout(() => resumoRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150);
+                              }
+                            }}
+                            className={`py-2.5 rounded-xl text-xs font-bold border transition-all ${
+                              ocupado 
+                                ? 'opacity-30 line-through cursor-not-allowed border-slate-200' 
+                                : isSelected
+                                ? 'border-2 font-extrabold shadow-md bg-slate-900 text-white border-slate-900'
+                                : isClean ? 'bg-slate-50 border-slate-200 hover:border-slate-300 text-slate-800' : 'bg-white/5 border-white/10 hover:border-white/20'
+                            }`}
+                          >
+                            {h}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
 
-        {/* EDITAR DATA (GERENCIAMENTO) */}
-        {etapa === 'editar_data' && (
-          <div className={`p-5 rounded-3xl border backdrop-blur-xl space-y-4 shadow-xl ${isClean ? 'bg-white/90 border-slate-200' : 'bg-gradient-to-br from-black/80 via-black/60 to-stone-900 border-white/15'}`}>
-            <div className="flex items-center gap-2 pb-3 border-b border-white/10">
-              <CalendarIcon className="w-4 h-4" style={{ color: corTema }} />
-              <span className="text-xs font-black uppercase tracking-wider">Selecione a Nova Data</span>
-            </div>
+                {/* RESUMO E CONFIRMAÇÃO FINAL */}
+                {horaEscolhida && !sucesso && !agendamentoEmEdicao && (
+                  <div ref={resumoRef} className={`p-5 rounded-3xl border space-y-4 shadow-lg scroll-mt-6 ${
+                    isClean ? 'bg-slate-900 text-white border-slate-800' : 'bg-gradient-to-br from-black/80 via-black/60 to-stone-900 border-white/15'
+                  }`}>
+                    <h4 className="text-xs font-black uppercase tracking-wider text-slate-200">Resumo da Reserva</h4>
+                    
+                    <div className="space-y-1.5 text-xs text-slate-300">
+                      <p>✂️ <strong>Serviço:</strong> {servicoEscolhido?.nome} (R$ {Number(servicoEscolhido?.preco || 0).toFixed(2)})</p>
+                      <p>👤 <strong>Profissional:</strong> {barbeiroEscolhido?.nome}</p>
+                      <p>📅 <strong>Data:</strong> {dataEscolhida.split('-').reverse().join('/')}</p>
+                      <p>⏰ <strong>Horário:</strong> {horaEscolhida}</p>
+                      <p>📱 <strong>Cliente:</strong> {nome} ({telefone})</p>
+                    </div>
 
-            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2.5 max-h-[280px] overflow-y-auto pr-1">
-              {gerarDiasDisponiveis().map((d) => {
-                const isSelected = dataEscolhida === d.dataIso;
-                return (
-                  <button
-                    key={d.dataIso}
-                    type="button"
-                    disabled={d.bloqueado}
-                    onClick={() => setDataEscolhida(d.dataIso)}
-                    className={`p-3 rounded-2xl border text-center transition-all flex flex-col items-center justify-center ${
-                      d.bloqueado
-                        ? 'opacity-30 border-slate-800 bg-slate-950/40 cursor-not-allowed'
-                        : isSelected
-                        ? 'border-2 font-bold shadow-lg scale-[1.02]'
-                        : isClean
-                        ? 'bg-slate-100 border-slate-300 hover:border-slate-400'
-                        : 'bg-black/50 border-white/10 hover:border-white/30'
-                    }`}
-                    style={isSelected && !d.bloqueado ? { borderColor: corTema, backgroundColor: `${corTema}15` } : {}}
-                  >
-                    <span className="text-[9px] font-extrabold uppercase text-slate-400">{d.diaSemanaStr}</span>
-                    <span className={`text-base font-black my-0.5 ${isClean ? 'text-slate-900' : 'text-white'}`}>{d.diaNum}</span>
-                    <span className="text-[9px] font-bold uppercase" style={{ color: d.bloqueado ? '#f43f5e' : corTema }}>
-                      {d.bloqueado ? 'Fechado' : d.mesStr}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
+                    <button
+                      disabled={loading}
+                      onClick={confirmarAgendamento}
+                      className="w-full py-4 rounded-2xl text-white font-black text-xs uppercase tracking-widest cursor-pointer shadow-lg hover:brightness-110 active:scale-98 transition-all flex items-center justify-center gap-2"
+                      style={{ backgroundColor: corTema }}
+                    >
+                      {loading ? 'A processar...' : 'Confirmar Agendamento'}
+                    </button>
+                  </div>
+                )}
 
-            <button
-              disabled={!dataEscolhida}
-              onClick={() => setEtapa('editar_horario')}
-              className="w-full py-3.5 rounded-2xl text-white font-black text-xs uppercase tracking-widest cursor-pointer shadow-lg disabled:opacity-40 transition-all hover:brightness-110"
-              style={{ backgroundColor: corTema }}
-            >
-              Escolher Novo Horário
-            </button>
-          </div>
-        )}
+                {/* SUCESSO DO AGENDAMENTO */}
+                {sucesso && (
+                  <div className={`py-6 text-center space-y-4 border-t ${isClean ? 'border-slate-200' : 'border-white/10'}`}>
+                    <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto shadow-md bg-slate-900 text-white">
+                      <Check className="w-8 h-8 stroke-[3]" />
+                    </div>
+                    <h3 className={`text-base font-black ${isClean ? 'text-slate-900' : 'text-white'}`}>Agendamento Concluído!</h3>
+                    <p className={`text-xs ${isClean ? 'text-slate-500' : 'text-slate-400'}`}>
+                      Horário registado com sucesso para {dataEscolhida.split('-').reverse().join('/')} às {horaEscolhida}.
+                    </p>
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
+                      <button
+                        onClick={() => {
+                          setSucesso(false);
+                          setServicoEscolhido(null);
+                          setBarbeiroEscolhido(null);
+                          setDataEscolhida('');
+                          setHoraEscolhida('');
+                          setModoVisualizacao('agendar');
+                        }}
+                        className="w-full py-3.5 rounded-2xl text-white font-bold text-xs uppercase shadow-md hover:brightness-110 cursor-pointer"
+                        style={{ backgroundColor: corTema }}
+                      >
+                        Novo Agendamento
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSucesso(false);
+                          setModoVisualizacao('gerenciar');
+                        }}
+                        className={`w-full py-3.5 rounded-2xl font-bold text-xs uppercase border cursor-pointer ${
+                          isClean ? 'bg-slate-100 border-slate-300 text-slate-800 hover:bg-slate-200' : 'bg-white/10 border-white/10 text-white'
+                        }`}
+                      >
+                        Ver Meus Agendamentos
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
 
-        {/* EDITAR HORÁRIO (GERENCIAMENTO) */}
-        {etapa === 'editar_horario' && (
-          <div className="space-y-3">
-            <h3 className={`text-xs font-black uppercase tracking-wider ${isClean ? 'text-slate-600' : 'text-slate-400'}`}>Novo Horário</h3>
-            <div className="grid grid-cols-3 gap-2 max-h-[250px] overflow-y-auto pr-1">
-              {HORARIOS_DISPONIVEIS.map((h) => (
-                <button
-                  key={h}
-                  disabled={horariosOcupados.includes(h) || loading}
-                  onClick={() => confirmarEdicaoHorario(h)}
-                  className={`py-2.5 rounded-xl text-xs font-black border cursor-pointer transition-all ${
-                    horariosOcupados.includes(h)
-                      ? 'bg-slate-500/10 text-slate-400 border-slate-200 line-through opacity-40 cursor-not-allowed'
-                      : isClean ? 'bg-white text-slate-800 border-slate-300 hover:border-sky-500' : 'bg-black/50 text-white border-white/10 hover:border-white/30'
-                  }`}
-                >
-                  {h}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* RESUMO DO AGENDAMENTO */}
-        {etapa === 'resumo' && (
-          <div className={`p-5 rounded-3xl border space-y-3 backdrop-blur-md shadow-xl ${isClean ? 'bg-white border-sky-500/40 text-slate-800' : 'bg-black/60 border-emerald-500/40 text-slate-200'}`} style={{ borderColor: `${corTema}66` }}>
-            <h4 className="text-xs font-black uppercase tracking-wider" style={{ color: corTema }}>Resumo do Agendamento</h4>
-            <div className="space-y-1.5 text-xs">
-              <p>✂️ <strong className={isClean ? 'text-slate-950' : 'text-white'}>Serviço:</strong> {servicoEscolhido?.nome} (R$ {Number(servicoEscolhido?.preco || 0).toFixed(2)})</p>
-              <p>👤 <strong className={isClean ? 'text-slate-950' : 'text-white'}>Profissional:</strong> {barbeiroEscolhido?.nome}</p>
-              <p>📅 <strong className={isClean ? 'text-slate-950' : 'text-white'}>Data:</strong> {dataEscolhida.split('-').reverse().join('/')}</p>
-              <p>⏰ <strong className={isClean ? 'text-slate-950' : 'text-white'}>Horário:</strong> {horaEscolhida}</p>
-              <p>👤 <strong className={isClean ? 'text-slate-950' : 'text-white'}>Cliente:</strong> {nome} ({telefone})</p>
-            </div>
-            <button
-              disabled={loading}
-              onClick={confirmarAgendamentoFinal}
-              className="w-full mt-2 py-3.5 rounded-2xl text-white font-black text-xs uppercase tracking-widest cursor-pointer shadow-lg hover:brightness-110 transition-all"
-              style={{ backgroundColor: corTema }}
-            >
-              {loading ? 'A confirmar...' : 'Confirmar Agendamento'}
-            </button>
-          </div>
-        )}
-
-        {/* TELA DE SUCESSO */}
-        {etapa === 'sucesso' && (
-          <div className="py-4 text-center space-y-3">
-            <div className="w-12 h-12 rounded-2xl text-white flex items-center justify-center mx-auto shadow-lg" style={{ backgroundColor: corTema }}>
-              <CheckCircle2 className="w-6 h-6" />
-            </div>
-            <h3 className={`text-sm font-black ${isClean ? 'text-slate-900' : 'text-white'}`}>Agendamento Concluído!</h3>
-            <p className={`text-xs ${isClean ? 'text-slate-600' : 'text-slate-400'}`}>O seu horário foi registado com sucesso. Aguardamos a sua visita!</p>
-            
-            <div className="grid grid-cols-1 gap-2 pt-2">
-              <button
-                onClick={() => setEtapa('servico')}
-                className="w-full py-3 rounded-2xl text-white font-bold text-xs transition-all cursor-pointer shadow-md hover:brightness-110"
-                style={{ backgroundColor: corTema }}
-              >
-                Fazer Novo Agendamento
-              </button>
-              <button
-                onClick={() => { atualizarAgendamentosAtivos(clienteId); setEtapa('gerenciar'); }}
-                className={`w-full py-3 rounded-2xl font-bold text-xs transition-all cursor-pointer border ${isClean ? 'bg-slate-100 border-slate-300 text-slate-800' : 'bg-white/10 hover:bg-white/20 text-white border-white/10'}`}
-              >
-                Ver Meus Agendamentos
-              </button>
-            </div>
           </div>
         )}
 
       </div>
 
       {erro && (
-        <div className="mx-6 mb-4 p-3 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-500 text-xs flex items-center gap-2">
+        <div className="mx-6 mb-5 p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-600 text-xs flex items-center gap-2">
           <AlertCircle className="w-4 h-4 shrink-0" />
           <span>{erro}</span>
         </div>
