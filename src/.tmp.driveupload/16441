@@ -373,73 +373,73 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
   ];
 
   return (
-    <div className="w-full min-h-screen bg-slate-50 text-slate-900 pb-32 font-sans">
+    <div className="w-full h-full overflow-hidden touch-none bg-slate-50 text-slate-900 pb-20 font-sans">
       
       {/* TOPO ESTILO BANNER DE CAPA + PERFIL MODERNO */}
-<div className="bg-white border-b border-slate-200/80 shadow-xs rounded-b-3xl overflow-hidden relative mb-2">
-  
-  {/* ÁREA DA CAPA / BANNER */}
-  <div className="h-28 sm:h-36 w-full relative bg-slate-900 overflow-hidden">
-    {capaUrl ? (
-      <img 
-        src={capaUrl} 
-        alt="Capa da Barbearia" 
-        className="w-full h-full object-cover opacity-90"
-      />
-    ) : (
-      <div className="w-full h-full bg-gradient-to-r from-slate-900 via-stone-800 to-slate-900 flex items-center justify-center">
-        <span className="text-slate-600/40 font-black text-2xl uppercase tracking-widest select-none">
-          {nome || 'AgendaEstilo'}
-        </span>
-      </div>
-    )}
+      <div className="bg-white border-b border-slate-200/80 shadow-xs rounded-b-3xl overflow-hidden relative mb-2">
+        
+        {/* ÁREA DA CAPA / BANNER */}
+        <div className="h-28 sm:h-36 w-full relative bg-slate-900 overflow-hidden">
+          {capaUrl ? (
+            <img 
+              src={capaUrl} 
+              alt="Capa da Barbearia" 
+              className="w-full h-full object-cover opacity-90"
+            />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-r from-slate-900 via-stone-800 to-slate-900 flex items-center justify-center">
+              <span className="text-slate-600/40 font-black text-2xl uppercase tracking-widest select-none">
+                {nome || 'AgendaEstilo'}
+              </span>
+            </div>
+          )}
 
-    {/* DEGRADÊ SUAVE INFERIOR NA CAPA */}
-    <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/20" />
+          {/* DEGRADÊ SUAVE INFERIOR NA CAPA */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/20" />
 
-    {/* BOTÕES DE AÇÃO FLUTUANTES COM GLASSMORPHISM */}
-    <div className="absolute top-3 right-3 flex items-center gap-2 z-10">
-      <button 
-        type="button"
-        onClick={() => setModalCompartilharOpen(true)}
-        className="w-8 h-8 bg-black/40 hover:bg-black/60 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/20 transition-all cursor-pointer shadow-sm active:scale-95"
-        title="Compartilhar Link"
-      >
-        <Share2 className="w-3.5 h-3.5" />
-      </button>
-      <a 
-        href={urlCliente}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="w-8 h-8 bg-black/40 hover:bg-black/60 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/20 transition-all cursor-pointer shadow-sm active:scale-95"
-        title="Ver Página do Cliente"
-      >
-        <ExternalLink className="w-3.5 h-3.5" />
-      </a>
-    </div>
-  </div>
-
-  {/* FOTO DE PERFIL SOBREPOSTA (OVERLAP) E INFOS */}
-  <div className="flex flex-col items-center text-center px-4 pb-5 -mt-12 sm:-mt-14 relative z-10">
-    <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-white p-1 shadow-lg ring-1 ring-slate-200/80 overflow-hidden flex items-center justify-center mb-2">
-      {logoUrl ? (
-        <img src={logoUrl} alt="Logo" className="w-full h-full object-cover rounded-full" />
-      ) : (
-        <div className="w-full h-full bg-slate-900 text-white rounded-full flex items-center justify-center font-black text-2xl">
-          {(nome || 'B').charAt(0)}
+          {/* BOTÕES DE AÇÃO FLUTUANTES COM GLASSMORPHISM */}
+          <div className="absolute top-3 right-3 flex items-center gap-2 z-10">
+            <button 
+              type="button"
+              onClick={() => setModalCompartilharOpen(true)}
+              className="w-8 h-8 bg-black/40 hover:bg-black/60 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/20 transition-all cursor-pointer shadow-sm active:scale-95"
+              title="Compartilhar Link"
+            >
+              <Share2 className="w-3.5 h-3.5" />
+            </button>
+            <a 
+              href={urlCliente}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-8 h-8 bg-black/40 hover:bg-black/60 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/20 transition-all cursor-pointer shadow-sm active:scale-95"
+              title="Ver Página do Cliente"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+            </a>
+          </div>
         </div>
-      )}
-    </div>
 
-    {/* NOME E SLUG */}
-    <h1 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight leading-snug">
-      {nome || 'Minha Barbearia'}
-    </h1>
-    <p className="text-xs text-slate-500 font-bold mt-0.5">
-      @{slug || 'barbearia'}
-    </p>
-  </div>
-</div>
+        {/* FOTO DE PERFIL SOBREPOSTA (OVERLAP) E INFOS */}
+        <div className="flex flex-col items-center text-center px-4 pb-5 -mt-12 sm:-mt-14 relative z-10">
+          <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-white p-1 shadow-lg ring-1 ring-slate-200/80 overflow-hidden flex items-center justify-center mb-2">
+            {logoUrl ? (
+              <img src={logoUrl} alt="Logo" className="w-full h-full object-cover rounded-full" />
+            ) : (
+              <div className="w-full h-full bg-slate-900 text-white rounded-full flex items-center justify-center font-black text-2xl">
+                {(nome || 'B').charAt(0)}
+              </div>
+            )}
+          </div>
+
+          {/* NOME E SLUG */}
+          <h1 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight leading-snug">
+            {nome || 'Minha Barbearia'}
+          </h1>
+          <p className="text-xs text-slate-500 font-bold mt-0.5">
+            @{slug || 'barbearia'}
+          </p>
+        </div>
+      </div>
 
       {/* LISTA DE OPÇÕES (ESTILO WHATSAPP) */}
       <div className="max-w-xl mx-auto mt-2 bg-white divide-y divide-slate-100 border-y border-slate-200/80 shadow-2xs">
