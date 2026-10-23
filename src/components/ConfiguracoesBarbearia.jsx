@@ -5,7 +5,7 @@ import {
   Store, Save, Check, ExternalLink, Share2, Copy, MessageCircle, 
   Send, X, MessageSquare, Bot, Grid, Palette, Moon, BellRing, 
   Clock, Sliders, CalendarOff, Trash2, Plus, Upload, Image as ImageIcon,
-  Lock, Coffee, User
+  Lock, Coffee, User, ChevronRight, ShieldCheck, DollarSign, Smartphone
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
@@ -77,14 +77,12 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
 
   const corDestaqueAtiva = '#09090b';
 
-  // Garante que links de agendamento nunca utilizem localhost (Capacitor/Android)
   const baseUrl = typeof window !== 'undefined' && !window.location.origin.includes('localhost')
     ? window.location.origin
     : 'https://agendaestilo.com.br';
 
   const urlCliente = `${baseUrl}/agendar/${slug || barbearia?.slug || 'barbearia'}`;
 
-  // Garante a existência do bucket no Storage do Supabase automaticamente ao carregar
   useEffect(() => {
     async function garantirBucket() {
       const { error } = await supabase.storage.getBucket('barbearia-bucket');
@@ -367,109 +365,118 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
     }
   };
 
+  const opcoesConfig = [
+    { id: 'geral', titulo: 'Geral & Perfil', sub: 'Nome, link de acesso e dados principais', icone: Store },
+    { id: 'visual', titulo: 'Visual & Mídia', sub: 'Logo, imagem de capa e tema de cores', icone: Palette },
+    { id: 'atendimento', titulo: 'Modo de Atendimento', sub: 'Agendamento via chat ou layout clássico', icone: MessageSquare },
+    { id: 'barbeiros_horarios', titulo: 'Horários da Equipe', sub: 'Turnos e folgas de cada profissional', icone: Clock },
+  ];
+
   return (
-    <div className="w-full min-h-screen px-2.5 sm:px-4 pt-3 pb-32 text-slate-950 font-sans touch-pan-y overflow-y-auto">
+    <div className="w-full min-h-screen bg-slate-50 text-slate-900 pb-32 font-sans">
       
-      <form onSubmit={handleSubmit} className="space-y-6 w-full">
-        
-        <div className="rounded-[2.5rem] bg-white border border-slate-200 shadow-xl overflow-hidden w-full">
-          {/* BANNER DE CAPA */}
-          <div className="relative h-44 sm:h-52 w-full bg-[#090a0f] overflow-hidden border-b border-white/15">
-            {capaUrl ? (
-              <img src={capaUrl} alt="Capa" className="w-full h-full object-cover opacity-90" />
-            ) : (
-              <div className="w-full h-full bg-gradient-to-r from-stone-900 via-stone-800 to-stone-900 flex items-center justify-center">
-                <span className="text-xs font-medium text-stone-400 tracking-wider uppercase">Nenhuma capa cadastrada</span>
-              </div>
-            )}
-            <div className="absolute inset-0 bg-gradient-to-t from-[#090a0f] via-[#090a0f]/60 to-black/30"></div>
-            
-            <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
-              <button 
-                type="button"
-                onClick={() => setModalCompartilharOpen(true)}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-black/75 hover:bg-black/90 backdrop-blur-md rounded-xl text-xs font-semibold text-white shadow transition-all cursor-pointer border border-white/20 active:scale-95"
-              >
-                <Share2 className="w-3.5 h-3.5 text-slate-200" />
-                <span>Compartilhar</span>
-              </button>
-              <a 
-                href={urlCliente}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center justify-center w-9 h-9 bg-black/75 hover:bg-black/90 backdrop-blur-md rounded-xl text-white shadow transition-all cursor-pointer border border-white/20"
-                title="Abrir página pública"
-              >
-                <ExternalLink className="w-4 h-4 text-slate-200" />
-              </a>
-            </div>
-          </div>
+      {/* TOPO ESTILO BANNER DE CAPA + PERFIL MODERNO */}
+<div className="bg-white border-b border-slate-200/80 shadow-xs rounded-b-3xl overflow-hidden relative mb-2">
+  
+  {/* ÁREA DA CAPA / BANNER */}
+  <div className="h-28 sm:h-36 w-full relative bg-slate-900 overflow-hidden">
+    {capaUrl ? (
+      <img 
+        src={capaUrl} 
+        alt="Capa da Barbearia" 
+        className="w-full h-full object-cover opacity-90"
+      />
+    ) : (
+      <div className="w-full h-full bg-gradient-to-r from-slate-900 via-stone-800 to-slate-900 flex items-center justify-center">
+        <span className="text-slate-600/40 font-black text-2xl uppercase tracking-widest select-none">
+          {nome || 'AgendaEstilo'}
+        </span>
+      </div>
+    )}
 
-          {/* CABEÇALHO DA BARBEARIA */}
-          <div className="px-6 sm:px-8 pb-4 pt-0 relative flex flex-col sm:flex-row items-center sm:items-end justify-between gap-4 -mt-14 sm:-mt-16 mb-4">
-            <div className="flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
-              <div className="relative z-20">
-                <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl bg-black p-1 shadow-2xl border-2 border-white/30 overflow-hidden flex items-center justify-center">
-                  {logoUrl ? (
-                    <img src={logoUrl} alt="Logo" className="w-full h-full object-cover rounded-xl" />
-                  ) : (
-                    <div className="w-full h-full bg-gradient-to-br from-stone-800 to-black text-white rounded-xl flex items-center justify-center font-black text-2xl">
-                      {(nome || 'B').charAt(0)}
-                    </div>
-                  )}
-                </div>
-                <span className="absolute bottom-1 right-1 w-4 h-4 border-2 border-slate-950 rounded-full shadow" style={{ backgroundColor: corDestaqueAtiva }}></span>
-              </div>
-              <div className="pt-2 sm:pt-0">
-                <h1 className="text-xl sm:text-2xl font-black text-slate-950 tracking-tight">{nome || 'Minha Barbearia'}</h1>
-                <p className="text-xs text-slate-900 mt-1 font-bold">Painel de Configurações • Personalize a experiência</p>
-              </div>
-            </div>
-          </div>
+    {/* DEGRADÊ SUAVE INFERIOR NA CAPA */}
+    <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-black/20" />
 
-          {/* PAINEL DOS 4 BOTÕES + BOTÃO SALVAR LOGO ABAIXO */}
-          <div className="px-4 sm:px-8 border-t border-slate-200 bg-slate-50 py-5 space-y-4">
-            
-            {/* GRID 2X2 DOS 4 BOTÕES */}
-            <div className="grid grid-cols-2 gap-2.5">
-              {[
-                { id: 'geral', label: 'Geral & Perfil', icon: Store },
-                { id: 'visual', label: 'Visual & Mídia', icon: Palette },
-                { id: 'atendimento', label: 'Atendimento', icon: MessageSquare },
-                { id: 'barbeiros_horarios', label: 'Configurar Horários', icon: Clock },
-              ].map((item) => {
-                const Icone = item.icon;
-                return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => setModalAtiva(item.id)}
-                    className="flex items-center justify-center gap-2 px-3 h-12 rounded-2xl text-[11px] sm:text-xs font-extrabold transition-all cursor-pointer bg-white text-slate-800 hover:bg-slate-100 border border-slate-200/90 shadow-2xs hover:shadow-md active:scale-98"
-                  >
-                    <Icone className="w-3.5 h-3.5 text-slate-700 shrink-0" />
-                    <span className="text-center">{item.label}</span>
-                  </button>
-                );
-              })}
-            </div>
+    {/* BOTÕES DE AÇÃO FLUTUANTES COM GLASSMORPHISM */}
+    <div className="absolute top-3 right-3 flex items-center gap-2 z-10">
+      <button 
+        type="button"
+        onClick={() => setModalCompartilharOpen(true)}
+        className="w-8 h-8 bg-black/40 hover:bg-black/60 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/20 transition-all cursor-pointer shadow-sm active:scale-95"
+        title="Compartilhar Link"
+      >
+        <Share2 className="w-3.5 h-3.5" />
+      </button>
+      <a 
+        href={urlCliente}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="w-8 h-8 bg-black/40 hover:bg-black/60 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/20 transition-all cursor-pointer shadow-sm active:scale-95"
+        title="Ver Página do Cliente"
+      >
+        <ExternalLink className="w-3.5 h-3.5" />
+      </a>
+    </div>
+  </div>
 
-            {/* BOTÃO DE SALVAR GLOBAL */}
-            <div>
-              <button
-                type="submit"
-                disabled={salvando}
-                className="w-full py-4 rounded-2xl text-white font-bold text-xs uppercase tracking-wider transition-all active:scale-[0.99] shadow-xl flex items-center justify-center gap-2.5 cursor-pointer disabled:opacity-50 bg-[#090a0f] hover:bg-black border border-stone-800"
-              >
-                {sucesso ? <Check className="w-4 h-4 text-emerald-400" /> : <Save className="w-4 h-4 text-emerald-400" />}
-                <span>{salvando ? 'Salvando alterações...' : sucesso ? 'Alterações salvas com sucesso!' : 'Salvar Alterações'}</span>
-              </button>
-            </div>
-
-          </div>
-
+  {/* FOTO DE PERFIL SOBREPOSTA (OVERLAP) E INFOS */}
+  <div className="flex flex-col items-center text-center px-4 pb-5 -mt-12 sm:-mt-14 relative z-10">
+    <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-white p-1 shadow-lg ring-1 ring-slate-200/80 overflow-hidden flex items-center justify-center mb-2">
+      {logoUrl ? (
+        <img src={logoUrl} alt="Logo" className="w-full h-full object-cover rounded-full" />
+      ) : (
+        <div className="w-full h-full bg-slate-900 text-white rounded-full flex items-center justify-center font-black text-2xl">
+          {(nome || 'B').charAt(0)}
         </div>
+      )}
+    </div>
 
-      </form>
+    {/* NOME E SLUG */}
+    <h1 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight leading-snug">
+      {nome || 'Minha Barbearia'}
+    </h1>
+    <p className="text-xs text-slate-500 font-bold mt-0.5">
+      @{slug || 'barbearia'}
+    </p>
+  </div>
+</div>
+
+      {/* LISTA DE OPÇÕES (ESTILO WHATSAPP) */}
+      <div className="max-w-xl mx-auto mt-2 bg-white divide-y divide-slate-100 border-y border-slate-200/80 shadow-2xs">
+        {opcoesConfig.map((item) => {
+          const Icone = item.icone;
+          return (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => setModalAtiva(item.id)}
+              className="w-full px-5 py-4 flex items-center gap-4 text-left hover:bg-slate-50/80 transition-all cursor-pointer active:bg-slate-100"
+            >
+              <div className="w-10 h-10 rounded-full bg-slate-100 text-slate-800 flex items-center justify-center shrink-0">
+                <Icone className="w-5 h-5 text-slate-700" />
+              </div>
+              <div className="flex-1 min-w-0 pr-2">
+                <h3 className="text-sm font-bold text-slate-900 truncate">{item.titulo}</h3>
+                <p className="text-xs text-slate-500 truncate mt-0.5">{item.sub}</p>
+              </div>
+              <ChevronRight className="w-4 h-4 text-slate-400 shrink-0" />
+            </button>
+          );
+        })}
+      </div>
+
+      {/* BOTÃO SALVAR GLOBAL */}
+      <div className="max-w-xl mx-auto px-4 mt-6">
+        <button
+          type="button"
+          onClick={handleSubmit}
+          disabled={salvando}
+          className="w-full py-4 rounded-2xl text-white font-bold text-xs uppercase tracking-wider transition-all active:scale-[0.99] shadow-lg flex items-center justify-center gap-2.5 cursor-pointer disabled:opacity-50 bg-slate-900 hover:bg-black border border-slate-800"
+        >
+          {sucesso ? <Check className="w-4 h-4 text-emerald-400" /> : <Save className="w-4 h-4 text-emerald-400" />}
+          <span>{salvando ? 'Salvando alterações...' : sucesso ? 'Alterações salvas com sucesso!' : 'Salvar Todas as Configurações'}</span>
+        </button>
+      </div>
 
       {/* ========================================== */}
       {/* 1. MODAL: GERAL & PERFIL                  */}
@@ -823,11 +830,8 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
       {/* ========================================== */}
       {modalAtiva === 'barbeiros_horarios' && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-3 sm:p-4">
-          <div 
-            className="bg-white border border-slate-200 rounded-[2.5rem] shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden relative text-slate-900 my-auto"
-          >
+          <div className="bg-white border border-slate-200 rounded-[2.5rem] shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden relative text-slate-900 my-auto">
             
-            {/* CABEÇALHO DO MODAL (FIXO) */}
             <div className="flex items-center justify-between p-5 sm:p-6 border-b border-slate-100 shrink-0 bg-slate-50">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-2xl bg-slate-900 text-white flex items-center justify-center shadow shrink-0">
@@ -847,7 +851,6 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
               </button>
             </div>
 
-            {/* CORPO DO MODAL COM FUNÇÃO DE TOUCH MANUAL */}
             <div 
               className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 overscroll-contain"
               onTouchStart={(e) => {
@@ -869,7 +872,6 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                 }
               }}
             >
-              {/* SELETOR DE BARBEIROS (2 POR LINHA) */}
               <div className="space-y-2">
                 <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block">
                   Selecione o Barbeiro:
@@ -912,7 +914,6 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                 </div>
               </div>
 
-              {/* ESCALA DO BARBEIRO SELECIONADO */}
               {barbeiroSelecionado && (
                 <div className="bg-slate-50/70 rounded-3xl border border-slate-200 p-4 sm:p-5 space-y-4 shadow-2xs">
                   <div className="flex items-center justify-between pb-3 border-b border-slate-200/60">
@@ -965,7 +966,6 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
 
                           {ativo && (
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-100">
-                              {/* Expediente */}
                               <div className="space-y-1">
                                 <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">
                                   Turno de Trabalho
@@ -987,7 +987,6 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                                 </div>
                               </div>
 
-                              {/* Pausa / Almoço */}
                               <div className="space-y-1">
                                 <span className="text-[9px] font-bold text-amber-600 uppercase tracking-wider flex items-center gap-1">
                                   <Coffee className="w-3 h-3" /> Pausa / Almoço
@@ -1018,7 +1017,6 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
               )}
             </div>
 
-            {/* RODAPÉ DO MODAL (FIXO) */}
             <div className="p-4 border-t border-slate-100 flex items-center justify-end gap-3 shrink-0 bg-slate-50">
               <button
                 type="button"
@@ -1063,7 +1061,6 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
 
             <div className="flex-1 overflow-y-auto touch-pan-y overscroll-contain p-6 sm:p-8 space-y-6">
               
-              {/* Controle Geral */}
               <div className="bg-slate-50 rounded-2xl border border-slate-200 p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
@@ -1089,7 +1086,6 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                 </button>
               </div>
 
-              {/* Bloqueio de Datas Específicas */}
               <div className="bg-slate-50 rounded-2xl border border-slate-200 p-4 sm:p-5 space-y-4 shadow-sm">
                 <div className="flex items-center gap-2">
                   <CalendarOff className="w-4 h-4 text-rose-600" />
@@ -1152,7 +1148,6 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                 </div>
               </div>
 
-              {/* Lista de Dias da Semana Abertos/Fechados */}
               <div className="space-y-3">
                 <h4 className="font-bold text-slate-900 text-xs uppercase tracking-wider">Dias de Funcionamento da Barbearia</h4>
 

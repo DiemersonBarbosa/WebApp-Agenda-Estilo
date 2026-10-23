@@ -1142,7 +1142,7 @@ export default function AdminDashboard() {
 
       {loading && (
         <div className="fixed inset-0 bg-stone-900 z-50 flex items-center justify-center text-white">
-          <p>A carregar painel...</p>
+          <p>Carregando Painel...</p>
         </div>
       )}
 
@@ -1550,12 +1550,9 @@ export default function AdminDashboard() {
           </div>
         </aside>
 
-        <main className="flex-1 md:ml-72 p-4 sm:p-6 md:p-10 pb-24 overflow-y-auto max-w-full">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-            {activeTab === 'configuracoes' && (
-              <div className="flex items-center gap-2"></div>
-            )}
-          </div>
+       <main className="flex-1 md:ml-72 px-2.5 pt-2.5 sm:px-6 sm:pt-4 md:p-10 pb-24 overflow-y-auto max-w-full">
+  {/* Removemos a div vazia com mb-8 que criava espaço fantasma */}
+  {activeTab === 'configuracoes' && null}
 
           {errorMessage && (
             <div className="mb-6 bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 rounded-2xl text-xs flex items-center gap-2">
