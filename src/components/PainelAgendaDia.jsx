@@ -3,19 +3,18 @@
 import React, { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { 
-  Calendar, CheckCircle2, DollarSign, TrendingUp, TrendingDown, 
-  Users, Settings, Percent, Scissors, ClipboardPenLine, ShoppingCart, 
-  ShoppingBag, MessageCircleCheck, LogOut, History, X, Search, Filter, Clock, Trash2, ChevronRight, ChevronLeft 
+  Calendar, CheckCircle2, DollarSign, History, X, Clock, Trash2, 
+  Check, User, Scissors
 } from 'lucide-react';
-
-import NotificacoesBell from '@/components/NotificacoesBell';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComissao = 50, setActiveTab, setModalInfoAssinaturaOpen, handleLogout, mobileMenuOpen, setMobileMenuOpen, fecharMenuMobile }) {
+export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComissao = 50 }) {
   const [todosAgendamentos, setTodosAgendamentos] = useState([]);
+  const [barbeiros, setBarbeiros] = useState([]);
+  const [barbeiroSelecionado, setBarbeiroSelecionado] = useState('todos');
   const [carregando, setCarregando] = useState(true);
   const [erroFatal, setErroFatal] = useState(null);
   const [processandoId, setProcessandoId] = useState(null);
@@ -28,7 +27,6 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
   };
 
   const [dataSelecionada, setDataSelecionada] = useState(obterDataLocalIso());
-
   const [modalHistoricoOpen, setModalHistoricoOpen] = useState(false);
   const [filtroDataHistorico, setFiltroDataHistorico] = useState('');
   const [filtroStatusHistorico, setFiltroStatusHistorico] = useState('todos');
@@ -76,7 +74,6 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
   const carregarAgenda = async () => {
     try {
       setErroFatal(null);
-
       let barbeariaAtiva = barbeariaId;
 
       if (!barbeariaAtiva) {
@@ -94,6 +91,16 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
         }
       }
 
+      if (barbeariaAtiva) {
+        const { data: barbeirosData } = await supabase
+          .from('barbeiros')
+          .select('id, nome, foto')
+          .eq('barbearia_id', barbeariaAtiva)
+          .order('nome', { ascending: true });
+
+        if (barbeirosData) setBarbeiros(barbeirosData);
+      }
+
       let query = supabase
         .from('agendamentos')
         .select(`
@@ -107,7 +114,7 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
           barbearia_id,
           clientes:cliente_id (nome),
           servicos:servico_id (nome, preco),
-          barbeiros:barbeiro_id (nome, barbearia_id)
+          barbeiros:barbeiro_id (id, nome, foto, barbearia_id)
         `)
         .order('data_hora', { ascending: true });
 
@@ -116,12 +123,8 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
       }
 
       const { data, error } = await query;
-
       if (error) throw error;
-
-      if (data) {
-        setTodosAgendamentos(data);
-      }
+      if (data) setTodosAgendamentos(data);
     } catch (err) {
       setErroFatal(err.message);
     } finally {
@@ -131,20 +134,11 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
 
   useEffect(() => {
     carregarAgenda();
-
     const channel = supabase
       .channel('realtime-agendamentos')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'agendamentos',
-        },
-        () => {
-          carregarAgenda();
-        }
-      )
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'agendamentos' }, () => {
+        carregarAgenda();
+      })
       .subscribe();
 
     return () => {
@@ -155,11 +149,7 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
   const concluirAgendamento = async (id) => {
     try {
       setProcessandoId(id);
-      const { error } = await supabase
-        .from('agendamentos')
-        .update({ status: 'concluido' })
-        .eq('id', id);
-
+      const { error } = await supabase.from('agendamentos').update({ status: 'concluido' }).eq('id', id);
       if (error) throw error;
     } catch (err) {
       alert('Erro ao concluir agendamento: ' + err.message);
@@ -171,11 +161,7 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
   const cancelarAgendamento = async (id) => {
     try {
       setProcessandoId(id);
-      const { error } = await supabase
-        .from('agendamentos')
-        .update({ status: 'cancelado' })
-        .eq('id', id);
-
+      const { error } = await supabase.from('agendamentos').update({ status: 'cancelado' }).eq('id', id);
       if (error) throw error;
     } catch (err) {
       alert('Erro ao cancelar agendamento: ' + err.message);
@@ -188,11 +174,7 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
     if (!window.confirm('Deseja realmente excluir este agendamento?')) return;
     try {
       setProcessandoId(id);
-      const { error } = await supabase
-        .from('agendamentos')
-        .delete()
-        .eq('id', id);
-
+      const { error } = await supabase.from('agendamentos').delete().eq('id', id);
       if (error) throw error;
     } catch (err) {
       alert('Erro ao excluir agendamento: ' + err.message);
@@ -201,18 +183,20 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
     }
   };
 
-  const agendamentosDoDiaSelecionado = todosAgendamentos.filter(item => extrairDataIso(item) === dataSelecionada);
+  const agendamentosDoDiaSelecionado = todosAgendamentos
+    .filter(item => extrairDataIso(item) === dataSelecionada)
+    .filter(item => barbeiroSelecionado === 'todos' || String(item.barbeiro_id) === String(barbeiroSelecionado));
+
+  const agendamentosPendentesDia = agendamentosDoDiaSelecionado.filter(item => {
+    const status = (item.status || 'agendado').toLowerCase();
+    return status !== 'concluido' && status !== 'cancelado' && status !== 'finalizado' && status !== 'cancelada';
+  });
 
   const totalAtendimentosDia = agendamentosDoDiaSelecionado.length;
   const concluidosDia = agendamentosDoDiaSelecionado.filter(i => (i.status || '').toLowerCase() === 'concluido').length;
   const valorTotalDia = agendamentosDoDiaSelecionado
     .filter(i => (i.status || '').toLowerCase() !== 'cancelado')
     .reduce((acc, item) => acc + Number(item.valor_total || item.servicos?.preco || 0), 0);
-
-  const agendamentosPendentesDia = agendamentosDoDiaSelecionado.filter(item => {
-    const status = (item.status || 'agendado').toLowerCase();
-    return status !== 'concluido' && status !== 'cancelado' && status !== 'finalizado' && status !== 'cancelada';
-  });
 
   const gerarProximosDias = () => {
     const dias = [];
@@ -240,10 +224,8 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
         </div>
       )}
 
-      {/* CARDS DE RESUMO DO TOPO */}
+      {/* 4 CARDS DO TOPO (PADRÃO ORIGINAL) */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 md:gap-5">
-        
-        {/* 1. Card: Agendamentos */}
         <div 
           className="relative rounded-3xl md:rounded-[2.5rem] p-5 sm:p-6 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden"
           style={{
@@ -267,7 +249,6 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
           </div>
         </div>
 
-        {/* 2. Card: Concluídos */}
         <div 
           className="relative rounded-3xl md:rounded-[2.5rem] p-5 sm:p-6 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden"
           style={{
@@ -291,7 +272,6 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
           </div>
         </div>
 
-        {/* 3. Card: Projeção */}
         <div 
           className="relative rounded-3xl md:rounded-[2.5rem] p-5 sm:p-6 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden"
           style={{
@@ -315,10 +295,9 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
           </div>
         </div>
 
-        {/* 4. Botão Estratégico: Ver Histórico */}
         <button
           onClick={() => setModalHistoricoOpen(true)}
-          className="relative rounded-3xl md:rounded-[2.5rem] p-5 sm:p-6 flex items-center justify-between border border-stone-200/80 bg-white transition-all cursor-pointer group min-w-0 overflow-hidden shadow-sm"
+          className="relative rounded-3xl md:rounded-[2.5rem] p-5 sm:p-6 flex items-center justify-between border border-stone-200/80 bg-white transition-all cursor-pointer group min-w-0 overflow-hidden shadow-sm hover:shadow-md"
         >
           <div className="flex flex-col justify-center min-w-0 pr-2 text-left">
             <span className="text-[9px] sm:text-[10px] font-extrabold text-stone-400 uppercase tracking-wider truncate block">Registros</span>
@@ -328,10 +307,9 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
             <History className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
         </button>
-
       </div>
 
-      {/* MINI CALENDÁRIO ESTILOSO (PRÓXIMOS 7 DIAS) */}
+      {/* SELETOR DE DIAS */}
       <div className="bg-white rounded-[2rem] p-4 pt-5 border border-stone-200/90 shadow-sm space-y-2.5 overflow-visible">
         <div className="flex items-center justify-between px-1">
           <span className="text-[10px] font-black uppercase tracking-wider text-stone-400">Selecionar Dia</span>
@@ -343,12 +321,10 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
         <div className="grid grid-cols-7 gap-1.5 overflow-visible pt-1 pb-1">
           {proximaSemanaDias.map((dia) => {
             const selecionado = dataSelecionada === dia.iso;
-            
             const qtdNoDia = todosAgendamentos.filter(item => {
               const dataItem = extrairDataIso(item);
               const status = (item.status || 'agendado').toLowerCase();
-              const pendenteOuAgendado = status !== 'concluido' && status !== 'cancelado' && status !== 'finalizado' && status !== 'cancelada';
-              return dataItem === dia.iso && pendenteOuAgendado;
+              return dataItem === dia.iso && status !== 'concluido' && status !== 'cancelado';
             }).length;
 
             return (
@@ -364,9 +340,7 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
                 <span className={`text-[8px] sm:text-[9px] uppercase font-bold tracking-wider ${selecionado ? 'text-stone-300' : 'text-stone-400'}`}>
                   {dia.nomeDia}
                 </span>
-                <span className="text-sm sm:text-base font-black my-0.5">
-                  {dia.numeroDia}
-                </span>
+                <span className="text-sm sm:text-base font-black my-0.5">{dia.numeroDia}</span>
                 <span className={`text-[8px] uppercase font-semibold ${selecionado ? 'text-stone-400' : 'text-stone-500'}`}>
                   {dia.nomeMes}
                 </span>
@@ -384,7 +358,65 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
         </div>
       </div>
 
-      {/* SEÇÃO PRINCIPAL: LISTA DE AGENDAMENTOS PENDENTES */}
+      {/* FILTRO DE PROFISSIONAIS */}
+      <div className="bg-white rounded-3xl p-3 sm:p-4 border border-stone-200/90 shadow-sm space-y-2">
+        <span className="text-[10px] font-black uppercase tracking-wider text-stone-400 px-1 block">
+          Filtrar Por Profissional
+        </span>
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden">
+          <button
+            type="button"
+            onClick={() => setBarbeiroSelecionado('todos')}
+            className={`px-4 py-2 rounded-2xl text-xs font-bold shrink-0 transition-all cursor-pointer flex items-center gap-2 border ${
+              barbeiroSelecionado === 'todos'
+                ? 'bg-stone-900 text-white border-stone-900 shadow-md'
+                : 'bg-stone-50 text-stone-600 border-stone-200 hover:bg-stone-100'
+            }`}
+          >
+            <User className="w-3.5 h-3.5" />
+            <span>Todos ({todosAgendamentos.filter(i => extrairDataIso(i) === dataSelecionada && (i.status || 'agendado').toLowerCase() !== 'concluido' && (i.status || '').toLowerCase() !== 'cancelado').length})</span>
+          </button>
+
+          {barbeiros.map((b) => {
+            const isSelected = String(barbeiroSelecionado) === String(b.id);
+            const qtdBarbeiro = todosAgendamentos.filter(
+              i => extrairDataIso(i) === dataSelecionada && 
+                   String(i.barbeiro_id) === String(b.id) && 
+                   (i.status || 'agendado').toLowerCase() !== 'concluido' && 
+                   (i.status || '').toLowerCase() !== 'cancelado'
+            ).length;
+
+            return (
+              <button
+                key={b.id}
+                type="button"
+                onClick={() => setBarbeiroSelecionado(b.id)}
+                className={`px-3.5 py-1.5 rounded-2xl text-xs font-bold shrink-0 transition-all cursor-pointer flex items-center gap-2 border ${
+                  isSelected
+                    ? 'bg-stone-900 text-white border-stone-900 shadow-md'
+                    : 'bg-stone-50 text-stone-700 border-stone-200 hover:bg-stone-100'
+                }`}
+              >
+                {b.foto ? (
+                  <img src={b.foto} alt={b.nome} className="w-6 h-6 rounded-full object-cover border border-stone-300" />
+                ) : (
+                  <div className="w-6 h-6 rounded-full bg-stone-200 text-stone-800 font-extrabold flex items-center justify-center text-[10px]">
+                    {b.nome[0]}
+                  </div>
+                )}
+                <span>{b.nome}</span>
+                <span className={`text-[10px] px-2 py-0.5 rounded-full font-black ${
+                  isSelected ? 'bg-stone-800 text-emerald-400' : 'bg-stone-200 text-stone-600'
+                }`}>
+                  {qtdBarbeiro}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* LISTA DE PENDENTES */}
       <div 
         className="relative rounded-[2.5rem] p-5 sm:p-8 border border-white/80 overflow-hidden shadow-sm"
         style={{
@@ -419,105 +451,77 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, taxaComis
             {agendamentosPendentesDia.map((item) => (
               <div 
                 key={item.id} 
-                className="w-full bg-white border border-stone-200/90 rounded-[2rem] p-4 sm:p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_10px_30px_rgba(0,0,0,0.07)] transition-all flex flex-col justify-between gap-4"
+                className="bg-white rounded-[2rem] border border-stone-200/90 p-4 sm:p-5 shadow-xs hover:shadow-md transition-all space-y-3.5 relative overflow-hidden border-l-4 border-l-stone-900"
               >
-                
-                {/* Topo do Card */}
-                <div className="flex items-start justify-between gap-3">
-                  <div className="space-y-1.5 min-w-0">
-                    <div 
-                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-black text-white border border-stone-700/50"
-                      style={{
-                        background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
-                        boxShadow: 'inset 0 1px 2px rgba(255, 255, 255, 0.2)'
-                      }}
-                    >
+                {/* Cabeçalho do Card (Sem a palavra VALOR, perfeitamente alinhado) */}
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="bg-stone-900 text-white text-xs font-black px-3 py-1.5 rounded-xl flex items-center gap-1.5 shadow-xs">
                       <Clock className="w-3.5 h-3.5 text-stone-300" />
-                      <span>{extrairHoraMinuto(item.data_hora)}</span>
-                    </div>
-                    <h3 className="font-black text-stone-900 text-base sm:text-lg tracking-tight truncate pt-0.5">
-                      {item.clientes?.nome || 'Cliente não identificado'}
-                    </h3>
-                  </div>
-
-                  <div className="text-right shrink-0">
-                    <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider block">Valor</span>
-                    <span className="text-stone-900 font-black text-sm sm:text-base bg-stone-100 px-3 py-1 rounded-2xl border border-stone-200/60 inline-block mt-0.5">
-                      R$ {Number(item.valor_total || item.servicos?.preco || 0).toFixed(2)}
+                      {extrairHoraMinuto(item.data_hora)}
                     </span>
-                  </div>
-                </div>
-
-                {/* Detalhes */}
-                <div className="bg-stone-50 rounded-2xl p-3.5 border border-stone-200/70 space-y-1 text-xs">
-                  <div className="flex items-center gap-2 font-bold text-stone-900 text-sm">
-                    <span className="w-2 h-2 rounded-full bg-stone-900"></span>
-                    <span>{item.servicos?.nome || 'Serviço não especificado'}</span>
-                  </div>
-                  <div className="text-stone-500 pl-4 font-medium">
-                    Profissional: <span className="text-stone-800 font-bold">{item.barbeiros?.nome || 'Não atribuído'}</span>
-                  </div>
-                </div>
-
-                {/* Ações */}
-                <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 border-t border-stone-100">
-                  <div className="flex items-center justify-between sm:justify-start">
-                    <span className="text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider bg-stone-100 text-stone-700 border border-stone-200">
+                    <span className="text-[9px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider bg-stone-100 text-stone-700 border border-stone-200">
                       {item.status || 'agendado'}
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-1 sm:flex sm:items-center">
-                    <button 
-                      onClick={() => concluirAgendamento(item.id)}
-                      disabled={processandoId === item.id}
-                      className="py-2 px-1.5 sm:px-2.5 text-white rounded-xl transition-all disabled:opacity-50 cursor-pointer flex items-center justify-center gap-1 text-[10px] sm:text-xs font-bold shadow-sm"
-                      style={{
-                        background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
-                        boxShadow: 'inset 0 1px 2px rgba(255, 255, 255, 0.2)'
-                      }}
-                    >
-                      <CheckCircle2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0 text-emerald-400" />
-                      <span className="truncate">Concluir</span>
-                    </button>
+                  <span className="text-stone-900 font-black text-sm sm:text-base bg-stone-100 px-3.5 py-1.5 rounded-2xl border border-stone-200/60 shrink-0">
+                    R$ {Number(item.valor_total || item.servicos?.preco || 0).toFixed(2)}
+                  </span>
+                </div>
 
-                    <button 
-                      onClick={() => cancelarAgendamento(item.id)}
-                      disabled={processandoId === item.id}
-                      className="py-2 px-1.5 sm:px-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 border border-stone-200 rounded-xl transition-all disabled:opacity-50 cursor-pointer flex items-center justify-center gap-1 text-[10px] sm:text-xs font-bold shadow-xs"
-                    >
-                      <X className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0 text-stone-500" />
-                      <span className="truncate">Cancelar</span>
-                    </button>
+                {/* Nome do Cliente */}
+                <div>
+                  <h3 className="font-extrabold text-stone-900 text-base sm:text-lg tracking-tight truncate">
+                    {item.clientes?.nome || 'Cliente não identificado'}
+                  </h3>
+                </div>
 
-                    <button 
-                      onClick={() => excluirAgendamento(item.id)}
-                      disabled={processandoId === item.id}
-                      className="py-2 px-1.5 sm:px-2.5 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 rounded-xl transition-all disabled:opacity-50 cursor-pointer flex items-center justify-center gap-1 text-[10px] sm:text-xs font-bold shadow-xs"
-                    >
-                      <Trash2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
-                      <span className="truncate">Excluir</span>
-                    </button>
+                {/* Detalhes do Serviço */}
+                <div className="bg-stone-50 rounded-2xl p-3 border border-stone-200/60 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                  <div className="flex items-center gap-2 font-bold text-stone-900">
+                    <Scissors className="w-3.5 h-3.5 text-stone-500 shrink-0" />
+                    <span>{item.servicos?.nome || 'Serviço'}</span>
                   </div>
+                  <div className="text-stone-500 font-medium">
+                    Profissional: <span className="text-stone-800 font-bold">{item.barbeiros?.nome || 'Não atribuído'}</span>
+                  </div>
+                </div>
+
+                {/* BOTÕES DE AÇÃO SEM CORTAR TEXTO (TEXTO AJUSTADO E FLEXÍVEL) */}
+                <div className="pt-2 border-t border-stone-100 grid grid-cols-3 gap-2">
+                  <button 
+                    onClick={() => concluirAgendamento(item.id)}
+                    disabled={processandoId === item.id}
+                    className="py-2.5 px-1 bg-stone-900 hover:bg-black text-white rounded-xl text-[11px] sm:text-xs font-extrabold flex items-center justify-center gap-1 transition-all cursor-pointer shadow-xs active:scale-95"
+                  >
+                    <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                    <span>Concluir</span>
+                  </button>
+
+                  <button 
+                    onClick={() => cancelarAgendamento(item.id)}
+                    disabled={processandoId === item.id}
+                    className="py-2.5 px-1 bg-stone-100 hover:bg-stone-200 text-stone-700 border border-stone-200 rounded-xl text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1 transition-all cursor-pointer"
+                  >
+                    <X className="w-3.5 h-3.5 text-stone-500 shrink-0" />
+                    <span>Cancelar</span>
+                  </button>
+
+                  <button 
+                    onClick={() => excluirAgendamento(item.id)}
+                    disabled={processandoId === item.id}
+                    className="py-2.5 px-1 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 rounded-xl text-[11px] sm:text-xs font-bold flex items-center justify-center gap-1 transition-all cursor-pointer"
+                  >
+                    <Trash2 className="w-3.5 h-3.5 shrink-0" />
+                    <span>Excluir</span>
+                  </button>
                 </div>
 
               </div>
             ))}
           </div>
         )}
-      </div>
-
-      {/* BOTÃO HISTÓRICO */}
-      <div className="text-center pt-2">
-        <button
-          onClick={() => setModalHistoricoOpen(true)}
-          className="w-full sm:w-auto px-8 py-4 bg-white border border-stone-200/80 shadow-[0_10px_25px_rgba(0,0,0,0.04)] hover:shadow-[0_15px_30px_rgba(0,0,0,0.08)] rounded-2xl text-xs font-bold text-stone-700 hover:bg-stone-50 transition-all flex items-center justify-center gap-3 mx-auto tracking-widest uppercase cursor-pointer group"
-        >
-          <div className="w-8 h-8 rounded-xl bg-[#222222] text-white flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
-            <History className="w-4 h-4" />
-          </div>
-          <span>Ver Histórico Completo & Outros Dias</span>
-        </button>
       </div>
 
       {/* MODAL DE HISTÓRICO */}
