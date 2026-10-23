@@ -1,0 +1,86 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+
+
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+
+/* Esconde qualquer barra de navegação antiga se o modal estiver aberto */
+body:has(.modal-menu-aberto) nav[aria-label="Navegação inferior mobile"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  transition: none !important;
+}
+
+
+@media print {
+  /* Oculta barras laterais, menus, botões e cabeçalhos globais */
+  aside, nav, header, footer, button, .print\:hidden {
+    display: none !important;
+  }
+
+  /* Oculta especificamente o banner azul/cinza de aviso de testes no topo */
+  div[class*="bg-blue"], 
+  div[class*="teste"], 
+  p[class*="teste"],
+  span {
+    /* Mantém textos úteis mas remove barras de aviso flutuantes */
+  }
+
+  /* Remove margens e cabeçalhos automáticos de data/URL do navegador */
+  @page {
+    margin: 1cm;
+    size: auto;
+  }
+
+  body {
+    background-color: white !important;
+    color: black !important;
+    -webkit-print-color-adjust: exact;
+  }
+}
+
+
+
+/* Classe para travar o scroll apenas quando o painel de configurações estiver ativo */
+body.travar-scroll-painel {
+  overflow: hidden !important;
+  position: fixed !important;
+  width: 100% !important;
+  height: 100% !important;
+  overscroll-behavior: none !important;
+  touch-action: none !important;
+}
+
+
+/* Remove o efeito de elástico em toda a página / HTML / Body */
+html, body {
+  overscroll-behavior-y: none;
+}
+
+

@@ -404,11 +404,6 @@ export default function AdminDashboard() {
   const [metodoPagamento, setMetodoPagamento] = useState('pix');
 
   const fecharMenuMobile = () => {
-    const barraAntiga = document.querySelector('nav[aria-label="Navegação inferior mobile"]');
-    if (barraAntiga) {
-      barraAntiga.style.transition = 'none';
-      barraAntiga.style.opacity = '1';
-    }
     setMobileMenuOpen(false);
   };
 
@@ -1203,59 +1198,79 @@ export default function AdminDashboard() {
       </div>
 
       <main className="...">
-        {!mobileMenuOpen && (
-          <nav 
-            aria-label="Navegação inferior mobile" 
-            style={{ display: mobileMenuOpen ? 'none' : undefined }}
-            className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-stone-200 px-4 py-2 z-40 flex items-center justify-between shadow-lg"
-          >
-            <button 
-              onClick={() => setActiveTab('financeiro')}
-              className={`flex flex-col items-center space-y-1 transition-colors cursor-pointer ${activeTab === 'financeiro' ? 'text-stone-900 font-bold' : 'text-stone-400 font-medium'}`}
-            >
-              <TrendingUp className="w-5 h-5" />
-              <span className="text-[10px]">Financeiro</span>
-            </button>
+        {/* NAV BOTTOM MOBILE - ESTILO BANKING FINTECH */}
+        <nav className="fixed bottom-0 left-0 right-0 z-40 md:hidden pb-safe">
+          <div className="bg-white border-t border-slate-200/80 shadow-[0_-8px_25px_rgba(0,0,0,0.08)] rounded-t-[1.75rem] px-3 pt-2 pb-3 relative">
+            <div className="grid grid-cols-5 items-center justify-items-center max-w-md mx-auto">
 
-            <button 
-              onClick={() => setActiveTab('agendamentos')}
-              className={`flex flex-col items-center space-y-1 transition-colors cursor-pointer ${activeTab === 'agendamentos' ? 'text-stone-900 font-bold' : 'text-stone-400 font-medium'}`}
-            >
-              <Calendar className="w-5 h-5" />
-              <span className="text-[10px]">Agenda</span>
-            </button>
-
-            <div className="relative -top-3">
-              <button 
-                onClick={() => setMobileMenuOpen(true)}
-                className="w-12 h-12 text-white rounded-full flex items-center justify-center active:scale-95 transition-transform border-4 border-white cursor-pointer"
-                style={{
-                  background: 'linear-gradient(135deg, #102a43 0%, #0b1d2d 100%)',
-                  boxShadow: '0 10px 20px rgba(16, 42, 67, 0.4), inset 0 2px 2px rgba(255, 255, 255, 0.3), inset 0 -3px 4px rgba(0, 0, 0, 0.5)'
-                }}
-                aria-label="Abrir Menu de Acesso Rápido"
+              {/* 1. FINANCEIRO */}
+              <button
+                type="button"
+                onClick={() => setActiveTab('financeiro')}
+                className={`flex flex-col items-center justify-center gap-1 transition-all cursor-pointer ${
+                  activeTab === 'financeiro' ? 'text-slate-900 font-extrabold' : 'text-slate-500 font-medium hover:text-slate-800'
+                }`}
               >
-                <Menu className="w-5 h-5 text-white" />
+                <TrendingUp className={`w-5 h-5 ${activeTab === 'financeiro' ? 'text-slate-900 stroke-[2.5]' : 'text-slate-500'}`} />
+                <span className="text-[10px] tracking-tight">Financeiro</span>
               </button>
+
+              {/* 2. AGENDA */}
+              <button
+                type="button"
+                onClick={() => setActiveTab('agendamentos')}
+                className={`flex flex-col items-center justify-center gap-1 transition-all cursor-pointer ${
+                  activeTab === 'agendamentos' ? 'text-slate-900 font-extrabold' : 'text-slate-500 font-medium hover:text-slate-800'
+                }`}
+              >
+                <Calendar className={`w-5 h-5 ${activeTab === 'agendamentos' ? 'text-slate-900 stroke-[2.5]' : 'text-slate-500'}`} />
+                <span className="text-[10px] tracking-tight">Agenda</span>
+              </button>
+
+              {/* 3. BOTÃO CENTRAL ELEVADO - GAVETA DE APPS */}
+              <div className="relative -top-5 flex flex-col items-center justify-center">
+                <button
+                  type="button"
+                  onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                  className={`w-14 h-14 rounded-full bg-slate-900 text-white flex items-center justify-center shadow-lg transition-all active:scale-90 cursor-pointer border-[3.5px] border-white ring-2 ${
+                    mobileMenuOpen ? 'ring-slate-900 bg-black scale-105' : 'ring-slate-200 hover:bg-black'
+                  }`}
+                  aria-label="Abrir Menu de Apps"
+                >
+                  <Menu className={`w-6 h-6 text-white transition-transform duration-200 ${mobileMenuOpen ? 'rotate-90' : ''}`} />
+                </button>
+                <span className="-mt-1 text-[10px] font-extrabold text-slate-800 tracking-tight">
+                  Apps
+                </span>
+              </div>
+
+              {/* 4. CLIENTES */}
+              <button
+                type="button"
+                onClick={() => setActiveTab('clientes')}
+                className={`flex flex-col items-center justify-center gap-1 transition-all cursor-pointer ${
+                  activeTab === 'clientes' ? 'text-slate-900 font-extrabold' : 'text-slate-500 font-medium hover:text-slate-800'
+                }`}
+              >
+                <Users className={`w-5 h-5 ${activeTab === 'clientes' ? 'text-slate-900 stroke-[2.5]' : 'text-slate-500'}`} />
+                <span className="text-[10px] tracking-tight">Clientes</span>
+              </button>
+
+              {/* 5. AJUSTES */}
+              <button
+                type="button"
+                onClick={() => setActiveTab('configuracoes')}
+                className={`flex flex-col items-center justify-center gap-1 transition-all cursor-pointer ${
+                  activeTab === 'configuracoes' ? 'text-slate-900 font-extrabold' : 'text-slate-500 font-medium hover:text-slate-800'
+                }`}
+              >
+                <Settings className={`w-5 h-5 ${activeTab === 'configuracoes' ? 'text-slate-900 stroke-[2.5]' : 'text-slate-500'}`} />
+                <span className="text-[10px] tracking-tight">Ajustes</span>
+              </button>
+
             </div>
-
-            <button 
-              onClick={() => setActiveTab('clientes')}
-              className={`flex flex-col items-center space-y-1 transition-colors cursor-pointer ${activeTab === 'clientes' ? 'text-stone-900 font-bold' : 'text-stone-400 font-medium'}`}
-            >
-              <Users className="w-5 h-5" />
-              <span className="text-[10px]">Clientes</span>
-            </button>
-
-            <button 
-              onClick={() => setActiveTab('configuracoes')}
-              className={`flex flex-col items-center space-y-1 transition-colors cursor-pointer ${activeTab === 'configuracoes' ? 'text-stone-900 font-bold' : 'text-stone-400 font-medium'}`}
-            >
-              <Settings className="w-5 h-5" />
-              <span className="text-[10px]">Ajustes</span>
-            </button>
-          </nav>
-        )}
+          </div>
+        </nav>
       </main>
 
       {mobileMenuOpen && (
@@ -1550,9 +1565,8 @@ export default function AdminDashboard() {
           </div>
         </aside>
 
-       <main className="flex-1 md:ml-72 px-2.5 pt-2.5 sm:px-6 sm:pt-4 md:p-10 pb-24 overflow-y-auto max-w-full">
-  {/* Removemos a div vazia com mb-8 que criava espaço fantasma */}
-  {activeTab === 'configuracoes' && null}
+        <main className="flex-1 md:ml-72 px-2.5 pt-2.5 sm:px-6 sm:pt-4 md:p-10 pb-24 overflow-y-auto max-w-full">
+          {activeTab === 'configuracoes' && null}
 
           {errorMessage && (
             <div className="mb-6 bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 rounded-2xl text-xs flex items-center gap-2">

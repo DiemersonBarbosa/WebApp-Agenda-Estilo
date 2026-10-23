@@ -78,3 +78,9 @@ body.travar-scroll-painel {
 }
 
 
+/* Remove o efeito de elástico em toda a página / HTML / Body */
+html, body {
+  overscroll-behavior-y: none;
+}
+
+
