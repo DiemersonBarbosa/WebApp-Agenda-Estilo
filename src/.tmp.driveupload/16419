@@ -1183,14 +1183,14 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            <div className="flex items-center gap-2 shrink-0">
+           <div className="flex items-center gap-2 shrink-0">
               <NotificacoesBell barbeariaId={barbearia?.id} supabase={supabase} />
               <button 
-                onClick={() => setModalInfoAssinaturaOpen(true)} 
+                onClick={() => window.location.reload()} 
                 className="w-9 h-9 rounded-full bg-white border border-stone-200/80 flex items-center justify-center text-stone-700 shadow-xs hover:bg-stone-50 transition-colors cursor-pointer"
-                title="Ajustes"
+                title="Atualizar Página"
               >
-                <Settings className="w-4 h-4" />
+                <RefreshCw className="w-4 h-4" />
               </button>
             </div>
           </div>
