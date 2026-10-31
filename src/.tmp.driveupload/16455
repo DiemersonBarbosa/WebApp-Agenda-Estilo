@@ -11,19 +11,16 @@ export default function AgendamentoClassico({ barbeariaId }) {
   const [horariosOcupados, setHorariosOcupados] = useState([]);
   const [datasBloqueadas, setDatasBloqueadas] = useState([]);
 
-  // Estado da Identificação do Cliente
   const [telefone, setTelefone] = useState('');
   const [nome, setNome] = useState('');
   const [clienteId, setClienteId] = useState(null);
   const [clienteIdentificado, setClienteIdentificado] = useState(false);
   const [isNovoCliente, setIsNovoCliente] = useState(false);
   
-  // Dados de Fidelidade exatamente como no Chat
   const [dadosFidelidade, setDadosFidelidade] = useState({ selos_atuais: 0, total_resgates: 0, id: null });
   const [agendamentosAtivos, setAgendamentosAtivos] = useState([]);
   const [modoVisualizacao, setModoVisualizacao] = useState('agendar');
 
-  // Seleções
   const [agendamentoEmEdicao, setAgendamentoEmEdicao] = useState(null);
   const [servicoEscolhido, setServicoEscolhido] = useState(null);
   const [barbeiroEscolhido, setBarbeiroEscolhido] = useState(null);
@@ -36,7 +33,6 @@ export default function AgendamentoClassico({ barbeariaId }) {
 
   const metaSelos = 10;
 
-  // Refs para Scroll Automático
   const servicoRef = useRef(null);
   const barbeiroRef = useRef(null);
   const dataRef = useRef(null);
@@ -271,12 +267,25 @@ export default function AgendamentoClassico({ barbeariaId }) {
     const horariosGerados = [];
     const intervaloMinutos = 60;
 
+    // Regra de antecedência mínima
+    const antecedenciaMinima = barbearia?.antecedencia_minima_minutos ?? 30;
+    const agora = new Date();
+    const dataAtualIso = `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, '0')}-${String(agora.getDate()).padStart(2, '0')}`;
+    const isHoje = dataFmt === dataAtualIso;
+    const minutosAtuaisDoDia = agora.getHours() * 60 + agora.getMinutes();
+    const limiteMinutosComAntecedencia = minutosAtuaisDoDia + antecedenciaMinima;
+
     for (let min = minAbertura; min < minFechamento; min += intervaloMinutos) {
       if (minPausaInicio !== null && minPausaFim !== null) {
         if (min >= minPausaInicio && min < minPausaFim) {
           continue;
         }
       }
+
+      if (isHoje && min < limiteMinutosComAntecedencia) {
+        continue;
+      }
+
       horariosGerados.push(paraHoraStr(min));
     }
 
@@ -452,10 +461,8 @@ export default function AgendamentoClassico({ barbeariaId }) {
   return (
     <div className={`w-full max-w-xl mx-auto rounded-[2.5rem] border overflow-hidden relative backdrop-blur-2xl transition-all duration-300 ${estiloFundoContainer}`}>
       
-      {/* FRISO SUPERIOR */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-[3px] z-30 shadow-lg" style={{ background: `linear-gradient(to right, transparent, ${corTema}, transparent)` }} />
 
-      {/* CAPA DA UNIDADE */}
       <div className="relative h-36 w-full bg-slate-900 overflow-hidden">
         {barbearia?.capa_url ? (
           <img src={barbearia.capa_url} alt="Capa" className="w-full h-full object-cover" />
@@ -467,7 +474,6 @@ export default function AgendamentoClassico({ barbeariaId }) {
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
       </div>
 
-      {/* HEADER: LOGO E NOME */}
       <div className="px-6 pb-2 pt-0 relative flex flex-col items-center text-center -mt-12 mb-3 z-10">
         <div className="w-20 h-20 rounded-[1.8rem] bg-white p-1 shadow-2xl border border-slate-200 overflow-hidden flex items-center justify-center mb-2">
           {barbearia?.logo_url ? (
@@ -486,7 +492,6 @@ export default function AgendamentoClassico({ barbeariaId }) {
 
       <div className="p-6 sm:p-8 pt-0 space-y-6">
 
-        {/* IDENTIFICAÇÃO WHATSAPP */}
         {!clienteIdentificado ? (
           <div className="space-y-4">
             {!isNovoCliente ? (
@@ -545,13 +550,10 @@ export default function AgendamentoClassico({ barbeariaId }) {
             )}
           </div>
         ) : (
-          /* PASSO SEGUINTE: CLIENTE AUTENTICADO */
           <div className="space-y-6">
             
-            {/* CARTÃO VIP DE FIDELIDADE */}
             {renderCartaoFidelidade()}
 
-            {/* BARRA DE ALTERNÂNCIA (Novo Agendamento) */}
             <div className={`flex gap-1.5 p-1 rounded-2xl border ${
               isClean ? 'bg-slate-100 border-slate-200' : 'bg-black/40 border-white/10'
             }`}>
@@ -582,7 +584,6 @@ export default function AgendamentoClassico({ barbeariaId }) {
               )}
             </div>
 
-            {/* MODO GERENCIAR MEUS AGENDAMENTOS */}
             {modoVisualizacao === 'gerenciar' ? (
               <div className="space-y-3">
                 <h3 className={`text-xs font-black uppercase tracking-wider ${isClean ? 'text-slate-600' : 'text-slate-400'}`}>Seus Agendamentos Ativos</h3>
@@ -643,9 +644,7 @@ export default function AgendamentoClassico({ barbeariaId }) {
                 </button>
               </div>
             ) : (
-              /* MODO NOVO AGENDAMENTO */
               <>
-                {/* SELEÇÃO 1: SERVIÇO */}
                 <div ref={servicoRef} className="space-y-3 scroll-mt-6">
                   <div className="flex items-center justify-between">
                     <label className={`text-xs font-black uppercase tracking-wider flex items-center gap-2 ${isClean ? 'text-slate-700' : 'text-slate-400'}`}>
@@ -691,7 +690,6 @@ export default function AgendamentoClassico({ barbeariaId }) {
                   </div>
                 </div>
 
-                {/* SELEÇÃO 2: PROFISSIONAL */}
                 {servicoEscolhido && (
                   <div ref={barbeiroRef} className={`space-y-3 pt-4 border-t scroll-mt-6 ${isClean ? 'border-slate-200' : 'border-white/10'}`}>
                     <label className={`text-xs font-black uppercase tracking-wider flex items-center gap-2 ${isClean ? 'text-slate-700' : 'text-slate-400'}`}>
@@ -735,7 +733,6 @@ export default function AgendamentoClassico({ barbeariaId }) {
                   </div>
                 )}
 
-                {/* SELEÇÃO 3: DATA */}
                 {(barbeiroEscolhido || agendamentoEmEdicao) && (
                   <div ref={dataRef} className={`space-y-3 pt-4 border-t scroll-mt-6 ${isClean ? 'border-slate-200' : 'border-white/10'}`}>
                     <label className={`text-xs font-black uppercase tracking-wider flex items-center gap-2 ${isClean ? 'text-slate-700' : 'text-slate-400'}`}>
@@ -777,7 +774,6 @@ export default function AgendamentoClassico({ barbeariaId }) {
                   </div>
                 )}
 
-                {/* SELEÇÃO 4: HORÁRIO */}
                 {dataEscolhida && (
                   <div ref={horarioRef} className={`space-y-3 pt-4 border-t scroll-mt-6 ${isClean ? 'border-slate-200' : 'border-white/10'}`}>
                     <label className={`text-xs font-black uppercase tracking-wider flex items-center gap-2 ${isClean ? 'text-slate-700' : 'text-slate-400'}`}>
@@ -817,7 +813,6 @@ export default function AgendamentoClassico({ barbeariaId }) {
                   </div>
                 )}
 
-                {/* RESUMO E CONFIRMAÇÃO FINAL */}
                 {horaEscolhida && !sucesso && !agendamentoEmEdicao && (
                   <div ref={resumoRef} className={`p-5 rounded-3xl border space-y-4 shadow-lg scroll-mt-6 ${
                     isClean ? 'bg-slate-900 text-white border-slate-800' : 'bg-gradient-to-br from-black/80 via-black/60 to-stone-900 border-white/15'
@@ -843,7 +838,6 @@ export default function AgendamentoClassico({ barbeariaId }) {
                   </div>
                 )}
 
-                {/* SUCESSO DO AGENDAMENTO */}
                 {sucesso && (
                   <div className={`py-6 text-center space-y-4 border-t ${isClean ? 'border-slate-200' : 'border-white/10'}`}>
                     <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto shadow-md bg-slate-900 text-white">

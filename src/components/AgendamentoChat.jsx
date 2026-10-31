@@ -4,7 +4,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Bot, Send, CheckCircle2, AlertCircle, Clock, ArrowRight, Calendar as CalendarIcon, XCircle, Edit3, Scissors, User, Award, Gift, Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
-// URL base para chamadas de API do servidor (necessária no app nativo Capacitor/Android)
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://agendaestilo.com.br';
 
 export default function AgendamentoChat({ barbeariaId }) {
@@ -77,26 +76,18 @@ export default function AgendamentoChat({ barbeariaId }) {
       const diaIso = String(d.getDate()).padStart(2, '0');
       const dataIso = `${anoIso}-${mesIso}-${diaIso}`;
 
-      // Mapeamento sem acento
       const diasSemanaMap = ['domingo', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado'];
       const nomeDiaSemana = diasSemanaMap[d.getDay()];
 
-      // Mapeamento com acento (para garantir compatibilidade com o painel)
       const diasSemanaComAcento = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
       const nomeDiaComAcento = diasSemanaComAcento[d.getDay()];
 
-     const barbeiroAtivo = etapa.startsWith('editar')
+      const barbeiroAtivo = etapa.startsWith('editar')
         ? barbeiros.find(b => b.id === agendamentoEmEdicao?.barbeiro_id)
         : barbeiroEscolhido;
 
-      // ADICIONE ESTA LINHA PARA TESTAR NO CONSOLE DO NAVEGADOR (F12)
-      console.log("Horários JSON:", JSON.stringify(barbeiroAtivo?.horarios_trabalho, null, 2));
-
-      // Função auxiliar para testar se um dia está ativo na config
       const checarDiaAtivo = (configObj) => {
         if (!configObj) return undefined;
-        
-        // Busca a chave com ou sem acento
         const conf = configObj[nomeDiaSemana] !== undefined ? configObj[nomeDiaSemana] : configObj[nomeDiaComAcento];
         if (conf === undefined) return undefined;
 
@@ -109,19 +100,15 @@ export default function AgendamentoChat({ barbeariaId }) {
       };
 
       let diaAtivo = true;
-
-      // 1. Tenta pegar a configuração do barbeiro
       const ativoBarbeiro = checarDiaAtivo(barbeiroAtivo?.horarios_trabalho);
 
       if (ativoBarbeiro !== undefined) {
         diaAtivo = ativoBarbeiro;
       } else {
-        // 2. Se o barbeiro não tiver configuração específica, usa a da barbearia
         const ativoBarbearia = checarDiaAtivo(barbearia?.horarios);
         if (ativoBarbearia !== undefined) {
           diaAtivo = ativoBarbearia;
         } else if (d.getDay() === 0 || d.getDay() === 6) {
-          // Por padrão, se não configurado, sábado/domingo ficam como folga
           diaAtivo = false;
         }
       }
@@ -219,12 +206,25 @@ export default function AgendamentoChat({ barbeariaId }) {
     const horariosGerados = [];
     const intervaloMinutos = 60;
 
+    // Regra de antecedência mínima
+    const antecedenciaMinima = barbearia?.antecedencia_minima_minutos ?? 30;
+    const agora = new Date();
+    const dataAtualIso = `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, '0')}-${String(agora.getDate()).padStart(2, '0')}`;
+    const isHoje = dataFmt === dataAtualIso;
+    const minutosAtuaisDoDia = agora.getHours() * 60 + agora.getMinutes();
+    const limiteMinutosComAntecedencia = minutosAtuaisDoDia + antecedenciaMinima;
+
     for (let min = minAbertura; min < minFechamento; min += intervaloMinutos) {
       if (minPausaInicio !== null && minPausaFim !== null) {
         if (min >= minPausaInicio && min < minPausaFim) {
           continue;
         }
       }
+
+      if (isHoje && min < limiteMinutosComAntecedencia) {
+        continue;
+      }
+
       horariosGerados.push(paraHoraStr(min));
     }
 
@@ -529,7 +529,6 @@ export default function AgendamentoChat({ barbeariaId }) {
     try {
       const dataHoraIso = new Date(`${dataFmt}T${horaEscolhida}:00`).toISOString();
       
-      // 1. Grava o agendamento no Supabase
       await supabase.from('agendamentos').insert([{
         barbearia_id: barbeariaId,
         cliente_id: clienteId,
@@ -541,7 +540,6 @@ export default function AgendamentoChat({ barbeariaId }) {
         lido: false
       }]);
 
-      // 2. DISPARO DA NOTIFICAÇÃO PUSH PARA O APLICATIVO DO GESTOR VIA FCM
       try {
         const { data: barbData } = await supabase
           .from('barbearias')
@@ -593,7 +591,6 @@ export default function AgendamentoChat({ barbeariaId }) {
           <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border ${atingiuMeta ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40' : isClean ? 'bg-slate-200 text-slate-700 border-slate-300' : 'bg-amber-500/20 text-amber-400 border-amber-500/40'}`}>
             {atingiuMeta ? '🎁 Resgate Disponível!' : `${selos} / ${metaSelos} Selos`}
           </span>
-
         </div>
         <div className="space-y-1.5">
           <div className={`w-full h-2.5 rounded-full overflow-hidden p-0.5 border ${isClean ? 'bg-slate-200 border-slate-300' : 'bg-stone-950 border-slate-800'}`}>
@@ -821,7 +818,7 @@ export default function AgendamentoChat({ barbeariaId }) {
                     <div>
                       <h4 className="text-xs font-black text-rose-500 uppercase tracking-wider">Horários Indisponíveis</h4>
                       <p className={`text-[11px] font-medium leading-tight mt-0.5 ${isClean ? 'text-slate-600' : 'text-slate-400'}`}>
-                        Nenhum horário livre nesta data (agenda cheia ou estabelecimento fechado).
+                        Nenhum horário livre nesta data (agenda cheia, estabelecimento fechado ou antecedência mínima atingida).
                       </p>
                     </div>
                   </div>
@@ -916,7 +913,7 @@ export default function AgendamentoChat({ barbeariaId }) {
                     <div>
                       <h4 className="text-xs font-black text-rose-500 uppercase tracking-wider">Horários Indisponíveis</h4>
                       <p className={`text-[11px] font-medium leading-tight mt-0.5 ${isClean ? 'text-slate-600' : 'text-slate-400'}`}>
-                        Nenhum horário livre nesta data (agenda cheia ou profissional de folga).
+                        Nenhum horário livre nesta data (agenda cheia, folga ou limite de antecedência atingido).
                       </p>
                     </div>
                   </div>

@@ -1118,7 +1118,7 @@ export default function AdminDashboard() {
     return (
       <div className="min-h-screen bg-stone-100 flex flex-col items-center justify-center gap-3 text-stone-600 font-sans">
         <div className="w-9 h-9 border-2 border-stone-800 border-t-transparent rounded-full animate-spin" />
-        <span className="text-xs font-semibold tracking-wider uppercase text-stone-500">A carregar Painel...</span>
+        <span className="text-xs font-semibold tracking-wider uppercase text-stone-500">Carregando Painel...</span>
       </div>
     );
   }
@@ -1239,8 +1239,8 @@ export default function AdminDashboard() {
                 >
                   <Menu className={`w-6 h-6 text-white transition-transform duration-200 ${mobileMenuOpen ? 'rotate-90' : ''}`} />
                 </button>
-                <span className="-mt-1 text-[10px] font-extrabold text-slate-800 tracking-tight">
-                  Apps
+                <span className=" text-[10px] pt-2 font-extrabold text-slate-800 tracking-tight">
+                  Menu
                 </span>
               </div>
 
@@ -1774,7 +1774,7 @@ export default function AdminDashboard() {
             <div className="bg-white rounded-3xl border border-stone-200/80 shadow-sm overflow-hidden p-6 space-y-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-stone-100">
                 <div>
-                  <h3 className="text-base font-bold text-stone-900">Controlo de Custos e Despesas</h3>
+                  <h3 className="text-base font-bold text-stone-900">Controle de Custos e Despesas</h3>
                   <p className="text-xs text-stone-400">Adicione os gastos operacionais da barbearia.</p>
                 </div>
                 <button

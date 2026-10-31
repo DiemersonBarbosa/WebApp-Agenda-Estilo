@@ -307,7 +307,7 @@ function AdminLoginForm() {
 
 export default function AdminLogin() {
   return (
-    <React.Suspense fallback={<div className="min-h-screen bg-stone-100 flex items-center justify-center text-xs text-stone-500">A carregar...</div>}>
+    <React.Suspense fallback={<div className="min-h-screen bg-stone-100 flex items-center justify-center text-xs text-stone-500">Carregando...</div>}>
       <AdminLoginForm />
     </React.Suspense>
   );

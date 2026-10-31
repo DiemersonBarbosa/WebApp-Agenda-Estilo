@@ -75,7 +75,8 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, barbearia
         month: '2-digit',
         year: 'numeric',
         hour: '2-digit',
-        minute: '2-digit'
+        minute: '2-digit',
+        hour12: false
       });
     } catch {
       return dataHoraStr;
@@ -85,17 +86,11 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, barbearia
   const extrairHoraMinuto = (dataHoraStr) => {
     if (!dataHoraStr) return '--:--';
     try {
-      if (dataHoraStr.includes('T')) {
-        const horaPart = dataHoraStr.split('T')[1];
-        if (horaPart) {
-          return horaPart.substring(0, 5);
-        }
-      }
       const data = new Date(dataHoraStr);
       return data.toLocaleTimeString('pt-BR', {
         hour: '2-digit',
         minute: '2-digit',
-        timeZone: 'UTC'
+        hour12: false
       });
     } catch {
       return '';
@@ -334,7 +329,7 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, barbearia
 
   const agendamentosPendentesDia = agendamentosDoDiaSelecionado.filter(item => {
     const status = (item.status || 'agendado').toLowerCase();
-    return status !== 'concluido' && status !== 'cancelado' && status !== 'finalizado' && status !== 'cancelada';
+    return status !== 'cancelado' && status !== 'cancelada';
   });
 
   const totalAtendimentosDia = agendamentosDoDiaSelecionado.length;
@@ -343,7 +338,6 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, barbearia
     .filter(i => (i.status || '').toLowerCase() !== 'cancelado')
     .reduce((acc, item) => acc + Number(item.valor_total || item.servicos?.preco || 0), 0);
 
-  // GERAÇÃO DINÂMICA UNIFICADA COM O CONFIGURADOR DE HORÁRIOS DO BARBEIRO
   const obterItensExibicao = () => {
     if (barbeiroSelecionado === 'todos') {
       return agendamentosPendentesDia.sort((a, b) => new Date(a.data_hora) - new Date(b.data_hora)).map(item => ({
@@ -368,7 +362,10 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, barbearia
     }
 
     if (configDiaBarbeiro && configDiaBarbeiro.ativo === false) {
-      return []; 
+      return agendamentosPendentesDia.sort((a, b) => new Date(a.data_hora) - new Date(b.data_hora)).map(item => ({
+        tipo: 'ocupado',
+        dados: item
+      }));
     }
 
     let aberturaStr = configDiaBarbeiro?.abertura || configDiaBarbeiro?.inicio || '08:00';
@@ -390,7 +387,12 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, barbearia
     const hojeIso = obterDataLocalIso();
     const isHoje = dataSelecionada === hojeIso;
     const agora = new Date();
-    const horaAtual = agora.getHours();
+    
+    const antecedenciaMinima = barbeariaObj?.antecedencia_minima_minutos ?? 30;
+    const minutosAtuaisDoDia = agora.getHours() * 60 + agora.getMinutes();
+    const limiteMinutosComAntecedencia = minutosAtuaisDoDia + antecedenciaMinima;
+
+    const idsAgendamentosIncluidos = new Set();
 
     for (let min = minAbertura; min < minFechamento; min += 60) {
       const h = Math.floor(min / 60);
@@ -400,7 +402,9 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, barbearia
       }
 
       const horaStr = `${String(h).padStart(2, '0')}:00`;
-      if (isHoje && h < horaAtual) continue;
+      
+      const slotMinutos = h * 60;
+      const isPassadoOuProximo = isHoje && slotMinutos < limiteMinutosComAntecedencia;
 
       const agendamentosNoHorario = agendamentosPendentesDia.filter(item => {
         const hItem = extrairHoraMinuto(item.data_hora);
@@ -409,14 +413,27 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, barbearia
 
       if (agendamentosNoHorario.length > 0) {
         agendamentosNoHorario.forEach(agendamento => {
-          slots.push({ tipo: 'ocupado', dados: agendamento });
+          if (!idsAgendamentosIncluidos.has(agendamento.id)) {
+            idsAgendamentosIncluidos.add(agendamento.id);
+            slots.push({ tipo: 'ocupado', dados: agendamento });
+          }
         });
-      } else {
+      } else if (!isPassadoOuProximo) {
         slots.push({ tipo: 'livre', horario: horaStr });
       }
     }
 
-    return slots;
+    agendamentosPendentesDia.forEach(agendamento => {
+      if (!idsAgendamentosIncluidos.has(agendamento.id)) {
+        slots.push({ tipo: 'ocupado', dados: agendamento });
+      }
+    });
+
+    return slots.sort((a, b) => {
+      const horaA = a.tipo === 'ocupado' ? extrairHoraMinuto(a.dados.data_hora) : a.horario;
+      const horaB = b.tipo === 'ocupado' ? extrairHoraMinuto(b.dados.data_hora) : b.horario;
+      return horaA.localeCompare(horaB);
+    });
   };
 
   const itensExibicao = obterItensExibicao();
@@ -550,7 +567,7 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, barbearia
             const qtdNoDia = todosAgendamentos.filter(item => {
               const dataItem = extrairDataIso(item);
               const status = (item.status || 'agendado').toLowerCase();
-              return dataItem === dia.iso && status !== 'concluido' && status !== 'cancelado';
+              return dataItem === dia.iso && status !== 'cancelado';
             }).length;
 
             return (
@@ -600,7 +617,7 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, barbearia
             }`}
           >
             <User className="w-3.5 h-3.5" />
-            <span>Todos ({todosAgendamentos.filter(i => extrairDataIso(i) === dataSelecionada && (i.status || 'agendado').toLowerCase() !== 'concluido' && (i.status || '').toLowerCase() !== 'cancelado').length})</span>
+            <span>Todos ({todosAgendamentos.filter(i => extrairDataIso(i) === dataSelecionada && (i.status || '').toLowerCase() !== 'cancelado').length})</span>
           </button>
 
           {barbeiros.map((b) => {
@@ -608,7 +625,6 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, barbearia
             const qtdBarbeiro = todosAgendamentos.filter(
               i => extrairDataIso(i) === dataSelecionada && 
                    String(i.barbeiro_id) === String(b.id) && 
-                   (i.status || 'agendado').toLowerCase() !== 'concluido' && 
                    (i.status || '').toLowerCase() !== 'cancelado'
             ).length;
 
@@ -676,7 +692,6 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, barbearia
           </div>
         ) : (
           <div className="mt-4 relative pl-3 sm:pl-5 space-y-3.5">
-            {/* LINHA GUIA VERTICAL */}
             <div className="absolute left-[18px] sm:left-[28px] top-3 bottom-3 w-0.5 bg-gradient-to-b from-stone-300 via-stone-400 to-stone-200/40 rounded-full z-0" />
 
             {itensExibicao.map((slot, index) => {
@@ -685,6 +700,7 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, barbearia
                 const fotoBarb = item.barbeiros?.foto;
                 const preco = Number(item.valor_total || item.servicos?.preco || 0).toFixed(2);
                 const emAndamento = isHorarioEmAndamento(item.data_hora);
+                const isConcluido = (item.status || '').toLowerCase() === 'concluido';
 
                 return (
                   <div key={`ocupado-${item.id}-${index}`} className="relative z-10 flex items-start gap-2.5 sm:gap-4">
@@ -708,9 +724,15 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, barbearia
                               {extrairHoraMinuto(item.data_hora)}
                             </span>
 
-                            {emAndamento && (
+                            {emAndamento && !isConcluido && (
                               <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md animate-pulse">
                                 Em andamento
+                              </span>
+                            )}
+
+                            {isConcluido && (
+                              <span className="bg-stone-100 text-stone-700 border border-stone-300 text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md">
+                                Concluído
                               </span>
                             )}
                           </div>
