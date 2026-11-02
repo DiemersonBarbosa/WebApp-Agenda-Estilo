@@ -4,7 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { 
   Store, Save, Check, ExternalLink, Share2, 
   Send, X, MessageSquare, Bot, Grid, Palette, 
-  Clock, Trash2, Upload, Image as ImageIcon, ShieldCheck
+  Clock, Trash2, Upload, Image as ImageIcon, ShieldCheck,
+  ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
@@ -396,7 +397,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
         </div>
       </div>
 
-      {/* ABAS DE NAVEGAÇÃO SUPERIORES PERFEITAS */}
+      {/* ABAS DE NAVEGAÇÃO SUPERIORES PADRONIZADAS */}
       <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
         {botoesNavegacao.map((btn) => {
           const Icone = btn.icone;
@@ -421,62 +422,61 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
         })}
       </div>
 
-      {/* PAINEL DE CONTEÚDO PRINCIPAL COM LAYOUT ORGANIZADO E PROFISSIONAL */}
-      <div className="bg-white rounded-3xl border border-slate-200/80 p-4 sm:p-6 shadow-xs space-y-5">
+      {/* PAINEL DE CONTEÚDO PRINCIPAL COM ALTURA PADRONIZADA (IGUAL À ABA ATENDIMENTO) */}
+      <div className="bg-white rounded-3xl border border-slate-200/80 p-4 sm:p-5 shadow-xs space-y-4">
         
         {/* ================= GERAL & PERFIL ================= */}
         {secaoAtiva === 'geral' && (
-          <div className="space-y-4 animate-in fade-in duration-200">
-            <div className="bg-slate-50/60 p-4 rounded-2xl border border-slate-200/60 space-y-4">
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wide">Nome da Barbearia</label>
+          <div className="space-y-3 animate-in fade-in duration-200">
+            <div className="bg-slate-50/60 p-3.5 rounded-2xl border border-slate-200/60 space-y-2.5">
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wide">Nome da Barbearia</label>
                 <input
                   type="text"
                   value={nome}
                   onChange={(e) => setNome(e.target.value)}
-                  className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all shadow-2xs"
+                  className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all shadow-2xs"
                   placeholder="Ex: Barbearia Executiva"
                 />
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wide">Link Personalizado (Slug)</label>
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wide">Link Personalizado (Slug)</label>
                 <div className="flex items-center bg-white border border-slate-200 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-slate-900/10 focus-within:border-slate-900 transition-all shadow-2xs">
-                  <span className="pl-3 pr-2 text-[11px] text-slate-400 font-bold bg-slate-100 border-r border-slate-200 py-2.5">/agendar/</span>
+                  <span className="pl-3 pr-2 text-[10px] text-slate-400 font-bold bg-slate-100 border-r border-slate-200 py-2">/agendar/</span>
                   <input
                     type="text"
                     value={slug}
                     onChange={(e) => setSlug(e.target.value)}
-                    className="w-full bg-transparent px-3 py-2.5 text-xs font-semibold text-slate-900 focus:outline-none"
+                    className="w-full bg-transparent px-3 py-2 text-xs font-semibold text-slate-900 focus:outline-none"
                     placeholder="sua-barbearia"
                   />
                 </div>
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wide">Antecedência Mínima (minutos)</label>
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wide">Antecedência Mínima (minutos)</label>
                 <input
                   type="number"
                   min="0"
                   step="5"
                   value={antecedenciaMinima}
                   onChange={(e) => setAntecedenciaMinima(e.target.value)}
-                  className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all shadow-2xs"
+                  className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all shadow-2xs"
                   placeholder="Ex: 30"
                 />
-                <p className="text-[10px] text-slate-500">Impede agendamentos em cima da hora.</p>
               </div>
             </div>
 
-            <div className="flex items-center justify-between bg-slate-900 text-white p-4 rounded-2xl shadow-sm">
+            <div className="flex items-center justify-between bg-slate-900 text-white p-3.5 rounded-2xl shadow-sm">
               <div>
                 <h5 className="font-bold text-xs">Horários Gerais & Feriados</h5>
-                <p className="text-[10px] text-slate-300">Gerencie bloqueios de datas e feriados.</p>
+                <p className="text-[9px] text-slate-300">Gerencie bloqueios de datas.</p>
               </div>
               <button
                 type="button"
                 onClick={() => setModalHorariosGeraisOpen(true)}
-                className="px-4 py-2 bg-white text-slate-900 hover:bg-slate-100 rounded-xl text-xs font-bold cursor-pointer shadow-xs transition-all"
+                className="px-3.5 py-1.5 bg-white text-slate-900 hover:bg-slate-100 rounded-xl text-xs font-bold cursor-pointer shadow-xs transition-all"
               >
                 Configurar
               </button>
@@ -486,43 +486,41 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
 
         {/* ================= VISUAL & MÍDIA ================= */}
         {secaoAtiva === 'visual' && (
-          <div className="space-y-5 animate-in fade-in duration-200">
-            <div className="grid grid-cols-2 gap-3.5">
-              <div className="bg-slate-50/60 p-3.5 rounded-2xl border border-slate-200/60 space-y-2 flex flex-col items-center text-center">
-                <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wide w-full text-left">Logo</label>
-                <label className="w-full border-2 border-dashed border-slate-200 hover:border-slate-400 rounded-xl p-3 flex flex-col items-center justify-center gap-2 bg-white cursor-pointer transition-all shadow-2xs">
+          <div className="space-y-3.5 animate-in fade-in duration-200">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-slate-50/60 p-3 rounded-2xl border border-slate-200/60 space-y-1.5 flex flex-col items-center text-center">
+                <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wide w-full text-left">Logo</label>
+                <label className="w-full border-2 border-dashed border-slate-200 hover:border-slate-400 rounded-xl p-2.5 flex flex-col items-center justify-center gap-1.5 bg-white cursor-pointer transition-all shadow-2xs">
                   <input type="file" accept="image/*" onChange={(e) => handleUploadImagem(e, 'logo')} className="hidden" />
-                  {logoUrl ? <img src={logoUrl} alt="" className="w-12 h-12 rounded-full object-cover shadow-xs ring-2 ring-slate-200" /> : <Upload className="w-5 h-5 text-slate-400" />}
+                  {logoUrl ? <img src={logoUrl} alt="" className="w-10 h-10 rounded-full object-cover shadow-xs ring-2 ring-slate-200" /> : <Upload className="w-4 h-4 text-slate-400" />}
                   <span className="text-[10px] font-bold text-slate-700">{enviandoLogo ? 'Enviando...' : 'Enviar Logo'}</span>
                 </label>
               </div>
 
-              <div className="bg-slate-50/60 p-3.5 rounded-2xl border border-slate-200/60 space-y-2 flex flex-col items-center text-center">
-                <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wide w-full text-left">Capa</label>
-                <label className="w-full border-2 border-dashed border-slate-200 hover:border-slate-400 rounded-xl p-3 flex flex-col items-center justify-center gap-2 bg-white cursor-pointer transition-all shadow-2xs">
+              <div className="bg-slate-50/60 p-3 rounded-2xl border border-slate-200/60 space-y-1.5 flex flex-col items-center text-center">
+                <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wide w-full text-left">Capa</label>
+                <label className="w-full border-2 border-dashed border-slate-200 hover:border-slate-400 rounded-xl p-2.5 flex flex-col items-center justify-center gap-1.5 bg-white cursor-pointer transition-all shadow-2xs">
                   <input type="file" accept="image/*" onChange={(e) => handleUploadImagem(e, 'capa')} className="hidden" />
-                  {capaUrl ? <img src={capaUrl} alt="" className="w-full h-12 rounded-lg object-cover shadow-xs ring-1 ring-slate-200" /> : <ImageIcon className="w-5 h-5 text-slate-400" />}
+                  {capaUrl ? <img src={capaUrl} alt="" className="w-full h-10 rounded-lg object-cover shadow-xs ring-1 ring-slate-200" /> : <ImageIcon className="w-4 h-4 text-slate-400" />}
                   <span className="text-[10px] font-bold text-slate-700">{enviandoCapa ? 'Enviando...' : 'Enviar Capa'}</span>
                 </label>
               </div>
             </div>
 
-            <div className="bg-slate-50/60 p-4 rounded-2xl border border-slate-200/60 space-y-3">
-              <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wide block">Tema Visual do App</label>
-              <div className="grid grid-cols-2 gap-3">
+            <div className="bg-slate-50/60 p-3.5 rounded-2xl border border-slate-200/60 space-y-2">
+              <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wide block">Tema Visual do App</label>
+              <div className="grid grid-cols-2 gap-2.5">
                 <div 
                   onClick={() => setTemaVisual('clean')}
-                  className={`p-3.5 rounded-xl border cursor-pointer text-center transition-all flex flex-col items-center gap-1 bg-white ${temaVisual === 'clean' ? 'border-slate-900 ring-2 ring-slate-900/10 font-bold shadow-xs' : 'border-slate-200 text-slate-600'}`}
+                  className={`p-3 rounded-xl border cursor-pointer text-center transition-all flex flex-col items-center gap-1 bg-white ${temaVisual === 'clean' ? 'border-slate-900 ring-2 ring-slate-900/10 font-bold shadow-xs' : 'border-slate-200 text-slate-600'}`}
                 >
                   <span className="text-xs text-slate-900 font-bold">Clean (Claro)</span>
-                  <span className="text-[9px] text-slate-400">Modo claro moderno</span>
                 </div>
                 <div 
                   onClick={() => setTemaVisual('dark')}
-                  className={`p-3.5 rounded-xl border cursor-pointer text-center transition-all flex flex-col items-center gap-1 ${temaVisual === 'dark' ? 'border-zinc-900 bg-zinc-900 text-white font-bold shadow-xs' : 'border-slate-200 bg-white text-slate-600'}`}
+                  className={`p-3 rounded-xl border cursor-pointer text-center transition-all flex flex-col items-center gap-1 ${temaVisual === 'dark' ? 'border-zinc-900 bg-zinc-900 text-white font-bold shadow-xs' : 'border-slate-200 bg-white text-slate-600'}`}
                 >
                   <span className="text-xs font-bold">Dark (Escuro)</span>
-                  <span className="text-[9px] opacity-70">Modo escuro premium</span>
                 </div>
               </div>
             </div>
@@ -531,33 +529,33 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
 
         {/* ================= ATENDIMENTO ================= */}
         {secaoAtiva === 'atendimento' && (
-          <div className="space-y-4 animate-in fade-in duration-200">
-            <div className="bg-slate-50/60 p-4 rounded-2xl border border-slate-200/60 space-y-3">
-              <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wide block">Modo de Agendamento do Cliente</label>
-              <div className="grid grid-cols-1 gap-3">
+          <div className="space-y-3 animate-in fade-in duration-200">
+            <div className="bg-slate-50/60 p-3.5 rounded-2xl border border-slate-200/60 space-y-2.5">
+              <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wide block">Modo de Agendamento do Cliente</label>
+              <div className="grid grid-cols-1 gap-2.5">
                 <div 
                   onClick={() => setModoAtendimento('conversacional')}
-                  className={`p-4 rounded-xl border cursor-pointer transition-all flex items-start gap-3 bg-white ${modoAtendimento === 'conversacional' ? 'border-slate-900 ring-2 ring-slate-900/10 shadow-xs' : 'border-slate-200 hover:bg-slate-50'}`}
+                  className={`p-3.5 rounded-xl border cursor-pointer transition-all flex items-start gap-3 bg-white ${modoAtendimento === 'conversacional' ? 'border-slate-900 ring-2 ring-slate-900/10 shadow-xs' : 'border-slate-200 hover:bg-slate-50'}`}
                 >
-                  <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center shrink-0 text-slate-900">
-                    <Bot className="w-4 h-4" />
+                  <div className="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center shrink-0 text-slate-900">
+                    <Bot className="w-3.5 h-3.5" />
                   </div>
                   <div>
                     <h4 className="font-bold text-xs text-slate-900">Conversacional (Chat)</h4>
-                    <p className="text-[10px] text-slate-500 mt-0.5 leading-relaxed">Assistente virtual interativo que guia o cliente passo a passo no agendamento.</p>
+                    <p className="text-[10px] text-slate-500 mt-0.5 leading-relaxed">Assistente virtual passo a passo no agendamento.</p>
                   </div>
                 </div>
 
                 <div 
                   onClick={() => setModoAtendimento('classico')}
-                  className={`p-4 rounded-xl border cursor-pointer transition-all flex items-start gap-3 bg-white ${modoAtendimento === 'classico' ? 'border-slate-900 ring-2 ring-slate-900/10 shadow-xs' : 'border-slate-200 hover:bg-slate-50'}`}
+                  className={`p-3.5 rounded-xl border cursor-pointer transition-all flex items-start gap-3 bg-white ${modoAtendimento === 'classico' ? 'border-slate-900 ring-2 ring-slate-900/10 shadow-xs' : 'border-slate-200 hover:bg-slate-50'}`}
                 >
-                  <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center shrink-0 text-slate-900">
-                    <Grid className="w-4 h-4" />
+                  <div className="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center shrink-0 text-slate-900">
+                    <Grid className="w-3.5 h-3.5" />
                   </div>
                   <div>
                     <h4 className="font-bold text-xs text-slate-900">Clássico (Grade)</h4>
-                    <p className="text-[10px] text-slate-500 mt-0.5 leading-relaxed">Seleção tradicional, direta e dinâmica em grade de horários disponíveis.</p>
+                    <p className="text-[10px] text-slate-500 mt-0.5 leading-relaxed">Seleção tradicional em grade de horários disponíveis.</p>
                   </div>
                 </div>
               </div>
@@ -565,10 +563,11 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
           </div>
         )}
 
-        {/* ================= EQUIPE & ESCALA ================= */}
+        {/* ================= EQUIPE & ESCALA (COM CARDS QUE DESLIZAM PARA O LADO) ================= */}
         {secaoAtiva === 'barbeiros_horarios' && (
-          <div className="space-y-4 animate-in fade-in duration-200">
-            <div className="space-y-3">
+          <div className="space-y-3 animate-in fade-in duration-200">
+            <div className="space-y-2.5">
+              {/* Seletor de profissionais */}
               <div className="flex flex-wrap gap-1.5 pb-1">
                 {barbeiros.map((b) => {
                   const selecionado = barbeiroSelecionado?.id === b.id;
@@ -577,7 +576,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                       key={b.id}
                       type="button"
                       onClick={() => selecionarBarbeiroParaEditar(b)}
-                      className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer border ${
+                      className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer border ${
                         selecionado ? 'bg-slate-900 text-white border-slate-900 shadow-sm' : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
                       }`}
                     >
@@ -588,96 +587,111 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
               </div>
 
               {barbeiroSelecionado && (
-                <div className="bg-slate-50/80 rounded-2xl border border-slate-200/80 p-3.5 sm:p-4 space-y-3 shadow-inner">
-                  <div className="flex items-center justify-between pb-2 border-b border-slate-200/60">
-                    <span className="text-xs font-bold text-slate-900">Escala: {barbeiroSelecionado.nome}</span>
-                    {sucessoBarbeiroMsg && <span className="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">Salvo!</span>}
+                <div className="bg-slate-50/80 rounded-2xl border border-slate-200/80 p-3 space-y-2.5 shadow-inner">
+                  <div className="flex items-center justify-between pb-1.5 border-b border-slate-200/60">
+                    <span className="text-xs font-bold text-slate-900">Escala de Horários: {barbeiroSelecionado.nome}</span>
+                    {sucessoBarbeiroMsg && <span className="text-[9px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">Salvo!</span>}
                   </div>
 
-                  <div className="space-y-3 max-h-[48vh] overflow-y-auto pr-1">
-                    {DIAS_SEMANA_NOMES.map(({ key, label }) => {
-                      const configDia = horariosBarbeiro[key] || {};
-                      const ativo = configDia.ativo !== false;
+                  {/* CARDS QUE DESLIZAM PARA O LADO (CARrossel Horizontal Moderno) */}
+                  <div className="relative group">
+                    <div className="flex items-center gap-3 overflow-x-auto pb-3 pt-1 px-1 snap-x snap-mandatory [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:bg-slate-300 [&::-webkit-scrollbar-thumb]:rounded-full">
+                      {DIAS_SEMANA_NOMES.map(({ key, label }) => {
+                        const configDia = horariosBarbeiro[key] || {};
+                        const ativo = configDia.ativo !== false;
 
-                      return (
-                        <div key={key} className={`p-3.5 rounded-2xl border transition-all space-y-3 ${ativo ? 'bg-white border-slate-200 shadow-2xs' : 'bg-slate-100/60 border-slate-200 opacity-60'}`}>
-                          
-                          <div className="flex items-center justify-between">
-                            <label className="flex items-center gap-2.5 cursor-pointer">
-                              <input
-                                type="checkbox"
-                                checked={ativo}
-                                onChange={() => handleToggleDiaBarbeiro(key)}
-                                className="w-4 h-4 accent-slate-900 rounded"
-                              />
-                              <span className="text-xs font-bold text-slate-800">{label}</span>
-                            </label>
-                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${ativo ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-200 text-slate-600'}`}>
-                              {ativo ? 'Trabalha' : 'Folga'}
-                            </span>
-                          </div>
-
-                          {ativo && (
-                            <div className="space-y-2 pt-2 border-t border-slate-100">
-                              <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200/70 space-y-1.5">
-                                <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wide">Horário de Expediente</span>
-                                <div className="grid grid-cols-2 gap-2">
-                                  <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-lg px-2 py-1">
-                                    <span className="text-[10px] text-slate-400">Das</span>
-                                    <input
-                                      type="time"
-                                      value={configDia.abertura || '08:00'}
-                                      onChange={(e) => handleCampoChangeBarbeiro(key, 'abertura', e.target.value)}
-                                      className="w-full bg-transparent text-xs font-bold text-slate-900 focus:outline-none"
-                                    />
-                                  </div>
-                                  <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-lg px-2 py-1">
-                                    <span className="text-[10px] text-slate-400">Até</span>
-                                    <input
-                                      type="time"
-                                      value={configDia.fechamento || '18:00'}
-                                      onChange={(e) => handleCampoChangeBarbeiro(key, 'fechamento', e.target.value)}
-                                      className="w-full bg-transparent text-xs font-bold text-slate-900 focus:outline-none"
-                                    />
-                                  </div>
-                                </div>
-                              </div>
-
-                              <div className="bg-amber-50/40 p-2.5 rounded-xl border border-amber-200/70 space-y-1.5">
-                                <span className="block text-[10px] font-bold text-amber-900 uppercase tracking-wide">Pausa de Almoço</span>
-                                <div className="grid grid-cols-2 gap-2">
-                                  <div className="flex items-center gap-1 bg-white border border-amber-200 rounded-lg px-2 py-1">
-                                    <span className="text-[10px] text-amber-700/60">Das</span>
-                                    <input
-                                      type="time"
-                                      value={configDia.pausaInicio || '12:00'}
-                                      onChange={(e) => handleCampoChangeBarbeiro(key, 'pausaInicio', e.target.value)}
-                                      className="w-full bg-transparent text-xs font-bold text-amber-900 focus:outline-none"
-                                    />
-                                  </div>
-                                  <div className="flex items-center gap-1 bg-white border border-amber-200 rounded-lg px-2 py-1">
-                                    <span className="text-[10px] text-amber-700/60">Até</span>
-                                    <input
-                                      type="time"
-                                      value={configDia.pausaFim || '13:00'}
-                                      onChange={(e) => handleCampoChangeBarbeiro(key, 'pausaFim', e.target.value)}
-                                      className="w-full bg-transparent text-xs font-bold text-amber-900 focus:outline-none"
-                                    />
-                                  </div>
-                                </div>
-                              </div>
+                        return (
+                          <div 
+                            key={key} 
+                            className={`min-w-[260px] sm:min-w-[280px] snap-center p-3 rounded-2xl border transition-all space-y-2.5 shadow-xs shrink-0 ${
+                              ativo ? 'bg-white border-slate-200' : 'bg-slate-100/80 border-slate-200 opacity-70'
+                            }`}
+                          >
+                            {/* Cabeçalho do Card (Dia da Semana + Checkbox) */}
+                            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                              <label className="flex items-center gap-2 cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={ativo}
+                                  onChange={() => handleToggleDiaBarbeiro(key)}
+                                  className="w-4 h-4 accent-slate-900 rounded"
+                                />
+                                <span className="text-xs font-black text-slate-800">{label}</span>
+                              </label>
+                              <span className={`text-[9px] font-bold px-2 py-0.5 rounded-md ${ativo ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-200 text-slate-600'}`}>
+                                {ativo ? 'Trabalha' : 'Folga'}
+                              </span>
                             </div>
-                          )}
-                        </div>
-                      );
-                    })}
+
+                            {ativo ? (
+                              <div className="space-y-2 text-[11px]">
+                                {/* Expediente */}
+                                <div className="bg-slate-50 p-2 rounded-xl border border-slate-200/60 space-y-1">
+                                  <span className="block text-[9px] font-bold text-slate-500 uppercase">Expediente</span>
+                                  <div className="grid grid-cols-2 gap-1.5">
+                                    <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-lg px-2 py-1">
+                                      <span className="text-[9px] text-slate-400">Das</span>
+                                      <input
+                                        type="time"
+                                        value={configDia.abertura || '08:00'}
+                                        onChange={(e) => handleCampoChangeBarbeiro(key, 'abertura', e.target.value)}
+                                        className="w-full bg-transparent text-xs font-bold text-slate-900 focus:outline-none"
+                                      />
+                                    </div>
+                                    <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-lg px-2 py-1">
+                                      <span className="text-[9px] text-slate-400">Até</span>
+                                      <input
+                                        type="time"
+                                        value={configDia.fechamento || '18:00'}
+                                        onChange={(e) => handleCampoChangeBarbeiro(key, 'fechamento', e.target.value)}
+                                        className="w-full bg-transparent text-xs font-bold text-slate-900 focus:outline-none"
+                                      />
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Pausa Almoço */}
+                                <div className="bg-amber-50/40 p-2 rounded-xl border border-amber-200/60 space-y-1">
+                                  <span className="block text-[9px] font-bold text-amber-900 uppercase">Almoço</span>
+                                  <div className="grid grid-cols-2 gap-1.5">
+                                    <div className="flex items-center gap-1 bg-white border border-amber-200 rounded-lg px-2 py-1">
+                                      <span className="text-[9px] text-amber-700/60">Das</span>
+                                      <input
+                                        type="time"
+                                        value={configDia.pausaInicio || '12:00'}
+                                        onChange={(e) => handleCampoChangeBarbeiro(key, 'pausaInicio', e.target.value)}
+                                        className="w-full bg-transparent text-xs font-bold text-amber-900 focus:outline-none"
+                                      />
+                                    </div>
+                                    <div className="flex items-center gap-1 bg-white border border-amber-200 rounded-lg px-2 py-1">
+                                      <span className="text-[9px] text-amber-700/60">Até</span>
+                                      <input
+                                        type="time"
+                                        value={configDia.pausaFim || '13:00'}
+                                        onChange={(e) => handleCampoChangeBarbeiro(key, 'pausaFim', e.target.value)}
+                                        className="w-full bg-transparent text-xs font-bold text-amber-900 focus:outline-none"
+                                      />
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="py-8 text-center text-slate-400 font-semibold text-xs">
+                                Dia de Folga Configurado
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <p className="text-[9px] text-slate-400 text-center italic">Deslize para o lado para ver os outros dias da semana $\rightarrow$</p>
                   </div>
 
                   <button
                     type="button"
                     onClick={salvandoHorariosBarbeiro}
                     disabled={salvandoBarbeiro}
-                    className="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold cursor-pointer shadow-md transition-all"
+                    className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold cursor-pointer shadow-md transition-all"
                   >
                     {salvandoBarbeiro ? 'Salvando Escala...' : `Salvar Escala de ${barbeiroSelecionado.nome}`}
                   </button>
