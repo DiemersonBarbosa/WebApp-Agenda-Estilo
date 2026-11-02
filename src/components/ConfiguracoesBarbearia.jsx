@@ -336,7 +336,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
       
       {/* HEADER / CARTÃO DE PERFIL COM CAPA E FOTO AUMENTADAS */}
       <div className="bg-white rounded-3xl p-3 border border-slate-200/80 shadow-xs relative space-y-2">
-        <div className="h-28 sm:h-36 w-full relative bg-slate-900 overflow-hidden rounded-2xl shadow-inner">
+        <div className="h-32 sm:h-40 w-full relative bg-slate-900 overflow-hidden rounded-2xl shadow-inner">
           {capaUrl ? (
             <img src={capaUrl} alt="Capa" className="w-full h-full object-cover" />
           ) : (
@@ -367,12 +367,12 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
           </div>
         </div>
 
-        <div className="flex flex-col items-center text-center -mt-12 relative z-10">
-          <div className="w-18 h-18 sm:w-20 sm:h-20 rounded-full bg-white p-1 shadow-xl ring-4 ring-white overflow-hidden flex items-center justify-center bg-zinc-900">
+        <div className="flex flex-col items-center text-center -mt-14 relative z-10">
+          <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-white p-1 shadow-xl ring-4 ring-white overflow-hidden flex items-center justify-center bg-zinc-900">
             {logoUrl ? (
               <img src={logoUrl} alt="Logo" className="w-full h-full object-cover rounded-full" />
             ) : (
-              <div className="w-full h-full bg-slate-900 text-white rounded-full flex items-center justify-center font-black text-xl">
+              <div className="w-full h-full bg-slate-900 text-white rounded-full flex items-center justify-center font-black text-2xl">
                 {(nome || 'B').charAt(0)}
               </div>
             )}
@@ -678,7 +678,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
 
       </div>
 
-      {/* BOTÃO FIXO DE SALVAR (TAMANHO REDUZIDO E MAIS COMPACTO) */}
+      {/* BOTÃO FIXO DE SALVAR */}
       <div className="fixed bottom-28 left-4 right-4 sm:left-6 sm:right-6 z-30 max-w-sm mx-auto pointer-events-none">
         <button
           type="button"
