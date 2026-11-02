@@ -396,7 +396,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
         </div>
       </div>
 
-      {/* ABAS DE NAVEGAÇÃO SUPERIORES PADRONIZADAS */}
+      {/* ABAS DE NAVEGAÇÃO SUPERIORES PERFEITAS */}
       <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
         {botoesNavegacao.map((btn) => {
           const Icone = btn.icone;
@@ -421,33 +421,33 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
         })}
       </div>
 
-      {/* PAINEL DE CONTEÚDO PRINCIPAL COM DESIGN REFINADO */}
-      <div className="bg-white rounded-3xl border border-slate-200/80 p-4 sm:p-6 shadow-xs space-y-4">
+      {/* PAINEL DE CONTEÚDO PRINCIPAL COM LAYOUT ORGANIZADO E PROFISSIONAL */}
+      <div className="bg-white rounded-3xl border border-slate-200/80 p-4 sm:p-6 shadow-xs space-y-5">
         
-        {/* SEÇÃO: GERAL & PERFIL */}
+        {/* ================= GERAL & PERFIL ================= */}
         {secaoAtiva === 'geral' && (
           <div className="space-y-4 animate-in fade-in duration-200">
-            <div className="space-y-3.5">
+            <div className="bg-slate-50/60 p-4 rounded-2xl border border-slate-200/60 space-y-4">
               <div className="space-y-1.5">
                 <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wide">Nome da Barbearia</label>
                 <input
                   type="text"
                   value={nome}
                   onChange={(e) => setNome(e.target.value)}
-                  className="w-full bg-slate-50/70 border border-slate-200 rounded-2xl px-4 py-3 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all"
+                  className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all shadow-2xs"
                   placeholder="Ex: Barbearia Executiva"
                 />
               </div>
 
               <div className="space-y-1.5">
                 <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wide">Link Personalizado (Slug)</label>
-                <div className="flex items-center bg-slate-50/70 border border-slate-200 rounded-2xl overflow-hidden focus-within:ring-2 focus-within:ring-slate-900/10 focus-within:border-slate-900 transition-all">
-                  <span className="pl-3.5 pr-2 text-[11px] text-slate-400 font-bold bg-slate-100/80 border-r border-slate-200 py-3">/agendar/</span>
+                <div className="flex items-center bg-white border border-slate-200 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-slate-900/10 focus-within:border-slate-900 transition-all shadow-2xs">
+                  <span className="pl-3 pr-2 text-[11px] text-slate-400 font-bold bg-slate-100 border-r border-slate-200 py-2.5">/agendar/</span>
                   <input
                     type="text"
                     value={slug}
                     onChange={(e) => setSlug(e.target.value)}
-                    className="w-full bg-transparent px-3.5 py-3 text-xs font-semibold text-slate-900 focus:outline-none"
+                    className="w-full bg-transparent px-3 py-2.5 text-xs font-semibold text-slate-900 focus:outline-none"
                     placeholder="sua-barbearia"
                   />
                 </div>
@@ -461,103 +461,111 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                   step="5"
                   value={antecedenciaMinima}
                   onChange={(e) => setAntecedenciaMinima(e.target.value)}
-                  className="w-full bg-slate-50/70 border border-slate-200 rounded-2xl px-4 py-3 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all"
+                  className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all shadow-2xs"
                   placeholder="Ex: 30"
                 />
-                <p className="text-[10px] text-slate-500">Bloqueia agendamentos de última hora.</p>
+                <p className="text-[10px] text-slate-500">Impede agendamentos em cima da hora.</p>
               </div>
+            </div>
 
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-between bg-slate-50/60 p-4 rounded-2xl border border-slate-200/60">
-                <div>
-                  <h5 className="font-bold text-xs text-slate-900">Horários Gerais & Feriados</h5>
-                  <p className="text-[10px] text-slate-500">Gerencie bloqueios de datas e aberturas.</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setModalHorariosGeraisOpen(true)}
-                  className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold cursor-pointer shadow-xs transition-all"
-                >
-                  Configurar
-                </button>
+            <div className="flex items-center justify-between bg-slate-900 text-white p-4 rounded-2xl shadow-sm">
+              <div>
+                <h5 className="font-bold text-xs">Horários Gerais & Feriados</h5>
+                <p className="text-[10px] text-slate-300">Gerencie bloqueios de datas e feriados.</p>
               </div>
+              <button
+                type="button"
+                onClick={() => setModalHorariosGeraisOpen(true)}
+                className="px-4 py-2 bg-white text-slate-900 hover:bg-slate-100 rounded-xl text-xs font-bold cursor-pointer shadow-xs transition-all"
+              >
+                Configurar
+              </button>
             </div>
           </div>
         )}
 
-        {/* SEÇÃO: VISUAL & MÍDIA REFINADA */}
+        {/* ================= VISUAL & MÍDIA ================= */}
         {secaoAtiva === 'visual' && (
           <div className="space-y-5 animate-in fade-in duration-200">
             <div className="grid grid-cols-2 gap-3.5">
-              <div className="space-y-2">
-                <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wide">Logo</label>
-                <label className="border-2 border-dashed border-slate-200 hover:border-slate-400 rounded-2xl p-4 flex flex-col items-center justify-center gap-2.5 bg-slate-50/50 cursor-pointer text-center transition-all">
+              <div className="bg-slate-50/60 p-3.5 rounded-2xl border border-slate-200/60 space-y-2 flex flex-col items-center text-center">
+                <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wide w-full text-left">Logo</label>
+                <label className="w-full border-2 border-dashed border-slate-200 hover:border-slate-400 rounded-xl p-3 flex flex-col items-center justify-center gap-2 bg-white cursor-pointer transition-all shadow-2xs">
                   <input type="file" accept="image/*" onChange={(e) => handleUploadImagem(e, 'logo')} className="hidden" />
                   {logoUrl ? <img src={logoUrl} alt="" className="w-12 h-12 rounded-full object-cover shadow-xs ring-2 ring-slate-200" /> : <Upload className="w-5 h-5 text-slate-400" />}
-                  <span className="text-[11px] font-bold text-slate-700">{enviandoLogo ? 'Enviando...' : 'Enviar Logo'}</span>
+                  <span className="text-[10px] font-bold text-slate-700">{enviandoLogo ? 'Enviando...' : 'Enviar Logo'}</span>
                 </label>
               </div>
 
-              <div className="space-y-2">
-                <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wide">Capa</label>
-                <label className="border-2 border-dashed border-slate-200 hover:border-slate-400 rounded-2xl p-4 flex flex-col items-center justify-center gap-2.5 bg-slate-50/50 cursor-pointer text-center transition-all">
+              <div className="bg-slate-50/60 p-3.5 rounded-2xl border border-slate-200/60 space-y-2 flex flex-col items-center text-center">
+                <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wide w-full text-left">Capa</label>
+                <label className="w-full border-2 border-dashed border-slate-200 hover:border-slate-400 rounded-xl p-3 flex flex-col items-center justify-center gap-2 bg-white cursor-pointer transition-all shadow-2xs">
                   <input type="file" accept="image/*" onChange={(e) => handleUploadImagem(e, 'capa')} className="hidden" />
-                  {capaUrl ? <img src={capaUrl} alt="" className="w-16 h-8 rounded-lg object-cover shadow-xs ring-1 ring-slate-200" /> : <ImageIcon className="w-5 h-5 text-slate-400" />}
-                  <span className="text-[11px] font-bold text-slate-700">{enviandoCapa ? 'Enviando...' : 'Enviar Capa'}</span>
+                  {capaUrl ? <img src={capaUrl} alt="" className="w-full h-12 rounded-lg object-cover shadow-xs ring-1 ring-slate-200" /> : <ImageIcon className="w-5 h-5 text-slate-400" />}
+                  <span className="text-[10px] font-bold text-slate-700">{enviandoCapa ? 'Enviando...' : 'Enviar Capa'}</span>
                 </label>
               </div>
             </div>
 
-            <div className="space-y-2.5 pt-2 border-t border-slate-100">
-              <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wide">Tema Visual do App</label>
-              <div className="grid grid-cols-2 gap-3.5">
+            <div className="bg-slate-50/60 p-4 rounded-2xl border border-slate-200/60 space-y-3">
+              <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wide block">Tema Visual do App</label>
+              <div className="grid grid-cols-2 gap-3">
                 <div 
                   onClick={() => setTemaVisual('clean')}
-                  className={`p-4 rounded-2xl border cursor-pointer text-center transition-all flex flex-col items-center gap-1.5 ${temaVisual === 'clean' ? 'border-slate-900 bg-slate-50 ring-2 ring-slate-900/10 font-bold shadow-xs' : 'border-slate-200 hover:bg-slate-50/50 text-slate-600'}`}
+                  className={`p-3.5 rounded-xl border cursor-pointer text-center transition-all flex flex-col items-center gap-1 bg-white ${temaVisual === 'clean' ? 'border-slate-900 ring-2 ring-slate-900/10 font-bold shadow-xs' : 'border-slate-200 text-slate-600'}`}
                 >
                   <span className="text-xs text-slate-900 font-bold">Clean (Claro)</span>
-                  <span className="text-[10px] font-normal text-slate-500">Visual moderno e iluminado</span>
+                  <span className="text-[9px] text-slate-400">Modo claro moderno</span>
                 </div>
                 <div 
                   onClick={() => setTemaVisual('dark')}
-                  className={`p-4 rounded-2xl border cursor-pointer text-center transition-all flex flex-col items-center gap-1.5 ${temaVisual === 'dark' ? 'border-zinc-900 bg-zinc-900 text-white font-bold shadow-xs' : 'border-slate-200 hover:bg-slate-50/50 text-slate-600'}`}
+                  className={`p-3.5 rounded-xl border cursor-pointer text-center transition-all flex flex-col items-center gap-1 ${temaVisual === 'dark' ? 'border-zinc-900 bg-zinc-900 text-white font-bold shadow-xs' : 'border-slate-200 bg-white text-slate-600'}`}
                 >
                   <span className="text-xs font-bold">Dark (Escuro)</span>
-                  <span className="text-[10px] font-normal text-slate-400">Estilo sofisticado premium</span>
+                  <span className="text-[9px] opacity-70">Modo escuro premium</span>
                 </div>
               </div>
             </div>
           </div>
         )}
 
-        {/* SEÇÃO: MODO DE ATENDIMENTO REFINADO */}
+        {/* ================= ATENDIMENTO ================= */}
         {secaoAtiva === 'atendimento' && (
           <div className="space-y-4 animate-in fade-in duration-200">
-            <div className="space-y-2">
-              <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wide">Modo de Agendamento do Cliente</label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            <div className="bg-slate-50/60 p-4 rounded-2xl border border-slate-200/60 space-y-3">
+              <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wide block">Modo de Agendamento do Cliente</label>
+              <div className="grid grid-cols-1 gap-3">
                 <div 
                   onClick={() => setModoAtendimento('conversacional')}
-                  className={`p-4.5 rounded-2xl border cursor-pointer transition-all ${modoAtendimento === 'conversacional' ? 'border-slate-900 bg-slate-50/80 ring-2 ring-slate-900/10 shadow-sm' : 'border-slate-200 hover:bg-slate-50/50'}`}
+                  className={`p-4 rounded-xl border cursor-pointer transition-all flex items-start gap-3 bg-white ${modoAtendimento === 'conversacional' ? 'border-slate-900 ring-2 ring-slate-900/10 shadow-xs' : 'border-slate-200 hover:bg-slate-50'}`}
                 >
-                  <Bot className="w-5 h-5 text-slate-900 mb-2" />
-                  <h4 className="font-bold text-xs text-slate-900">Conversacional (Chat)</h4>
-                  <p className="text-[10px] text-slate-500 mt-1 leading-relaxed">Assistente virtual passo a passo para o cliente agendar conversando.</p>
+                  <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center shrink-0 text-slate-900">
+                    <Bot className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-xs text-slate-900">Conversacional (Chat)</h4>
+                    <p className="text-[10px] text-slate-500 mt-0.5 leading-relaxed">Assistente virtual interativo que guia o cliente passo a passo no agendamento.</p>
+                  </div>
                 </div>
 
                 <div 
                   onClick={() => setModoAtendimento('classico')}
-                  className={`p-4.5 rounded-2xl border cursor-pointer transition-all ${modoAtendimento === 'classico' ? 'border-slate-900 bg-slate-50/80 ring-2 ring-slate-900/10 shadow-sm' : 'border-slate-200 hover:bg-slate-50/50'}`}
+                  className={`p-4 rounded-xl border cursor-pointer transition-all flex items-start gap-3 bg-white ${modoAtendimento === 'classico' ? 'border-slate-900 ring-2 ring-slate-900/10 shadow-xs' : 'border-slate-200 hover:bg-slate-50'}`}
                 >
-                  <Grid className="w-5 h-5 text-slate-900 mb-2" />
-                  <h4 className="font-bold text-xs text-slate-900">Clássico (Grade)</h4>
-                  <p className="text-[10px] text-slate-500 mt-1 leading-relaxed">Seleção tradicional em grade rápida de horários disponíveis.</p>
+                  <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center shrink-0 text-slate-900">
+                    <Grid className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-xs text-slate-900">Clássico (Grade)</h4>
+                    <p className="text-[10px] text-slate-500 mt-0.5 leading-relaxed">Seleção tradicional, direta e dinâmica em grade de horários disponíveis.</p>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         )}
 
-        {/* SEÇÃO: HORÁRIOS DA EQUIPE REFINADA */}
+        {/* ================= EQUIPE & ESCALA ================= */}
         {secaoAtiva === 'barbeiros_horarios' && (
           <div className="space-y-4 animate-in fade-in duration-200">
             <div className="space-y-3">
@@ -586,7 +594,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                     {sucessoBarbeiroMsg && <span className="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">Salvo!</span>}
                   </div>
 
-                  <div className="space-y-3 max-h-[50vh] overflow-y-auto pr-1">
+                  <div className="space-y-3 max-h-[48vh] overflow-y-auto pr-1">
                     {DIAS_SEMANA_NOMES.map(({ key, label }) => {
                       const configDia = horariosBarbeiro[key] || {};
                       const ativo = configDia.ativo !== false;
