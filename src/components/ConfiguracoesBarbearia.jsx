@@ -109,7 +109,6 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
     };
     setHorariosBarbeiro(novosHorarios);
     
-    // Atualiza automaticamente no state do barbeiro selecionado para salvar em conjunto
     if (barbeiroSelecionado) {
       setBarbeiros(prev => prev.map(b => b.id === barbeiroSelecionado.id ? { ...b, horarios_trabalho: novosHorarios } : b));
     }
@@ -290,7 +289,6 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
     setSucesso(false);
 
     try {
-      // Salva dados gerais da barbearia
       const { error: erroBarbearia } = await supabase
         .from('barbearias')
         .update({ 
@@ -309,7 +307,6 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
 
       if (erroBarbearia) throw erroBarbearia;
 
-      // Salva escalas de todos os barbeiros atualizados no state
       for (const b of barbeiros) {
         await supabase
           .from('barbeiros')
@@ -556,7 +553,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
           </div>
         )}
 
-        {/* ================= EQUIPE & ESCALA (CARDS LATERAIS UNIFORMES E SEM BOTÃO INTERNO) ================= */}
+        {/* ================= EQUIPE & ESCALA (LIVRE DE TEXTOS EXTRAS) ================= */}
         {secaoAtiva === 'barbeiros_horarios' && (
           <div className="space-y-2.5 animate-in fade-in duration-200">
             <div className="space-y-2">
@@ -582,10 +579,8 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                 <div className="bg-slate-50/80 rounded-2xl border border-slate-200/80 p-2.5 space-y-2 shadow-inner">
                   <div className="flex items-center justify-between pb-1 border-b border-slate-200/60">
                     <span className="text-[11px] font-bold text-slate-900">Escala de Horários: {barbeiroSelecionado.nome}</span>
-                    <span className="text-[9px] text-slate-400 italic">Deslize para o lado $\rightarrow$</span>
                   </div>
 
-                  {/* CARDS COM ALTURA UNIFORME E SEM BOTÃO REDUNDANTE */}
                   <div className="relative">
                     <div className="flex items-stretch gap-2.5 overflow-x-auto pb-2 pt-0.5 px-0.5 snap-x snap-mandatory [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:bg-slate-300 [&::-webkit-scrollbar-thumb]:rounded-full">
                       {DIAS_SEMANA_NOMES.map(({ key, label }) => {
@@ -597,7 +592,6 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                             key={key} 
                             className="w-[260px] sm:w-[270px] snap-center p-3 rounded-2xl border bg-white border-slate-200 shadow-xs shrink-0 flex flex-col justify-between"
                           >
-                            {/* Cabeçalho do Card */}
                             <div>
                               <div className="flex items-center justify-between pb-2 border-b border-slate-100">
                                 <label className="flex items-center gap-2 cursor-pointer">
@@ -616,7 +610,6 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
 
                               {ativo ? (
                                 <div className="space-y-2 pt-2 text-[11px]">
-                                  {/* Expediente */}
                                   <div className="bg-slate-50 p-2 rounded-xl border border-slate-200/60 space-y-1">
                                     <span className="block text-[9px] font-bold text-slate-500 uppercase">Expediente</span>
                                     <div className="grid grid-cols-2 gap-1.5">
@@ -641,7 +634,6 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                                     </div>
                                   </div>
 
-                                  {/* Pausa Almoço */}
                                   <div className="bg-amber-50/40 p-2 rounded-xl border border-amber-200/60 space-y-1">
                                     <span className="block text-[9px] font-bold text-amber-900 uppercase">Almoço</span>
                                     <div className="grid grid-cols-2 gap-1.5">
@@ -672,10 +664,6 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                                   <span className="text-[9px] text-slate-400 font-normal">Nenhum atendimento agendado</span>
                                 </div>
                               )}
-                            </div>
-
-                            <div className="pt-2 border-t border-slate-100 text-[9px] text-slate-400 text-center">
-                              {barbeiroSelecionado.nome} • {label}
                             </div>
                           </div>
                         );
