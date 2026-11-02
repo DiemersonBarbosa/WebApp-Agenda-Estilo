@@ -396,7 +396,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
         </div>
       </div>
 
-      {/* ABAS DE NAVEGAÇÃO SUPERIORES */}
+      {/* ABAS DE NAVEGAÇÃO SUPERIORES PADRONIZADAS */}
       <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
         {botoesNavegacao.map((btn) => {
           const Icone = btn.icone;
@@ -415,13 +415,13 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
               <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-xl flex items-center justify-center ${ativo ? 'bg-white/10 text-emerald-400' : 'bg-slate-100 text-slate-700'}`}>
                 <Icone className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </div>
-              <span className="text-[9px] sm:text-[10px] font-bold tracking-tight truncate w-full">{btn.titulo}</span>
+              <span className="text-[10px] sm:text-[11px] font-bold tracking-tight truncate w-full">{btn.titulo}</span>
             </button>
           );
         })}
       </div>
 
-      {/* PAINEL DE CONTEÚDO PRINCIPAL */}
+      {/* PAINEL DE CONTEÚDO PRINCIPAL COM DESIGN REFINADO */}
       <div className="bg-white rounded-3xl border border-slate-200/80 p-4 sm:p-6 shadow-xs space-y-4">
         
         {/* SEÇÃO: GERAL & PERFIL */}
@@ -467,7 +467,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                 <p className="text-[10px] text-slate-500">Bloqueia agendamentos de última hora.</p>
               </div>
 
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-between bg-slate-50/60 p-3.5 rounded-2xl border border-slate-200/60">
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-between bg-slate-50/60 p-4 rounded-2xl border border-slate-200/60">
                 <div>
                   <h5 className="font-bold text-xs text-slate-900">Horários Gerais & Feriados</h5>
                   <p className="text-[10px] text-slate-500">Gerencie bloqueios de datas e aberturas.</p>
@@ -484,79 +484,83 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
           </div>
         )}
 
-        {/* SEÇÃO: VISUAL & MÍDIA */}
+        {/* SEÇÃO: VISUAL & MÍDIA REFINADA */}
         {secaoAtiva === 'visual' && (
-          <div className="space-y-4 animate-in fade-in duration-200">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
+          <div className="space-y-5 animate-in fade-in duration-200">
+            <div className="grid grid-cols-2 gap-3.5">
+              <div className="space-y-2">
                 <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wide">Logo</label>
-                <label className="border-2 border-dashed border-slate-200 hover:border-slate-400 rounded-2xl p-4 flex flex-col items-center justify-center gap-2 bg-slate-50/50 cursor-pointer text-center transition-all">
+                <label className="border-2 border-dashed border-slate-200 hover:border-slate-400 rounded-2xl p-4 flex flex-col items-center justify-center gap-2.5 bg-slate-50/50 cursor-pointer text-center transition-all">
                   <input type="file" accept="image/*" onChange={(e) => handleUploadImagem(e, 'logo')} className="hidden" />
-                  {logoUrl ? <img src={logoUrl} alt="" className="w-12 h-12 rounded-full object-cover shadow-xs" /> : <Upload className="w-5 h-5 text-slate-400" />}
+                  {logoUrl ? <img src={logoUrl} alt="" className="w-12 h-12 rounded-full object-cover shadow-xs ring-2 ring-slate-200" /> : <Upload className="w-5 h-5 text-slate-400" />}
                   <span className="text-[11px] font-bold text-slate-700">{enviandoLogo ? 'Enviando...' : 'Enviar Logo'}</span>
                 </label>
               </div>
 
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wide">Capa</label>
-                <label className="border-2 border-dashed border-slate-200 hover:border-slate-400 rounded-2xl p-4 flex flex-col items-center justify-center gap-2 bg-slate-50/50 cursor-pointer text-center transition-all">
+                <label className="border-2 border-dashed border-slate-200 hover:border-slate-400 rounded-2xl p-4 flex flex-col items-center justify-center gap-2.5 bg-slate-50/50 cursor-pointer text-center transition-all">
                   <input type="file" accept="image/*" onChange={(e) => handleUploadImagem(e, 'capa')} className="hidden" />
-                  {capaUrl ? <img src={capaUrl} alt="" className="w-16 h-8 rounded-lg object-cover shadow-xs" /> : <ImageIcon className="w-5 h-5 text-slate-400" />}
+                  {capaUrl ? <img src={capaUrl} alt="" className="w-16 h-8 rounded-lg object-cover shadow-xs ring-1 ring-slate-200" /> : <ImageIcon className="w-5 h-5 text-slate-400" />}
                   <span className="text-[11px] font-bold text-slate-700">{enviandoCapa ? 'Enviando...' : 'Enviar Capa'}</span>
                 </label>
               </div>
             </div>
 
-            <div className="space-y-2 pt-2">
+            <div className="space-y-2.5 pt-2 border-t border-slate-100">
               <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wide">Tema Visual do App</label>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-3.5">
                 <div 
                   onClick={() => setTemaVisual('clean')}
-                  className={`p-3.5 rounded-2xl border cursor-pointer text-center transition-all flex flex-col items-center gap-1 ${temaVisual === 'clean' ? 'border-slate-900 bg-slate-50 ring-2 ring-slate-900/10 font-bold shadow-xs' : 'border-slate-200 hover:bg-slate-50/50'}`}
+                  className={`p-4 rounded-2xl border cursor-pointer text-center transition-all flex flex-col items-center gap-1.5 ${temaVisual === 'clean' ? 'border-slate-900 bg-slate-50 ring-2 ring-slate-900/10 font-bold shadow-xs' : 'border-slate-200 hover:bg-slate-50/50 text-slate-600'}`}
                 >
                   <span className="text-xs text-slate-900 font-bold">Clean (Claro)</span>
+                  <span className="text-[10px] font-normal text-slate-500">Visual moderno e iluminado</span>
                 </div>
                 <div 
                   onClick={() => setTemaVisual('dark')}
-                  className={`p-3.5 rounded-2xl border cursor-pointer text-center transition-all flex flex-col items-center gap-1 ${temaVisual === 'dark' ? 'border-zinc-900 bg-zinc-900 text-white font-bold shadow-xs' : 'border-slate-200 hover:bg-slate-50/50'}`}
+                  className={`p-4 rounded-2xl border cursor-pointer text-center transition-all flex flex-col items-center gap-1.5 ${temaVisual === 'dark' ? 'border-zinc-900 bg-zinc-900 text-white font-bold shadow-xs' : 'border-slate-200 hover:bg-slate-50/50 text-slate-600'}`}
                 >
                   <span className="text-xs font-bold">Dark (Escuro)</span>
+                  <span className="text-[10px] font-normal text-slate-400">Estilo sofisticado premium</span>
                 </div>
               </div>
             </div>
           </div>
         )}
 
-        {/* SEÇÃO: MODO DE ATENDIMENTO */}
+        {/* SEÇÃO: MODO DE ATENDIMENTO REFINADO */}
         {secaoAtiva === 'atendimento' && (
           <div className="space-y-4 animate-in fade-in duration-200">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-              <div 
-                onClick={() => setModoAtendimento('conversacional')}
-                className={`p-4.5 rounded-2xl border cursor-pointer transition-all ${modoAtendimento === 'conversacional' ? 'border-slate-900 bg-slate-50/80 ring-2 ring-slate-900/10 shadow-sm' : 'border-slate-200 hover:bg-slate-50/50'}`}
-              >
-                <Bot className="w-5 h-5 text-slate-900 mb-2" />
-                <h4 className="font-bold text-xs text-slate-900">Conversacional (Chat)</h4>
-                <p className="text-[10px] text-slate-500 mt-1 leading-relaxed">Assistente virtual passo a passo.</p>
-              </div>
+            <div className="space-y-2">
+              <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wide">Modo de Agendamento do Cliente</label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <div 
+                  onClick={() => setModoAtendimento('conversacional')}
+                  className={`p-4.5 rounded-2xl border cursor-pointer transition-all ${modoAtendimento === 'conversacional' ? 'border-slate-900 bg-slate-50/80 ring-2 ring-slate-900/10 shadow-sm' : 'border-slate-200 hover:bg-slate-50/50'}`}
+                >
+                  <Bot className="w-5 h-5 text-slate-900 mb-2" />
+                  <h4 className="font-bold text-xs text-slate-900">Conversacional (Chat)</h4>
+                  <p className="text-[10px] text-slate-500 mt-1 leading-relaxed">Assistente virtual passo a passo para o cliente agendar conversando.</p>
+                </div>
 
-              <div 
-                onClick={() => setModoAtendimento('classico')}
-                className={`p-4.5 rounded-2xl border cursor-pointer transition-all ${modoAtendimento === 'classico' ? 'border-slate-900 bg-slate-50/80 ring-2 ring-slate-900/10 shadow-sm' : 'border-slate-200 hover:bg-slate-50/50'}`}
-              >
-                <Grid className="w-5 h-5 text-slate-900 mb-2" />
-                <h4 className="font-bold text-xs text-slate-900">Clássico (Grade)</h4>
-                <p className="text-[10px] text-slate-500 mt-1 leading-relaxed">Seleção tradicional em grade de horários.</p>
+                <div 
+                  onClick={() => setModoAtendimento('classico')}
+                  className={`p-4.5 rounded-2xl border cursor-pointer transition-all ${modoAtendimento === 'classico' ? 'border-slate-900 bg-slate-50/80 ring-2 ring-slate-900/10 shadow-sm' : 'border-slate-200 hover:bg-slate-50/50'}`}
+                >
+                  <Grid className="w-5 h-5 text-slate-900 mb-2" />
+                  <h4 className="font-bold text-xs text-slate-900">Clássico (Grade)</h4>
+                  <p className="text-[10px] text-slate-500 mt-1 leading-relaxed">Seleção tradicional em grade rápida de horários disponíveis.</p>
+                </div>
               </div>
             </div>
           </div>
         )}
 
-        {/* SEÇÃO: HORÁRIOS DA EQUIPE (LAYOUT 100% RESPONSIVO SEM CORTES) */}
+        {/* SEÇÃO: HORÁRIOS DA EQUIPE REFINADA */}
         {secaoAtiva === 'barbeiros_horarios' && (
           <div className="space-y-4 animate-in fade-in duration-200">
             <div className="space-y-3">
-              {/* Botões dos barbeiros organizados sem transbordar */}
               <div className="flex flex-wrap gap-1.5 pb-1">
                 {barbeiros.map((b) => {
                   const selecionado = barbeiroSelecionado?.id === b.id;
@@ -582,7 +586,6 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                     {sucessoBarbeiroMsg && <span className="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">Salvo!</span>}
                   </div>
 
-                  {/* Lista vertical completa com blocos empilhados (sem cortes laterais) */}
                   <div className="space-y-3 max-h-[50vh] overflow-y-auto pr-1">
                     {DIAS_SEMANA_NOMES.map(({ key, label }) => {
                       const configDia = horariosBarbeiro[key] || {};
@@ -591,7 +594,6 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                       return (
                         <div key={key} className={`p-3.5 rounded-2xl border transition-all space-y-3 ${ativo ? 'bg-white border-slate-200 shadow-2xs' : 'bg-slate-100/60 border-slate-200 opacity-60'}`}>
                           
-                          {/* Checkbox e Nome do Dia */}
                           <div className="flex items-center justify-between">
                             <label className="flex items-center gap-2.5 cursor-pointer">
                               <input
@@ -609,8 +611,6 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
 
                           {ativo && (
                             <div className="space-y-2 pt-2 border-t border-slate-100">
-                              
-                              {/* Bloco de Expediente Empilhado */}
                               <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200/70 space-y-1.5">
                                 <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wide">Horário de Expediente</span>
                                 <div className="grid grid-cols-2 gap-2">
@@ -635,7 +635,6 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                                 </div>
                               </div>
 
-                              {/* Bloco de Pausa Almoço Empilhado */}
                               <div className="bg-amber-50/40 p-2.5 rounded-xl border border-amber-200/70 space-y-1.5">
                                 <span className="block text-[10px] font-bold text-amber-900 uppercase tracking-wide">Pausa de Almoço</span>
                                 <div className="grid grid-cols-2 gap-2">
@@ -659,7 +658,6 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                                   </div>
                                 </div>
                               </div>
-
                             </div>
                           )}
                         </div>
