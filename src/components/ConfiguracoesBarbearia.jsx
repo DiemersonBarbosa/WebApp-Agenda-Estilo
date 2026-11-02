@@ -334,9 +334,9 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
   return (
     <div className="w-full max-w-4xl mx-auto px-3 sm:px-4 py-2 space-y-2 font-sans text-slate-800 pb-32">
       
-      {/* HEADER / CARTÃO DE PERFIL COM CAPA E FOTO AUMENTADAS */}
+      {/* HEADER / CARTÃO DE PERFIL COM CAPA BEM MAIS ALTA E IMPONENTE */}
       <div className="bg-white rounded-3xl p-3 border border-slate-200/80 shadow-xs relative space-y-2">
-        <div className="h-32 sm:h-40 w-full relative bg-slate-900 overflow-hidden rounded-2xl shadow-inner">
+        <div className="h-36 sm:h-44 w-full relative bg-slate-900 overflow-hidden rounded-2xl shadow-inner">
           {capaUrl ? (
             <img src={capaUrl} alt="Capa" className="w-full h-full object-cover" />
           ) : (
@@ -367,8 +367,8 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
           </div>
         </div>
 
-        <div className="flex flex-col items-center text-center -mt-14 relative z-10">
-          <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-white p-1 shadow-xl ring-4 ring-white overflow-hidden flex items-center justify-center bg-zinc-900">
+        <div className="flex flex-col items-center text-center -mt-16 relative z-10">
+          <div className="w-22 h-22 sm:w-26 sm:h-26 rounded-full bg-white p-1 shadow-xl ring-4 ring-white overflow-hidden flex items-center justify-center bg-zinc-900">
             {logoUrl ? (
               <img src={logoUrl} alt="Logo" className="w-full h-full object-cover rounded-full" />
             ) : (
@@ -678,8 +678,8 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
 
       </div>
 
-      {/* BOTÃO FIXO DE SALVAR */}
-      <div className="fixed bottom-28 left-4 right-4 sm:left-6 sm:right-6 z-30 max-w-sm mx-auto pointer-events-none">
+      {/* BOTÃO FIXO DE SALVAR (LARGURA BEM MAIS COMPACTA / MAX-W-XS) */}
+      <div className="fixed bottom-28 left-4 right-4 z-30 max-w-xs mx-auto pointer-events-none">
         <button
           type="button"
           onClick={handleSubmit}
@@ -702,7 +702,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
               <button onClick={handleCopiarLink} className="px-3.5 py-1.5 bg-slate-900 text-white rounded-xl text-xs font-bold cursor-pointer shrink-0">{copiado ? 'Copiado!' : 'Copiar'}</button>
             </div>
             <div className="grid grid-cols-2 gap-2.5 pt-1">
-              <button onClick={handleCompartilharWhatsApp} className="p-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-xs rounded-2xl flex items-center justify-center gap-2 cursor-pointer transition-colors"><MessageCircle className="w-4 h-4" /> WhatsApp</button>
+              <button onClick={handleCompartilharWhatsApp} className="p-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-xs rounded-2xl flex items-center justify-center gap-2 cursor-pointer transition-colors"><MessageSquare className="w-4 h-4" /> WhatsApp</button>
               <button onClick={handleCompartilharTelegram} className="p-3 bg-sky-50 hover:bg-sky-100 text-sky-800 font-bold text-xs rounded-2xl flex items-center justify-center gap-2 cursor-pointer transition-colors"><Send className="w-4 h-4" /> Telegram</button>
             </div>
           </div>
