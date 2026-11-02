@@ -4,7 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { 
   Store, Save, Check, ExternalLink, Share2, 
   Send, X, MessageSquare, Bot, Grid, Palette, 
-  Clock, Trash2, Upload, Image as ImageIcon, ShieldCheck
+  Clock, Trash2, Upload, Image as ImageIcon, ShieldCheck,
+  Link as LinkIcon, Type, Timer
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
@@ -332,63 +333,63 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
   ];
 
   return (
-    <div className="w-full max-w-4xl mx-auto px-3 sm:px-4 py-2 space-y-2 font-sans text-slate-800 pb-32">
+    <div className="w-full max-w-4xl mx-auto px-3 sm:px-4 py-2 space-y-2.5 font-sans text-slate-800 pb-32">
       
-      {/* HEADER / CARTÃO DE PERFIL COM CAPA BEM MAIS ALTA E IMPONENTE */}
-      <div className="bg-white rounded-3xl p-3 border border-slate-200/80 shadow-xs relative space-y-2">
-        <div className="h-36 sm:h-44 w-full relative bg-slate-900 overflow-hidden rounded-2xl shadow-inner">
+      {/* HEADER / CARTÃO DE PERFIL EXECUTIVO REFINADO */}
+      <div className="bg-white/90 backdrop-blur-xl rounded-[28px] p-3 border border-slate-200/70 shadow-sm relative space-y-2">
+        <div className="h-40 sm:h-48 w-full relative bg-slate-900 overflow-hidden rounded-2xl shadow-inner group">
           {capaUrl ? (
-            <img src={capaUrl} alt="Capa" className="w-full h-full object-cover" />
+            <img src={capaUrl} alt="Capa" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
           ) : (
-            <div className="w-full h-full bg-gradient-to-r from-slate-900 via-zinc-800 to-slate-900 flex items-center justify-center">
+            <div className="w-full h-full bg-gradient-to-tr from-slate-950 via-slate-900 to-zinc-900 flex items-center justify-center">
               <span className="text-slate-500/40 font-black text-xl uppercase tracking-widest">{nome || 'AgendaEstilo'}</span>
             </div>
           )}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/30" />
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-black/20 to-transparent" />
 
-          <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5 z-10">
+          <div className="absolute top-3 right-3 flex items-center gap-2 z-10">
             <button 
               type="button"
               onClick={() => setModalCompartilharOpen(true)}
-              className="w-7 h-7 bg-black/40 hover:bg-black/60 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/20 transition-all cursor-pointer shadow"
+              className="w-8 h-8 bg-black/40 hover:bg-black/60 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/20 transition-all cursor-pointer shadow-md"
               title="Compartilhar Link"
             >
-              <Share2 className="w-3.5 h-3.5" />
+              <Share2 className="w-4 h-4" />
             </button>
             <a 
               href={urlCliente}
               target="_blank"
               rel="noopener noreferrer"
-              className="w-7 h-7 bg-black/40 hover:bg-black/60 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/20 transition-all cursor-pointer shadow"
+              className="w-8 h-8 bg-black/40 hover:bg-black/60 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/20 transition-all cursor-pointer shadow-md"
               title="Abrir Página Pública"
             >
-              <ExternalLink className="w-3.5 h-3.5" />
+              <ExternalLink className="w-4 h-4" />
             </a>
           </div>
         </div>
 
-        <div className="flex flex-col items-center text-center -mt-16 relative z-10">
-          <div className="w-22 h-22 sm:w-26 sm:h-26 rounded-full bg-white p-1 shadow-xl ring-4 ring-white overflow-hidden flex items-center justify-center bg-zinc-900">
+        <div className="flex flex-col items-center text-center -mt-18 relative z-10">
+          <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-white p-1.5 shadow-2xl ring-4 ring-white/90 overflow-hidden flex items-center justify-center bg-zinc-900 relative group">
             {logoUrl ? (
               <img src={logoUrl} alt="Logo" className="w-full h-full object-cover rounded-full" />
             ) : (
-              <div className="w-full h-full bg-slate-900 text-white rounded-full flex items-center justify-center font-black text-2xl">
+              <div className="w-full h-full bg-gradient-to-tr from-slate-900 to-zinc-800 text-white rounded-full flex items-center justify-center font-black text-2xl">
                 {(nome || 'B').charAt(0)}
               </div>
             )}
           </div>
-          <div className="mt-1">
-            <h1 className="text-xs sm:text-sm font-black text-slate-900 tracking-tight flex items-center justify-center gap-1">
+          <div className="mt-1.5 space-y-0.5">
+            <h1 className="text-xs sm:text-sm font-black text-slate-900 tracking-tight flex items-center justify-center gap-1.5">
               {nome || 'Minha Barbearia'}
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 inline-block" />
+              <ShieldCheck className="w-4 h-4 text-emerald-600 inline-block drop-shadow-xs" />
             </h1>
-            <p className="text-[10px] text-slate-500 font-semibold">@{slug || 'barbearia'}</p>
+            <p className="text-[10px] text-slate-500 font-semibold tracking-wide">@{slug || 'barbearia'}</p>
           </div>
         </div>
       </div>
 
       {/* ABAS DE NAVEGAÇÃO SUPERIORES */}
-      <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
+      <div className="grid grid-cols-4 gap-2">
         {botoesNavegacao.map((btn) => {
           const Icone = btn.icone;
           const ativo = secaoAtiva === btn.id;
@@ -397,10 +398,10 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
               key={btn.id}
               type="button"
               onClick={() => setSecaoAtiva(btn.id)}
-              className={`p-2 rounded-2xl border transition-all cursor-pointer flex flex-col items-center justify-center gap-1 text-center shadow-2xs ${
+              className={`p-2.5 rounded-2xl border transition-all cursor-pointer flex flex-col items-center justify-center gap-1 text-center shadow-xs ${
                 ativo 
                   ? 'bg-slate-900 text-white border-slate-900 shadow-md scale-[1.01]' 
-                  : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:border-slate-300'
+                  : 'bg-white/80 hover:bg-white text-slate-600 border-slate-200/80 hover:border-slate-300'
               }`}
             >
               <div className={`w-5 h-5 rounded-lg flex items-center justify-center ${ativo ? 'bg-white/10 text-emerald-400' : 'bg-slate-100 text-slate-700'}`}>
@@ -412,61 +413,72 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
         })}
       </div>
 
-      {/* PAINEL DE CONTEÚDO */}
-      <div className="bg-white rounded-3xl border border-slate-200/80 p-3 shadow-xs space-y-2.5">
+      {/* PAINEL DE CONTEÚDO MODERNO */}
+      <div className="bg-white/90 backdrop-blur-xl rounded-[28px] border border-slate-200/80 p-3.5 sm:p-4 shadow-sm space-y-3">
         
         {/* ================= GERAL & PERFIL ================= */}
         {secaoAtiva === 'geral' && (
-          <div className="space-y-2.5 animate-in fade-in duration-200">
-            <div className="bg-slate-50/60 p-2.5 rounded-2xl border border-slate-200/60 space-y-2">
-              <div className="space-y-0.5">
-                <label className="text-[9px] font-bold text-slate-700 uppercase tracking-wide">Nome da Barbearia</label>
+          <div className="space-y-3 animate-in fade-in duration-200">
+            <div className="bg-slate-50/80 p-3 rounded-2xl border border-slate-200/60 space-y-2.5">
+              
+              {/* Campo Nome */}
+              <div className="space-y-1">
+                <label className="text-[10px] font-extrabold text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
+                  <Type className="w-3 h-3 text-slate-400" /> Nome da Barbearia
+                </label>
                 <input
                   type="text"
                   value={nome}
                   onChange={(e) => setNome(e.target.value)}
-                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all shadow-2xs"
+                  className="w-full bg-white border border-slate-200/80 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all shadow-2xs"
                   placeholder="Ex: Barbearia Executiva"
                 />
               </div>
 
-              <div className="space-y-0.5">
-                <label className="text-[9px] font-bold text-slate-700 uppercase tracking-wide">Link Personalizado (Slug)</label>
-                <div className="flex items-center bg-white border border-slate-200 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-slate-900/10 focus-within:border-slate-900 transition-all shadow-2xs">
-                  <span className="pl-2.5 pr-1.5 text-[9px] text-slate-400 font-bold bg-slate-100 border-r border-slate-200 py-1.5">/agendar/</span>
+              {/* Campo Slug */}
+              <div className="space-y-1">
+                <label className="text-[10px] font-extrabold text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
+                  <LinkIcon className="w-3 h-3 text-slate-400" /> Link Personalizado (Slug)
+                </label>
+                <div className="flex items-center bg-white border border-slate-200/80 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-slate-900/10 focus-within:border-slate-900 transition-all shadow-2xs">
+                  <span className="pl-3 pr-2 text-[10px] text-slate-400 font-bold bg-slate-100 border-r border-slate-200/80 py-2">/agendar/</span>
                   <input
                     type="text"
                     value={slug}
                     onChange={(e) => setSlug(e.target.value)}
-                    className="w-full bg-transparent px-2.5 py-1.5 text-xs font-semibold text-slate-900 focus:outline-none"
+                    className="w-full bg-transparent px-3 py-2 text-xs font-semibold text-slate-900 focus:outline-none"
                     placeholder="sua-barbearia"
                   />
                 </div>
               </div>
 
-              <div className="space-y-0.5">
-                <label className="text-[9px] font-bold text-slate-700 uppercase tracking-wide">Antecedência Mínima (minutos)</label>
+              {/* Campo Antecedência */}
+              <div className="space-y-1">
+                <label className="text-[10px] font-extrabold text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
+                  <Timer className="w-3 h-3 text-slate-400" /> Antecedência Mínima (minutos)
+                </label>
                 <input
                   type="number"
                   min="0"
                   step="5"
                   value={antecedenciaMinima}
                   onChange={(e) => setAntecedenciaMinima(e.target.value)}
-                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all shadow-2xs"
+                  className="w-full bg-white border border-slate-200/80 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all shadow-2xs"
                   placeholder="Ex: 30"
                 />
               </div>
             </div>
 
-            <div className="flex items-center justify-between bg-slate-900 text-white p-2.5 rounded-2xl shadow-sm">
-              <div>
-                <h5 className="font-bold text-xs">Horários Gerais & Feriados</h5>
-                <p className="text-[9px] text-slate-300">Gerencie bloqueios de datas.</p>
+            {/* Card Feriados & Horários Gerais */}
+            <div className="flex items-center justify-between bg-gradient-to-r from-slate-900 to-zinc-900 text-white p-3.5 rounded-2xl shadow-md border border-slate-800">
+              <div className="space-y-0.5">
+                <h5 className="font-extrabold text-xs tracking-tight">Horários Gerais & Feriados</h5>
+                <p className="text-[10px] text-slate-300 font-medium">Gerencie bloqueios de datas e exceções.</p>
               </div>
               <button
                 type="button"
                 onClick={() => setModalHorariosGeraisOpen(true)}
-                className="px-3 py-1.5 bg-white text-slate-900 hover:bg-slate-100 rounded-xl text-xs font-bold cursor-pointer shadow-xs transition-all"
+                className="px-3.5 py-2 bg-white hover:bg-slate-100 text-slate-900 rounded-xl text-xs font-black cursor-pointer shadow-sm transition-all"
               >
                 Configurar
               </button>
@@ -476,39 +488,39 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
 
         {/* ================= VISUAL & MÍDIA ================= */}
         {secaoAtiva === 'visual' && (
-          <div className="space-y-2.5 animate-in fade-in duration-200">
-            <div className="grid grid-cols-2 gap-2.5">
-              <div className="bg-slate-50/60 p-2 rounded-2xl border border-slate-200/60 space-y-1 flex flex-col items-center text-center">
-                <label className="text-[9px] font-bold text-slate-700 uppercase tracking-wide w-full text-left">Logo</label>
-                <label className="w-full border-2 border-dashed border-slate-200 hover:border-slate-400 rounded-xl p-1.5 flex flex-col items-center justify-center gap-1 bg-white cursor-pointer transition-all shadow-2xs">
+          <div className="space-y-3 animate-in fade-in duration-200">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-slate-50/80 p-2.5 rounded-2xl border border-slate-200/60 space-y-1 flex flex-col items-center text-center">
+                <label className="text-[10px] font-extrabold text-slate-600 uppercase tracking-wider w-full text-left">Logo</label>
+                <label className="w-full border-2 border-dashed border-slate-200 hover:border-slate-400 rounded-xl p-2 flex flex-col items-center justify-center gap-1 bg-white cursor-pointer transition-all shadow-2xs">
                   <input type="file" accept="image/*" onChange={(e) => handleUploadImagem(e, 'logo')} className="hidden" />
-                  {logoUrl ? <img src={logoUrl} alt="" className="w-8 h-8 rounded-full object-cover shadow-xs ring-2 ring-slate-200" /> : <Upload className="w-3.5 h-3.5 text-slate-400" />}
+                  {logoUrl ? <img src={logoUrl} alt="" className="w-9 h-9 rounded-full object-cover shadow-xs ring-2 ring-slate-200" /> : <Upload className="w-4 h-4 text-slate-400" />}
                   <span className="text-[9px] font-bold text-slate-700">{enviandoLogo ? 'Enviando...' : 'Enviar Logo'}</span>
                 </label>
               </div>
 
-              <div className="bg-slate-50/60 p-2 rounded-2xl border border-slate-200/60 space-y-1 flex flex-col items-center text-center">
-                <label className="text-[9px] font-bold text-slate-700 uppercase tracking-wide w-full text-left">Capa</label>
-                <label className="w-full border-2 border-dashed border-slate-200 hover:border-slate-400 rounded-xl p-1.5 flex flex-col items-center justify-center gap-1 bg-white cursor-pointer transition-all shadow-2xs">
+              <div className="bg-slate-50/80 p-2.5 rounded-2xl border border-slate-200/60 space-y-1 flex flex-col items-center text-center">
+                <label className="text-[10px] font-extrabold text-slate-600 uppercase tracking-wider w-full text-left">Capa</label>
+                <label className="w-full border-2 border-dashed border-slate-200 hover:border-slate-400 rounded-xl p-2 flex flex-col items-center justify-center gap-1 bg-white cursor-pointer transition-all shadow-2xs">
                   <input type="file" accept="image/*" onChange={(e) => handleUploadImagem(e, 'capa')} className="hidden" />
-                  {capaUrl ? <img src={capaUrl} alt="" className="w-full h-8 rounded-lg object-cover shadow-xs ring-1 ring-slate-200" /> : <ImageIcon className="w-3.5 h-3.5 text-slate-400" />}
+                  {capaUrl ? <img src={capaUrl} alt="" className="w-full h-9 rounded-lg object-cover shadow-xs ring-1 ring-slate-200" /> : <ImageIcon className="w-4 h-4 text-slate-400" />}
                   <span className="text-[9px] font-bold text-slate-700">{enviandoCapa ? 'Enviando...' : 'Enviar Capa'}</span>
                 </label>
               </div>
             </div>
 
-            <div className="bg-slate-50/60 p-2.5 rounded-2xl border border-slate-200/60 space-y-1.5">
-              <label className="text-[9px] font-bold text-slate-700 uppercase tracking-wide block">Tema Visual do App</label>
+            <div className="bg-slate-50/80 p-3 rounded-2xl border border-slate-200/60 space-y-2">
+              <label className="text-[10px] font-extrabold text-slate-600 uppercase tracking-wider block">Tema Visual do App</label>
               <div className="grid grid-cols-2 gap-2">
                 <div 
                   onClick={() => setTemaVisual('clean')}
-                  className={`p-2 rounded-xl border cursor-pointer text-center transition-all flex flex-col items-center gap-0.5 bg-white ${temaVisual === 'clean' ? 'border-slate-900 ring-2 ring-slate-900/10 font-bold shadow-xs' : 'border-slate-200 text-slate-600'}`}
+                  className={`p-2.5 rounded-xl border cursor-pointer text-center transition-all flex flex-col items-center gap-0.5 bg-white ${temaVisual === 'clean' ? 'border-slate-900 ring-2 ring-slate-900/10 font-bold shadow-xs' : 'border-slate-200 text-slate-600'}`}
                 >
                   <span className="text-xs text-slate-900 font-bold">Clean (Claro)</span>
                 </div>
                 <div 
                   onClick={() => setTemaVisual('dark')}
-                  className={`p-2 rounded-xl border cursor-pointer text-center transition-all flex flex-col items-center gap-0.5 ${temaVisual === 'dark' ? 'border-zinc-900 bg-zinc-900 text-white font-bold shadow-xs' : 'border-slate-200 bg-white text-slate-600'}`}
+                  className={`p-2.5 rounded-xl border cursor-pointer text-center transition-all flex flex-col items-center gap-0.5 ${temaVisual === 'dark' ? 'border-zinc-900 bg-zinc-900 text-white font-bold shadow-xs' : 'border-slate-200 bg-white text-slate-600'}`}
                 >
                   <span className="text-xs font-bold">Dark (Escuro)</span>
                 </div>
@@ -519,33 +531,33 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
 
         {/* ================= ATENDIMENTO ================= */}
         {secaoAtiva === 'atendimento' && (
-          <div className="space-y-2.5 animate-in fade-in duration-200">
-            <div className="bg-slate-50/60 p-2.5 rounded-2xl border border-slate-200/60 space-y-2">
-              <label className="text-[9px] font-bold text-slate-700 uppercase tracking-wide block">Modo de Agendamento do Cliente</label>
-              <div className="grid grid-cols-1 gap-1.5">
+          <div className="space-y-3 animate-in fade-in duration-200">
+            <div className="bg-slate-50/80 p-3 rounded-2xl border border-slate-200/60 space-y-2">
+              <label className="text-[10px] font-extrabold text-slate-600 uppercase tracking-wider block">Modo de Agendamento do Cliente</label>
+              <div className="grid grid-cols-1 gap-2">
                 <div 
                   onClick={() => setModoAtendimento('conversacional')}
-                  className={`p-2.5 rounded-xl border cursor-pointer transition-all flex items-start gap-2 bg-white ${modoAtendimento === 'conversacional' ? 'border-slate-900 ring-2 ring-slate-900/10 shadow-xs' : 'border-slate-200 hover:bg-slate-50'}`}
+                  className={`p-3 rounded-xl border cursor-pointer transition-all flex items-start gap-2.5 bg-white ${modoAtendimento === 'conversacional' ? 'border-slate-900 ring-2 ring-slate-900/10 shadow-xs' : 'border-slate-200 hover:bg-slate-50'}`}
                 >
-                  <div className="w-5 h-5 rounded-lg bg-slate-100 flex items-center justify-center shrink-0 text-slate-900 mt-0.5">
+                  <div className="w-6 h-6 rounded-lg bg-slate-100 flex items-center justify-center shrink-0 text-slate-900 mt-0.5">
                     <Bot className="w-3.5 h-3.5" />
                   </div>
                   <div>
                     <h4 className="font-bold text-xs text-slate-900">Conversacional (Chat)</h4>
-                    <p className="text-[9px] text-slate-500 leading-tight">Assistente virtual passo a passo no agendamento.</p>
+                    <p className="text-[10px] text-slate-500 leading-tight">Assistente virtual passo a passo no agendamento.</p>
                   </div>
                 </div>
 
                 <div 
                   onClick={() => setModoAtendimento('classico')}
-                  className={`p-2.5 rounded-xl border cursor-pointer transition-all flex items-start gap-2 bg-white ${modoAtendimento === 'classico' ? 'border-slate-900 ring-2 ring-slate-900/10 shadow-xs' : 'border-slate-200 hover:bg-slate-50'}`}
+                  className={`p-3 rounded-xl border cursor-pointer transition-all flex items-start gap-2.5 bg-white ${modoAtendimento === 'classico' ? 'border-slate-900 ring-2 ring-slate-900/10 shadow-xs' : 'border-slate-200 hover:bg-slate-50'}`}
                 >
-                  <div className="w-5 h-5 rounded-lg bg-slate-100 flex items-center justify-center shrink-0 text-slate-900 mt-0.5">
+                  <div className="w-6 h-6 rounded-lg bg-slate-100 flex items-center justify-center shrink-0 text-slate-900 mt-0.5">
                     <Grid className="w-3.5 h-3.5" />
                   </div>
                   <div>
                     <h4 className="font-bold text-xs text-slate-900">Clássico (Grade)</h4>
-                    <p className="text-[9px] text-slate-500 leading-tight">Seleção tradicional em grade de horários disponíveis.</p>
+                    <p className="text-[10px] text-slate-500 leading-tight">Seleção tradicional em grade de horários disponíveis.</p>
                   </div>
                 </div>
               </div>
@@ -555,9 +567,9 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
 
         {/* ================= EQUIPE & ESCALA ================= */}
         {secaoAtiva === 'barbeiros_horarios' && (
-          <div className="space-y-2 animate-in fade-in duration-200">
-            <div className="space-y-1.5">
-              <div className="flex flex-wrap gap-1 pb-0.5">
+          <div className="space-y-2.5 animate-in fade-in duration-200">
+            <div className="space-y-2">
+              <div className="flex flex-wrap gap-1.5 pb-0.5">
                 {barbeiros.map((b) => {
                   const selecionado = barbeiroSelecionado?.id === b.id;
                   return (
@@ -565,7 +577,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                       key={b.id}
                       type="button"
                       onClick={() => selecionarBarbeiroParaEditar(b)}
-                      className={`px-3 py-1 rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer border ${
+                      className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer border ${
                         selecionado ? 'bg-slate-900 text-white border-slate-900 shadow-sm' : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
                       }`}
                     >
@@ -576,13 +588,13 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
               </div>
 
               {barbeiroSelecionado && (
-                <div className="bg-slate-50/80 rounded-2xl border border-slate-200/80 p-2 space-y-1.5 shadow-inner">
+                <div className="bg-slate-50/80 rounded-2xl border border-slate-200/80 p-2.5 space-y-2 shadow-inner">
                   <div className="flex items-center justify-between pb-1 border-b border-slate-200/60">
-                    <span className="text-[10px] font-bold text-slate-900">Escala de Horários: {barbeiroSelecionado.nome}</span>
+                    <span className="text-[11px] font-bold text-slate-900">Escala de Horários: {barbeiroSelecionado.nome}</span>
                   </div>
 
                   <div className="relative">
-                    <div className="flex items-stretch gap-2 overflow-x-auto pb-1.5 pt-0.5 px-0.5 snap-x snap-mandatory [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar-thumb]:bg-slate-300 [&::-webkit-scrollbar-thumb]:rounded-full">
+                    <div className="flex items-stretch gap-2 overflow-x-auto pb-2 pt-0.5 px-0.5 snap-x snap-mandatory [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:bg-slate-300 [&::-webkit-scrollbar-thumb]:rounded-full">
                       {DIAS_SEMANA_NOMES.map(({ key, label }) => {
                         const configDia = horariosBarbeiro[key] || {};
                         const ativo = configDia.ativo !== false;
@@ -678,7 +690,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
 
       </div>
 
-      {/* BOTÃO FIXO DE SALVAR (LARGURA BEM MAIS COMPACTA / MAX-W-XS) */}
+      {/* BOTÃO FIXO DE SALVAR COMPACTO E ELEGANTE */}
       <div className="fixed bottom-28 left-4 right-4 z-30 max-w-xs mx-auto pointer-events-none">
         <button
           type="button"
