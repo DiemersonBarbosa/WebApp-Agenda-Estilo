@@ -20,7 +20,7 @@ const DIAS_SEMANA_NOMES = [
 ];
 
 export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
-  const [secaoAtiva, setSecaoAtiva] = useState('principal');
+  const [secaoAtiva, setSecaoAtiva] = useState('geral');
 
   const [nome, setNome] = useState(barbearia?.nome || '');
   const [slug, setSlug] = useState(barbearia?.slug || '');
@@ -334,393 +334,346 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
     }
   };
 
-  const opcoesConfig = [
-    { id: 'geral', titulo: 'Geral & Perfil', sub: 'Nome, link de acesso e antecedência', icone: Store },
-    { id: 'visual', titulo: 'Visual & Mídia', sub: 'Logo, imagem de capa e tema de cores', icone: Palette },
-    { id: 'atendimento', titulo: 'Modo de Atendimento', sub: 'Agendamento via chat ou layout clássico', icone: MessageSquare },
-    { id: 'barbeiros_horarios', titulo: 'Horários da Equipe', sub: 'Turnos e folgas de cada profissional', icone: Clock },
+  const botoesNavegacao = [
+    { id: 'geral', titulo: 'Geral & Perfil', icone: Store },
+    { id: 'visual', titulo: 'Visual & Mídia', icone: Palette },
+    { id: 'atendimento', titulo: 'Atendimento', icone: MessageSquare },
+    { id: 'barbeiros_horarios', titulo: 'Equipe', icone: Clock },
   ];
 
   return (
-    <div className="w-full h-full bg-slate-50 text-slate-900 overflow-hidden font-sans flex flex-col justify-between">
-      <div className="overflow-hidden">
-        <div className="w-full bg-white border-b border-slate-200 shadow-xs relative mb-3">
-          <div className="h-32 sm:h-44 w-full relative bg-slate-900 overflow-hidden">
-            {capaUrl ? (
-              <img src={capaUrl} alt="Capa" className="w-full h-full object-cover" />
-            ) : (
-              <div className="w-full h-full bg-gradient-to-r from-slate-900 via-stone-800 to-slate-900 flex items-center justify-center">
-                <span className="text-slate-600/40 font-black text-2xl uppercase tracking-widest">{nome || 'AgendaEstilo'}</span>
-              </div>
-            )}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-black/20" />
-
-            <div className="absolute top-3 right-3 flex items-center gap-2 z-10">
-              <button 
-                type="button"
-                onClick={() => setModalCompartilharOpen(true)}
-                className="w-8 h-8 bg-black/40 hover:bg-black/60 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/20 transition-all cursor-pointer shadow"
-              >
-                <Share2 className="w-3.5 h-3.5" />
-              </button>
-              <a 
-                href={urlCliente}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-8 h-8 bg-black/40 hover:bg-black/60 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/20 transition-all cursor-pointer shadow"
-              >
-                <ExternalLink className="w-3.5 h-3.5" />
-              </a>
+    <div className="w-full max-w-4xl mx-auto px-3 sm:px-4 py-4 space-y-4 font-sans pb-36">
+      
+      {/* CAPA COM BORDAS ARREDONDADAS E PERFIL CENTRALIZADO */}
+      <div className="bg-white rounded-3xl p-3 sm:p-4 border border-slate-200/90 shadow-xs relative space-y-3">
+        <div className="h-32 sm:h-44 w-full relative bg-slate-900 overflow-hidden rounded-2xl shadow-inner">
+          {capaUrl ? (
+            <img src={capaUrl} alt="Capa" className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-r from-slate-900 via-stone-800 to-slate-900 flex items-center justify-center">
+              <span className="text-slate-600/40 font-black text-2xl uppercase tracking-widest">{nome || 'AgendaEstilo'}</span>
             </div>
+          )}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-black/20" />
 
-            {secaoAtiva !== 'principal' && (
-              <button 
-                type="button"
-                onClick={() => setSecaoAtiva('principal')}
-                className="absolute top-3 left-3 bg-black/50 hover:bg-black/70 backdrop-blur-md text-white px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 transition-all cursor-pointer z-10"
-              >
-                <ArrowLeft className="w-3.5 h-3.5" /> Voltar
-              </button>
-            )}
-          </div>
-
-          <div className="max-w-4xl mx-auto px-4 flex flex-col items-center text-center -mt-12 relative z-10">
-            <div className="w-22 h-22 sm:w-24 sm:h-24 rounded-full bg-white p-1 shadow-xl ring-2 ring-slate-200 overflow-hidden flex items-center justify-center bg-stone-900">
-              {logoUrl ? (
-                <img src={logoUrl} alt="Logo" className="w-full h-full object-cover rounded-full" />
-              ) : (
-                <div className="w-full h-full bg-slate-900 text-white rounded-full flex items-center justify-center font-black text-2xl">
-                  {(nome || 'B').charAt(0)}
-                </div>
-              )}
-            </div>
-            <div className="pb-1 mt-0.5">
-              <h1 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">{nome || 'Minha Barbearia'}</h1>
-              <p className="text-[11px] text-slate-500 font-bold">@{slug || 'barbearia'}</p>
-            </div>
+          <div className="absolute top-3 right-3 flex items-center gap-2 z-10">
+            <button 
+              type="button"
+              onClick={() => setModalCompartilharOpen(true)}
+              className="w-8 h-8 bg-black/40 hover:bg-black/60 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/20 transition-all cursor-pointer shadow"
+            >
+              <Share2 className="w-3.5 h-3.5" />
+            </button>
+            <a 
+              href={urlCliente}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-8 h-8 bg-black/40 hover:bg-black/60 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/20 transition-all cursor-pointer shadow"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+            </a>
           </div>
         </div>
 
-        <div className="max-w-4xl mx-auto px-3 sm:px-6">
-          {secaoAtiva === 'principal' && (
-            <div className="space-y-3 animate-in fade-in duration-200 py-1">
-              <div className="space-y-2.5">
-                {opcoesConfig.map((item) => {
-                  const Icone = item.icone;
+        <div className="flex flex-col items-center text-center -mt-12 relative z-10">
+          <div className="w-20 h-20 sm:w-22 sm:h-22 rounded-full bg-white p-1 shadow-xl ring-2 ring-slate-200 overflow-hidden flex items-center justify-center bg-stone-900">
+            {logoUrl ? (
+              <img src={logoUrl} alt="Logo" className="w-full h-full object-cover rounded-full" />
+            ) : (
+              <div className="w-full h-full bg-slate-900 text-white rounded-full flex items-center justify-center font-black text-2xl">
+                {(nome || 'B').charAt(0)}
+              </div>
+            )}
+          </div>
+          <div className="mt-1">
+            <h1 className="text-sm sm:text-base font-black text-slate-900 tracking-tight">{nome || 'Minha Barbearia'}</h1>
+            <p className="text-[10px] text-slate-500 font-bold">@{slug || 'barbearia'}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* 4 BOTÕES DE NAVEGAÇÃO NA MESMA LINHA */}
+      <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
+        {botoesNavegacao.map((btn) => {
+          const Icone = btn.icone;
+          const ativo = secaoAtiva === btn.id;
+          return (
+            <button
+              key={btn.id}
+              type="button"
+              onClick={() => setSecaoAtiva(btn.id)}
+              className={`p-2.5 sm:p-3 rounded-2xl border transition-all cursor-pointer flex flex-col items-center justify-center gap-1 text-center shadow-xs ${
+                ativo 
+                  ? 'bg-stone-900 text-white border-stone-900 shadow-md scale-[1.02]' 
+                  : 'bg-white text-stone-700 border-slate-200 hover:bg-slate-50'
+              }`}
+            >
+              <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-xl flex items-center justify-center ${ativo ? 'bg-white/10 text-emerald-400' : 'bg-slate-100 text-slate-700'}`}>
+                <Icone className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              </div>
+              <span className="text-[9px] sm:text-[10px] font-black tracking-tight truncate w-full">{btn.titulo}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* CONTEÚDO DINÂMICO DE CADA ABA */}
+      <div className="bg-white rounded-3xl border border-slate-200 p-4 sm:p-5 shadow-xs space-y-4">
+        
+        {/* SEÇÃO: GERAL & PERFIL */}
+        {secaoAtiva === 'geral' && (
+          <div className="space-y-3.5 animate-in fade-in duration-200">
+            <div className="space-y-3">
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-700">Nome da Barbearia</label>
+                <input
+                  type="text"
+                  value={nome}
+                  onChange={(e) => setNome(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 focus:outline-none"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-700">Link Personalizado (Slug)</label>
+                <div className="flex items-center bg-slate-50 border border-slate-300 rounded-xl overflow-hidden">
+                  <span className="pl-3 text-[10px] text-slate-400 font-bold bg-slate-100 border-r border-slate-300 py-2.5">/agendar/</span>
+                  <input
+                    type="text"
+                    value={slug}
+                    onChange={(e) => setSlug(e.target.value)}
+                    className="w-full bg-transparent px-3 py-2.5 text-xs font-bold text-slate-900 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-700">Antecedência Mínima para Agendamento (minutos)</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="5"
+                  value={antecedenciaMinima}
+                  onChange={(e) => setAntecedenciaMinima(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 focus:outline-none"
+                  placeholder="Ex: 30"
+                />
+                <p className="text-[9px] text-slate-500">Impede que clientes marquem horários em cima da hora (ex: 30 minutos antes).</p>
+              </div>
+
+              <div className="pt-2 border-t border-slate-100 flex items-center justify-between bg-slate-50/80 p-3 rounded-2xl border">
+                <div>
+                  <h5 className="font-bold text-xs text-slate-900">Horários Gerais & Feriados</h5>
+                  <p className="text-[9px] text-slate-500">Bloqueie datas e configure aberturas globais.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setModalHorariosGeraisOpen(true)}
+                  className="px-3.5 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold cursor-pointer shadow-xs"
+                >
+                  Configurar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* SEÇÃO: VISUAL & MÍDIA */}
+        {secaoAtiva === 'visual' && (
+          <div className="space-y-3.5 animate-in fade-in duration-200">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-700">Logo da Barbearia</label>
+                <label className="border-2 border-dashed border-slate-300 rounded-2xl p-4 flex flex-col items-center justify-center gap-1.5 bg-slate-50 cursor-pointer text-center hover:bg-slate-100 transition-colors">
+                  <input type="file" accept="image/*" onChange={(e) => handleUploadImagem(e, 'logo')} className="hidden" />
+                  {logoUrl ? <img src={logoUrl} alt="" className="w-10 h-10 rounded-full object-cover shadow-xs" /> : <Upload className="w-5 h-5 text-slate-500" />}
+                  <span className="text-[10px] font-bold text-slate-700">Enviar Logo</span>
+                </label>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-700">Imagem de Capa</label>
+                <label className="border-2 border-dashed border-slate-300 rounded-2xl p-4 flex flex-col items-center justify-center gap-1.5 bg-slate-50 cursor-pointer text-center hover:bg-slate-100 transition-colors">
+                  <input type="file" accept="image/*" onChange={(e) => handleUploadImagem(e, 'capa')} className="hidden" />
+                  {capaUrl ? <img src={capaUrl} alt="" className="w-16 h-8 rounded-lg object-cover shadow-xs" /> : <ImageIcon className="w-5 h-5 text-slate-500" />}
+                  <span className="text-[10px] font-bold text-slate-700">Enviar Capa</span>
+                </label>
+              </div>
+            </div>
+
+            <div className="space-y-1.5 pt-1">
+              <label className="text-[10px] font-bold text-slate-700">Tema Visual do App do Cliente</label>
+              <div className="grid grid-cols-2 gap-2.5">
+                <div 
+                  onClick={() => setTemaVisual('clean')}
+                  className={`p-3 rounded-2xl border cursor-pointer text-center transition-all ${temaVisual === 'clean' ? 'border-slate-900 bg-slate-100 font-extrabold shadow-xs' : 'border-slate-200'}`}
+                >
+                  <span className="text-xs">Clean (Claro)</span>
+                </div>
+                <div 
+                  onClick={() => setTemaVisual('dark')}
+                  className={`p-3 rounded-2xl border cursor-pointer text-center transition-all ${temaVisual === 'dark' ? 'border-stone-900 bg-stone-950 text-white font-extrabold shadow-xs' : 'border-slate-200'}`}
+                >
+                  <span className="text-xs">Dark (Escuro)</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* SEÇÃO: MODO DE ATENDIMENTO */}
+        {secaoAtiva === 'atendimento' && (
+          <div className="space-y-3.5 animate-in fade-in duration-200">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div 
+                onClick={() => setModoAtendimento('conversacional')}
+                className={`p-4 rounded-2xl border cursor-pointer transition-all ${modoAtendimento === 'conversacional' ? 'border-slate-900 bg-slate-50 ring-2 ring-slate-900 shadow-sm' : 'border-slate-200 hover:bg-slate-50/50'}`}
+              >
+                <Bot className="w-5 h-5 text-slate-900 mb-1.5" />
+                <h4 className="font-extrabold text-xs text-slate-900">Conversacional (Chat)</h4>
+                <p className="text-[10px] text-slate-500 mt-0.5">Assistente virtual interativo passo a passo.</p>
+              </div>
+
+              <div 
+                onClick={() => setModoAtendimento('classico')}
+                className={`p-4 rounded-2xl border cursor-pointer transition-all ${modoAtendimento === 'classico' ? 'border-slate-900 bg-slate-50 ring-2 ring-slate-900 shadow-sm' : 'border-slate-200 hover:bg-slate-50/50'}`}
+              >
+                <Grid className="w-5 h-5 text-slate-900 mb-1.5" />
+                <h4 className="font-extrabold text-xs text-slate-900">Clássico (Grade)</h4>
+                <p className="text-[10px] text-slate-500 mt-0.5">Seleção tradicional e rápida em grade de horários.</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* SEÇÃO: HORÁRIOS DA EQUIPE (COM EXPEDIENTE E PAUSA DE ALMOÇO) */}
+        {secaoAtiva === 'barbeiros_horarios' && (
+          <div className="space-y-3.5 animate-in fade-in duration-200">
+            <div className="space-y-3">
+              <div className="flex gap-1.5 overflow-x-auto pb-1">
+                {barbeiros.map((b) => {
+                  const selecionado = barbeiroSelecionado?.id === b.id;
                   return (
                     <button
-                      key={item.id}
+                      key={b.id}
                       type="button"
-                      onClick={() => setSecaoAtiva(item.id)}
-                      className="w-full bg-white px-4 py-3.5 rounded-2xl border border-slate-200/90 shadow-2xs hover:shadow-xs hover:border-slate-400 transition-all flex items-center justify-between text-left cursor-pointer group"
+                      onClick={() => selecionarBarbeiroParaEditar(b)}
+                      className={`px-3.5 py-2 rounded-xl text-xs font-extrabold transition-all flex items-center gap-2 shrink-0 cursor-pointer border ${
+                        selecionado ? 'bg-slate-900 text-white border-slate-900 shadow-sm' : 'bg-slate-50 text-slate-800 border-slate-200 hover:bg-slate-100'
+                      }`}
                     >
-                      <div className="flex items-center gap-3 min-w-0 pr-2">
-                        <div className="w-10 h-10 rounded-xl bg-slate-100 group-hover:bg-slate-900 group-hover:text-white text-slate-800 flex items-center justify-center shrink-0 transition-colors">
-                          <Icone className="w-5 h-5" />
-                        </div>
-                        <div className="min-w-0">
-                          <h3 className="text-xs sm:text-sm font-black text-slate-900 truncate">{item.titulo}</h3>
-                          <p className="text-[11px] text-slate-500 truncate mt-0.5">{item.sub}</p>
-                        </div>
-                      </div>
-                      <ChevronRight className="w-4 h-4 text-slate-400 group-hover:translate-x-1 transition-transform shrink-0" />
+                      <span className="truncate">{b.nome}</span>
                     </button>
                   );
                 })}
               </div>
-            </div>
-          )}
 
-          {secaoAtiva === 'geral' && (
-            <div className="bg-white rounded-3xl border border-slate-200 p-4 shadow-sm space-y-3 animate-in fade-in duration-200">
-              <div className="flex items-center gap-2.5 pb-2 border-b border-slate-100">
-                <div className="w-7 h-7 rounded-lg bg-slate-900 text-white flex items-center justify-center shadow">
-                  <Store className="w-3.5 h-3.5 text-emerald-400" />
-                </div>
-                <div>
-                  <h2 className="text-xs font-extrabold text-slate-900">Geral & Perfil</h2>
-                  <p className="text-[10px] text-slate-500">Nome, link e antecedência.</p>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-700">Nome da Barbearia</label>
-                  <input
-                    type="text"
-                    value={nome}
-                    onChange={(e) => setNome(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 focus:outline-none"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-700">Link Personalizado (Slug)</label>
-                  <div className="flex items-center bg-slate-50 border border-slate-300 rounded-xl overflow-hidden">
-                    <span className="pl-3 text-[10px] text-slate-400 font-bold bg-slate-100 border-r border-slate-300 py-2">/agendar/</span>
-                    <input
-                      type="text"
-                      value={slug}
-                      onChange={(e) => setSlug(e.target.value)}
-                      className="w-full bg-transparent px-2.5 py-2 text-xs font-bold text-slate-900 focus:outline-none"
-                    />
+              {barbeiroSelecionado && (
+                <div className="bg-slate-50 rounded-2xl border border-slate-200 p-3.5 space-y-3 shadow-inner">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black text-slate-900">Editando escala de: {barbeiroSelecionado.nome}</span>
+                    {sucessoBarbeiroMsg && <span className="text-[10px] text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">Salvo com sucesso!</span>}
                   </div>
-                </div>
 
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-700">Antecedência Mínima para Agendamento (minutos)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="5"
-                    value={antecedenciaMinima}
-                    onChange={(e) => setAntecedenciaMinima(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 focus:outline-none"
-                    placeholder="Ex: 30"
-                  />
-                  <p className="text-[9px] text-slate-500">Impede que clientes marquem horários em cima da hora (ex: 30 minutos antes).</p>
-                </div>
+                  <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                    {DIAS_SEMANA_NOMES.map(({ key, label }) => {
+                      const configDia = horariosBarbeiro[key] || {};
+                      const ativo = configDia.ativo !== false;
 
-                <div className="pt-1 border-t border-slate-100 flex items-center justify-between bg-slate-50 p-2.5 rounded-xl border">
-                  <div>
-                    <h5 className="font-bold text-xs text-slate-900">Horários e Feriados</h5>
-                    <p className="text-[9px] text-slate-500">Bloqueie datas e configure aberturas.</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setModalHorariosGeraisOpen(true)}
-                    className="px-3 py-1.5 bg-slate-900 text-white rounded-lg text-xs font-bold cursor-pointer"
-                  >
-                    Configurar
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {secaoAtiva === 'visual' && (
-            <div className="bg-white rounded-3xl border border-slate-200 p-4 shadow-sm space-y-3 animate-in fade-in duration-200">
-              <div className="flex items-center gap-2.5 pb-2 border-b border-slate-100">
-                <div className="w-7 h-7 rounded-lg bg-slate-900 text-white flex items-center justify-center shadow">
-                  <Palette className="w-3.5 h-3.5 text-emerald-400" />
-                </div>
-                <div>
-                  <h2 className="text-xs font-extrabold text-slate-900">Visual & Mídia</h2>
-                  <p className="text-[10px] text-slate-500">Logo, capa e cores.</p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2.5">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-700">Logo</label>
-                  <label className="border-2 border-dashed border-slate-300 rounded-xl p-2.5 flex flex-col items-center justify-center gap-1 bg-slate-50 cursor-pointer text-center">
-                    <input type="file" accept="image/*" onChange={(e) => handleUploadImagem(e, 'logo')} className="hidden" />
-                    {logoUrl ? <img src={logoUrl} alt="" className="w-8 h-8 rounded-full object-cover" /> : <Upload className="w-4 h-4 text-slate-500" />}
-                    <span className="text-[9px] font-bold text-slate-700">Enviar Logo</span>
-                  </label>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-700">Capa</label>
-                  <label className="border-2 border-dashed border-slate-300 rounded-xl p-2.5 flex flex-col items-center justify-center gap-1 bg-slate-50 cursor-pointer text-center">
-                    <input type="file" accept="image/*" onChange={(e) => handleUploadImagem(e, 'capa')} className="hidden" />
-                    {capaUrl ? <img src={capaUrl} alt="" className="w-12 h-7 rounded object-cover" /> : <ImageIcon className="w-4 h-4 text-slate-500" />}
-                    <span className="text-[9px] font-bold text-slate-700">Enviar Capa</span>
-                  </label>
-                </div>
-              </div>
-
-              <div className="space-y-1 pt-1">
-                <label className="text-[10px] font-bold text-slate-700">Tema Visual</label>
-                <div className="grid grid-cols-2 gap-2">
-                  <div 
-                    onClick={() => setTemaVisual('clean')}
-                    className={`p-2.5 rounded-xl border cursor-pointer text-center ${temaVisual === 'clean' ? 'border-slate-900 bg-slate-100 font-bold' : 'border-slate-200'}`}
-                  >
-                    <span className="text-xs">Clean (Claro)</span>
-                  </div>
-                  <div 
-                    onClick={() => setTemaVisual('dark')}
-                    className={`p-2.5 rounded-xl border cursor-pointer text-center ${temaVisual === 'dark' ? 'border-stone-900 bg-stone-950 text-white font-bold' : 'border-slate-200'}`}
-                  >
-                    <span className="text-xs">Dark (Escuro)</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {secaoAtiva === 'atendimento' && (
-            <div className="bg-white rounded-3xl border border-slate-200 p-4 shadow-sm space-y-3 animate-in fade-in duration-200">
-              <div className="flex items-center gap-2.5 pb-2 border-b border-slate-100">
-                <div className="w-7 h-7 rounded-lg bg-slate-900 text-white flex items-center justify-center shadow">
-                  <MessageSquare className="w-3.5 h-3.5 text-emerald-400" />
-                </div>
-                <div>
-                  <h2 className="text-xs font-extrabold text-slate-900">Atendimento</h2>
-                  <p className="text-[10px] text-slate-500">Chat ou clássico.</p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2.5">
-                <div 
-                  onClick={() => setModoAtendimento('conversacional')}
-                  className={`p-3 rounded-xl border cursor-pointer ${modoAtendimento === 'conversacional' ? 'border-slate-900 bg-slate-50 ring-1 ring-slate-900' : 'border-slate-200'}`}
-                >
-                  <Bot className="w-4 h-4 text-slate-900 mb-1" />
-                  <h4 className="font-bold text-xs text-slate-900">Conversacional</h4>
-                  <p className="text-[9px] text-slate-500">Chat guiado.</p>
-                </div>
-
-                <div 
-                  onClick={() => setModoAtendimento('classico')}
-                  className={`p-3 rounded-xl border cursor-pointer ${modoAtendimento === 'classico' ? 'border-slate-900 bg-slate-50 ring-1 ring-slate-900' : 'border-slate-200'}`}
-                >
-                  <Grid className="w-4 h-4 text-slate-900 mb-1" />
-                  <h4 className="font-bold text-xs text-slate-900">Clássico</h4>
-                  <p className="text-[9px] text-slate-500">Grade rápida.</p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {secaoAtiva === 'barbeiros_horarios' && (
-            <div className="bg-white rounded-3xl border border-slate-200 p-4 shadow-sm space-y-3 animate-in fade-in duration-200">
-              <div className="flex items-center gap-2.5 pb-2 border-b border-slate-100">
-                <div className="w-7 h-7 rounded-lg bg-slate-900 text-white flex items-center justify-center shadow">
-                  <Clock className="w-3.5 h-3.5 text-emerald-400" />
-                </div>
-                <div>
-                  <h2 className="text-xs font-extrabold text-slate-900">Horários da Equipe</h2>
-                  <p className="text-[10px] text-slate-500">Turnos, pausas e folgas.</p>
-                </div>
-              </div>
-
-              <div className="space-y-2.5">
-                <div className="flex gap-1 overflow-x-auto pb-1">
-                  {barbeiros.map((b) => {
-                    const selecionado = barbeiroSelecionado?.id === b.id;
-                    return (
-                      <button
-                        key={b.id}
-                        type="button"
-                        onClick={() => selecionarBarbeiroParaEditar(b)}
-                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer border ${
-                          selecionado ? 'bg-slate-900 text-white border-slate-900' : 'bg-slate-50 text-slate-800 border-slate-200'
-                        }`}
-                      >
-                        <span className="truncate">{b.nome}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {barbeiroSelecionado && (
-                  <div className="bg-slate-50 rounded-2xl border border-slate-200 p-2.5 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-slate-900">{barbeiroSelecionado.nome}</span>
-                      {sucessoBarbeiroMsg && <span className="text-[10px] text-emerald-600 font-bold">Salvo!</span>}
-                    </div>
-
-                    <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
-                      {DIAS_SEMANA_NOMES.map(({ key, label }) => {
-                        const configDia = horariosBarbeiro[key] || {};
-                        const ativo = configDia.ativo !== false;
-
-                        return (
-                          <div key={key} className="p-2 rounded-xl border bg-white space-y-1.5">
-                            <div className="flex items-center justify-between">
-                              <label className="flex items-center gap-1.5 cursor-pointer">
-                                <input
-                                  type="checkbox"
-                                  checked={ativo}
-                                  onChange={() => handleToggleDiaBarbeiro(key)}
-                                  className="w-3 h-3 accent-slate-900 rounded"
-                                />
-                                <span className="text-[10px] font-bold text-slate-800">{label}</span>
-                              </label>
-
-                              {ativo && (
-                                <div className="flex items-center gap-1">
-                                  <span className="text-[8px] text-slate-400">Exp:</span>
-                                  <input
-                                    type="time"
-                                    value={configDia.abertura || '08:00'}
-                                    onChange={(e) => handleCampoChangeBarbeiro(key, 'abertura', e.target.value)}
-                                    className="bg-slate-50 border text-[9px] font-bold px-1 py-0.5 rounded"
-                                  />
-                                  <span className="text-[9px] text-slate-400">-</span>
-                                  <input
-                                    type="time"
-                                    value={configDia.fechamento || '18:00'}
-                                    onChange={(e) => handleCampoChangeBarbeiro(key, 'fechamento', e.target.value)}
-                                    className="bg-slate-50 border text-[9px] font-bold px-1 py-0.5 rounded"
-                                  />
-                                </div>
-                              )}
-                            </div>
+                      return (
+                        <div key={key} className={`p-2.5 rounded-2xl border transition-all space-y-2 ${ativo ? 'bg-white border-slate-200 shadow-2xs' : 'bg-slate-100/60 border-slate-200 opacity-75'}`}>
+                          <div className="flex items-center justify-between">
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={ativo}
+                                onChange={() => handleToggleDiaBarbeiro(key)}
+                                className="w-3.5 h-3.5 accent-slate-900 rounded"
+                              />
+                              <span className="text-xs font-black text-slate-800">{label}</span>
+                            </label>
 
                             {ativo && (
-                              <div className="flex items-center justify-end gap-1 pt-1 border-t border-slate-100">
-                                <span className="text-[8px] text-amber-600 font-bold">Pausa Almoço:</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-[9px] text-slate-400 font-bold">Expediente:</span>
                                 <input
                                   type="time"
-                                  value={configDia.pausaInicio || '12:00'}
-                                  onChange={(e) => handleCampoChangeBarbeiro(key, 'pausaInicio', e.target.value)}
-                                  className="bg-amber-50/50 border border-amber-200 text-[9px] font-bold px-1 py-0.5 rounded text-amber-800"
+                                  value={configDia.abertura || '08:00'}
+                                  onChange={(e) => handleCampoChangeBarbeiro(key, 'abertura', e.target.value)}
+                                  className="bg-slate-50 border border-slate-300 text-[10px] font-bold px-1.5 py-1 rounded-lg text-slate-900"
                                 />
-                                <span className="text-[9px] text-slate-400">-</span>
+                                <span className="text-[10px] text-slate-400">-</span>
                                 <input
                                   type="time"
-                                  value={configDia.pausaFim || '13:00'}
-                                  onChange={(e) => handleCampoChangeBarbeiro(key, 'pausaFim', e.target.value)}
-                                  className="bg-amber-50/50 border border-amber-200 text-[9px] font-bold px-1 py-0.5 rounded text-amber-800"
+                                  value={configDia.fechamento || '18:00'}
+                                  onChange={(e) => handleCampoChangeBarbeiro(key, 'fechamento', e.target.value)}
+                                  className="bg-slate-50 border border-slate-300 text-[10px] font-bold px-1.5 py-1 rounded-lg text-slate-900"
                                 />
                               </div>
                             )}
                           </div>
-                        );
-                      })}
-                    </div>
 
-                    <button
-                      type="button"
-                      onClick={salvandoHorariosBarbeiro}
-                      disabled={salvandoBarbeiro}
-                      className="w-full py-2 bg-slate-900 text-white rounded-xl text-xs font-bold cursor-pointer"
-                    >
-                      {salvandoBarbeiro ? 'Salvando...' : 'Salvar Escala'}
-                    </button>
+                          {ativo && (
+                            <div className="flex items-center justify-end gap-1.5 pt-1.5 border-t border-slate-100">
+                              <span className="text-[9px] text-amber-700 font-bold">Pausa Almoço:</span>
+                              <input
+                                type="time"
+                                value={configDia.pausaInicio || '12:00'}
+                                onChange={(e) => handleCampoChangeBarbeiro(key, 'pausaInicio', e.target.value)}
+                                className="bg-amber-50/50 border border-amber-200 text-[10px] font-bold px-1.5 py-1 rounded-lg text-amber-900"
+                              />
+                              <span className="text-[10px] text-slate-400">-</span>
+                              <input
+                                type="time"
+                                value={configDia.pausaFim || '13:00'}
+                                onChange={(e) => handleCampoChangeBarbeiro(key, 'pausaFim', e.target.value)}
+                                className="bg-amber-50/50 border border-amber-200 text-[10px] font-bold px-1.5 py-1 rounded-lg text-amber-900"
+                              />
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
-                )}
-              </div>
+
+                  <button
+                    type="button"
+                    onClick={salvandoHorariosBarbeiro}
+                    disabled={salvandoBarbeiro}
+                    className="w-full py-2.5 bg-slate-900 hover:bg-black text-white rounded-xl text-xs font-extrabold cursor-pointer shadow-md transition-all"
+                  >
+                    {salvandoBarbeiro ? 'Salvando Escala...' : `Salvar Escala de ${barbeiroSelecionado.nome}`}
+                  </button>
+                </div>
+              )}
             </div>
-          )}
-        </div>
+          </div>
+        )}
+
       </div>
 
-      {secaoAtiva === 'principal' && (
-        <div className="max-w-4xl mx-auto px-3 sm:px-6 w-full pt-2 pb-4">
-          <button
-            type="button"
-            onClick={handleSubmit}
-            disabled={salvando}
-            className="w-full py-3.5 bg-slate-900 hover:bg-black text-white font-extrabold text-xs uppercase tracking-wider rounded-2xl shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
-          >
-            {sucesso ? <Check className="w-4 h-4 text-emerald-400" /> : <Save className="w-4 h-4 text-emerald-400" />}
-            <span>{salvando ? 'Salvando...' : sucesso ? 'Salvo com Sucesso!' : 'Salvar Alterações'}</span>
-          </button>
-        </div>
-      )}
+      {/* BOTÃO FIXO E POSICIONADO ACIMA DO MENU MOBILE (BOTTOM-28) */}
+      <div className="fixed bottom-28 left-3 right-3 sm:left-4 sm:right-4 z-30 max-w-4xl mx-auto px-1 pointer-events-none">
+        <button
+          type="button"
+          onClick={handleSubmit}
+          disabled={salvando}
+          className="w-full py-3.5 bg-slate-900 hover:bg-black text-white font-extrabold text-xs uppercase tracking-wider rounded-2xl shadow-2xl transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 pointer-events-auto border border-white/10 backdrop-blur-md"
+        >
+          {sucesso ? <Check className="w-4 h-4 text-emerald-400" /> : <Save className="w-4 h-4 text-emerald-400" />}
+          <span>{salvando ? 'Salvando...' : sucesso ? 'Salvo com Sucesso!' : 'Salvar Alterações'}</span>
+        </button>
+      </div>
 
+      {/* MODAL DE COMPARTILHAMENTO */}
       {modalCompartilharOpen && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl space-y-4 relative max-h-[90vh] overflow-y-auto">
             <button onClick={() => setModalCompartilharOpen(false)} className="absolute top-4 right-4 p-1 bg-slate-100 rounded-full cursor-pointer"><X className="w-4 h-4" /></button>
-            <h3 className="text-sm font-bold text-slate-900">Compartilhar Link</h3>
+            <h3 className="text-sm font-black text-slate-900">Compartilhar Link</h3>
             <div className="flex items-center gap-2 bg-slate-50 p-2 rounded-xl border">
-              <input type="text" readOnly value={urlCliente} className="w-full bg-transparent text-xs truncate outline-none" />
-              <button onClick={handleCopiarLink} className="px-3 py-1.5 bg-slate-900 text-white rounded-lg text-xs font-bold cursor-pointer">{copiado ? 'Copiado!' : 'Copiar'}</button>
+              <input type="text" readOnly value={urlCliente} className="w-full bg-transparent text-xs truncate outline-none font-bold" />
+              <button onClick={handleCopiarLink} className="px-3.5 py-1.5 bg-slate-900 text-white rounded-lg text-xs font-bold cursor-pointer">{copiado ? 'Copiado!' : 'Copiar'}</button>
             </div>
             <div className="grid grid-cols-2 gap-2">
               <button onClick={handleCompartilharWhatsApp} className="p-2.5 bg-emerald-50 text-emerald-700 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 cursor-pointer"><MessageCircle className="w-4 h-4" /> WhatsApp</button>
@@ -730,53 +683,56 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
         </div>
       )}
 
+      {/* MODAL DE HORÁRIOS GERAIS E BLOQUEIOS */}
       {modalHorariosGeraisOpen && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between pb-2 border-b">
-              <h3 className="font-bold text-slate-900 text-xs">Bloqueios & Feriados</h3>
+            <div className="flex items-center justify-between pb-2.5 border-b">
+              <h3 className="font-black text-slate-900 text-xs">Bloqueios & Feriados Gerais</h3>
               <button onClick={() => setModalHorariosGeraisOpen(false)} className="p-1 bg-slate-100 rounded-full cursor-pointer"><X className="w-4 h-4" /></button>
             </div>
 
             <div className="space-y-3">
-              <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border">
+              <div className="flex items-center justify-between p-3 bg-slate-50 rounded-2xl border">
                 <div>
-                  <h4 className="font-bold text-xs text-slate-900">Agendamentos Online</h4>
+                  <h4 className="font-extrabold text-xs text-slate-900">Agendamentos Online</h4>
+                  <p className="text-[10px] text-slate-500">Permitir ou pausar novos agendamentos.</p>
                 </div>
                 <button
                   type="button"
                   onClick={() => setPermiteAgendamentos(!permiteAgendamentos)}
-                  className={`px-3 py-1 rounded-lg text-xs font-bold cursor-pointer ${permiteAgendamentos ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-black cursor-pointer shadow-xs ${permiteAgendamentos ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}
                 >
                   {permiteAgendamentos ? 'Ativo' : 'Pausado'}
                 </button>
               </div>
 
               <div className="space-y-1.5">
-                <h4 className="font-bold text-xs text-slate-900">Adicionar Bloqueio</h4>
-                <div className="flex gap-1.5">
-                  <input type="date" value={novaDataBloqueio} onChange={(e) => setNovaDataBloqueio(e.target.value)} className="bg-slate-50 border rounded-xl px-2 py-1.5 text-xs w-full" />
-                  <input type="text" placeholder="Motivo" value={novoMotivoBloqueio} onChange={(e) => setNovoMotivoBloqueio(e.target.value)} className="bg-slate-50 border rounded-xl px-2 py-1.5 text-xs w-full" />
-                  <button type="button" onClick={handleAdicionarBloqueio} className="px-3 py-1.5 bg-slate-900 text-white rounded-xl text-xs font-bold cursor-pointer">OK</button>
+                <h4 className="font-extrabold text-xs text-slate-900">Adicionar Data Bloqueada / Feriado</h4>
+                <div className="flex gap-2">
+                  <input type="date" value={novaDataBloqueio} onChange={(e) => setNovaDataBloqueio(e.target.value)} className="bg-slate-50 border rounded-xl px-3 py-2 text-xs w-full font-bold" />
+                  <input type="text" placeholder="Motivo" value={novoMotivoBloqueio} onChange={(e) => setNovoMotivoBloqueio(e.target.value)} className="bg-slate-50 border rounded-xl px-3 py-2 text-xs w-full font-bold" />
+                  <button type="button" onClick={handleAdicionarBloqueio} className="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold cursor-pointer">OK</button>
                 </div>
               </div>
 
-              <div className="space-y-1 max-h-32 overflow-y-auto">
+              <div className="space-y-1.5 max-h-36 overflow-y-auto">
                 {listaBloqueios.map(b => (
-                  <div key={b.id} className="flex justify-between items-center bg-slate-50 p-2 rounded-lg text-xs">
+                  <div key={b.id} className="flex justify-between items-center bg-slate-50 p-2.5 rounded-xl border text-xs font-bold">
                     <span>{b.data_bloqueio} - {b.motivo}</span>
-                    <button type="button" onClick={() => handleRemoverBloqueio(b.id)} className="text-rose-600"><Trash2 className="w-3.5 h-3.5" /></button>
+                    <button type="button" onClick={() => handleRemoverBloqueio(b.id)} className="text-rose-600 p-1"><Trash2 className="w-4 h-4" /></button>
                   </div>
                 ))}
               </div>
             </div>
 
-            <button type="button" onClick={() => setModalHorariosGeraisOpen(false)} className="w-full py-2.5 bg-slate-900 text-white rounded-xl text-xs font-bold cursor-pointer">
+            <button type="button" onClick={() => setModalHorariosGeraisOpen(false)} className="w-full py-3 bg-slate-900 text-white rounded-xl text-xs font-extrabold cursor-pointer">
               Fechar
             </button>
           </div>
         </div>
       )}
+
     </div>
   );
 }
