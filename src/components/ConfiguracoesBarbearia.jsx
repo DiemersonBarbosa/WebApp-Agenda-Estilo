@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { 
-  Store, Save, Check, ExternalLink, Share2, MessageCircle, 
+  Store, Save, Check, ExternalLink, Share2, 
   Send, X, MessageSquare, Bot, Grid, Palette, 
   Clock, Trash2, Upload, Image as ImageIcon, ShieldCheck
 } from 'lucide-react';
@@ -334,8 +334,8 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
   };
 
   const botoesNavegacao = [
-    { id: 'geral', titulo: 'Geral & Perfil', icone: Store },
-    { id: 'visual', titulo: 'Visual & Mídia', icone: Palette },
+    { id: 'geral', titulo: 'Geral', icone: Store },
+    { id: 'visual', titulo: 'Visual', icone: Palette },
     { id: 'atendimento', titulo: 'Atendimento', icone: MessageSquare },
     { id: 'barbeiros_horarios', titulo: 'Equipe', icone: Clock },
   ];
@@ -454,7 +454,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wide">Antecedência Mínima para Agendamento (minutos)</label>
+                <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wide">Antecedência Mínima (minutos)</label>
                 <input
                   type="number"
                   min="0"
@@ -464,13 +464,13 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                   className="w-full bg-slate-50/70 border border-slate-200 rounded-2xl px-4 py-3 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all"
                   placeholder="Ex: 30"
                 />
-                <p className="text-[10px] text-slate-500">Bloqueia agendamentos de última hora em cima da hora marcada.</p>
+                <p className="text-[10px] text-slate-500">Bloqueia agendamentos de última hora.</p>
               </div>
 
               <div className="pt-3 border-t border-slate-100 flex items-center justify-between bg-slate-50/60 p-3.5 rounded-2xl border border-slate-200/60">
                 <div>
                   <h5 className="font-bold text-xs text-slate-900">Horários Gerais & Feriados</h5>
-                  <p className="text-[10px] text-slate-500">Gerencie bloqueios de datas e aberturas globais.</p>
+                  <p className="text-[10px] text-slate-500">Gerencie bloqueios de datas e aberturas.</p>
                 </div>
                 <button
                   type="button"
@@ -489,7 +489,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
           <div className="space-y-4 animate-in fade-in duration-200">
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wide">Logo da Barbearia</label>
+                <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wide">Logo</label>
                 <label className="border-2 border-dashed border-slate-200 hover:border-slate-400 rounded-2xl p-4 flex flex-col items-center justify-center gap-2 bg-slate-50/50 cursor-pointer text-center transition-all">
                   <input type="file" accept="image/*" onChange={(e) => handleUploadImagem(e, 'logo')} className="hidden" />
                   {logoUrl ? <img src={logoUrl} alt="" className="w-12 h-12 rounded-full object-cover shadow-xs" /> : <Upload className="w-5 h-5 text-slate-400" />}
@@ -498,7 +498,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wide">Imagem de Capa</label>
+                <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wide">Capa</label>
                 <label className="border-2 border-dashed border-slate-200 hover:border-slate-400 rounded-2xl p-4 flex flex-col items-center justify-center gap-2 bg-slate-50/50 cursor-pointer text-center transition-all">
                   <input type="file" accept="image/*" onChange={(e) => handleUploadImagem(e, 'capa')} className="hidden" />
                   {capaUrl ? <img src={capaUrl} alt="" className="w-16 h-8 rounded-lg object-cover shadow-xs" /> : <ImageIcon className="w-5 h-5 text-slate-400" />}
@@ -508,21 +508,19 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
             </div>
 
             <div className="space-y-2 pt-2">
-              <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wide">Tema Visual do App do Cliente</label>
+              <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wide">Tema Visual do App</label>
               <div className="grid grid-cols-2 gap-3">
                 <div 
                   onClick={() => setTemaVisual('clean')}
                   className={`p-3.5 rounded-2xl border cursor-pointer text-center transition-all flex flex-col items-center gap-1 ${temaVisual === 'clean' ? 'border-slate-900 bg-slate-50 ring-2 ring-slate-900/10 font-bold shadow-xs' : 'border-slate-200 hover:bg-slate-50/50'}`}
                 >
                   <span className="text-xs text-slate-900 font-bold">Clean (Claro)</span>
-                  <span className="text-[10px] text-slate-500">Visual moderno e iluminado</span>
                 </div>
                 <div 
                   onClick={() => setTemaVisual('dark')}
                   className={`p-3.5 rounded-2xl border cursor-pointer text-center transition-all flex flex-col items-center gap-1 ${temaVisual === 'dark' ? 'border-zinc-900 bg-zinc-900 text-white font-bold shadow-xs' : 'border-slate-200 hover:bg-slate-50/50'}`}
                 >
                   <span className="text-xs font-bold">Dark (Escuro)</span>
-                  <span className="text-[10px] text-slate-400">Estilo sofisticado premium</span>
                 </div>
               </div>
             </div>
@@ -539,7 +537,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
               >
                 <Bot className="w-5 h-5 text-slate-900 mb-2" />
                 <h4 className="font-bold text-xs text-slate-900">Conversacional (Chat)</h4>
-                <p className="text-[10px] text-slate-500 mt-1 leading-relaxed">Assistente virtual interativo que guia o cliente passo a passo no agendamento.</p>
+                <p className="text-[10px] text-slate-500 mt-1 leading-relaxed">Assistente virtual passo a passo.</p>
               </div>
 
               <div 
@@ -548,17 +546,18 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
               >
                 <Grid className="w-5 h-5 text-slate-900 mb-2" />
                 <h4 className="font-bold text-xs text-slate-900">Clássico (Grade)</h4>
-                <p className="text-[10px] text-slate-500 mt-1 leading-relaxed">Seleção tradicional, direta e dinâmica em grade de horários disponíveis.</p>
+                <p className="text-[10px] text-slate-500 mt-1 leading-relaxed">Seleção tradicional em grade de horários.</p>
               </div>
             </div>
           </div>
         )}
 
-        {/* SEÇÃO: HORÁRIOS DA EQUIPE */}
+        {/* SEÇÃO: HORÁRIOS DA EQUIPE (AJUSTADO PARA VERTICAL SEM CORTAR) */}
         {secaoAtiva === 'barbeiros_horarios' && (
           <div className="space-y-4 animate-in fade-in duration-200">
             <div className="space-y-3">
-              <div className="flex gap-1.5 overflow-x-auto pb-1.5 [&::-webkit-scrollbar]:hidden">
+              {/* Botões dos barbeiros organizados em grade ou flex wrap para nunca cortar */}
+              <div className="flex flex-wrap gap-1.5 pb-1">
                 {barbeiros.map((b) => {
                   const selecionado = barbeiroSelecionado?.id === b.id;
                   return (
@@ -566,32 +565,34 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                       key={b.id}
                       type="button"
                       onClick={() => selecionarBarbeiroParaEditar(b)}
-                      className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shrink-0 cursor-pointer border ${
+                      className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer border ${
                         selecionado ? 'bg-slate-900 text-white border-slate-900 shadow-sm' : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
                       }`}
                     >
-                      <span className="truncate">{b.nome}</span>
+                      <span>{b.nome}</span>
                     </button>
                   );
                 })}
               </div>
 
               {barbeiroSelecionado && (
-                <div className="bg-slate-50/80 rounded-2xl border border-slate-200/80 p-4 space-y-3 shadow-inner">
+                <div className="bg-slate-50/80 rounded-2xl border border-slate-200/80 p-3.5 sm:p-4 space-y-3 shadow-inner">
                   <div className="flex items-center justify-between pb-2 border-b border-slate-200/60">
-                    <span className="text-xs font-bold text-slate-900">Escala de Trabalho: {barbeiroSelecionado.nome}</span>
-                    {sucessoBarbeiroMsg && <span className="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">Salvo com sucesso!</span>}
+                    <span className="text-xs font-bold text-slate-900">Escala: {barbeiroSelecionado.nome}</span>
+                    {sucessoBarbeiroMsg && <span className="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">Salvo!</span>}
                   </div>
 
-                  <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1">
+                  {/* Lista vertical completa sem cortes laterais */}
+                  <div className="space-y-3 max-h-[50vh] overflow-y-auto pr-1">
                     {DIAS_SEMANA_NOMES.map(({ key, label }) => {
                       const configDia = horariosBarbeiro[key] || {};
                       const ativo = configDia.ativo !== false;
 
                       return (
-                        <div key={key} className={`p-3 rounded-2xl border transition-all space-y-2.5 ${ativo ? 'bg-white border-slate-200 shadow-2xs' : 'bg-slate-100/60 border-slate-200 opacity-60'}`}>
+                        <div key={key} className={`p-3 rounded-2xl border transition-all space-y-3 ${ativo ? 'bg-white border-slate-200 shadow-2xs' : 'bg-slate-100/60 border-slate-200 opacity-60'}`}>
+                          
                           <div className="flex items-center justify-between">
-                            <label className="flex items-center gap-2.5 cursor-pointer">
+                            <label className="flex items-center gap-2 cursor-pointer">
                               <input
                                 type="checkbox"
                                 checked={ativo}
@@ -600,43 +601,49 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                               />
                               <span className="text-xs font-bold text-slate-800">{label}</span>
                             </label>
-
-                            {ativo && (
-                              <div className="flex items-center gap-1.5">
-                                <span className="text-[10px] text-slate-400 font-semibold">Expediente:</span>
-                                <input
-                                  type="time"
-                                  value={configDia.abertura || '08:00'}
-                                  onChange={(e) => handleCampoChangeBarbeiro(key, 'abertura', e.target.value)}
-                                  className="bg-slate-50 border border-slate-200 text-[11px] font-bold px-2 py-1 rounded-xl text-slate-900 focus:outline-none"
-                                />
-                                <span className="text-[10px] text-slate-400">até</span>
-                                <input
-                                  type="time"
-                                  value={configDia.fechamento || '18:00'}
-                                  onChange={(e) => handleCampoChangeBarbeiro(key, 'fechamento', e.target.value)}
-                                  className="bg-slate-50 border border-slate-200 text-[11px] font-bold px-2 py-1 rounded-xl text-slate-900 focus:outline-none"
-                                />
-                              </div>
-                            )}
                           </div>
 
                           {ativo && (
-                            <div className="flex items-center justify-end gap-1.5 pt-2 border-t border-slate-100">
-                              <span className="text-[10px] text-amber-700 font-semibold">Pausa Almoço:</span>
-                              <input
-                                type="time"
-                                value={configDia.pausaInicio || '12:00'}
-                                onChange={(e) => handleCampoChangeBarbeiro(key, 'pausaInicio', e.target.value)}
-                                className="bg-amber-50/50 border border-amber-200 text-[11px] font-bold px-2 py-1 rounded-xl text-amber-900 focus:outline-none"
-                              />
-                              <span className="text-[10px] text-slate-400">até</span>
-                              <input
-                                type="time"
-                                value={configDia.pausaFim || '13:00'}
-                                onChange={(e) => handleCampoChangeBarbeiro(key, 'pausaFim', e.target.value)}
-                                className="bg-amber-50/50 border border-amber-200 text-[11px] font-bold px-2 py-1 rounded-xl text-amber-900 focus:outline-none"
-                              />
+                            <div className="space-y-2 pt-1 border-t border-slate-100 text-[11px]">
+                              {/* Linha do Expediente */}
+                              <div className="flex items-center justify-between bg-slate-50 p-2 rounded-xl border border-slate-200/60">
+                                <span className="font-semibold text-slate-600">Expediente:</span>
+                                <div className="flex items-center gap-1.5">
+                                  <input
+                                    type="time"
+                                    value={configDia.abertura || '08:00'}
+                                    onChange={(e) => handleCampoChangeBarbeiro(key, 'abertura', e.target.value)}
+                                    className="bg-white border border-slate-200 text-xs font-bold px-2 py-1 rounded-lg text-slate-900"
+                                  />
+                                  <span className="text-slate-400">às</span>
+                                  <input
+                                    type="time"
+                                    value={configDia.fechamento || '18:00'}
+                                    onChange={(e) => handleCampoChangeBarbeiro(key, 'fechamento', e.target.value)}
+                                    className="bg-white border border-slate-200 text-xs font-bold px-2 py-1 rounded-lg text-slate-900"
+                                  />
+                                </div>
+                              </div>
+
+                              {/* Linha da Pausa Almoço */}
+                              <div className="flex items-center justify-between bg-amber-50/40 p-2 rounded-xl border border-amber-200/60">
+                                <span className="font-semibold text-amber-900">Pausa Almoço:</span>
+                                <div className="flex items-center gap-1.5">
+                                  <input
+                                    type="time"
+                                    value={configDia.pausaInicio || '12:00'}
+                                    onChange={(e) => handleCampoChangeBarbeiro(key, 'pausaInicio', e.target.value)}
+                                    className="bg-white border border-amber-200 text-xs font-bold px-2 py-1 rounded-lg text-amber-900"
+                                  />
+                                  <span className="text-amber-700/60">às</span>
+                                  <input
+                                    type="time"
+                                    value={configDia.pausaFim || '13:00'}
+                                    onChange={(e) => handleCampoChangeBarbeiro(key, 'pausaFim', e.target.value)}
+                                    className="bg-white border border-amber-200 text-xs font-bold px-2 py-1 rounded-lg text-amber-900"
+                                  />
+                                </div>
+                              </div>
                             </div>
                           )}
                         </div>
