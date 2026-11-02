@@ -552,11 +552,11 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
           </div>
         )}
 
-        {/* SEÇÃO: HORÁRIOS DA EQUIPE (AJUSTADO PARA VERTICAL SEM CORTAR) */}
+        {/* SEÇÃO: HORÁRIOS DA EQUIPE (LAYOUT 100% RESPONSIVO SEM CORTES) */}
         {secaoAtiva === 'barbeiros_horarios' && (
           <div className="space-y-4 animate-in fade-in duration-200">
             <div className="space-y-3">
-              {/* Botões dos barbeiros organizados em grade ou flex wrap para nunca cortar */}
+              {/* Botões dos barbeiros organizados sem transbordar */}
               <div className="flex flex-wrap gap-1.5 pb-1">
                 {barbeiros.map((b) => {
                   const selecionado = barbeiroSelecionado?.id === b.id;
@@ -582,17 +582,18 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                     {sucessoBarbeiroMsg && <span className="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">Salvo!</span>}
                   </div>
 
-                  {/* Lista vertical completa sem cortes laterais */}
+                  {/* Lista vertical completa com blocos empilhados (sem cortes laterais) */}
                   <div className="space-y-3 max-h-[50vh] overflow-y-auto pr-1">
                     {DIAS_SEMANA_NOMES.map(({ key, label }) => {
                       const configDia = horariosBarbeiro[key] || {};
                       const ativo = configDia.ativo !== false;
 
                       return (
-                        <div key={key} className={`p-3 rounded-2xl border transition-all space-y-3 ${ativo ? 'bg-white border-slate-200 shadow-2xs' : 'bg-slate-100/60 border-slate-200 opacity-60'}`}>
+                        <div key={key} className={`p-3.5 rounded-2xl border transition-all space-y-3 ${ativo ? 'bg-white border-slate-200 shadow-2xs' : 'bg-slate-100/60 border-slate-200 opacity-60'}`}>
                           
+                          {/* Checkbox e Nome do Dia */}
                           <div className="flex items-center justify-between">
-                            <label className="flex items-center gap-2 cursor-pointer">
+                            <label className="flex items-center gap-2.5 cursor-pointer">
                               <input
                                 type="checkbox"
                                 checked={ativo}
@@ -601,49 +602,64 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                               />
                               <span className="text-xs font-bold text-slate-800">{label}</span>
                             </label>
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${ativo ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-200 text-slate-600'}`}>
+                              {ativo ? 'Trabalha' : 'Folga'}
+                            </span>
                           </div>
 
                           {ativo && (
-                            <div className="space-y-2 pt-1 border-t border-slate-100 text-[11px]">
-                              {/* Linha do Expediente */}
-                              <div className="flex items-center justify-between bg-slate-50 p-2 rounded-xl border border-slate-200/60">
-                                <span className="font-semibold text-slate-600">Expediente:</span>
-                                <div className="flex items-center gap-1.5">
-                                  <input
-                                    type="time"
-                                    value={configDia.abertura || '08:00'}
-                                    onChange={(e) => handleCampoChangeBarbeiro(key, 'abertura', e.target.value)}
-                                    className="bg-white border border-slate-200 text-xs font-bold px-2 py-1 rounded-lg text-slate-900"
-                                  />
-                                  <span className="text-slate-400">às</span>
-                                  <input
-                                    type="time"
-                                    value={configDia.fechamento || '18:00'}
-                                    onChange={(e) => handleCampoChangeBarbeiro(key, 'fechamento', e.target.value)}
-                                    className="bg-white border border-slate-200 text-xs font-bold px-2 py-1 rounded-lg text-slate-900"
-                                  />
+                            <div className="space-y-2 pt-2 border-t border-slate-100">
+                              
+                              {/* Bloco de Expediente Empilhado */}
+                              <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200/70 space-y-1.5">
+                                <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wide">Horário de Expediente</span>
+                                <div className="grid grid-cols-2 gap-2">
+                                  <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-lg px-2 py-1">
+                                    <span className="text-[10px] text-slate-400">Das</span>
+                                    <input
+                                      type="time"
+                                      value={configDia.abertura || '08:00'}
+                                      onChange={(e) => handleCampoChangeBarbeiro(key, 'abertura', e.target.value)}
+                                      className="w-full bg-transparent text-xs font-bold text-slate-900 focus:outline-none"
+                                    />
+                                  </div>
+                                  <div className="flex items-center gap-1 bg-white border border-slate-200 rounded-lg px-2 py-1">
+                                    <span className="text-[10px] text-slate-400">Até</span>
+                                    <input
+                                      type="time"
+                                      value={configDia.fechamento || '18:00'}
+                                      onChange={(e) => handleCampoChangeBarbeiro(key, 'fechamento', e.target.value)}
+                                      className="w-full bg-transparent text-xs font-bold text-slate-900 focus:outline-none"
+                                    />
+                                  </div>
                                 </div>
                               </div>
 
-                              {/* Linha da Pausa Almoço */}
-                              <div className="flex items-center justify-between bg-amber-50/40 p-2 rounded-xl border border-amber-200/60">
-                                <span className="font-semibold text-amber-900">Pausa Almoço:</span>
-                                <div className="flex items-center gap-1.5">
-                                  <input
-                                    type="time"
-                                    value={configDia.pausaInicio || '12:00'}
-                                    onChange={(e) => handleCampoChangeBarbeiro(key, 'pausaInicio', e.target.value)}
-                                    className="bg-white border border-amber-200 text-xs font-bold px-2 py-1 rounded-lg text-amber-900"
-                                  />
-                                  <span className="text-amber-700/60">às</span>
-                                  <input
-                                    type="time"
-                                    value={configDia.pausaFim || '13:00'}
-                                    onChange={(e) => handleCampoChangeBarbeiro(key, 'pausaFim', e.target.value)}
-                                    className="bg-white border border-amber-200 text-xs font-bold px-2 py-1 rounded-lg text-amber-900"
-                                  />
+                              {/* Bloco de Pausa Almoço Empilhado */}
+                              <div className="bg-amber-50/40 p-2.5 rounded-xl border border-amber-200/70 space-y-1.5">
+                                <span className="block text-[10px] font-bold text-amber-900 uppercase tracking-wide">Pausa de Almoço</span>
+                                <div className="grid grid-cols-2 gap-2">
+                                  <div className="flex items-center gap-1 bg-white border border-amber-200 rounded-lg px-2 py-1">
+                                    <span className="text-[10px] text-amber-700/60">Das</span>
+                                    <input
+                                      type="time"
+                                      value={configDia.pausaInicio || '12:00'}
+                                      onChange={(e) => handleCampoChangeBarbeiro(key, 'pausaInicio', e.target.value)}
+                                      className="w-full bg-transparent text-xs font-bold text-amber-900 focus:outline-none"
+                                    />
+                                  </div>
+                                  <div className="flex items-center gap-1 bg-white border border-amber-200 rounded-lg px-2 py-1">
+                                    <span className="text-[10px] text-amber-700/60">Até</span>
+                                    <input
+                                      type="time"
+                                      value={configDia.pausaFim || '13:00'}
+                                      onChange={(e) => handleCampoChangeBarbeiro(key, 'pausaFim', e.target.value)}
+                                      className="w-full bg-transparent text-xs font-bold text-amber-900 focus:outline-none"
+                                    />
+                                  </div>
                                 </div>
                               </div>
+
                             </div>
                           )}
                         </div>
