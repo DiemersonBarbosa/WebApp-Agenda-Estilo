@@ -28,7 +28,6 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
   const [capaUrl, setCapaUrl] = useState(barbearia?.capa_url || '');
   const [antecedenciaMinima, setAntecedenciaMinima] = useState(barbearia?.antecedencia_minima_minutos ?? 30);
   
-  // Novos estados para e-mail e senha
   const [email, setEmail] = useState('');
   const [novaSenha, setNovaSenha] = useState('');
 
@@ -304,7 +303,6 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
     setSucesso(false);
 
     try {
-      // 1. Atualizar dados da barbearia
       const { error: erroBarbearia } = await supabase
         .from('barbearias')
         .update({ 
@@ -323,7 +321,6 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
 
       if (erroBarbearia) throw erroBarbearia;
 
-      // 2. Atualizar horários dos barbeiros
       for (const b of barbeiros) {
         await supabase
           .from('barbeiros')
@@ -331,7 +328,6 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
           .eq('id', b.id);
       }
 
-      // 3. Atualizar e-mail e/ou senha na autenticação do Supabase se preenchidos
       const authUpdates = {};
       if (email) authUpdates.email = email;
       if (novaSenha && novaSenha.trim() !== '') {
@@ -347,7 +343,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
       }
 
       setSucesso(true);
-      setNovaSenha(''); // Limpa o campo de senha por segurança
+      setNovaSenha('');
       if (onUpdate) onUpdate();
       setTimeout(() => setSucesso(false), 3000);
     } catch (err) {
@@ -367,7 +363,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
   return (
     <div className="w-full max-w-4xl mx-auto px-3 sm:px-4 py-2 space-y-2 font-sans text-slate-800 overflow-hidden select-none pb-28">
       
-      {/* HEADER / CARTÃO DE PERFIL EXECUTIVO REFINADO (FIXO SEM SCROLL) */}
+      {/* HEADER / CARTÃO DE PERFIL EXECUTIVO REFINADO */}
       <div className="bg-white/90 backdrop-blur-xl rounded-[28px] p-3 border border-slate-200/70 shadow-sm relative space-y-2">
         <div className="h-36 sm:h-44 w-full relative bg-slate-900 overflow-hidden rounded-2xl shadow-inner group">
           {capaUrl ? (
@@ -448,43 +444,46 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
       {/* PAINEL DE CONTEÚDO MODERNO */}
       <div className="bg-white/90 backdrop-blur-xl rounded-[28px] border border-slate-200/80 p-3 sm:p-3.5 shadow-sm space-y-2.5">
         
-        {/* ================= GERAL & PERFIL ================= */}
+        {/* ================= GERAL & PERFIL (REORGANIZADO E LIMPO) ================= */}
         {secaoAtiva === 'geral' && (
-          <div className="space-y-2.5 animate-in fade-in duration-200">
-            <div className="bg-slate-50/80 p-2.5 rounded-2xl border border-slate-200/60 space-y-2">
+          <div className="space-y-3 animate-in fade-in duration-200">
+            
+            {/* Bloco 1: Informações Públicas do Negócio */}
+            <div className="bg-slate-50/90 p-3 rounded-2xl border border-slate-200/70 space-y-2.5">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Informações do Estabelecimento</span>
               
-              <div className="space-y-0.5">
-                <label className="text-[10px] font-extrabold text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
-                  <Type className="w-3 h-3 text-slate-400" /> Nome da Barbearia
+              <div className="space-y-1">
+                <label className="text-[10px] font-extrabold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                  <Type className="w-3 h-3 text-slate-500" /> Nome da Barbearia
                 </label>
                 <input
                   type="text"
                   value={nome}
                   onChange={(e) => setNome(e.target.value)}
-                  className="w-full bg-white border border-slate-200/80 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all shadow-2xs"
+                  className="w-full bg-white border border-slate-200/90 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all shadow-2xs"
                   placeholder="Ex: Barbearia Executiva"
                 />
               </div>
 
-              <div className="space-y-0.5">
-                <label className="text-[10px] font-extrabold text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
-                  <LinkIcon className="w-3 h-3 text-slate-400" /> Link Personalizado (Slug)
+              <div className="space-y-1">
+                <label className="text-[10px] font-extrabold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                  <LinkIcon className="w-3 h-3 text-slate-500" /> Link Personalizado (Slug)
                 </label>
-                <div className="flex items-center bg-white border border-slate-200/80 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-slate-900/10 focus-within:border-slate-900 transition-all shadow-2xs">
-                  <span className="pl-3 pr-2 text-[10px] text-slate-400 font-bold bg-slate-100 border-r border-slate-200/80 py-1.5">/agendar/</span>
+                <div className="flex items-center bg-white border border-slate-200/90 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-slate-900/10 focus-within:border-slate-900 transition-all shadow-2xs">
+                  <span className="pl-3 pr-2 text-[10px] text-slate-500 font-bold bg-slate-100/80 border-r border-slate-200/90 py-2">/agendar/</span>
                   <input
                     type="text"
                     value={slug}
                     onChange={(e) => setSlug(e.target.value)}
-                    className="w-full bg-transparent px-3 py-1.5 text-xs font-semibold text-slate-900 focus:outline-none"
+                    className="w-full bg-transparent px-3 py-2 text-xs font-semibold text-slate-900 focus:outline-none"
                     placeholder="sua-barbearia"
                   />
                 </div>
               </div>
 
-              <div className="space-y-0.5">
-                <label className="text-[10px] font-extrabold text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
-                  <Timer className="w-3 h-3 text-slate-400" /> Antecedência Mínima (minutos)
+              <div className="space-y-1">
+                <label className="text-[10px] font-extrabold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                  <Timer className="w-3 h-3 text-slate-500" /> Antecedência Mínima (minutos)
                 </label>
                 <input
                   type="number"
@@ -492,43 +491,45 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                   step="5"
                   value={antecedenciaMinima}
                   onChange={(e) => setAntecedenciaMinima(e.target.value)}
-                  className="w-full bg-white border border-slate-200/80 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all shadow-2xs"
+                  className="w-full bg-white border border-slate-200/90 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all shadow-2xs"
                   placeholder="Ex: 30"
                 />
               </div>
-
-              {/* Novos Campos de E-mail e Senha */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 border-t border-slate-200/60">
-                <div className="space-y-0.5">
-                  <label className="text-[10px] font-extrabold text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
-                    <Mail className="w-3 h-3 text-slate-400" /> E-mail de Acesso
-                  </label>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full bg-white border border-slate-200/80 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all shadow-2xs"
-                    placeholder="seu@email.com"
-                  />
-                </div>
-
-                <div className="space-y-0.5">
-                  <label className="text-[10px] font-extrabold text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
-                    <Lock className="w-3 h-3 text-slate-400" /> Nova Senha (Opcional)
-                  </label>
-                  <input
-                    type="password"
-                    value={novaSenha}
-                    onChange={(e) => setNovaSenha(e.target.value)}
-                    className="w-full bg-white border border-slate-200/80 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all shadow-2xs"
-                    placeholder="Mínimo 6 caracteres"
-                  />
-                </div>
-              </div>
-
             </div>
 
-            <div className="flex items-center justify-between bg-gradient-to-r from-slate-900 to-zinc-900 text-white p-3 rounded-2xl shadow-md border border-slate-800">
+            {/* Bloco 2: Credenciais de Acesso e Segurança */}
+            <div className="bg-slate-50/90 p-3 rounded-2xl border border-slate-200/70 space-y-2.5">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Credenciais de Acesso</span>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-extrabold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                  <Mail className="w-3 h-3 text-slate-500" /> E-mail de Acesso
+                </label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full bg-white border border-slate-200/90 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all shadow-2xs"
+                  placeholder="seu@email.com"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-extrabold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                  <Lock className="w-3 h-3 text-slate-500" /> Nova Senha (Opcional)
+                </label>
+                <input
+                  type="password"
+                  value={novaSenha}
+                  onChange={(e) => setNovaSenha(e.target.value)}
+                  className="w-full bg-white border border-slate-200/90 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all shadow-2xs"
+                  placeholder="Mínimo 6 caracteres"
+                />
+              </div>
+            </div>
+
+            {/* Card de Feriados & Horários Gerais */}
+            <div className="flex items-center justify-between bg-gradient-to-r from-slate-900 to-zinc-900 text-white p-3.5 rounded-2xl shadow-md border border-slate-800">
               <div className="space-y-0.5">
                 <h5 className="font-extrabold text-xs tracking-tight">Horários Gerais & Feriados</h5>
                 <p className="text-[10px] text-slate-300 font-medium">Gerencie bloqueios de datas e exceções.</p>
@@ -536,7 +537,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
               <button
                 type="button"
                 onClick={() => setModalHorariosGeraisOpen(true)}
-                className="px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-900 rounded-xl text-xs font-black cursor-pointer shadow-sm transition-all"
+                className="px-3.5 py-2 bg-white hover:bg-slate-100 text-slate-900 rounded-xl text-xs font-black cursor-pointer shadow-sm transition-all"
               >
                 Configurar
               </button>
