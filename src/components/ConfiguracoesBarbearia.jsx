@@ -396,7 +396,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
           </div>
         </div>
 
-        <div className="flex flex-col items-center text-center -mt-16 relative z-10">
+        <div className="flex flex-col items-center text-center -mt-16 relative z-10 space-y-1">
           <div className="w-22 h-22 sm:w-26 sm:h-26 rounded-full bg-white p-1.5 shadow-2xl ring-4 ring-white/90 overflow-hidden flex items-center justify-center bg-zinc-900 relative group">
             {logoUrl ? (
               <img src={logoUrl} alt="Logo" className="w-full h-full object-cover rounded-full" />
@@ -406,6 +406,9 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
               </div>
             )}
           </div>
+          <h2 className="text-xs sm:text-sm font-black text-slate-900 tracking-tight">
+            {nome || 'Minha Barbearia'}
+          </h2>
         </div>
       </div>
 
@@ -743,13 +746,13 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
 
       </div>
 
-      {/* BOTÃO FIXO DE SALVAR COMPACTO E ELEGANTE */}
-      <div className="fixed bottom-28 left-4 right-4 z-30 max-w-xs mx-auto pointer-events-none">
+      {/* BOTÃO FIXO DE SALVAR COM DEGRADÊ MODERNO E LARGURA MENOR */}
+      <div className="fixed bottom-28 left-4 right-4 z-30 flex justify-center pointer-events-none">
         <button
           type="button"
           onClick={handleSubmit}
           disabled={salvando}
-          className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-[11px] uppercase tracking-wider rounded-xl shadow-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 pointer-events-auto border border-white/10 backdrop-blur-md"
+          className="w-48 py-2 bg-gradient-to-r from-indigo-600 via-slate-900 to-zinc-900 hover:from-indigo-500 hover:to-zinc-800 text-white font-bold text-[10px] uppercase tracking-wider rounded-xl shadow-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 pointer-events-auto border border-white/20 backdrop-blur-md active:scale-95"
         >
           {sucesso ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Save className="w-3.5 h-3.5 text-emerald-400" />}
           <span>{salvando ? 'Salvando...' : sucesso ? 'Salvo!' : 'Salvar Alterações'}</span>
