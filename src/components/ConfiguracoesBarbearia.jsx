@@ -361,7 +361,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
   ];
 
   return (
-    <div className="w-full max-w-4xl mx-auto px-3 sm:px-4 py-2 space-y-2 font-sans text-slate-800 overflow-hidden select-none pb-28">
+    <div className="w-full max-w-4xl mx-auto px-3 sm:px-4 py-2 space-y-2 font-sans text-slate-800 overflow-hidden select-none pb-20">
       
       {/* HEADER / CARTÃO DE PERFIL EXECUTIVO REFINADO */}
       <div className="bg-white/90 backdrop-blur-xl rounded-[28px] p-3 border border-slate-200/70 shadow-sm relative space-y-2">
@@ -746,16 +746,16 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
 
       </div>
 
-      {/* BOTÃO FIXO DE SALVAR COM DEGRADÊ MODERNO E LARGURA MENOR */}
-      <div className="fixed bottom-28 left-4 right-4 z-30 flex justify-center pointer-events-none">
+      {/* BOTÃO FIXO DE SALVAR COM ESTILO HARMONIZADO E ESPAÇAMENTO OTIMIZADO */}
+      <div className="fixed bottom-20 left-4 right-4 z-30 flex justify-center pointer-events-none">
         <button
           type="button"
           onClick={handleSubmit}
           disabled={salvando}
-          className="w-48 py-2 bg-gradient-to-r from-indigo-600 via-slate-900 to-zinc-900 hover:from-indigo-500 hover:to-zinc-800 text-white font-bold text-[10px] uppercase tracking-wider rounded-xl shadow-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 pointer-events-auto border border-white/20 backdrop-blur-md active:scale-95"
+          className="w-44 py-2 bg-gradient-to-r from-slate-900 via-slate-800 to-zinc-900 hover:from-slate-800 hover:to-zinc-800 text-white font-bold text-[10px] uppercase tracking-wider rounded-xl shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 pointer-events-auto border border-slate-700/50 backdrop-blur-md active:scale-95"
         >
           {sucesso ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Save className="w-3.5 h-3.5 text-emerald-400" />}
-          <span>{salvando ? 'Salvando...' : sucesso ? 'Salvo!' : 'Salvar Alterações'}</span>
+          <span>{salvando ? 'Salvando...' : sucesso ? 'Salvo!' : 'Salvar'}</span>
         </button>
       </div>
 
