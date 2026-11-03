@@ -509,19 +509,6 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                 </div>
               </div>
             </div>
-
-            {/* BOTÃO DE SALVAR EMBUTIDO NO CARTÃO (SEM FIXAR NA TELA) */}
-            <div className="pt-1 flex justify-center">
-              <button
-                type="button"
-                onClick={handleSubmit}
-                disabled={salvando}
-                className="w-44 py-2 bg-gradient-to-r from-slate-900 via-slate-800 to-zinc-900 hover:from-slate-800 hover:to-zinc-800 text-white font-bold text-[10px] uppercase tracking-wider rounded-xl shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 border border-slate-700/50 active:scale-95"
-              >
-                {sucesso ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Save className="w-3.5 h-3.5 text-emerald-400" />}
-                <span>{salvando ? 'Salvando...' : sucesso ? 'Salvo!' : 'Salvar'}</span>
-              </button>
-            </div>
           </div>
         )}
 
@@ -564,18 +551,6 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                   <span className="text-xs font-bold">Dark (Escuro)</span>
                 </div>
               </div>
-            </div>
-
-            <div className="pt-1 flex justify-center">
-              <button
-                type="button"
-                onClick={handleSubmit}
-                disabled={salvando}
-                className="w-44 py-2 bg-gradient-to-r from-slate-900 via-slate-800 to-zinc-900 hover:from-slate-800 hover:to-zinc-800 text-white font-bold text-[10px] uppercase tracking-wider rounded-xl shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 border border-slate-700/50 active:scale-95"
-              >
-                {sucesso ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Save className="w-3.5 h-3.5 text-emerald-400" />}
-                <span>{salvando ? 'Salvando...' : sucesso ? 'Salvo!' : 'Salvar'}</span>
-              </button>
             </div>
           </div>
         )}
@@ -642,18 +617,6 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                 </div>
               </div>
 
-            </div>
-
-            <div className="pt-1 flex justify-center">
-              <button
-                type="button"
-                onClick={handleSubmit}
-                disabled={salvando}
-                className="w-44 py-2 bg-gradient-to-r from-slate-900 via-slate-800 to-zinc-900 hover:from-slate-800 hover:to-zinc-800 text-white font-bold text-[10px] uppercase tracking-wider rounded-xl shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 border border-slate-700/50 active:scale-95"
-              >
-                {sucesso ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Save className="w-3.5 h-3.5 text-emerald-400" />}
-                <span>{salvando ? 'Salvando...' : sucesso ? 'Salvo!' : 'Salvar'}</span>
-              </button>
             </div>
           </div>
         )}
@@ -778,20 +741,21 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                 </div>
               )}
             </div>
-
-            <div className="pt-1 flex justify-center">
-              <button
-                type="button"
-                onClick={handleSubmit}
-                disabled={salvando}
-                className="w-44 py-2 bg-gradient-to-r from-slate-900 via-slate-800 to-zinc-900 hover:from-slate-800 hover:to-zinc-800 text-white font-bold text-[10px] uppercase tracking-wider rounded-xl shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 border border-slate-700/50 active:scale-95"
-              >
-                {sucesso ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Save className="w-3.5 h-3.5 text-emerald-400" />}
-                <span>{salvando ? 'Salvando...' : sucesso ? 'Salvo!' : 'Salvar'}</span>
-              </button>
-            </div>
           </div>
         )}
+
+        {/* BOTÃO DE SALVAR FIXO NO FINAL DO CARTÃO DE CONTEÚDO */}
+        <div className="pt-2.5 pb-1 flex justify-center border-t border-slate-100 mt-2">
+          <button
+            type="button"
+            onClick={handleSubmit}
+            disabled={salvando}
+            className="w-44 py-2 bg-gradient-to-r from-slate-900 via-slate-800 to-zinc-900 hover:from-slate-800 hover:to-zinc-800 text-white font-bold text-[10px] uppercase tracking-wider rounded-xl shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 border border-slate-700/50 active:scale-95"
+          >
+            {sucesso ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Save className="w-3.5 h-3.5 text-emerald-400" />}
+            <span>{salvando ? 'Salvando...' : sucesso ? 'Salvo!' : 'Salvar'}</span>
+          </button>
+        </div>
 
       </div>
 
