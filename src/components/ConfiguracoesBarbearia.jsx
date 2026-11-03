@@ -5,7 +5,7 @@ import {
   Store, Save, Check, ExternalLink, Share2, 
   Send, X, MessageSquare, Bot, Grid, Palette, 
   Clock, Trash2, Upload, Image as ImageIcon, ShieldCheck,
-  Link as LinkIcon, Type, Timer
+  Link as LinkIcon, Type, Timer, Mail, Lock
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
@@ -28,6 +28,10 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
   const [capaUrl, setCapaUrl] = useState(barbearia?.capa_url || '');
   const [antecedenciaMinima, setAntecedenciaMinima] = useState(barbearia?.antecedencia_minima_minutos ?? 30);
   
+  // Novos estados para e-mail e senha
+  const [email, setEmail] = useState('');
+  const [novaSenha, setNovaSenha] = useState('');
+
   const [temaVisual, setTemaVisual] = useState(barbearia?.cor_tema === '#10b981' || barbearia?.cor_tema === 'clean' ? 'clean' : 'dark');
   const [modoAtendimento, setModoAtendimento] = useState(
     barbearia?.tipo_atendimento || barbearia?.modo_agendamento || barbearia?.modo_chatbot || 'conversacional'
@@ -66,6 +70,16 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
     : 'https://agendaestilo.com.br';
 
   const urlCliente = `${baseUrl}/agendar/${slug || barbearia?.slug || 'barbearia'}`;
+
+  useEffect(() => {
+    async function carregarUsuarioAuth() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user?.email) {
+        setEmail(user.email);
+      }
+    }
+    carregarUsuarioAuth();
+  }, []);
 
   useEffect(() => {
     async function garantirBucket() {
@@ -290,6 +304,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
     setSucesso(false);
 
     try {
+      // 1. Atualizar dados da barbearia
       const { error: erroBarbearia } = await supabase
         .from('barbearias')
         .update({ 
@@ -308,6 +323,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
 
       if (erroBarbearia) throw erroBarbearia;
 
+      // 2. Atualizar horários dos barbeiros
       for (const b of barbeiros) {
         await supabase
           .from('barbeiros')
@@ -315,7 +331,23 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
           .eq('id', b.id);
       }
 
+      // 3. Atualizar e-mail e/ou senha na autenticação do Supabase se preenchidos
+      const authUpdates = {};
+      if (email) authUpdates.email = email;
+      if (novaSenha && novaSenha.trim() !== '') {
+        if (novaSenha.length < 6) {
+          throw new Error('A nova senha deve ter pelo menos 6 caracteres.');
+        }
+        authUpdates.password = novaSenha;
+      }
+
+      if (Object.keys(authUpdates).length > 0) {
+        const { error: authError } = await supabase.auth.updateUser(authUpdates);
+        if (authError) throw authError;
+      }
+
       setSucesso(true);
+      setNovaSenha(''); // Limpa o campo de senha por segurança
       if (onUpdate) onUpdate();
       setTimeout(() => setSucesso(false), 3000);
     } catch (err) {
@@ -413,7 +445,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
         })}
       </div>
 
-      {/* PAINEL DE CONTEÚDO MODERNO (ESTÁTICO SEM ROLAGEM GERAL) */}
+      {/* PAINEL DE CONTEÚDO MODERNO */}
       <div className="bg-white/90 backdrop-blur-xl rounded-[28px] border border-slate-200/80 p-3 sm:p-3.5 shadow-sm space-y-2.5">
         
         {/* ================= GERAL & PERFIL ================= */}
@@ -464,6 +496,36 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                   placeholder="Ex: 30"
                 />
               </div>
+
+              {/* Novos Campos de E-mail e Senha */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 border-t border-slate-200/60">
+                <div className="space-y-0.5">
+                  <label className="text-[10px] font-extrabold text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
+                    <Mail className="w-3 h-3 text-slate-400" /> E-mail de Acesso
+                  </label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full bg-white border border-slate-200/80 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all shadow-2xs"
+                    placeholder="seu@email.com"
+                  />
+                </div>
+
+                <div className="space-y-0.5">
+                  <label className="text-[10px] font-extrabold text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
+                    <Lock className="w-3 h-3 text-slate-400" /> Nova Senha (Opcional)
+                  </label>
+                  <input
+                    type="password"
+                    value={novaSenha}
+                    onChange={(e) => setNovaSenha(e.target.value)}
+                    className="w-full bg-white border border-slate-200/80 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all shadow-2xs"
+                    placeholder="Mínimo 6 caracteres"
+                  />
+                </div>
+              </div>
+
             </div>
 
             <div className="flex items-center justify-between bg-gradient-to-r from-slate-900 to-zinc-900 text-white p-3 rounded-2xl shadow-md border border-slate-800">
