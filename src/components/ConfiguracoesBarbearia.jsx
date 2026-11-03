@@ -361,7 +361,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
   ];
 
   return (
-    <div className="w-full max-w-4xl mx-auto px-3 sm:px-4 py-2 space-y-2 font-sans text-slate-800 overflow-hidden select-none pb-24">
+    <div className="w-full max-w-4xl mx-auto px-3 sm:px-4 py-2 space-y-2 font-sans text-slate-800 overflow-hidden select-none pb-4">
       
       {/* HEADER / CARTÃO DE PERFIL EXECUTIVO REFINADO */}
       <div className="bg-white/90 backdrop-blur-xl rounded-[28px] p-3 border border-slate-200/70 shadow-sm relative space-y-2">
@@ -746,8 +746,8 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
 
       </div>
 
-      {/* BOTÃO DE SALVAR FIXO POSICIONADO ACIMA DO MENU MOBILE SEM ROLAGEM EXTRAPOLADA */}
-      <div className="fixed bottom-24 left-4 right-4 z-40 flex justify-center pointer-events-none">
+      {/* BOTÃO DE SALVAR FIXO POSICIONADO ACIMA DO MENU MOBILE SEM ROLAGEM */}
+      <div className="fixed bottom-32 left-4 right-4 z-40 flex justify-center pointer-events-none">
         <button
           type="button"
           onClick={handleSubmit}
