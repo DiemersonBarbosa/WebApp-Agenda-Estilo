@@ -4,8 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { 
   Store, Save, Check, ExternalLink, Share2, 
   Send, X, MessageSquare, Bot, Grid, Palette, 
-  Clock, Trash2, Upload, Image as ImageIcon, ShieldCheck,
-  Link as LinkIcon, Type, Timer, Mail, Lock, CalendarOff, Settings2
+  Clock, Trash2, Upload, Image as ImageIcon, 
+  Link as LinkIcon, Type, Timer, Mail, Lock, CalendarOff 
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
@@ -406,13 +406,6 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
               </div>
             )}
           </div>
-          <div className="mt-1 space-y-0.5">
-            <h1 className="text-xs sm:text-sm font-black text-slate-900 tracking-tight flex items-center justify-center gap-1.5">
-              {nome || 'Minha Barbearia'}
-              <ShieldCheck className="w-4 h-4 text-emerald-600 inline-block drop-shadow-xs" />
-            </h1>
-            <p className="text-[10px] text-slate-500 font-semibold tracking-wide">@{slug || 'barbearia'}</p>
-          </div>
         </div>
       </div>
 
@@ -444,7 +437,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
       {/* PAINEL DE CONTEÚDO MODERNO */}
       <div className="bg-white/90 backdrop-blur-xl rounded-[28px] border border-slate-200/80 p-3 sm:p-3.5 shadow-sm space-y-2.5">
         
-        {/* ================= GERAL & PERFIL (AGORA APENAS ESTABELECIMENTO E CREDENCIAIS) ================= */}
+        {/* ================= GERAL & PERFIL ================= */}
         {secaoAtiva === 'geral' && (
           <div className="space-y-2.5 animate-in fade-in duration-200">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
@@ -559,7 +552,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
           </div>
         )}
 
-        {/* ================= ATENDIMENTO (COM MODO DE AGENDAMENTO, ANTECEDÊNCIA E HORÁRIOS/FERIADOS) ================= */}
+        {/* ================= ATENDIMENTO ================= */}
         {secaoAtiva === 'atendimento' && (
           <div className="space-y-2.5 animate-in fade-in duration-200">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
