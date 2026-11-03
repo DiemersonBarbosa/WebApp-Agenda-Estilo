@@ -361,7 +361,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
   ];
 
   return (
-    <div className="w-full max-w-4xl mx-auto px-3 sm:px-4 py-2 space-y-2 font-sans text-slate-800 select-none pb-28">
+    <div className="w-full max-w-4xl mx-auto px-3 sm:px-4 py-2 space-y-2 font-sans text-slate-800 overflow-hidden select-none pb-4">
       
       {/* HEADER / CARTÃO DE PERFIL EXECUTIVO REFINADO */}
       <div className="bg-white/90 backdrop-blur-xl rounded-[28px] p-3 border border-slate-200/70 shadow-sm relative space-y-2">
@@ -744,19 +744,19 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
           </div>
         )}
 
-        {/* BOTÃO DE SALVAR NO FLUXO NORMAL COM BORDAS BRANCAS */}
-        <div className="pt-4 pb-2 flex justify-center border-t border-slate-100 mt-4">
-          <button
-            type="button"
-            onClick={handleSubmit}
-            disabled={salvando}
-            className="w-52 py-2.5 bg-gradient-to-r from-slate-900 via-slate-800 to-zinc-900 hover:from-slate-800 hover:to-zinc-800 text-white font-black text-[11px] uppercase tracking-wider rounded-2xl shadow-xl transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 border-2 border-white backdrop-blur-md active:scale-95 group"
-          >
-            {sucesso ? <Check className="w-4 h-4 text-emerald-400" /> : <Save className="w-4 h-4 text-emerald-400 transition-transform group-hover:scale-110" />}
-            <span>{salvando ? 'Salvando...' : sucesso ? 'Salvo com Sucesso!' : 'Salvar Alterações'}</span>
-          </button>
-        </div>
+      </div>
 
+      {/* BOTÃO DE SALVAR FIXO POSICIONADO ACIMA DO MENU MOBILE SEM ROLAGEM COM BORDA BRANCA */}
+      <div className="fixed bottom-32 left-4 right-4 z-40 flex justify-center pointer-events-none">
+        <button
+          type="button"
+          onClick={handleSubmit}
+          disabled={salvando}
+          className="w-44 py-2 bg-gradient-to-r from-slate-900 via-slate-800 to-zinc-900 hover:from-slate-800 hover:to-zinc-800 text-white font-bold text-[10px] uppercase tracking-wider rounded-xl shadow-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 pointer-events-auto border-2 border-white backdrop-blur-md active:scale-95"
+        >
+          {sucesso ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Save className="w-3.5 h-3.5 text-emerald-400" />}
+          <span>{salvando ? 'Salvando...' : sucesso ? 'Salvo!' : 'Salvar'}</span>
+        </button>
       </div>
 
       {/* MODAL DE COMPARTILHAMENTO */}
