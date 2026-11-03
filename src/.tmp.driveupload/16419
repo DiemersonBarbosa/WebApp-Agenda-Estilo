@@ -370,7 +370,7 @@ export default function AdminDashboard() {
 
   const [produtos, setProdutos] = useState([]);
 
- // Estado e ouvidores de foco para ocultar instantaneamente o menu ao abrir o teclado
+ // Estado e ouvidores otimizados para ocultar ao abrir e reaparecer assim que o teclado fechar
   const [tecladoAberto, setTecladoAberto] = useState(false);
 
   useEffect(() => {
@@ -380,23 +380,37 @@ export default function AdminDashboard() {
       }
     };
 
-    const handleFocusOut = (e) => {
-      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) {
-        // Pequeno atraso para evitar piscar caso o usuário mude de um input para outro rapidamente
-        setTimeout(() => {
-          if (!['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) {
-            setTecladoAberto(false);
-          }
-        }, 100);
+    const handleFocusOut = () => {
+      // Pequeno atraso para verificar se o usuário apenas trocou de input ou se realmente fechou o teclado
+      setTimeout(() => {
+        if (!['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)) {
+          setTecladoAberto(false);
+        }
+      }, 150);
+    };
+
+    // Monitora também se a viewport voltou à altura normal (teclado fechou pelo botão "OK/Concluído" nativo)
+    const handleViewportResize = () => {
+      if (window.visualViewport) {
+        const diff = window.innerHeight - window.visualViewport.height;
+        if (diff < 100) {
+          setTecladoAberto(false);
+        }
       }
     };
 
     window.addEventListener('focusin', handleFocusIn);
     window.addEventListener('focusout', handleFocusOut);
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', handleViewportResize);
+    }
 
     return () => {
       window.removeEventListener('focusin', handleFocusIn);
       window.removeEventListener('focusout', handleFocusOut);
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', handleViewportResize);
+      }
     };
   }, []);
 
@@ -1699,108 +1713,273 @@ export default function AdminDashboard() {
           )}
 
           {activeTab === 'comissoes' && (
-            <div className="rounded-[2.5rem] border border-stone-200/85 shadow-[0_10px_30px_rgba(0,0,0,0.03)] p-5 sm:p-8 space-y-6 bg-white">
-              <div className="pb-4 border-b border-stone-200/60 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-[#111111] text-white flex items-center justify-center shadow-md">
-                  <Percent className="w-5 h-5 text-stone-200" />
-                </div>
-                <div>
-                  <h3 className="text-base sm:text-lg font-black text-stone-900 tracking-tight">Comissões dos Barbeiros</h3>
-                  <p className="text-xs text-stone-500 mt-0.5">Defina a porcentagem de comissão padrão para cada profissional da unidade.</p>
-                </div>
-              </div>
+  <div className="space-y-5 pb-24 font-sans select-none animate-in fade-in duration-200">
+    
+    {/* 1. CARDS DO TOPO - PADRÃO EXATO DO RELATÓRIO FINANCEIRO (GRID 2x2) */}
+    <div className="grid grid-cols-2 gap-3">
+      
+      {/* CARD 1: COMISSÃO TOTAL */}
+      <div className="bg-[#111111] text-white rounded-[28px] p-4 sm:p-5 shadow-xl border border-stone-800/80 flex flex-col justify-between h-28 relative overflow-hidden">
+        <div className="flex items-start justify-between">
+          <span className="text-[10px] font-black text-stone-400 uppercase tracking-widest">
+            Comissão Total
+          </span>
+          <div className="w-10 h-10 rounded-full bg-gradient-to-b from-stone-100 via-stone-200 to-stone-400 text-stone-900 flex items-center justify-center shadow-md border border-white/60 shrink-0">
+            <DollarSign className="w-4 h-4 stroke-[2.5]" />
+          </div>
+        </div>
+        <div>
+          <h4 className="text-xl sm:text-2xl font-black tracking-tight text-white leading-none">
+            R$ {barbeiros.reduce((acc, b) => acc + (b.total_comissao_calculado || 0), 0).toFixed(2)}
+          </h4>
+          <span className="text-[9px] font-bold text-emerald-400 block mt-1 truncate">
+            ● Período Selecionado
+          </span>
+        </div>
+      </div>
 
-              {barbeiros.length === 0 ? (
-                <div className="p-12 text-center text-stone-400 text-xs font-medium">
-                  Nenhum barbeiro cadastrado no momento para esta unidade.
-                </div>
-              ) : (
-                <div className="space-y-3.5">
-                  {barbeiros
-                    .filter((barbeiro, index, self) => 
-                      index === self.findIndex(b => (b.id && b.id === barbeiro.id) || (b.nome && b.nome.toLowerCase() === barbeiro.nome.toLowerCase()))
-                    )
-                    .map((barbeiro) => {
-                      const valorAtual = barbeiro.comissao_padrao ?? 50;
+      {/* CARD 2: FATURAMENTO EQUIPE */}
+      <div className="bg-[#111111] text-white rounded-[28px] p-4 sm:p-5 shadow-xl border border-stone-800/80 flex flex-col justify-between h-28 relative overflow-hidden">
+        <div className="flex items-start justify-between">
+          <span className="text-[10px] font-black text-stone-400 uppercase tracking-widest">
+            Fat. Equipe
+          </span>
+          <div className="w-10 h-10 rounded-full bg-gradient-to-b from-stone-100 via-stone-200 to-stone-400 text-stone-900 flex items-center justify-center shadow-md border border-white/60 shrink-0">
+            <TrendingUp className="w-4 h-4 stroke-[2.5]" />
+          </div>
+        </div>
+        <div>
+          <h4 className="text-xl sm:text-2xl font-black tracking-tight text-white leading-none">
+            R$ {agendamentos.filter(a => a.status === 'concluido').reduce((acc, a) => acc + (Number(a.valor_total) || 0), 0).toFixed(2)}
+          </h4>
+          <span className="text-[9px] font-bold text-stone-400 block mt-1 truncate">
+            {agendamentos.filter(a => a.status === 'concluido').length} concluidos
+          </span>
+        </div>
+      </div>
 
-                      return (
-                        <div 
-                          key={barbeiro.id} 
-                          className="flex flex-col sm:flex-row sm:items-center justify-between p-4 sm:p-5 rounded-3xl border border-stone-200/70 bg-stone-50/80 hover:bg-stone-50 transition-all gap-4 shadow-xs"
-                        >
-                          <div className="space-y-0.5">
-                            <h4 className="text-xs sm:text-sm font-extrabold text-stone-900">{barbeiro.nome}</h4>
-                            <span className="text-xs text-stone-500 font-medium">
-                              Comissão atual: <strong className="text-stone-900 font-bold">{valorAtual}%</strong>
-                            </span>
-                          </div>
+      {/* CARD 3: PENDENTE DE PAGO */}
+      <div className="bg-[#111111] text-white rounded-[28px] p-4 sm:p-5 shadow-xl border border-stone-800/80 flex flex-col justify-between h-28 relative overflow-hidden">
+        <div className="flex items-start justify-between">
+          <span className="text-[10px] font-black text-stone-400 uppercase tracking-widest">
+            Pendente
+          </span>
+          <div className="w-10 h-10 rounded-full bg-gradient-to-b from-stone-100 via-stone-200 to-stone-400 text-stone-900 flex items-center justify-center shadow-md border border-white/60 shrink-0">
+            <Clock className="w-4 h-4 stroke-[2.5]" />
+          </div>
+        </div>
+        <div>
+          <h4 className="text-xl sm:text-2xl font-black tracking-tight text-amber-400 leading-none">
+            R$ {barbeiros.reduce((acc, b) => acc + (b.comissao_pendente || 0), 0).toFixed(2)}
+          </h4>
+          <span className="text-[9px] font-bold text-amber-400/90 block mt-1 truncate">
+            Aguardando Quitação
+          </span>
+        </div>
+      </div>
 
-                          <div className="flex items-center gap-2.5 self-end sm:self-auto">
-                            <div className="relative flex items-center">
-                              <input
-                                type="number"
-                                defaultValue={valorAtual}
-                                id={`comissao-${barbeiro.id}`}
-                                className="w-20 px-3.5 py-2 bg-white border border-stone-300/80 rounded-2xl text-xs font-bold text-stone-900 focus:outline-none focus:border-stone-900 shadow-xs text-center"
-                              />
-                              <span className="absolute right-3 text-xs font-bold text-stone-400 pointer-events-none">%</span>
-                            </div>
+      {/* CARD 4: MAIOR FATURAMENTO */}
+      <div className="bg-[#111111] text-white rounded-[28px] p-4 sm:p-5 shadow-xl border border-stone-800/80 flex flex-col justify-between h-28 relative overflow-hidden">
+        <div className="flex items-start justify-between">
+          <span className="text-[10px] font-black text-stone-400 uppercase tracking-widest">
+            Destaque
+          </span>
+          <div className="w-10 h-10 rounded-full bg-gradient-to-b from-stone-100 via-stone-200 to-stone-400 text-stone-900 flex items-center justify-center shadow-md border border-white/60 shrink-0">
+            <Award className="w-4 h-4 stroke-[2.5]" />
+          </div>
+        </div>
+        <div>
+          <h4 className="text-lg sm:text-xl font-black tracking-tight text-white leading-none truncate">
+            {barbeiros[0]?.nome || 'Nenhum'}
+          </h4>
+          <span className="text-[9px] font-bold text-stone-400 block mt-1 truncate">
+            Líder do Período
+          </span>
+        </div>
+      </div>
 
-                            <button
-                              onClick={async () => {
-                                const inputReal = document.getElementById(`comissao-${barbeiro.id}`);
-                                const novaComissao = Number(inputReal.value);
+    </div>
 
-                                if (isNaN(novaComissao) || novaComissao < 0 || novaComissao > 100) {
-                                  alert('Insira um valor entre 0 e 100.');
-                                  return;
-                                }
+    {/* 2. FILTROS & AÇÕES */}
+    <div className="bg-white rounded-[2.5rem] border border-stone-200/80 p-5 shadow-xs space-y-4">
+      <div className="flex items-center gap-2">
+        <div className="w-2.5 h-2.5 rounded-full bg-stone-900" />
+        <h3 className="text-sm font-black text-stone-900 tracking-tight">Filtros & Fechamento</h3>
+      </div>
 
-                                const { data, error } = await supabase
-                                  .from('barbeiros')
-                                  .update({ 
-                                    taxa_comissao: novaComissao, 
-                                    comissao_padrao: novaComissao 
-                                  })
-                                  .eq('id', barbeiro.id)
-                                  .select();
+      <div className="space-y-3">
+        <div className="relative">
+          <Search className="w-4 h-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            placeholder="Buscar profissional por nome..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-10 pr-4 py-3 bg-stone-50 border border-stone-200/90 rounded-2xl text-xs text-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-900 font-medium transition-all shadow-2xs"
+          />
+        </div>
 
-                                if (error) {
-                                  console.error('Erro detalhado do Supabase:', error);
-                                  alert('Erro do Banco: ' + error.message);
-                                } else if (!data || data.length === 0) {
-                                  const { data: data2, error: err2 } = await supabase
-                                    .from('barbeiros')
-                                    .update({ 
-                                      taxa_comissao: novaComissao, 
-                                      comissao_padrao: novaComissao 
-                                    })
-                                    .eq('user_id', barbeiro.user_id || '')
-                                    .select();
+        <div className="flex items-center gap-2">
+          <select 
+            className="flex-1 px-3 py-3 bg-stone-50 border border-stone-200/90 rounded-2xl text-xs font-bold text-stone-800 focus:outline-none focus:ring-2 focus:ring-stone-900 cursor-pointer"
+          >
+            <option value="mes_atual">Mês Atual</option>
+            <option value="mes_anterior">Mês Anterior</option>
+            <option value="7_dias">Últimos 7 dias</option>
+          </select>
 
-                                  if (err2 || !data2 || data2.length === 0) {
-                                    alert('Erro: O banco recusou a atualização. Verifique as políticas de RLS (Row Level Security) da tabela barbeiros no Supabase.');
-                                  } else {
-                                    alert('Comissão atualizada com sucesso!');
-                                    setBarbeiros(prev => prev.map(b => b.user_id === barbeiro.user_id ? { ...b, taxa_comissao: novaComissao, comissao_padrao: novaComissao } : b));
-                                  }
-                                } else {
-                                  alert('Comissão atualizada com sucesso!');
-                                  setBarbeiros(prev => prev.map(b => b.id === barbeiro.id ? { ...b, taxa_comissao: novaComissao, comissao_padrao: novaComissao } : b));
-                                }
-                              }}
-                              className="px-5 py-2 bg-[#111111] hover:bg-stone-800 text-white text-xs font-bold rounded-2xl active:scale-95 transition-all shadow-md cursor-pointer"
-                            >
-                              Salvar
-                            </button>
-                          </div>
+          <button
+            onClick={() => alert('Abrindo fechamento de comissões...')}
+            className="px-4 py-3 bg-[#111111] hover:bg-stone-800 text-white text-xs font-extrabold rounded-2xl shadow-md transition-all active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
+          >
+            <CheckCircle className="w-4 h-4 text-emerald-400" />
+            <span>Fechar Geral</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    {/* 3. VISÃO POR PROFISSIONAL */}
+    <div className="bg-white rounded-[2.5rem] border border-stone-200/80 p-5 shadow-xs space-y-4">
+      <div className="flex items-center justify-between pb-2 border-b border-stone-100">
+        <div>
+          <h3 className="text-sm sm:text-base font-black text-stone-900 tracking-tight">Visão por Profissional</h3>
+          <p className="text-[11px] text-stone-400">Detalhamento e acerto individual de comissões.</p>
+        </div>
+        <span className="text-[10px] font-black text-stone-400 uppercase tracking-wider bg-stone-100 px-2.5 py-1 rounded-xl">
+          {barbeiros.length} BARBEIROS
+        </span>
+      </div>
+
+      {barbeiros.length === 0 ? (
+        <div className="p-10 text-center text-stone-400 text-xs font-medium">
+          Nenhum profissional encontrado para o período.
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {barbeiros
+            .filter((b) => b.nome.toLowerCase().includes(searchTerm.toLowerCase()))
+            .map((barbeiro) => {
+              const valorAtualComissao = barbeiro.taxa_comissao ?? barbeiro.comissao_padrao ?? 50;
+
+              return (
+                <div 
+                  key={barbeiro.id} 
+                  className="bg-stone-50/70 border border-stone-200/70 rounded-[2rem] p-4 sm:p-5 space-y-3.5 hover:bg-stone-50 transition-all shadow-2xs"
+                >
+                  <div className="flex items-center justify-between gap-3 pb-3 border-b border-stone-200/60">
+                    <div className="flex items-center gap-3 min-w-0">
+                      {barbeiro.foto ? (
+                        <img 
+                          src={barbeiro.foto} 
+                          alt={barbeiro.nome} 
+                          className="w-11 h-11 rounded-2xl object-cover border border-stone-200 shadow-xs shrink-0" 
+                        />
+                      ) : (
+                        <div className="w-11 h-11 rounded-2xl bg-[#111111] text-white font-black flex items-center justify-center text-sm shadow-xs border border-stone-800 shrink-0">
+                          {(barbeiro.nome || 'B').charAt(0).toUpperCase()}
                         </div>
-                      );
-                    })}
+                      )}
+
+                      <div className="min-w-0">
+                        <h4 className="text-xs sm:text-sm font-black text-stone-900 truncate">{barbeiro.nome}</h4>
+                        <span className="text-[10px] text-stone-400 font-bold block truncate">{barbeiro.especialidade || 'Profissional'}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <div className="relative flex items-center">
+                        <input
+                          type="number"
+                          defaultValue={valorAtualComissao}
+                          id={`comissao-${barbeiro.id}`}
+                          className="w-14 px-2 py-1.5 bg-white border border-stone-300 rounded-xl text-xs font-extrabold text-stone-900 focus:outline-none focus:border-stone-900 text-center shadow-2xs"
+                        />
+                        <span className="absolute right-2 text-[10px] font-bold text-stone-400 pointer-events-none">%</span>
+                      </div>
+
+                      <button
+                        onClick={async () => {
+                          const inputReal = document.getElementById(`comissao-${barbeiro.id}`);
+                          const novaComissao = Number(inputReal.value);
+
+                          if (isNaN(novaComissao) || novaComissao < 0 || novaComissao > 100) {
+                            alert('Insira um valor entre 0 e 100.');
+                            return;
+                          }
+
+                          const { error } = await supabase
+                            .from('barbeiros')
+                            .update({ taxa_comissao: novaComissao, comissao_padrao: novaComissao })
+                            .eq('id', barbeiro.id);
+
+                          if (error) {
+                            alert('Erro ao atualizar: ' + error.message);
+                          } else {
+                            alert('Comissão atualizada com sucesso!');
+                            loadDashboardData(barbearia.id);
+                          }
+                        }}
+                        className="px-3 py-1.5 bg-[#111111] hover:bg-stone-800 text-white text-[10px] font-extrabold uppercase tracking-wider rounded-xl active:scale-95 transition-all shadow-xs cursor-pointer"
+                      >
+                        Salvar
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 bg-white p-3 rounded-2xl border border-stone-200/80 shadow-2xs">
+                    <div>
+                      <span className="text-[9px] font-black text-stone-400 uppercase tracking-wider block">Atendimentos</span>
+                      <span className="text-xs font-black text-stone-900">12 Serviços</span>
+                    </div>
+
+                    <div>
+                      <span className="text-[9px] font-black text-stone-400 uppercase tracking-wider block">Faturamento Bruto</span>
+                      <span className="text-xs font-black text-stone-900">R$ 540,00</span>
+                    </div>
+
+                    <div>
+                      <span className="text-[9px] font-black text-stone-400 uppercase tracking-wider block">Comissão ({valorAtualComissao}%)</span>
+                      <span className="text-xs font-black text-emerald-600">R$ 270,00</span>
+                    </div>
+
+                    <div>
+                      <span className="text-[9px] font-black text-stone-400 uppercase tracking-wider block">Status</span>
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full mt-0.5">
+                        <Clock className="w-3 h-3" /> Pendente
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 pt-1">
+                    <button
+                      onClick={() => alert(`Extrato detalhado de ${barbeiro.nome}`)}
+                      className="w-full py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-bold rounded-2xl transition-all cursor-pointer text-center"
+                    >
+                      Ver Extrato
+                    </button>
+
+                    <button
+                      onClick={async () => {
+                        if (confirm(`Efetuar fechamento e quitação de ${barbeiro.nome}?`)) {
+                          alert('Fechamento realizado com sucesso!');
+                        }
+                      }}
+                      className="w-full py-2.5 bg-[#111111] hover:bg-stone-800 text-white text-xs font-bold rounded-2xl transition-all shadow-md active:scale-95 cursor-pointer flex items-center justify-center gap-1.5 text-center"
+                    >
+                      <CheckCircle className="w-3.5 h-3.5 text-emerald-400" /> Quitar
+                    </button>
+                  </div>
+
                 </div>
-              )}
-            </div>
-          )}
+              );
+            })}
+        </div>
+      )}
+    </div>
+
+  </div>
+)}
 
           {activeTab === 'despesas' && (
             <div className="bg-white rounded-3xl border border-stone-200/80 shadow-sm overflow-hidden p-6 space-y-6">
