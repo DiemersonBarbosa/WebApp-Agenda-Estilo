@@ -5,7 +5,7 @@ import {
   Store, Save, Check, ExternalLink, Share2, 
   Send, X, MessageSquare, Bot, Grid, Palette, 
   Clock, Trash2, Upload, Image as ImageIcon, ShieldCheck,
-  Link as LinkIcon, Type, Timer, Mail, Lock
+  Link as LinkIcon, Type, Timer, Mail, Lock, CalendarOff, Settings2
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
@@ -444,10 +444,9 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
       {/* PAINEL DE CONTEÚDO MODERNO */}
       <div className="bg-white/90 backdrop-blur-xl rounded-[28px] border border-slate-200/80 p-3 sm:p-3.5 shadow-sm space-y-2.5">
         
-        {/* ================= GERAL & PERFIL (OTIMIZADO EM 2 COLUNAS + HORÁRIOS GERAIS NA MESMA LINHA DA ANTECEDÊNCIA) ================= */}
+        {/* ================= GERAL & PERFIL (AGORA APENAS ESTABELECIMENTO E CREDENCIAIS) ================= */}
         {secaoAtiva === 'geral' && (
           <div className="space-y-2.5 animate-in fade-in duration-200">
-            
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               {/* Bloco 1: Informações do Estabelecimento */}
               <div className="bg-slate-50/90 p-2.5 rounded-2xl border border-slate-200/70 space-y-2">
@@ -479,35 +478,6 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                       className="w-full bg-transparent px-2.5 py-1.5 text-xs font-semibold text-slate-900 focus:outline-none"
                       placeholder="slug"
                     />
-                  </div>
-                </div>
-
-                {/* Antecedência e Horários Gerais na mesma linha interna */}
-                <div className="grid grid-cols-2 gap-1.5 pt-0.5">
-                  <div className="space-y-0.5">
-                    <label className="text-[9px] font-extrabold text-slate-700 uppercase tracking-wider flex items-center gap-1">
-                      <Timer className="w-2.5 h-2.5 text-slate-500" /> Antecedência
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      step="5"
-                      value={antecedenciaMinima}
-                      onChange={(e) => setAntecedenciaMinima(e.target.value)}
-                      className="w-full bg-white border border-slate-200/90 rounded-xl px-2.5 py-1.5 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all shadow-2xs"
-                      placeholder="30"
-                    />
-                  </div>
-
-                  <div className="space-y-0.5 flex flex-col justify-end">
-                    <button
-                      type="button"
-                      onClick={() => setModalHorariosGeraisOpen(true)}
-                      className="w-full py-1.5 px-2 bg-gradient-to-r from-slate-900 to-zinc-900 hover:from-slate-800 hover:to-zinc-800 text-white rounded-xl text-[10px] font-black cursor-pointer shadow-sm transition-all flex items-center justify-center gap-1 text-center"
-                    >
-                      <Clock className="w-3 h-3 text-emerald-400 shrink-0" />
-                      <span className="truncate">Horários & Feriados</span>
-                    </button>
                   </div>
                 </div>
               </div>
@@ -543,7 +513,6 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                 </div>
               </div>
             </div>
-
           </div>
         )}
 
@@ -590,38 +559,68 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
           </div>
         )}
 
-        {/* ================= ATENDIMENTO ================= */}
+        {/* ================= ATENDIMENTO (COM MODO DE AGENDAMENTO, ANTECEDÊNCIA E HORÁRIOS/FERIADOS) ================= */}
         {secaoAtiva === 'atendimento' && (
           <div className="space-y-2.5 animate-in fade-in duration-200">
-            <div className="bg-slate-50/80 p-2.5 rounded-2xl border border-slate-200/60 space-y-2">
-              <label className="text-[10px] font-extrabold text-slate-600 uppercase tracking-wider block">Modo de Agendamento do Cliente</label>
-              <div className="grid grid-cols-1 gap-1.5">
-                <div 
-                  onClick={() => setModoAtendimento('conversacional')}
-                  className={`p-2.5 rounded-xl border cursor-pointer transition-all flex items-start gap-2 bg-white ${modoAtendimento === 'conversacional' ? 'border-slate-900 ring-2 ring-slate-900/10 shadow-xs' : 'border-slate-200 hover:bg-slate-50'}`}
-                >
-                  <div className="w-5 h-5 rounded-lg bg-slate-100 flex items-center justify-center shrink-0 text-slate-900 mt-0.5">
-                    <Bot className="w-3.5 h-3.5" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              
+              {/* Bloco 1: Modo de Agendamento */}
+              <div className="bg-slate-50/80 p-2.5 rounded-2xl border border-slate-200/60 space-y-2 flex flex-col justify-between">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Fluxo do Cliente</span>
+                <div className="grid grid-cols-2 gap-2">
+                  <div 
+                    onClick={() => setModoAtendimento('conversacional')}
+                    className={`p-2.5 rounded-xl border cursor-pointer transition-all flex flex-col items-center text-center gap-1 bg-white ${modoAtendimento === 'conversacional' ? 'border-slate-900 ring-2 ring-slate-900/10 shadow-xs' : 'border-slate-200 hover:bg-slate-50'}`}
+                  >
+                    <div className="w-6 h-6 rounded-lg bg-slate-100 flex items-center justify-center text-slate-900">
+                      <Bot className="w-3.5 h-3.5" />
+                    </div>
+                    <span className="font-bold text-[11px] text-slate-900">Chat</span>
                   </div>
-                  <div>
-                    <h4 className="font-bold text-xs text-slate-900">Conversacional (Chat)</h4>
-                    <p className="text-[10px] text-slate-500 leading-tight">Assistente virtual passo a passo no agendamento.</p>
-                  </div>
-                </div>
 
-                <div 
-                  onClick={() => setModoAtendimento('classico')}
-                  className={`p-2.5 rounded-xl border cursor-pointer transition-all flex items-start gap-2 bg-white ${modoAtendimento === 'classico' ? 'border-slate-900 ring-2 ring-slate-900/10 shadow-xs' : 'border-slate-200 hover:bg-slate-50'}`}
-                >
-                  <div className="w-5 h-5 rounded-lg bg-slate-100 flex items-center justify-center shrink-0 text-slate-900 mt-0.5">
-                    <Grid className="w-3.5 h-3.5" />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-xs text-slate-900">Clássico (Grade)</h4>
-                    <p className="text-[10px] text-slate-500 leading-tight">Seleção tradicional em grade de horários disponíveis.</p>
+                  <div 
+                    onClick={() => setModoAtendimento('classico')}
+                    className={`p-2.5 rounded-xl border cursor-pointer transition-all flex flex-col items-center text-center gap-1 bg-white ${modoAtendimento === 'classico' ? 'border-slate-900 ring-2 ring-slate-900/10 shadow-xs' : 'border-slate-200 hover:bg-slate-50'}`}
+                  >
+                    <div className="w-6 h-6 rounded-lg bg-slate-100 flex items-center justify-center text-slate-900">
+                      <Grid className="w-3.5 h-3.5" />
+                    </div>
+                    <span className="font-bold text-[11px] text-slate-900">Grade</span>
                   </div>
                 </div>
               </div>
+
+              {/* Bloco 2: Antecedência e Horários Gerais */}
+              <div className="bg-slate-50/80 p-2.5 rounded-2xl border border-slate-200/60 space-y-2">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Regras & Exceções</span>
+                
+                <div className="space-y-0.5">
+                  <label className="text-[10px] font-extrabold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                    <Timer className="w-3 h-3 text-slate-500" /> Antecedência Mínima (min)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="5"
+                    value={antecedenciaMinima}
+                    onChange={(e) => setAntecedenciaMinima(e.target.value)}
+                    className="w-full bg-white border border-slate-200/90 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all shadow-2xs"
+                    placeholder="30"
+                  />
+                </div>
+
+                <div className="pt-0.5">
+                  <button
+                    type="button"
+                    onClick={() => setModalHorariosGeraisOpen(true)}
+                    className="w-full py-2 px-3 bg-gradient-to-r from-slate-900 to-zinc-900 hover:from-slate-800 hover:to-zinc-800 text-white rounded-xl text-xs font-bold cursor-pointer shadow-sm transition-all flex items-center justify-center gap-1.5"
+                  >
+                    <CalendarOff className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Gerenciar Feriados & Bloqueios</span>
+                  </button>
+                </div>
+              </div>
+
             </div>
           </div>
         )}
