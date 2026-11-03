@@ -361,7 +361,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
   ];
 
   return (
-    <div className="w-full max-w-4xl mx-auto px-3 sm:px-4 py-2 space-y-2 font-sans text-slate-800 overflow-hidden select-none pb-36">
+    <div className="w-full max-w-4xl mx-auto px-3 sm:px-4 py-2 space-y-2 font-sans text-slate-800 overflow-hidden select-none pb-4">
       
       {/* HEADER / CARTÃO DE PERFIL EXECUTIVO REFINADO */}
       <div className="bg-white/90 backdrop-blur-xl rounded-[28px] p-3 border border-slate-200/70 shadow-sm relative space-y-2">
@@ -509,6 +509,19 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                 </div>
               </div>
             </div>
+
+            {/* BOTÃO DE SALVAR EMBUTIDO NO CARTÃO (SEM FIXAR NA TELA) */}
+            <div className="pt-1 flex justify-center">
+              <button
+                type="button"
+                onClick={handleSubmit}
+                disabled={salvando}
+                className="w-44 py-2 bg-gradient-to-r from-slate-900 via-slate-800 to-zinc-900 hover:from-slate-800 hover:to-zinc-800 text-white font-bold text-[10px] uppercase tracking-wider rounded-xl shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 border border-slate-700/50 active:scale-95"
+              >
+                {sucesso ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Save className="w-3.5 h-3.5 text-emerald-400" />}
+                <span>{salvando ? 'Salvando...' : sucesso ? 'Salvo!' : 'Salvar'}</span>
+              </button>
+            </div>
           </div>
         )}
 
@@ -551,6 +564,18 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                   <span className="text-xs font-bold">Dark (Escuro)</span>
                 </div>
               </div>
+            </div>
+
+            <div className="pt-1 flex justify-center">
+              <button
+                type="button"
+                onClick={handleSubmit}
+                disabled={salvando}
+                className="w-44 py-2 bg-gradient-to-r from-slate-900 via-slate-800 to-zinc-900 hover:from-slate-800 hover:to-zinc-800 text-white font-bold text-[10px] uppercase tracking-wider rounded-xl shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 border border-slate-700/50 active:scale-95"
+              >
+                {sucesso ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Save className="w-3.5 h-3.5 text-emerald-400" />}
+                <span>{salvando ? 'Salvando...' : sucesso ? 'Salvo!' : 'Salvar'}</span>
+              </button>
             </div>
           </div>
         )}
@@ -617,6 +642,18 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                 </div>
               </div>
 
+            </div>
+
+            <div className="pt-1 flex justify-center">
+              <button
+                type="button"
+                onClick={handleSubmit}
+                disabled={salvando}
+                className="w-44 py-2 bg-gradient-to-r from-slate-900 via-slate-800 to-zinc-900 hover:from-slate-800 hover:to-zinc-800 text-white font-bold text-[10px] uppercase tracking-wider rounded-xl shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 border border-slate-700/50 active:scale-95"
+              >
+                {sucesso ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Save className="w-3.5 h-3.5 text-emerald-400" />}
+                <span>{salvando ? 'Salvando...' : sucesso ? 'Salvo!' : 'Salvar'}</span>
+              </button>
             </div>
           </div>
         )}
@@ -741,22 +778,21 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                 </div>
               )}
             </div>
+
+            <div className="pt-1 flex justify-center">
+              <button
+                type="button"
+                onClick={handleSubmit}
+                disabled={salvando}
+                className="w-44 py-2 bg-gradient-to-r from-slate-900 via-slate-800 to-zinc-900 hover:from-slate-800 hover:to-zinc-800 text-white font-bold text-[10px] uppercase tracking-wider rounded-xl shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 border border-slate-700/50 active:scale-95"
+              >
+                {sucesso ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Save className="w-3.5 h-3.5 text-emerald-400" />}
+                <span>{salvando ? 'Salvando...' : sucesso ? 'Salvo!' : 'Salvar'}</span>
+              </button>
+            </div>
           </div>
         )}
 
-      </div>
-
-      {/* BOTÃO FIXO DE SALVAR ACIMA DO MENU MOBILE */}
-      <div className="fixed bottom-20 left-4 right-4 z-40 flex justify-center pointer-events-none">
-        <button
-          type="button"
-          onClick={handleSubmit}
-          disabled={salvando}
-          className="w-44 py-2 bg-gradient-to-r from-slate-900 via-slate-800 to-zinc-900 hover:from-slate-800 hover:to-zinc-800 text-white font-bold text-[10px] uppercase tracking-wider rounded-xl shadow-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 pointer-events-auto border border-slate-700/50 backdrop-blur-md active:scale-95"
-        >
-          {sucesso ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Save className="w-3.5 h-3.5 text-emerald-400" />}
-          <span>{salvando ? 'Salvando...' : sucesso ? 'Salvo!' : 'Salvar'}</span>
-        </button>
       </div>
 
       {/* MODAL DE COMPARTILHAMENTO */}
