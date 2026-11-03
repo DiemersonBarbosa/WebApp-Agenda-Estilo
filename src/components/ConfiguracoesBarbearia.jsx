@@ -746,16 +746,16 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
 
       </div>
 
-      {/* BOTÃO DE SALVAR FIXO POSICIONADO ACIMA DO MENU MOBILE SEM ROLAGEM */}
-      <div className="fixed bottom-32 left-4 right-4 z-40 flex justify-center pointer-events-none">
+      {/* BOTÃO DE SALVAR ESTILIZADO COM BORDA BRANCA E ELEVADO NO FLUXO DA TELA */}
+      <div className="pt-2 pb-2 flex justify-center">
         <button
           type="button"
           onClick={handleSubmit}
           disabled={salvando}
-          className="w-44 py-2 bg-gradient-to-r from-slate-900 via-slate-800 to-zinc-900 hover:from-slate-800 hover:to-zinc-800 text-white font-bold text-[10px] uppercase tracking-wider rounded-xl shadow-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 pointer-events-auto border border-slate-700/50 backdrop-blur-md active:scale-95"
+          className="w-48 py-2.5 bg-gradient-to-r from-slate-900 via-slate-800 to-zinc-900 hover:from-slate-800 hover:to-zinc-800 text-white font-black text-[11px] uppercase tracking-wider rounded-2xl shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 border-2 border-white/90 backdrop-blur-md active:scale-95 group"
         >
-          {sucesso ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Save className="w-3.5 h-3.5 text-emerald-400" />}
-          <span>{salvando ? 'Salvando...' : sucesso ? 'Salvo!' : 'Salvar'}</span>
+          {sucesso ? <Check className="w-4 h-4 text-emerald-400" /> : <Save className="w-4 h-4 text-emerald-400 transition-transform group-hover:scale-110" />}
+          <span>{salvando ? 'Salvando...' : sucesso ? 'Salvo com Sucesso!' : 'Salvar Alterações'}</span>
         </button>
       </div>
 
