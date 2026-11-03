@@ -15,8 +15,20 @@ export const metadata = {
   title: "BarberGestor - Sistema para Gestão de Barbearias",
   description: "Centralize agendamentos, fluxo de caixa e comissões.",
   manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+  },
+};
+
+// EXPORTAÇÃO CORRETA DO VIEWPORT NO NEXT.JS (AQUI ONDE O TECLADO É CONTROLADO)
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
   themeColor: "#0c0a09",
-  viewport: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0",
+  interactiveWidget: "resizes-content", // Impede que o teclado cubra/empurre o conteúdo fixo de forma errada
 };
 
 export default function RootLayout({ children }) {
@@ -27,11 +39,8 @@ export default function RootLayout({ children }) {
     >
       <head>
         <link rel="manifest" href="/manifest.json" />
-        <meta name="theme-color" content="#0c0a09" />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
       </head>
-      <body className="min-h-full flex flex-col bg-slate-50 text-slate-900 antialiased selection:bg-slate-900 selection:text-white">
+      <body className="min-h-full flex flex-col bg-slate-50 text-slate-900 antialiased selection:bg-slate-900 selection:text-white overflow-x-hidden">
         {children}
       </body>
     </html>

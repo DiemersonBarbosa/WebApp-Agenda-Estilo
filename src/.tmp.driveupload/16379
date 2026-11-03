@@ -84,3 +84,9 @@ html, body {
 }
 
 
+/* No seu globals.css */
+body:has(input:focus, textarea:focus) #menu-mobile-bottom {
+  display: none !important;
+}
+
+
