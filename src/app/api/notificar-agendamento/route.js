@@ -34,36 +34,62 @@ export async function POST(req) {
       );
     }
 
-    const { fcmToken, titulo, corpo } = await req.json();
+    // Recebemos também o telefone e os dados do agendamento na requisição
+    const { fcmToken, titulo, corpo, telefone, nomeCliente, servico, data, hora } = await req.json();
 
-    if (!fcmToken) {
-      return NextResponse.json({ error: 'Token FCM não fornecido' }, { status: 400 });
+    let whatsappResult = null;
+
+    // Se o telefone foi enviado, disparamos o WhatsApp para a VPS
+    if (telefone) {
+      try {
+        const mensagemWhats = `Olá, *${nomeCliente || 'Cliente'}*! O seu agendamento para *${servico || 'Serviço'}* foi confirmado para o dia *${data || ''}* às *${hora || ''}*. Obrigado pela preferência!`;
+
+        const waResponse = await fetch('http://184.107.106.72:8080/api/barbearia/send-message', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            phone: telefone,
+            message: mensagemWhats,
+          }),
+        });
+        whatsappResult = await waResponse.json();
+      } catch (waError) {
+        console.error('Erro ao disparar WhatsApp na API:', waError);
+      }
     }
 
-    const message = {
-      notification: {
-        title: titulo || '📅 Novo Agendamento!',
-        body: corpo || 'Sua agenda recebeu uma nova atualização.',
-      },
-      data: {
-        title: titulo || '📅 Novo Agendamento!',
-        body: corpo || 'Sua agenda recebeu uma nova atualização.',
-      },
-      android: {
-        priority: 'high',
+    // Se houver token FCM, envia a notificação push do Firebase normalmente
+    let fcmResponse = null;
+    if (fcmToken) {
+      const message = {
         notification: {
-          sound: 'default',
-          priority: 'max',
-          visibility: 'public',
-          channelId: 'agendamentos_channel',
+          title: titulo || '📅 Novo Agendamento!',
+          body: corpo || 'Sua agenda recebeu uma nova atualização.',
         },
-      },
-      token: fcmToken,
-    };
+        data: {
+          title: titulo || '📅 Novo Agendamento!',
+          body: corpo || 'Sua agenda recebeu uma nova atualização.',
+        },
+        android: {
+          priority: 'high',
+          notification: {
+            sound: 'default',
+            priority: 'max',
+            visibility: 'public',
+            channelId: 'agendamentos_channel',
+          },
+        },
+        token: fcmToken,
+      };
 
-    const response = await admin.messaging().send(message);
+      fcmResponse = await admin.messaging().send(message);
+    }
 
-    return NextResponse.json({ success: true, messageId: response });
+    return NextResponse.json({ 
+      success: true, 
+      messageId: fcmResponse,
+      whatsapp: whatsappResult 
+    });
   } catch (error) {
     console.error('Erro na rota /api/notificar-agendamento:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
