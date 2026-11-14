@@ -83,14 +83,17 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, barbearia
     }
   };
 
-  const extrairHoraMinuto = (dataHoraStr) => {
+ const extrairHoraMinuto = (dataHoraStr) => {
     if (!dataHoraStr) return '--:--';
     try {
+      // Se a string veio com o sufixo Z ou +00, convertemos tratando o offset ou pegando direto se for string limpa
       const data = new Date(dataHoraStr);
+      // Retorna a hora local correta do navegador/sistema
       return data.toLocaleTimeString('pt-BR', {
         hour: '2-digit',
         minute: '2-digit',
-        hour12: false
+        hour12: false,
+        timeZone: 'America/Sao_Paulo' // Força o fuso do Brasil para exibir as 13:00 corretamente
       });
     } catch {
       return '';
@@ -293,7 +296,10 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, barbearia
 
       const servicoObj = servicos.find(s => String(s.id) === String(servicoIdManual));
       const valorServico = servicoObj ? (servicoObj.preco || 0) : 0;
-      const dataHoraCompleta = `${dataSelecionada}T${horarioSelecionadoSlot}:00`;
+      
+      // String exata informada pelo usuário (ex: "2026-11-14T13:00:00")
+      // Monta a data informando explicitamente que é o horário do Brasil (-03:00)
+      const dataHoraCompleta = `${dataSelecionada}T${horarioSelecionadoSlot}:00-03:00`;
 
       const { error: errAgend } = await supabase
         .from('agendamentos')

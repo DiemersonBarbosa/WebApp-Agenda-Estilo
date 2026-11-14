@@ -5,7 +5,7 @@ import {
   Store, Save, Check, ExternalLink, Share2, 
   Send, X, MessageSquare, Bot, Grid, Palette, 
   Clock, Trash2, Upload, Image as ImageIcon, 
-  Link as LinkIcon, Type, Timer, Mail, Lock, CalendarOff 
+  Link as LinkIcon, Type, Timer, Mail, Lock, CalendarOff, Globe 
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
@@ -19,6 +19,14 @@ const DIAS_SEMANA_NOMES = [
   { key: 'domingo', label: 'Domingo' }
 ];
 
+const FUSOS_HORARIOS = [
+  { value: 'America/Sao_Paulo', label: 'Horário de Brasília (São Paulo / Sul / Sudeste / Nordeste)' },
+  { value: 'America/Manaus', label: 'Manaus / Amazonas (GMT-4)' },
+  { value: 'America/Cuiaba', label: 'Cuiabá / Mato Grosso (GMT-4)' },
+  { value: 'America/Rio_Branco', label: 'Rio Branco / Acre (GMT-5)' },
+  { value: 'America/Noronha', label: 'Fernando de Noronha (GMT-2)' }
+];
+
 export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
   const [secaoAtiva, setSecaoAtiva] = useState('geral');
 
@@ -27,6 +35,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
   const [logoUrl, setLogoUrl] = useState(barbearia?.logo_url || '');
   const [capaUrl, setCapaUrl] = useState(barbearia?.capa_url || '');
   const [antecedenciaMinima, setAntecedenciaMinima] = useState(barbearia?.antecedencia_minima_minutos ?? 30);
+  const [timezone, setTimezone] = useState(barbearia?.timezone || 'America/Sao_Paulo');
   
   const [email, setEmail] = useState('');
   const [novaSenha, setNovaSenha] = useState('');
@@ -303,6 +312,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
     setSucesso(false);
 
     try {
+      // 1. Atualiza as informações gerais da barbearia
       const { error: erroBarbearia } = await supabase
         .from('barbearias')
         .update({ 
@@ -315,12 +325,14 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
           modo_agendamento: modoAtendimento,
           permite_agendamentos: permiteAgendamentos,
           horarios: horariosSemana,
-          antecedencia_minima_minutos: Number(antecedenciaMinima)
+          antecedencia_minima_minutos: Number(antecedenciaMinima),
+          timezone: timezone
         })
         .eq('id', barbearia.id);
 
       if (erroBarbearia) throw erroBarbearia;
 
+      // 2. Atualiza a escala de horários dos barbeiros
       for (const b of barbeiros) {
         await supabase
           .from('barbeiros')
@@ -328,8 +340,11 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
           .eq('id', b.id);
       }
 
+      // 3. Atualiza dados de autenticação APENAS se o e-mail mudou ou se digitou uma nova senha
       const authUpdates = {};
-      if (email) authUpdates.email = email;
+      if (email && email.trim() !== '') authUpdates.email = email;
+      
+      // SÓ altera a senha se o usuário digitou algo no campo de nova senha
       if (novaSenha && novaSenha.trim() !== '') {
         if (novaSenha.length < 6) {
           throw new Error('A nova senha deve ter pelo menos 6 caracteres.');
@@ -343,7 +358,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
       }
 
       setSucesso(true);
-      setNovaSenha('');
+      setNovaSenha(''); // Limpa o campo de senha após salvar com sucesso
       if (onUpdate) onUpdate();
       setTimeout(() => setSucesso(false), 3000);
     } catch (err) {
@@ -476,6 +491,23 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                     />
                   </div>
                 </div>
+
+                <div className="space-y-0.5">
+                  <label className="text-[10px] font-extrabold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                    <Globe className="w-3 h-3 text-slate-500" /> Fuso Horário (Timezone)
+                  </label>
+                  <select
+                    value={timezone}
+                    onChange={(e) => setTimezone(e.target.value)}
+                    className="w-full bg-white border border-slate-200/90 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all shadow-2xs"
+                  >
+                    {FUSOS_HORARIOS.map((fuso) => (
+                      <option key={fuso.value} value={fuso.value}>
+                        {fuso.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               {/* Bloco 2: Credenciais de Acesso */}
@@ -503,8 +535,9 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                     type="password"
                     value={novaSenha}
                     onChange={(e) => setNovaSenha(e.target.value)}
+                    autoComplete="new-password"
                     className="w-full bg-white border border-slate-200/90 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all shadow-2xs"
-                    placeholder="Mín 6 caracteres"
+                    placeholder="Deixe em branco para não alterar"
                   />
                 </div>
               </div>
