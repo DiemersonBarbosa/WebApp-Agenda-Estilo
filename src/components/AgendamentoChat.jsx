@@ -56,6 +56,15 @@ export default function AgendamentoChat({ barbeariaId }) {
   const estiloBotMsg = isClean ? 'bg-slate-100 border border-slate-200 text-slate-800 shadow-sm' : 'bg-stone-900 border border-white/10 text-slate-200 shadow-inner';
   const estiloInput = isClean ? 'bg-slate-100 border-slate-300 text-slate-900 placeholder-slate-400' : 'bg-stone-900 border-white/10 text-white placeholder-slate-500';
 
+  // Função para padronizar o telefone para o padrão do WhatsApp (com 55)
+  const formatarTelefoneWhatsApp = (telBruto) => {
+    const apenasNumeros = telBruto.replace(/\D/g, '');
+    if (apenasNumeros.startsWith('55') && apenasNumeros.length >= 12) {
+      return apenasNumeros;
+    }
+    return `55${apenasNumeros}`;
+  };
+
   const gerarDiasDoMes = () => {
     const ano = dataAtualNavegacao.getFullYear();
     const mes = dataAtualNavegacao.getMonth();
@@ -206,7 +215,6 @@ export default function AgendamentoChat({ barbeariaId }) {
     const horariosGerados = [];
     const intervaloMinutos = 60;
 
-    // Regra de antecedência mínima
     const antecedenciaMinima = barbearia?.antecedencia_minima_minutos ?? 30;
     const agora = new Date();
     const dataAtualIso = `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, '0')}-${String(agora.getDate()).padStart(2, '0')}`;
@@ -539,6 +547,26 @@ export default function AgendamentoChat({ barbeariaId }) {
         status: 'agendado',
         lido: false
       }]);
+
+      // Disparo automático via WhatsApp direto pela API da VPS
+      try {
+        const telefoneFormatado = formatarTelefoneWhatsApp(telefone);
+        const dataFormatadaBR = dataFmt.split('-').reverse().join('/');
+        const mensagemTexto = `Olá ${nome}! Seu agendamento para ${servicoEscolhido.nome} foi confirmado para ${dataFormatadaBR} às ${horaEscolhida}. Aguardamos sua visita!`;
+
+        await fetch('http://184.107.106.72:8080/api/barbearia/send-message', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            phone: telefoneFormatado,
+            message: mensagemTexto,
+          }),
+        });
+      } catch (whatsErr) {
+        console.error('Erro ao enviar mensagem via WhatsApp na VPS:', whatsErr);
+      }
 
       try {
         const { data: barbData } = await supabase
