@@ -553,13 +553,18 @@ export default function AgendamentoChat({ barbeariaId }) {
       try {
         const telefoneFormatado = formatarTelefoneWhatsApp(telefone);
         const dataFormatadaBR = dataFmt.split('-').reverse().join('/');
-        const mensagemTexto = `Olá ${nome}! Seu agendamento para ${servicoEscolhido.nome} foi confirmado para ${dataFormatadaBR} às ${horaEscolhida}. Aguardamos sua visita!`;
-
-        await enviarMensagemWhatsApp(telefoneFormatado, mensagemTexto);
+        
+        await enviarMensagemWhatsApp({
+          phone: telefoneFormatado,
+          nomeCliente: nome,
+          servico: servicoEscolhido.nome,
+          data: dataFormatadaBR,
+          hora: horaEscolhida,
+          nomeBarbearia: barbearia?.nome || 'AgendaEstilo'
+        });
       } catch (whatsErr) {
-        console.error('Erro ao enviar mensagem via WhatsApp na VPS:', whatsErr);
+        console.error('Erro ao enviar mensagem via WhatsApp:', whatsErr);
       }
-
       try {
         const { data: barbData } = await supabase
           .from('barbearias')
