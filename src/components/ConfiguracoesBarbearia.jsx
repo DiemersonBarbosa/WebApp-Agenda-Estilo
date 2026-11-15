@@ -815,7 +815,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <h3 className="font-bold text-slate-900 text-sm">Bloqueios & Feriados Gerais</h3>
+              <h3 className="font-bold text-slate-900 text-sm">Bloqueios & Feriados</h3>
               <button onClick={() => setModalHorariosGeraisOpen(false)} className="p-1.5 bg-slate-100 hover:bg-slate-200 rounded-full cursor-pointer"><X className="w-4 h-4" /></button>
             </div>
 
@@ -835,21 +835,66 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
               </div>
 
               <div className="space-y-2">
-                <h4 className="font-bold text-xs text-slate-900">Adicionar Data Bloqueada / Feriado</h4>
-                <div className="grid grid-cols-2 gap-2">
-                  <input type="date" value={novaDataBloqueio} onChange={(e) => setNovaDataBloqueio(e.target.value)} className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900" />
-                  <input type="text" placeholder="Motivo (Ex: Natal)" value={novoMotivoBloqueio} onChange={(e) => setNovoMotivoBloqueio(e.target.value)} className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900" />
+                <h4 className="font-bold text-xs text-slate-900">Adicionar Data Bloqueada / Folga</h4>
+                <div className="space-y-2">
+                  <select
+                    id="select-barbeiro-bloqueio"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900"
+                  >
+                    <option value="">Bloquear para Toda a Barbearia (Geral)</option>
+                    {barbeiros.map(b => (
+                      <option key={b.id} value={b.id}>Apenas para o profissional: {b.nome}</option>
+                    ))}
+                  </select>
+                  <input type="date" value={novaDataBloqueio} onChange={(e) => setNovaDataBloqueio(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900" />
+                  <input type="text" placeholder="Motivo (Ex: Folga / Particular)" value={novoMotivoBloqueio} onChange={(e) => setNovoMotivoBloqueio(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900" />
                 </div>
-                <button type="button" onClick={handleAdicionarBloqueio} className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold cursor-pointer mt-1">Adicionar Bloqueio</button>
+                <button 
+                  type="button" 
+                  onClick={async () => {
+                    if (!novaDataBloqueio) return;
+                    const barbIdSelect = document.getElementById('select-barbeiro-bloqueio').value || null;
+                    try {
+                      const { data, error } = await supabase
+                        .from('bloqueios_agenda')
+                        .insert([{
+                          barbearia_id: barbearia.id,
+                          barbeiro_id: barbIdSelect,
+                          data_bloqueio: novaDataBloqueio,
+                          motivo: novoMotivoBloqueio || 'Folga / Indisponível'
+                        }])
+                        .select()
+                        .single();
+
+                      if (error) throw error;
+                      setListaBloqueios(prev => [...prev, data]);
+                      setNovaDataBloqueio('');
+                      setNovoMotivoBloqueio('');
+                    } catch (err) {
+                      alert('Erro ao adicionar bloqueio: ' + err.message);
+                    }
+                  }} 
+                  className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold cursor-pointer mt-1"
+                >
+                  Adicionar Bloqueio
+                </button>
               </div>
 
               <div className="space-y-2 max-h-40 overflow-y-auto">
-                {listaBloqueios.map(b => (
-                  <div key={b.id} className="flex justify-between items-center bg-slate-50 p-2.5 rounded-xl border border-slate-200/80 text-xs font-semibold">
-                    <span>{b.data_bloqueio} - {b.motivo}</span>
-                    <button type="button" onClick={() => handleRemoverBloqueio(b.id)} className="text-rose-600 hover:text-rose-800 p-1"><Trash2 className="w-4 h-4" /></button>
-                  </div>
-                ))}
+                {listaBloqueios.map(b => {
+                  const barbEncontrado = barbeiros.find(x => String(x.id) === String(b.barbeiro_id));
+                  return (
+                    <div key={b.id} className="flex justify-between items-center bg-slate-50 p-2.5 rounded-xl border border-slate-200/80 text-xs font-semibold">
+                      <div>
+                        <span>{b.data_bloqueio} - {b.motivo}</span>
+                        <span className="block text-[9px] text-slate-500">
+                          {barbEncontrado ? `Profissional: ${barbEncontrado.nome}` : 'Geral (Toda a barbearia)'}
+                        </span>
+                      </div>
+                      <button type="button" onClick={() => handleRemoverBloqueio(b.id)} className="text-rose-600 hover:text-rose-800 p-1"><Trash2 className="w-4 h-4" /></button>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 

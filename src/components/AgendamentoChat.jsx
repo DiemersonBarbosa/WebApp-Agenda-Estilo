@@ -66,6 +66,17 @@ export default function AgendamentoChat({ barbeariaId }) {
     return `55${apenasNumeros}`;
   };
 
+const isDataBloqueadaParaProfissional = (dataIso, barbeiroId) => {
+  return datasBloqueadas.some(b => {
+    const dataBloqFmt = String(b.data_bloqueio).split('T')[0];
+    if (dataBloqFmt !== dataIso) return false;
+    
+    // Se o bloqueio for geral ou for específico para este barbeiro
+    return !b.barbeiro_id || String(b.barbeiro_id) === String(barbeiroId);
+  });
+};
+
+
   const gerarDiasDoMes = () => {
     const ano = dataAtualNavegacao.getFullYear();
     const mes = dataAtualNavegacao.getMonth();
@@ -260,11 +271,13 @@ export default function AgendamentoChat({ barbeariaId }) {
         const { data: barb } = await supabase.from('barbearias').select('*').eq('id', barbeariaId).single();
         if (barb) setBarbearia(barb);
 
-        const [resServicos, resBarbeiros, resBloqueios] = await Promise.all([
-          supabase.from('servicos').select('*').eq('barbearia_id', barbeariaId),
-          supabase.from('barbeiros').select('*').eq('barbearia_id', barbeariaId),
-          supabase.from('bloqueios_agenda').select('data_bloqueio').eq('barbearia_id', barbeariaId)
-        ]);
+       const [resServicos, resBarbeiros, resBloqueios] = await Promise.all([
+  supabase.from('servicos').select('*').eq('barbearia_id', barbeariaId),
+  supabase.from('barbeiros').select('*').eq('barbearia_id', barbeariaId),
+  supabase.from('bloqueios_agenda').select('data_bloqueio, barbeiro_id').eq('barbearia_id', barbeariaId)
+]);
+
+// Salve os bloqueios completos no estado (ex: setDatasBloqueadas(resBloqueios.data || []))
 
         setServicos(resServicos.data || []);
         setBarbeiros(resBarbeiros.data || []);

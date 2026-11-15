@@ -16,6 +16,7 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, barbearia
   const [barbeiros, setBarbeiros] = useState([]);
   const [servicos, setServicos] = useState([]);
   const [clientes, setClientes] = useState([]);
+  const [datasBloqueadas, setDatasBloqueadas] = useState([]);
   const [barbeariaObj, setBarbeariaObj] = useState(barbeariaProp || null);
   const [barbeariaAtivaId, setBarbeariaAtivaId] = useState(barbeariaId || null);
   const [barbeiroSelecionado, setBarbeiroSelecionado] = useState('todos');
@@ -86,14 +87,12 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, barbearia
  const extrairHoraMinuto = (dataHoraStr) => {
     if (!dataHoraStr) return '--:--';
     try {
-      // Se a string veio com o sufixo Z ou +00, convertemos tratando o offset ou pegando direto se for string limpa
       const data = new Date(dataHoraStr);
-      // Retorna a hora local correta do navegador/sistema
       return data.toLocaleTimeString('pt-BR', {
         hour: '2-digit',
         minute: '2-digit',
         hour12: false,
-        timeZone: 'America/Sao_Paulo' // Força o fuso do Brasil para exibir as 13:00 corretamente
+        timeZone: 'America/Sao_Paulo'
       });
     } catch {
       return '';
@@ -179,6 +178,13 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, barbearia
         } else if (servicosData) {
           setServicos(servicosData);
         }
+
+        const { data: bloqueiosData } = await supabase
+          .from('bloqueios_agenda')
+          .select('*')
+          .eq('barbearia_id', barbeariaAtiva);
+
+        if (bloqueiosData) setDatasBloqueadas(bloqueiosData);
       }
 
       let query = supabase
@@ -297,8 +303,6 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, barbearia
       const servicoObj = servicos.find(s => String(s.id) === String(servicoIdManual));
       const valorServico = servicoObj ? (servicoObj.preco || 0) : 0;
       
-      // String exata informada pelo usuário (ex: "2026-11-14T13:00:00")
-      // Monta a data informando explicitamente que é o horário do Brasil (-03:00)
       const dataHoraCompleta = `${dataSelecionada}T${horarioSelecionadoSlot}:00-03:00`;
 
       const { error: errAgend } = await supabase
@@ -335,16 +339,33 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, barbearia
 
   const agendamentosPendentesDia = agendamentosDoDiaSelecionado.filter(item => {
     const status = (item.status || 'agendado').toLowerCase();
-    return status !== 'cancelado' && status !== 'cancelada';
+    return status !== 'cancelado' && status !== 'cancelada' && status !== 'concluido';
   });
 
-  const totalAtendimentosDia = agendamentosDoDiaSelecionado.length;
+  const totalAtendimentosDia = agendamentosDoDiaSelecionado.filter(item => {
+    const status = (item.status || 'agendado').toLowerCase();
+    return status !== 'cancelado' && status !== 'cancelada' && status !== 'concluido';
+  }).length;
   const concluidosDia = agendamentosDoDiaSelecionado.filter(i => (i.status || '').toLowerCase() === 'concluido').length;
   const valorTotalDia = agendamentosDoDiaSelecionado
     .filter(i => (i.status || '').toLowerCase() !== 'cancelado')
     .reduce((acc, item) => acc + Number(item.valor_total || item.servicos?.preco || 0), 0);
 
+  const isDiaBloqueadoParaProfissional = (dataIso, barbId) => {
+    return datasBloqueadas.some(b => {
+      const dataBloqFmt = String(b.data_bloqueio).split('T')[0];
+      if (dataBloqFmt !== dataIso) return false;
+      if (!b.barbeiro_id) return true;
+      if (barbId && String(b.barbeiro_id) === String(barbId)) return true;
+      return false;
+    });
+  };
+
   const obterItensExibicao = () => {
+    if (barbeiroSelecionado !== 'todos' && isDiaBloqueadoParaProfissional(dataSelecionada, barbeiroSelecionado)) {
+      return [];
+    }
+
     if (barbeiroSelecionado === 'todos') {
       return agendamentosPendentesDia.sort((a, b) => new Date(a.data_hora) - new Date(b.data_hora)).map(item => ({
         tipo: 'ocupado',
@@ -594,13 +615,21 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, barbearia
                   {dia.nomeMes}
                 </span>
 
-                {qtdNoDia > 0 && (
-                  <span className={`absolute -top-1.5 -right-1 w-3.5 h-3.5 rounded-full text-[8px] font-black flex items-center justify-center shadow-2xs z-10 ${
-                    selecionado ? 'bg-emerald-400 text-stone-950' : 'bg-stone-900 text-white'
-                  }`}>
-                    {qtdNoDia}
-                  </span>
-                )}
+                {(() => {
+                  const qtdNoDia = todosAgendamentos.filter(item => {
+                    const dataItem = extrairDataIso(item);
+                    const status = (item.status || 'agendado').toLowerCase();
+                    return dataItem === dia.iso && status !== 'cancelado' && status !== 'cancelada' && status !== 'concluido';
+                  }).length;
+
+                  return qtdNoDia > 0 ? (
+                    <span className={`absolute -top-1.5 -right-1 w-3.5 h-3.5 rounded-full text-[8px] font-black flex items-center justify-center shadow-2xs z-10 ${
+                      selecionado ? 'bg-emerald-400 text-stone-950' : 'bg-stone-900 text-white'
+                    }`}>
+                      {qtdNoDia}
+                    </span>
+                  ) : null;
+                })()}
               </button>
             );
           })}
@@ -688,7 +717,11 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, barbearia
           </div>
         </div>
 
-        {carregando ? (
+        {barbeiroSelecionado !== 'todos' && isDiaBloqueadoParaProfissional(dataSelecionada, barbeiroSelecionado) ? (
+          <div className="text-center py-12 text-rose-600 font-bold text-xs bg-rose-500/10 rounded-2xl border border-rose-500/20 mt-4">
+            🔒 Este profissional não terá expediente nesta data!
+          </div>
+        ) : carregando ? (
           <div className="flex justify-center items-center py-12">
             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-stone-900"></div>
           </div>
