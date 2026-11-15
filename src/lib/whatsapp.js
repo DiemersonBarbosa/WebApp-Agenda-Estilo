@@ -1,4 +1,4 @@
-export async function enviarConfirmacaoWhatsApp({ phone, nomeCliente, servico, data, hora, nomeBarbearia }) {
+export async function enviarMensagemWhatsApp({ phone, nomeCliente, servico, data, hora, nomeBarbearia }) {
   try {
     const mensagem = `Olá, *${nomeCliente}*! O seu agendamento na *${nomeBarbearia || 'Barbearia'}* para *${servico}* foi confirmado para o dia *${data}* às *${hora}*. Obrigado pela preferência!`;
 
