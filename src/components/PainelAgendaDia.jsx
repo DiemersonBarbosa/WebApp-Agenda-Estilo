@@ -718,7 +718,7 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, barbearia
         </div>
 
         {barbeiroSelecionado !== 'todos' && isDiaBloqueadoParaProfissional(dataSelecionada, barbeiroSelecionado) ? (
-          <div className="text-center py-12 text-rose-600 font-bold text-xs bg-rose-500/10 rounded-2xl border border-rose-500/20 mt-4">
+          <div className="text-center py-12 text-black font-bold text-xs bg-white rounded-2xl border border-green-500/20 mt-4">
             🔒 Este profissional não terá expediente nesta data!
           </div>
         ) : carregando ? (
