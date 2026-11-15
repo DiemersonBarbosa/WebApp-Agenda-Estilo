@@ -538,7 +538,7 @@ export default function AgendamentoChat({ barbeariaId }) {
     try {
       const dataHoraIso = new Date(`${dataFmt}T${horaEscolhida}:00`).toISOString();
       
-      await supabase.from('agendamentos').insert([{
+      const { error: insertError } = await supabase.from('agendamentos').insert([{
         barbearia_id: barbeariaId,
         cliente_id: clienteId,
         barbeiro_id: barbeiroEscolhido.id,
@@ -549,15 +549,28 @@ export default function AgendamentoChat({ barbeariaId }) {
         lido: false
       }]);
 
-      // Disparo automático via WhatsApp utilizando a função helper com autorização
+      if (insertError) {
+        console.error('Erro ao inserir no Supabase:', insertError);
+        setErro('Erro ao gravar o agendamento na base de dados.');
+        setLoading(false);
+        return;
+      }
+
+      // Disparo automático via WhatsApp utilizando a função helper com logs detalhados
       try {
         const telefoneFormatado = formatarTelefoneWhatsApp(telefone);
         const dataFormatadaBR = dataFmt.split('-').reverse().join('/');
         const mensagemTexto = `Olá ${nome}! Seu agendamento para ${servicoEscolhido.nome} foi confirmado para ${dataFormatadaBR} às ${horaEscolhida}. Aguardamos sua visita!`;
 
-        await enviarMensagemWhatsApp(telefoneFormatado, mensagemTexto);
+        console.log('A tentar enviar WhatsApp para:', telefoneFormatado);
+        const resultadoWhats = await enviarMensagemWhatsApp(telefoneFormatado, mensagemTexto);
+        console.log('Resposta detalhada do envio WhatsApp:', resultadoWhats);
+
+        if (!resultadoWhats.sucesso) {
+          console.error('Falha reportada pelo helper do WhatsApp:', resultadoWhats.erro);
+        }
       } catch (whatsErr) {
-        console.error('Erro ao enviar mensagem via WhatsApp na VPS:', whatsErr);
+        console.error('Exceção capturada ao enviar WhatsApp:', whatsErr);
       }
 
       try {
@@ -586,7 +599,8 @@ export default function AgendamentoChat({ barbeariaId }) {
       setMensagens((prev) => [...prev, { remetente: 'usuario', texto: 'Confirmar Agendamento' }]);
       adicionarMensagemBotComDelay(`Tudo pronto! O seu agendamento foi confirmado com sucesso para ${dataFmt.split('-').reverse().join('/')} às ${horaEscolhida}. Aguardamos a sua visita!`, 'sucesso');
     } catch (err) {
-      setErro('Erro ao concluir agendamento.');
+      console.error('Erro geral ao concluir agendamento:', err);
+      setErro('Erro ao concluir agendamento: ' + err.message);
     } finally {
       setLoading(false);
     }
