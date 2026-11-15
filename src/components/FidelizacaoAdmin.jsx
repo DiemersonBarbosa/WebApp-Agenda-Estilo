@@ -417,53 +417,137 @@ export default function FidelizacaoAdmin({ barbeariaId }) {
         </div>
       )}
 
-      {/* 4. CONTEÚDO DAS ABAS */}
-      {abaAtiva === 'config' ? (
-        <div className="bg-white rounded-3xl p-5 sm:p-6 border border-stone-200/90 shadow-xs space-y-4">
-          <div className="flex items-center gap-2 pb-3 border-b border-stone-100">
-            <Settings className="w-4 h-4 text-stone-900" />
-            <h3 className="text-xs font-black uppercase tracking-wider text-stone-900">Meta do Programa</h3>
+      {/* 4. CONTEÚDO DAS ABAS COM ALTURA MÍNIMA FIXA PARA EVITAR REFLUXO / SALTOS DE LAYOUT */}
+      <div className="min-h-[420px] w-full transition-all">
+        {abaAtiva === 'config' ? (
+          <div className="bg-white rounded-3xl p-5 sm:p-6 border border-stone-200/90 shadow-xs space-y-4">
+            <div className="flex items-center gap-2 pb-3 border-b border-stone-100">
+              <Settings className="w-4 h-4 text-stone-900" />
+              <h3 className="text-xs font-black uppercase tracking-wider text-stone-900">Meta do Programa</h3>
+            </div>
+            <div className="flex items-center gap-3">
+              <input
+                type="number"
+                value={metaSelosInput}
+                onChange={(e) => setMetaSelosInput(e.target.value)}
+                className="w-32 px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-2xl text-xs font-bold text-stone-900 focus:outline-none focus:border-stone-900 shadow-2xs"
+              />
+              <span className="text-xs font-bold text-stone-700">Selos necessários</span>
+              <button
+                onClick={salvarMetaSelos}
+                className="ml-auto px-4 py-2.5 rounded-2xl bg-stone-900 hover:bg-black text-white font-black text-xs transition-all shadow-xs cursor-pointer flex items-center gap-2 active:scale-95"
+              >
+                <Save className="w-4 h-4 text-amber-400" />
+                <span>Salvar</span>
+              </button>
+            </div>
           </div>
-          <div className="flex items-center gap-3">
-            <input
-              type="number"
-              value={metaSelosInput}
-              onChange={(e) => setMetaSelosInput(e.target.value)}
-              className="w-32 px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-2xl text-xs font-bold text-stone-900 focus:outline-none focus:border-stone-900 shadow-2xs"
-            />
-            <span className="text-xs font-bold text-stone-700">Selos necessários</span>
-            <button
-              onClick={salvarMetaSelos}
-              className="ml-auto px-4 py-2.5 rounded-2xl bg-stone-900 hover:bg-black text-white font-black text-xs transition-all shadow-xs cursor-pointer flex items-center gap-2 active:scale-95"
+        ) : abaAtiva === 'stats' ? (
+          <div className="bg-white rounded-3xl p-5 sm:p-6 border border-stone-200/90 shadow-xs space-y-4">
+            <div className="flex items-center gap-2 pb-3 border-b border-stone-100">
+              <BarChart3 className="w-4 h-4 text-stone-900" />
+              <h3 className="text-xs font-black uppercase tracking-wider text-stone-900">Métricas Gerais</h3>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="p-4 bg-stone-50 rounded-2xl border border-stone-200/60">
+                <span className="text-[10px] font-bold text-stone-400 uppercase">Total de Clientes</span>
+                <h4 className="text-lg font-black text-stone-900 mt-1">{clientes.length}</h4>
+              </div>
+              <div className="p-4 bg-stone-50 rounded-2xl border border-stone-200/60">
+                <span className="text-[10px] font-bold text-stone-400 uppercase">Selos Ativos</span>
+                <h4 className="text-lg font-black text-stone-900 mt-1">{totalSelosEmitidos}</h4>
+              </div>
+              <div className="p-4 bg-stone-50 rounded-2xl border border-stone-200/60">
+                <span className="text-[10px] font-bold text-stone-400 uppercase">Resgates Realizados</span>
+                <h4 className="text-lg font-black text-stone-900 mt-1">{totalResgatesFeitos}</h4>
+              </div>
+            </div>
+          </div>
+        ) : abaAtiva === 'resgates' ? (
+          <div className="space-y-4">
+            <div 
+              className="relative rounded-3xl p-4 sm:p-6 border border-white/80 overflow-hidden shadow-xs"
+              style={{
+                background: 'linear-gradient(135deg, #f7f9f8 0%, #edf1f0 50%, #e2e8e6 100%)',
+                boxShadow: '0 15px 30px rgba(0, 0, 0, 0.05), inset 0 2px 4px rgba(255, 255, 255, 0.9), inset 0 -3px 6px rgba(0, 0, 0, 0.03)'
+              }}
             >
-              <Save className="w-4 h-4 text-amber-400" />
-              <span>Salvar</span>
-            </button>
-          </div>
-        </div>
-      ) : abaAtiva === 'stats' ? (
-        <div className="bg-white rounded-3xl p-5 sm:p-6 border border-stone-200/90 shadow-xs space-y-4">
-          <div className="flex items-center gap-2 pb-3 border-b border-stone-100">
-            <BarChart3 className="w-4 h-4 text-stone-900" />
-            <h3 className="text-xs font-black uppercase tracking-wider text-stone-900">Métricas Gerais</h3>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div className="p-4 bg-stone-50 rounded-2xl border border-stone-200/60">
-              <span className="text-[10px] font-bold text-stone-400 uppercase">Total de Clientes</span>
-              <h4 className="text-lg font-black text-stone-900 mt-1">{clientes.length}</h4>
+              <div className="flex items-center justify-between pb-4 border-b border-stone-300/50">
+                <h2 className="text-sm font-extrabold text-stone-900 flex items-center gap-2">
+                  <span className="w-2 h-2 bg-[#111111] rounded-full"></span>
+                  <span>Elegíveis para Resgate</span>
+                </h2>
+                <span className="text-[11px] font-bold text-stone-700 bg-white px-2.5 py-0.5 rounded-full border border-stone-200 shadow-2xs">
+                  {clientesFiltrados.length}
+                </span>
+              </div>
+
+              {clientesFiltrados.length === 0 ? (
+                <div className="text-center py-10 text-stone-500 text-[11px] font-bold uppercase tracking-wider">
+                  Nenhum cliente apto no momento.
+                </div>
+              ) : (
+                <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                  {clientesFiltrados.map((cliente) => {
+                    const fid = fidelidadeMap[cliente.id] || { selos_atuais: 0 };
+                    return (
+                      <div key={cliente.id} className="bg-white rounded-2xl border border-stone-200/90 p-4 shadow-2xs space-y-3">
+                        <div className="flex items-center justify-between gap-3 pb-2 border-b border-stone-100">
+                          <div className="min-w-0">
+                            <h4 className="text-xs sm:text-sm font-black text-stone-900 truncate">{cliente.nome}</h4>
+                            <span className="text-[10px] text-stone-500 font-medium block">{cliente.telefone || 'Sem telefone'}</span>
+                          </div>
+                          <span className="text-[10px] font-extrabold uppercase px-2.5 py-1 rounded-xl border bg-emerald-50 text-emerald-700 border-emerald-200 shrink-0">
+                            Pronto
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between pt-1">
+                          <span className="text-xs font-bold text-stone-700">{fid.selos_atuais} / {metaSelos} Selos</span>
+                          <button
+                            onClick={() => resgatarPremioAdmin(cliente.id)}
+                            className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs transition-all shadow-xs cursor-pointer flex items-center gap-1.5 active:scale-95"
+                          >
+                            <Gift className="w-3.5 h-3.5" />
+                            <span>Resgatar</span>
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
-            <div className="p-4 bg-stone-50 rounded-2xl border border-stone-200/60">
-              <span className="text-[10px] font-bold text-stone-400 uppercase">Selos Ativos</span>
-              <h4 className="text-lg font-black text-stone-900 mt-1">{totalSelosEmitidos}</h4>
-            </div>
-            <div className="p-4 bg-stone-50 rounded-2xl border border-stone-200/60">
-              <span className="text-[10px] font-bold text-stone-400 uppercase">Resgates Realizados</span>
-              <h4 className="text-lg font-black text-stone-900 mt-1">{totalResgatesFeitos}</h4>
+
+            <div className="bg-white rounded-3xl p-4 sm:p-6 border border-stone-200/90 shadow-xs space-y-4">
+              <div className="flex items-center gap-2 px-1 pb-3 border-b border-stone-100">
+                <History className="w-4 h-4 text-stone-900" />
+                <h3 className="text-xs font-black uppercase tracking-wider text-stone-900">Histórico de Resgates</h3>
+              </div>
+
+              {resgatesHistorico.length === 0 ? (
+                <div className="text-center py-6 text-stone-400 text-[11px] font-bold uppercase tracking-wider">
+                  Nenhum registro encontrado.
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {resgatesHistorico.map((res) => {
+                    const dataResgate = new Date(res.criado_em).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+                    return (
+                      <div key={res.id} className="p-3 bg-stone-50 rounded-2xl border border-stone-200/70 flex items-center justify-between text-xs">
+                        <div>
+                          <span className="font-bold text-stone-900 block">{res.clientes?.nome || 'Cliente'}</span>
+                          <span className="text-[10px] text-stone-500">{res.clientes?.telefone || 'Sem telefone'} • <strong className="text-emerald-600">{res.premio_concedido}</strong></span>
+                        </div>
+                        <span className="text-[10px] font-bold text-stone-400">{dataResgate}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
-        </div>
-      ) : abaAtiva === 'resgates' ? (
-        <div className="space-y-4">
+        ) : (
+          /* ABA CLIENTES */
           <div 
             className="relative rounded-3xl p-4 sm:p-6 border border-white/80 overflow-hidden shadow-xs"
             style={{
@@ -474,180 +558,98 @@ export default function FidelizacaoAdmin({ barbeariaId }) {
             <div className="flex items-center justify-between pb-4 border-b border-stone-300/50">
               <h2 className="text-sm font-extrabold text-stone-900 flex items-center gap-2">
                 <span className="w-2 h-2 bg-[#111111] rounded-full"></span>
-                <span>Elegíveis para Resgate</span>
+                <span>Cartões Fidelidade</span>
               </h2>
               <span className="text-[11px] font-bold text-stone-700 bg-white px-2.5 py-0.5 rounded-full border border-stone-200 shadow-2xs">
                 {clientesFiltrados.length}
               </span>
             </div>
 
-            {clientesFiltrados.length === 0 ? (
-              <div className="text-center py-10 text-stone-500 text-[11px] font-bold uppercase tracking-wider">
-                Nenhum cliente apto no momento.
+            {loading ? (
+              <div className="text-center py-12 text-stone-500 text-[11px] font-bold uppercase tracking-wider">
+                Carregando...
+              </div>
+            ) : clientesFiltrados.length === 0 ? (
+              <div className="text-center py-12 text-stone-500 text-[11px] font-bold uppercase tracking-wider">
+                Nenhum cliente encontrado.
               </div>
             ) : (
               <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 {clientesFiltrados.map((cliente) => {
-                  const fid = fidelidadeMap[cliente.id] || { selos_atuais: 0 };
+                  const fid = fidelidadeMap[cliente.id] || { selos_atuais: 0, total_resgates: 0 };
+                  const selos = fid.selos_atuais;
+                  const percentual = Math.min(100, (selos / metaSelos) * 100);
+                  const atingiuMeta = selos >= metaSelos;
+
                   return (
-                    <div key={cliente.id} className="bg-white rounded-2xl border border-stone-200/90 p-4 shadow-2xs space-y-3">
-                      <div className="flex items-center justify-between gap-3 pb-2 border-b border-stone-100">
+                    <div key={cliente.id} className="bg-white rounded-2xl border border-stone-200/90 p-4 shadow-2xs space-y-3 relative">
+                      <div className="flex items-center justify-between gap-3 pb-3 border-b border-stone-100">
                         <div className="min-w-0">
-                          <h4 className="text-xs sm:text-sm font-black text-stone-900 truncate">{cliente.nome}</h4>
+                          <div className="flex items-center gap-2">
+                            <h4 className="text-xs sm:text-sm font-black text-stone-900 truncate">{cliente.nome}</h4>
+                            <button
+                              onClick={() => abrirEdicaoCliente(cliente)}
+                              className="p-1 rounded-lg hover:bg-stone-100 text-stone-500 transition-all cursor-pointer"
+                              title="Editar Cliente"
+                            >
+                              <Edit3 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                           <span className="text-[10px] text-stone-500 font-medium block">{cliente.telefone || 'Sem telefone'}</span>
                         </div>
-                        <span className="text-[10px] font-extrabold uppercase px-2.5 py-1 rounded-xl border bg-emerald-50 text-emerald-700 border-emerald-200 shrink-0">
-                          Pronto
+                        <span className={`text-[10px] font-extrabold uppercase px-2.5 py-1 rounded-xl border shrink-0 ${
+                          atingiuMeta ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-stone-50 text-stone-700 border-stone-200'
+                        }`}>
+                          {atingiuMeta ? 'Pronto' : `${selos} / ${metaSelos}`}
                         </span>
                       </div>
+
+                      <div className="space-y-1.5 bg-stone-50/80 p-3 rounded-xl border border-stone-200/60">
+                        <div className="w-full bg-stone-200 h-2 rounded-full overflow-hidden p-0.5">
+                          <div className={`h-full rounded-full transition-all duration-500 ${atingiuMeta ? 'bg-emerald-600' : 'bg-stone-900'}`} style={{ width: `${percentual}%` }}></div>
+                        </div>
+                        <div className="flex justify-between text-[10px] text-stone-500 font-bold uppercase">
+                          <span>Resgates: {fid.total_resgates}</span>
+                          <span>{atingiuMeta ? 'Meta Atingida' : `Faltam ${metaSelos - selos}`}</span>
+                        </div>
+                      </div>
+
                       <div className="flex items-center justify-between pt-1">
-                        <span className="text-xs font-bold text-stone-700">{fid.selos_atuais} / {metaSelos} Selos</span>
-                        <button
-                          onClick={() => resgatarPremioAdmin(cliente.id)}
-                          className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs transition-all shadow-xs cursor-pointer flex items-center gap-1.5 active:scale-95"
-                        >
-                          <Gift className="w-3.5 h-3.5" />
-                          <span>Resgatar</span>
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
-          <div className="bg-white rounded-3xl p-4 sm:p-6 border border-stone-200/90 shadow-xs space-y-4">
-            <div className="flex items-center gap-2 px-1 pb-3 border-b border-stone-100">
-              <History className="w-4 h-4 text-stone-900" />
-              <h3 className="text-xs font-black uppercase tracking-wider text-stone-900">Histórico de Resgates</h3>
-            </div>
-
-            {resgatesHistorico.length === 0 ? (
-              <div className="text-center py-6 text-stone-400 text-[11px] font-bold uppercase tracking-wider">
-                Nenhum registro encontrado.
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {resgatesHistorico.map((res) => {
-                  const dataResgate = new Date(res.criado_em).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
-                  return (
-                    <div key={res.id} className="p-3 bg-stone-50 rounded-2xl border border-stone-200/70 flex items-center justify-between text-xs">
-                      <div>
-                        <span className="font-bold text-stone-900 block">{res.clientes?.nome || 'Cliente'}</span>
-                        <span className="text-[10px] text-stone-500">{res.clientes?.telefone || 'Sem telefone'} • <strong className="text-emerald-600">{res.premio_concedido}</strong></span>
-                      </div>
-                      <span className="text-[10px] font-bold text-stone-400">{dataResgate}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </div>
-      ) : (
-        /* ABA CLIENTES */
-        <div 
-          className="relative rounded-3xl p-4 sm:p-6 border border-white/80 overflow-hidden shadow-xs"
-          style={{
-            background: 'linear-gradient(135deg, #f7f9f8 0%, #edf1f0 50%, #e2e8e6 100%)',
-            boxShadow: '0 15px 30px rgba(0, 0, 0, 0.05), inset 0 2px 4px rgba(255, 255, 255, 0.9), inset 0 -3px 6px rgba(0, 0, 0, 0.03)'
-          }}
-        >
-          <div className="flex items-center justify-between pb-4 border-b border-stone-300/50">
-            <h2 className="text-sm font-extrabold text-stone-900 flex items-center gap-2">
-              <span className="w-2 h-2 bg-[#111111] rounded-full"></span>
-              <span>Cartões Fidelidade</span>
-            </h2>
-            <span className="text-[11px] font-bold text-stone-700 bg-white px-2.5 py-0.5 rounded-full border border-stone-200 shadow-2xs">
-              {clientesFiltrados.length}
-            </span>
-          </div>
-
-          {loading ? (
-            <div className="text-center py-12 text-stone-500 text-[11px] font-bold uppercase tracking-wider">
-              Carregando...
-            </div>
-          ) : clientesFiltrados.length === 0 ? (
-            <div className="text-center py-12 text-stone-500 text-[11px] font-bold uppercase tracking-wider">
-              Nenhum cliente encontrado.
-            </div>
-          ) : (
-            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-              {clientesFiltrados.map((cliente) => {
-                const fid = fidelidadeMap[cliente.id] || { selos_atuais: 0, total_resgates: 0 };
-                const selos = fid.selos_atuais;
-                const percentual = Math.min(100, (selos / metaSelos) * 100);
-                const atingiuMeta = selos >= metaSelos;
-
-                return (
-                  <div key={cliente.id} className="bg-white rounded-2xl border border-stone-200/90 p-4 shadow-2xs space-y-3 relative">
-                    <div className="flex items-center justify-between gap-3 pb-3 border-b border-stone-100">
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <h4 className="text-xs sm:text-sm font-black text-stone-900 truncate">{cliente.nome}</h4>
+                        <div className="flex items-center gap-1.5">
                           <button
-                            onClick={() => abrirEdicaoCliente(cliente)}
-                            className="p-1 rounded-lg hover:bg-stone-100 text-stone-500 transition-all cursor-pointer"
-                            title="Editar Cliente"
+                            onClick={() => alterarSelos(cliente.id, -1)}
+                            disabled={selos <= 0 || !fidelidadeAtiva}
+                            className="w-8 h-8 rounded-xl bg-stone-100 hover:bg-stone-200 disabled:opacity-30 text-stone-700 flex items-center justify-center transition-all cursor-pointer shadow-2xs"
                           >
-                            <Edit3 className="w-3.5 h-3.5" />
+                            <Minus className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => alterarSelos(cliente.id, 1)}
+                            disabled={!fidelidadeAtiva}
+                            className="w-8 h-8 rounded-xl bg-stone-900 hover:bg-black disabled:opacity-30 text-white flex items-center justify-center transition-all cursor-pointer shadow-2xs"
+                          >
+                            <Plus className="w-3.5 h-3.5 text-amber-400" />
                           </button>
                         </div>
-                        <span className="text-[10px] text-stone-500 font-medium block">{cliente.telefone || 'Sem telefone'}</span>
-                      </div>
-                      <span className={`text-[10px] font-extrabold uppercase px-2.5 py-1 rounded-xl border shrink-0 ${
-                        atingiuMeta ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-stone-50 text-stone-700 border-stone-200'
-                      }`}>
-                        {atingiuMeta ? 'Pronto' : `${selos} / ${metaSelos}`}
-                      </span>
-                    </div>
 
-                    <div className="space-y-1.5 bg-stone-50/80 p-3 rounded-xl border border-stone-200/60">
-                      <div className="w-full bg-stone-200 h-2 rounded-full overflow-hidden p-0.5">
-                        <div className={`h-full rounded-full transition-all duration-500 ${atingiuMeta ? 'bg-emerald-600' : 'bg-stone-900'}`} style={{ width: `${percentual}%` }}></div>
-                      </div>
-                      <div className="flex justify-between text-[10px] text-stone-500 font-bold uppercase">
-                        <span>Resgates: {fid.total_resgates}</span>
-                        <span>{atingiuMeta ? 'Meta Atingida' : `Faltam ${metaSelos - selos}`}</span>
+                        {atingiuMeta && fidelidadeAtiva && (
+                          <button
+                            onClick={() => resgatarPremioAdmin(cliente.id)}
+                            className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs transition-all shadow-xs cursor-pointer flex items-center gap-1.5 active:scale-95"
+                          >
+                            <Gift className="w-3.5 h-3.5 text-emerald-200" />
+                            <span>Resgatar</span>
+                          </button>
+                        )}
                       </div>
                     </div>
-
-                    <div className="flex items-center justify-between pt-1">
-                      <div className="flex items-center gap-1.5">
-                        <button
-                          onClick={() => alterarSelos(cliente.id, -1)}
-                          disabled={selos <= 0 || !fidelidadeAtiva}
-                          className="w-8 h-8 rounded-xl bg-stone-100 hover:bg-stone-200 disabled:opacity-30 text-stone-700 flex items-center justify-center transition-all cursor-pointer shadow-2xs"
-                        >
-                          <Minus className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={() => alterarSelos(cliente.id, 1)}
-                          disabled={!fidelidadeAtiva}
-                          className="w-8 h-8 rounded-xl bg-stone-900 hover:bg-black disabled:opacity-30 text-white flex items-center justify-center transition-all cursor-pointer shadow-2xs"
-                        >
-                          <Plus className="w-3.5 h-3.5 text-amber-400" />
-                        </button>
-                      </div>
-
-                      {atingiuMeta && fidelidadeAtiva && (
-                        <button
-                          onClick={() => resgatarPremioAdmin(cliente.id)}
-                          className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs transition-all shadow-xs cursor-pointer flex items-center gap-1.5 active:scale-95"
-                        >
-                          <Gift className="w-3.5 h-3.5 text-emerald-200" />
-                          <span>Resgatar</span>
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* MODAL DE EDIÇÃO DE CLIENTE */}
       {clienteEditando && (

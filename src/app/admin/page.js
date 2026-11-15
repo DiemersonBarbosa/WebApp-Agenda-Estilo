@@ -372,12 +372,6 @@ export default function AdminDashboard() {
   const [produtos, setProdutos] = useState([]);
   const [tecladoAberto, setTecladoAberto] = useState(false);
 
-  // ESTADO DO FILTRO DE MÊS DECLARADO NO TOPO
-  const [filtroMesComissao, setFiltroMesComissao] = useState(() => {
-    const hoje = new Date();
-    return `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}`;
-  });
-
   useEffect(() => {
     const handleFocusIn = (e) => {
       if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) {
@@ -481,6 +475,22 @@ export default function AdminDashboard() {
   const [modalExtratoBarbeiro, setModalExtratoBarbeiro] = useState(null);
   const [modalHistoricoFechamentos, setModalHistoricoFechamentos] = useState(false);
 
+
+  // ESTADOS PARA OS MODAIS DE CONFIRMAÇÃO E FEEDBACK PERSONALIZADOS
+  const [modalConfirmacao, setModalConfirmacao] = useState({
+    isOpen: false,
+    titulo: '',
+    descricao: '',
+    onConfirm: null,
+  });
+
+  const [modalFeedback, setModalFeedback] = useState({
+    isOpen: false,
+    tipo: 'sucesso', // 'sucesso' ou 'erro'
+    titulo: '',
+    mensagem: '',
+  });
+
   const carregarFechamentosComissoes = async (barbId) => {
     if (!barbId) return;
     const { data, error } = await supabase
@@ -495,6 +505,7 @@ export default function AdminDashboard() {
   };
 
   const [searchTerm, setSearchTerm] = useState('');
+  const [filtroMesHistorico, setFiltroMesHistorico] = useState('');
 
   const formatarData = (item) => {
     const rawData = item.data_hora || item.created_at;
@@ -786,7 +797,6 @@ export default function AdminDashboard() {
     checkAuthAndLoad();
   }, [checkAuthAndLoad]);
 
-// Adicione esta escuta em tempo real para atualizar a tela ao concluir agendamentos
   useEffect(() => {
     if (!barbearia?.id) return;
 
@@ -801,7 +811,6 @@ export default function AdminDashboard() {
           filter: `barbearia_id=eq.${barbearia.id}`
         },
         (payload) => {
-          // Atualiza os dados do painel automaticamente ao detectar mudança em agendamentos
           loadDashboardData(barbearia.id);
         }
       )
@@ -811,7 +820,6 @@ export default function AdminDashboard() {
       supabase.removeChannel(channel);
     };
   }, [barbearia?.id, loadDashboardData]);
-
 
   useEffect(() => {
     let intervalId;
@@ -1336,9 +1344,9 @@ export default function AdminDashboard() {
 
                 <button
                   type="button"
-                  onClick={() => setActiveTab('clientes')}
+                  onClick={() => setActiveTab('fidelidade')}
                   className={`flex flex-col items-center justify-center gap-1 transition-all cursor-pointer ${
-                    activeTab === 'clientes' ? 'text-slate-900 font-extrabold' : 'text-slate-500 font-medium hover:text-slate-800'
+                    activeTab === 'fidel' ? 'text-slate-900 font-extrabold' : 'text-slate-500 font-medium hover:text-slate-800'
                   }`}
                 >
                   <Users className={`w-5 h-5 ${activeTab === 'clientes' ? 'text-slate-900 stroke-[2.5]' : 'text-slate-500'}`} />
@@ -1376,7 +1384,7 @@ export default function AdminDashboard() {
               {[
                 { id: 'financeiro', label: 'Financeiro', icon: TrendingUp, action: () => setActiveTab('financeiro') },
                 { id: 'agendamentos', label: 'Agenda', icon: Calendar, action: () => setActiveTab('agendamentos') },
-                { id: 'fidelidade', label: 'Fidelização', icon: Award, action: () => setActiveTab('fidelidade') },
+                { id: 'fidelidade', label: 'Clientes', icon: Users, action: () => setActiveTab('fidelidade') },
                 { id: 'configuracoes', label: 'Configurações', icon: Settings, action: () => setActiveTab('configuracoes') },
                 { id: 'despesas', label: 'Despesas', icon: TrendingDown, action: () => setActiveTab('despesas') },
                 { id: 'comissoes', label: 'Comissões', icon: Percent, action: () => setActiveTab('comissoes') },
@@ -1756,26 +1764,20 @@ export default function AdminDashboard() {
           )}
 
           {activeTab === 'comissoes' && (() => {
-            const mesAtivo = filtroMesComissao;
+            // Todos os agendamentos concluídos da barbearia ordenados por data cronológica
+            const listaAgendamentos = Array.isArray(agendamentos) ? agendamentos : [];
+            const agendamentosValidosComissao = listaAgendamentos.filter(item => {
+              const status = (item.status || '').toLowerCase();
+              const ehConcluido = status === 'concluido' || status === 'concluida' || status === 'realizado' || status === 'finalizado';
+              return ehConcluido;
+            }).sort((a, b) => {
+              const dataA = new Date(a.data_hora || a.created_at || 0);
+              const dataB = new Date(b.data_hora || b.created_at || 0);
+              return dataA - dataB;
+            });
 
-            const pertenceAoMesSelecionado = (dataStr) => {
-              if (!dataStr) return false;
-              const mesAnoItem = String(dataStr).substring(0, 7);
-              return mesAnoItem === mesAtivo;
-            };
-
-            const agendamentosValidosComissao = Array.isArray(agendamentos)
-              ? agendamentos.filter(item => {
-                  const status = (item.status || '').toLowerCase();
-                  const ehConcluido = status === 'concluido' || status === 'concluida' || status === 'realizado' || status === 'finalizado';
-                  if (!ehConcluido) return false;
-
-                  const dataItem = item.data_hora || item.data || item.created_at;
-                  return pertenceAoMesSelecionado(dataItem);
-                })
-              : [];
-
-            const dadosComissaoProfissionais = barbeiros.map((b) => {
+          const dadosComissaoProfissionais = barbeiros.map((b) => {
+              // 1. Filtra todos os atendimentos concluídos deste barbeiro específico
               const atendimentosBarb = agendamentosValidosComissao.filter((ag) => {
                 const idMatch = String(ag.barbeiro_id || ag.profissional_id) === String(b.id);
                 const nomeAg = (ag.barbeiro_nome || ag.profissional_nome || ag.barbeiros?.nome || '').trim().toLowerCase();
@@ -1784,7 +1786,28 @@ export default function AdminDashboard() {
                 return idMatch || nomeMatch;
               });
 
-              const faturamentoBrutoTotal = atendimentosBarb.reduce(
+              // 2. Coleta todos os IDs de agendamentos que JÁ foram quitados em fechamentos anteriores deste barbeiro
+              const fechamentosAnteriores = fechamentosComissoes.filter(
+                (f) => String(f.barbeiro_id) === String(b.id) && f.status === 'pago'
+              );
+
+              const idsQuitados = new Set();
+              fechamentosAnteriores.forEach(f => {
+                if (Array.isArray(f.atendimentos_ids)) {
+                  f.atendimentos_ids.forEach(id => idsQuitados.add(String(id)));
+                }
+              });
+
+              // 3. O ciclo pendente agora exclui estritamente os IDs que já foram pagos
+              const atendimentosPendentes = atendimentosBarb.filter(ag => !idsQuitados.has(String(ag.id)));
+
+              // Fallback de segurança caso os IDs antigos venham vazios
+              const totalAtendQuitado = fechamentosAnteriores.reduce((acc, f) => acc + Number(f.qtd_atendimentos || 0), 0);
+              const listaFinalPendentes = atendimentosPendentes.length > 0 || idsQuitados.size > 0
+                ? atendimentosPendentes 
+                : atendimentosBarb.slice(totalAtendQuitado);
+
+              const faturamentoBruto = listaFinalPendentes.reduce(
                 (acc, ag) => {
                   const val = ag.valor_total || ag.servicos?.preco || ag.valor || ag.preco || ag.total || 0;
                   return acc + Number(val);
@@ -1792,29 +1815,17 @@ export default function AdminDashboard() {
                 0
               );
 
+              const qtdAtendimentos = listaFinalPendentes.length;
+
               const taxaCrua = b.taxa_comissao ?? b.comissao_padrao ?? b.comissao ?? 50;
               const porcentagem = Number(taxaCrua) <= 1 ? Number(taxaCrua) * 100 : Number(taxaCrua);
-              const valorComissaoTotal = (faturamentoBrutoTotal * porcentagem) / 100;
-
-              const chavePeriodo = mesAtivo;
               
-              const fechamentosAnteriores = fechamentosComissoes.filter(
-                (f) => String(f.barbeiro_id) === String(b.id) && f.periodo_referencia === chavePeriodo && f.status === 'pago'
-              );
-
-              const totalFatQuitado = fechamentosAnteriores.reduce((acc, f) => acc + Number(f.valor_bruto || 0), 0);
-              const totalAtendQuitado = fechamentosAnteriores.reduce((acc, f) => acc + Number(f.qtd_atendimentos || 0), 0);
-              const totalComissaoQuitada = fechamentosAnteriores.reduce((acc, f) => acc + Number(f.valor_comissao || 0), 0);
-
-              const faturamentoBruto = Math.max(0, faturamentoBrutoTotal - totalFatQuitado);
-              const qtdAtendimentos = Math.max(0, atendimentosBarb.length - totalAtendQuitado);
-              const valorComissao = Math.max(0, valorComissaoTotal - totalComissaoQuitada);
-
-              const jaQuitado = valorComissao <= 0 && faturamentoBruto <= 0 && fechamentosAnteriores.length > 0;
+              const valorComissao = (faturamentoBruto * porcentagem) / 100;
+              const jaQuitado = qtdAtendimentos === 0;
 
               return {
                 ...b,
-                atendimentosLista: atendimentosBarb,
+                atendimentosLista: listaFinalPendentes,
                 qtdAtendimentos,
                 faturamentoBruto,
                 porcentagem,
@@ -1827,60 +1838,98 @@ export default function AdminDashboard() {
             const totalGeralComissao = dadosComissaoProfissionais.reduce((acc, b) => acc + b.valorComissao, 0);
             const totalGeralFat = dadosComissaoProfissionais.reduce((acc, b) => acc + b.faturamentoBruto, 0);
             const totalPendente = dadosComissaoProfissionais.filter(b => !b.jaQuitado).reduce((acc, b) => acc + b.valorComissao, 0);
-            const liderComissao = [...dadosComissaoProfissionais].sort((a, b) => b.faturamentoBruto - a.faturamentoBruto)[0];
 
             return (
               <div className="space-y-4 pb-24 font-sans select-none animate-in fade-in duration-200">
                 
-                {/* CARDS DO TOPO (PADRÃO PAINEL AGENDA DIA) */}
-                <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                  
-                  <div className="bg-[#111111] text-white p-4 rounded-[1.5rem] border border-stone-800/80 shadow-[0_10px_25px_rgba(0,0,0,0.15)] flex items-center justify-between relative overflow-hidden">
-                    <div className="space-y-0.5">
-                      <span className="text-[9px] font-extrabold text-stone-400 uppercase tracking-wider block">Comissão Total</span>
-                      <h3 className="text-sm sm:text-lg font-black tracking-tight">R$ {totalGeralComissao.toFixed(2)}</h3>
-                    </div>
-                    <div className="w-10 h-10 rounded-2xl bg-white text-stone-900 flex items-center justify-center shadow-md shrink-0">
-                      <DollarSign className="w-5 h-5 text-stone-900" />
-                    </div>
-                  </div>
+                {/* CARDS DO TOPO */}
+<div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+  
+  <div 
+    className="relative rounded-3xl p-4 sm:p-5 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden"
+    style={{
+      background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
+      boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
+    }}
+  >
+    <div className="flex flex-col justify-center min-w-0 pr-1">
+      <span className="text-[8px] sm:text-[9px] font-bold text-stone-400 uppercase tracking-wider leading-tight">Comissão Pendente</span>
+      <h1 className="text-base sm:text-lg font-black text-white mt-1 tracking-tight">R$ {totalPendente.toFixed(2)}</h1>
+    </div>
+    <div 
+      className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0"
+      style={{
+        background: 'radial-gradient(circle at 30% 30%, #ffffff 0%, #d8e2ec 60%, #9fb3c8 100%)',
+        boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 1), inset 0 -4px 6px rgba(0, 0, 0, 0.25)',
+        border: '1px solid rgba(255, 255, 255, 0.9)'
+      }}
+    >
+      <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-stone-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]" />
+    </div>
+  </div>
 
-                  <div className="bg-[#111111] text-white p-4 rounded-[1.5rem] border border-stone-800/80 shadow-[0_10px_25px_rgba(0,0,0,0.15)] flex items-center justify-between relative overflow-hidden">
-                    <div className="space-y-0.5">
-                      <span className="text-[9px] font-extrabold text-stone-400 uppercase tracking-wider block">Fat. Equipe</span>
-                      <h3 className="text-sm sm:text-lg font-black tracking-tight">R$ {totalGeralFat.toFixed(2)}</h3>
-                    </div>
-                    <div className="w-10 h-10 rounded-2xl bg-white text-stone-900 flex items-center justify-center shadow-md shrink-0">
-                      <TrendingUp className="w-5 h-5 text-stone-900" />
-                    </div>
-                  </div>
+  <div 
+    className="relative rounded-3xl p-4 sm:p-5 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden"
+    style={{
+      background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
+      boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
+    }}
+  >
+    <div className="flex flex-col justify-center min-w-0 pr-1">
+      <span className="text-[8px] sm:text-[9px] font-bold text-stone-400 uppercase tracking-wider leading-tight">Fat. Pendente Equipe</span>
+      <h3 className="text-base sm:text-lg font-black text-white mt-1 tracking-tight">R$ {totalGeralFat.toFixed(2)}</h3>
+    </div>
+    <div 
+      className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0"
+      style={{
+        background: 'radial-gradient(circle at 30% 30%, #ffffff 0%, #d8e2ec 60%, #9fb3c8 100%)',
+        boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 1), inset 0 -4px 6px rgba(0, 0, 0, 0.25)',
+        border: '1px solid rgba(255, 255, 255, 0.9)'
+      }}
+    >
+      <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-stone-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]" />
+    </div>
+  </div>
 
-                  <div className="bg-[#111111] text-white p-4 rounded-[1.5rem] border border-stone-800/80 shadow-[0_10px_25px_rgba(0,0,0,0.15)] flex items-center justify-between relative overflow-hidden">
-                    <div className="space-y-0.5">
-                      <span className="text-[9px] font-extrabold text-stone-400 uppercase tracking-wider block">Pendente</span>
-                      <h3 className="text-sm sm:text-lg font-black text-white tracking-tight">R$ {totalPendente.toFixed(2)}</h3>
-                    </div>
-                    <div className="w-10 h-10 rounded-2xl bg-white text-stone-900 flex items-center justify-center shadow-md shrink-0">
-                      <Clock className="w-5 h-5 text-stone-900" />
-                    </div>
-                  </div>
+  <div 
+    className="relative rounded-3xl p-4 sm:p-5 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden"
+    style={{
+      background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
+      boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
+    }}
+  >
+    <div className="flex flex-col justify-center min-w-0 pr-1">
+      <span className="text-[8px] sm:text-[9px] font-bold text-stone-400 uppercase tracking-wider leading-tight">Comissão Acumulada</span>
+      <h3 className="text-base sm:text-lg font-black text-white mt-1 tracking-tight">R$ {totalGeralComissao.toFixed(2)}</h3>
+    </div>
+    <div 
+      className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0"
+      style={{
+        background: 'radial-gradient(circle at 30% 30%, #ffffff 0%, #d8e2ec 60%, #9fb3c8 100%)',
+        boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 1), inset 0 -4px 6px rgba(0, 0, 0, 0.25)',
+        border: '1px solid rgba(255, 255, 255, 0.9)'
+      }}
+    >
+      <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-stone-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]" />
+    </div>
+  </div>
 
-                  <div 
-                    onClick={() => setModalHistoricoFechamentos(true)}
-                    className="bg-white text-stone-900 p-4 rounded-[1.5rem] border border-stone-200 shadow-sm flex items-center justify-between relative overflow-hidden cursor-pointer hover:bg-stone-50 transition-all active:scale-95"
-                  >
-                    <div className="space-y-0.5">
-                      <span className="text-[9px] font-extrabold text-stone-400 uppercase tracking-wider block">Registros</span>
-                      <h3 className="text-xs sm:text-sm font-black text-stone-900 tracking-tight">Ver Histórico</h3>
-                    </div>
-                    <div className="w-10 h-10 rounded-2xl bg-[#111111] text-white flex items-center justify-center shadow-md shrink-0">
-                      <History className="w-5 h-5 text-white" />
-                    </div>
-                  </div>
+  <button
+    onClick={() => setModalHistoricoFechamentos(true)}
+    className="relative rounded-3xl p-4 sm:p-5 flex items-center justify-between border border-stone-200/80 bg-white transition-all cursor-pointer group min-w-0 overflow-hidden shadow-xs hover:shadow-sm text-left"
+  >
+    <div className="flex flex-col justify-center min-w-0 pr-1">
+      <span className="text-[8px] sm:text-[9px] font-extrabold text-stone-400 uppercase tracking-wider leading-tight">Registros</span>
+      <span className="text-xs sm:text-sm font-black text-stone-900 mt-1 truncate block">Ver Histórico</span>
+    </div>
+    <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#222222] text-white flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+      <History className="w-4 h-4 sm:w-5 sm:h-5" />
+    </div>
+  </button>
 
-                </div>
+</div>
 
-                {/* FILTROS E SELETOR DE MÊS TOTALMENTE CLICÁVEL */}
+                {/* FILTRO DE BUSCA POR NOME */}
                 <div className="bg-white rounded-3xl p-4 sm:p-5 border border-stone-200 shadow-xs space-y-3">
                   <div className="flex flex-col sm:flex-row items-center gap-2">
                     <div className="relative w-full">
@@ -1892,26 +1941,6 @@ export default function AdminDashboard() {
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="w-full pl-10 pr-4 py-2.5 bg-stone-50 border border-stone-200 rounded-2xl text-xs text-stone-900 focus:outline-none font-medium"
                       />
-                    </div>
-
-                    <div className="flex items-center gap-2 w-full sm:w-auto">
-                      <div 
-                        onClick={(e) => {
-                          const inputDate = e.currentTarget.querySelector('input[type="month"]');
-                          if (inputDate && typeof inputDate.showPicker === 'function') {
-                            inputDate.showPicker();
-                          }
-                        }}
-                        className="inline-flex items-center justify-center gap-2 bg-stone-50 px-4 py-2.5 rounded-2xl text-xs font-bold text-stone-700 border border-stone-200 shadow-2xs w-full sm:w-auto cursor-pointer hover:bg-stone-100 transition-all"
-                      >
-                        <Calendar className="w-3.5 h-3.5 text-stone-500 shrink-0" />
-                        <input 
-                          type="month"
-                          value={mesAtivo}
-                          onChange={(e) => setFiltroMesComissao(e.target.value)}
-                          className="bg-transparent text-xs font-black text-stone-900 focus:outline-none cursor-pointer"
-                        />
-                      </div>
                     </div>
                   </div>
                 </div>
@@ -1979,7 +2008,7 @@ export default function AdminDashboard() {
                               <span className="font-black text-stone-900">{barbeiro.qtdAtendimentos} serviços</span>
                             </div>
                             <div>
-                              <span className="text-[9px] font-black text-stone-400 uppercase block">Fat. Bruto</span>
+                              <span className="text-[9px] font-black text-stone-400 uppercase block">Fat. Bruto Pendente</span>
                               <span className="font-black text-stone-900">R$ {barbeiro.faturamentoBruto.toFixed(2)}</span>
                             </div>
                             <div>
@@ -1989,9 +2018,9 @@ export default function AdminDashboard() {
                             <div>
                               <span className="text-[9px] font-black text-stone-400 uppercase block">Status</span>
                               {barbeiro.jaQuitado ? (
-                                <span className="text-emerald-700 font-bold text-[10px]">Pago / Quitado</span>
+                                <span className="text-emerald-700 font-bold text-[10px]">Pagamento Efetuado</span>
                               ) : (
-                                <span className="text-amber-600 font-bold text-[10px]">Pendente</span>
+                                <span className="text-amber-600 font-bold text-[10px]">Pagamento Pendente</span>
                               )}
                             </div>
                           </div>
@@ -2004,43 +2033,70 @@ export default function AdminDashboard() {
                               Ver Extrato
                             </button>
                             <button
-                              onClick={async () => {
+                              onClick={() => {
                                 const valorParaQuitar = (barbeiro.faturamentoBruto * barbeiro.porcentagem) / 100;
                                 if (valorParaQuitar <= 0) {
-                                  alert('Sem comissão para quitar.');
+                                  setModalFeedback({
+                                    isOpen: true,
+                                    tipo: 'erro',
+                                    titulo: 'Atenção',
+                                    mensagem: 'Não há comissões pendentes para este profissional no momento.'
+                                  });
                                   return;
                                 }
-                                if (!confirm(`Quitar R$ ${valorParaQuitar.toFixed(2)} para ${barbeiro.nome}?`)) return;
 
-                                const novoFechamento = {
-                                  barbearia_id: barbearia.id,
-                                  barbeiro_id: barbeiro.id,
-                                  periodo_referencia: mesAtivo,
-                                  valor_bruto: barbearia.faturamentoBruto || barbeiro.faturamentoBruto,
-                                  porcentagem_aplicada: barbeiro.porcentagem,
-                                  valor_comissao: valorParaQuitar,
-                                  qtd_atendimentos: barbeiro.qtdAtendimentos,
-                                  status: 'pago'
-                                };
+                                // Dispara o modal de confirmação profissional no lugar do confirm() nativo
+                                setModalConfirmacao({
+                                  isOpen: true,
+                                  titulo: 'Confirmar Pagamento de Comissão',
+                                  descricao: `Deseja prosseguir com o pagamento de R$ ${valorParaQuitar.toFixed(2)} referente a ${barbeiro.qtdAtendimentos} atendimento(s) concluído(s) para ${barbeiro.nome}?`,
+                                  onConfirm: async () => {
+                                    const periodoAtualStr = new Date().toISOString().split('T')[0].substring(0, 7);
+                                    const idsAtendimentosAtuais = (barbeiro.atendimentosLista || []).map(ag => ag.id);
 
-                                const { data, error } = await supabase.from('fechamentos_comissoes').insert([novoFechamento]).select();
+                                    const novoFechamento = {
+                                      barbearia_id: barbearia.id,
+                                      barbeiro_id: barbeiro.id,
+                                      periodo_referencia: periodoAtualStr,
+                                      valor_bruto: barbeiro.faturamentoBruto,
+                                      porcentagem_aplicada: barbeiro.porcentagem,
+                                      valor_comissao: valorParaQuitar,
+                                      qtd_atendimentos: barbeiro.qtdAtendimentos,
+                                      atendimentos_ids: idsAtendimentosAtuais,
+                                      status: 'pago'
+                                    };
 
-                                if (error) {
-                                  alert('Erro ao quitar: ' + error.message);
-                                } else {
-                                  setFechamentosComissoes(prev => [
-                                    { ...novoFechamento, id: data?.[0]?.id || Date.now(), created_at: new Date().toISOString(), barbeiros: { nome: barbeiro.nome, foto: barbeiro.foto } },
-                                    ...prev
-                                  ]);
-                                  
-                                  alert('Comissão quitada e salva no histórico com sucesso!');
-                                  loadDashboardData(barbearia.id);
-                                }
+                                    const { data, error } = await supabase.from('fechamentos_comissoes').insert([novoFechamento]).select();
+
+                                    if (error) {
+                                      setModalFeedback({
+                                        isOpen: true,
+                                        tipo: 'erro',
+                                        titulo: 'Erro na Operação',
+                                        mensagem: 'Não foi possível registrar o acerto: ' + error.message
+                                      });
+                                    } else {
+                                      setFechamentosComissoes(prev => [
+                                        { ...novoFechamento, id: data?.[0]?.id || Date.now(), created_at: new Date().toISOString(), barbeiros: { nome: barbeiro.nome, foto: barbeiro.foto } },
+                                        ...prev
+                                      ]);
+                                      
+                                      setModalFeedback({
+                                        isOpen: true,
+                                        tipo: 'sucesso',
+                                        titulo: 'Pagamento Concluído',
+                                        mensagem: 'O pagamento de comissão foi registrado e salvo no histórico com êxito.'
+                                      });
+                                      
+                                      loadDashboardData(barbearia.id);
+                                    }
+                                  }
+                                });
                               }}
                               disabled={barbeiro.faturamentoBruto <= 0 || barbeiro.jaQuitado}
                               className="py-2 bg-stone-900 hover:bg-black text-white text-xs font-bold rounded-xl cursor-pointer disabled:opacity-40"
                             >
-                              {barbeiro.jaQuitado ? 'Quitado' : 'Quitar Acerto'}
+                              {barbeiro.jaQuitado ? 'Quitado' : 'Pagar'}
                             </button>
                           </div>
                         </div>
@@ -2451,81 +2507,162 @@ export default function AdminDashboard() {
         </main>
       </div>
 
-      {/* MODAL DE HISTÓRICO DE FECHAMENTOS DE COMISSÕES */}
       {modalHistoricoFechamentos && (
-        <div className="fixed inset-0 bg-stone-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl border border-stone-200 space-y-4 max-h-[85vh] overflow-y-auto">
-            <div className="flex justify-between items-center pb-3 border-b border-stone-100">
-              <div className="flex items-center gap-2">
-                <History className="w-5 h-5 text-stone-900" />
-                <h3 className="font-extrabold text-stone-900 text-base">Histórico de Acertos Pagos</h3>
-              </div>
-              <button 
-                onClick={() => setModalHistoricoFechamentos(false)} 
-                className="p-1.5 bg-stone-100 hover:bg-stone-200 text-stone-600 rounded-full cursor-pointer transition-colors"
-              >
-                <X className="w-4 h-4" />
-              </button>
+  <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+    <div className="bg-white rounded-[2rem] max-w-2xl w-full p-6 space-y-4 shadow-2xl border border-stone-200">
+      
+      {/* Cabeçalho do Modal */}
+      <div className="flex items-center justify-between pb-3 border-b border-stone-100">
+        <div>
+          <h3 className="text-base font-black text-stone-900">Histórico de Acertos Pagos</h3>
+          <p className="text-xs text-stone-500">Consulte os fechamentos realizados</p>
+        </div>
+        
+        {/* FILTRO DE MÊS NO DROPDOWN DO HISTÓRICO */}
+        <div className="flex items-center gap-2 bg-stone-50 px-3 py-1.5 rounded-xl border border-stone-200">
+          <Calendar className="w-3.5 h-3.5 text-stone-500" />
+          <select 
+            value={filtroMesHistorico} 
+            onChange={(e) => setFiltroMesHistorico(e.target.value)}
+            className="bg-transparent text-xs font-bold text-stone-900 focus:outline-none cursor-pointer"
+          >
+            <option value="">Todos os Períodos</option>
+            <option value="2026-01">Janeiro / 2026</option>
+            <option value="2026-02">Fevereiro / 2026</option>
+            <option value="2026-03">Março / 2026</option>
+            <option value="2026-04">Abril / 2026</option>
+            <option value="2026-05">Maio / 2026</option>
+            <option value="2026-06">Junho / 2026</option>
+            <option value="2026-07">Julho / 2026</option>
+            <option value="2026-08">Agosto / 2026</option>
+            <option value="2026-09">Setembro / 2026</option>
+            <option value="2026-10">Outubro / 2026</option>
+            <option value="2026-11">Novembro / 2026</option>
+            <option value="2026-12">Dezembro / 2026</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Lista de Histórico Filtrada */}
+      <div className="max-h-[60vh] overflow-y-auto space-y-2.5 pr-1">
+        {fechamentosComissoes
+          .filter(f => !filtroMesHistorico || f.periodo_referencia === filtroMesHistorico)
+          .length === 0 ? (
+            <div className="text-center py-12 text-stone-400 text-xs font-bold">
+              Nenhum registro encontrado para este período.
+            </div>
+          ) : (
+            fechamentosComissoes
+              .filter(f => !filtroMesHistorico || f.periodo_referencia === filtroMesHistorico)
+              .map((fechamento) => (
+                <div key={fechamento.id} className="bg-stone-50 p-4 rounded-2xl border border-stone-200 flex items-center justify-between text-xs">
+                  <div className="space-y-0.5">
+                    <span className="font-black text-stone-900 block">
+                      {fechamento.barbeiros?.nome || 'Profissional'}
+                    </span>
+                    <span className="text-[10px] text-stone-500 block">
+                      Referência: {fechamento.periodo_referencia} • {fechamento.qtd_atendimentos} atendimentos
+                    </span>
+                  </div>
+                  <div className="text-right space-y-0.5">
+                    <span className="font-black text-emerald-600 block text-sm">
+                      R$ {Number(fechamento.valor_comissao).toFixed(2)}
+                    </span>
+                    <span className="text-[9px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full inline-block">
+                      Quitado
+                    </span>
+                  </div>
+                </div>
+              ))
+          )}
+      </div>
+
+      {/* Rodapé do Modal */}
+      <div className="pt-2 border-t border-stone-100 flex justify-end">
+        <button
+          onClick={() => setModalHistoricoFechamentos(false)}
+          className="px-5 py-2.5 bg-stone-900 text-white font-bold text-xs rounded-xl cursor-pointer"
+        >
+          Fechar
+        </button>
+      </div>
+
+    </div>
+  </div>
+)}
+
+
+{/* MODAL DE CONFIRMAÇÃO PERSONALIZADO */}
+      {modalConfirmacao.isOpen && (
+        <div className="fixed inset-0 bg-stone-950/70 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-in fade-in duration-200 select-none">
+          <div className="bg-white rounded-[2rem] max-w-md w-full p-6 shadow-2xl border border-stone-200 space-y-5 text-center">
+            <div className="w-12 h-12 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center mx-auto shadow-inner">
+              <AlertCircle className="w-6 h-6" />
+            </div>
+            
+            <div className="space-y-1.5">
+              <h3 className="text-base font-black text-stone-900">{modalConfirmacao.titulo}</h3>
+              <p className="text-xs text-stone-500 leading-relaxed px-2">
+                {modalConfirmacao.descricao}
+              </p>
             </div>
 
-            {fechamentosComissoes.length === 0 ? (
-              <div className="text-center py-10 text-stone-400 text-xs font-medium">
-                Nenhum histórico de acerto registrado até o momento.
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {fechamentosComissoes.map((item) => (
-                  <div key={item.id} className="bg-stone-50 border border-stone-200/80 rounded-2xl p-4 space-y-2.5 shadow-2xs">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-black text-stone-900">
-                        {item.barbeiros?.nome || 'Profissional'}
-                      </span>
-                      <span className="text-[10px] font-bold bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full">
-                        Pago ({item.periodo_referencia})
-                      </span>
-                    </div>
+            <div className="grid grid-cols-2 gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setModalConfirmacao({ isOpen: false, titulo: '', descricao: '', onConfirm: null })}
+                className="py-3 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-xs rounded-xl cursor-pointer transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const acao = modalConfirmacao.onConfirm;
+                  setModalConfirmacao({ isOpen: false, titulo: '', descricao: '', onConfirm: null });
+                  if (acao) acao();
+                }}
+                className="py-3 bg-stone-900 hover:bg-black text-white font-bold text-xs rounded-xl cursor-pointer transition-all shadow-md"
+              >
+                Confirmar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
-                    <div className="text-[10px] text-stone-400 font-medium">
-                      Data do Acerto: <strong className="text-stone-700">{formatarData(item)} às {formatarHora(item)}</strong>
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-2 text-[11px] text-stone-600 pt-2 border-t border-stone-200/60">
-                      <div>
-                        <span className="block text-[9px] text-stone-400 uppercase font-bold">Atendimentos</span>
-                        <span className="font-bold text-stone-800">{item.qtd_atendimentos || 0} serviços</span>
-                      </div>
-                      <div>
-                        <span className="block text-[9px] text-stone-400 uppercase font-bold">Fat. Bruto</span>
-                        <span className="font-bold text-stone-800">R$ {Number(item.valor_bruto || 0).toFixed(2)}</span>
-                      </div>
-                      <div>
-                        <span className="block text-[9px] text-stone-400 uppercase font-bold">Comissão ({item.porcentagem_aplicada}%)</span>
-                        <span className="font-bold text-emerald-600">R$ {Number(item.valor_comissao || 0).toFixed(2)}</span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+      {/* MODAL DE FEEDBACK (SUCESSO / ERRO) PERSONALIZADO */}
+      {modalFeedback.isOpen && (
+        <div className="fixed inset-0 bg-stone-950/70 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-in fade-in duration-200 select-none">
+          <div className="bg-white rounded-[2rem] max-w-md w-full p-6 shadow-2xl border border-stone-200 space-y-5 text-center">
+            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mx-auto shadow-inner ${
+              modalFeedback.tipo === 'sucesso' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'
+            }`}>
+              {modalFeedback.tipo === 'sucesso' ? <CheckCircle className="w-6 h-6" /> : <AlertCircle className="w-6 h-6" />}
+            </div>
+            
+            <div className="space-y-1.5">
+              <h3 className="text-base font-black text-stone-900">{modalFeedback.titulo}</h3>
+              <p className="text-xs text-stone-500 leading-relaxed px-2">
+                {modalFeedback.mensagem}
+              </p>
+            </div>
 
             <button
-              onClick={() => setModalHistoricoFechamentos(false)}
-              className="w-full py-3 bg-stone-900 hover:bg-black text-white text-xs font-extrabold rounded-2xl cursor-pointer transition-all shadow-md mt-2"
+              type="button"
+              onClick={() => setModalFeedback({ isOpen: false, tipo: 'sucesso', titulo: '', mensagem: '' })}
+              className="w-full py-3 bg-stone-900 hover:bg-black text-white font-bold text-xs rounded-xl cursor-pointer transition-all shadow-md"
             >
-              Fechar Histórico
+              Entendido
             </button>
           </div>
         </div>
       )}
 
+
 {/* MODAL DE EXTRATO DETALHADO DO PROFISSIONAL */}
       {modalExtratoBarbeiro && (() => {
-        const fechamentosDoBarbeiro = fechamentosComissoes.filter(
-          (f) => String(f.barbeiro_id) === String(modalExtratoBarbeiro.id) && f.periodo_referencia === filtroMesComissao && f.status === 'pago'
-        );
-
-        const qtdQuitados = fechamentosDoBarbeiro.reduce((acc, f) => acc + Number(f.qtd_atendimentos || 0), 0);
-        const atendimentosPendentes = modalExtratoBarbeiro.atendimentosLista?.slice(qtdQuitados) || [];
+        const atendimentosPendentes = modalExtratoBarbeiro.atendimentosLista || [];
         const fatBrutoPendente = atendimentosPendentes.reduce((acc, ag) => acc + Number(ag.valor_total || ag.servicos?.preco || ag.valor || 0), 0);
 
         return (
@@ -2542,7 +2679,7 @@ export default function AdminDashboard() {
                   )}
                   <div>
                     <h3 className="font-extrabold text-stone-900 text-base">Extrato a Pagar</h3>
-                    <p className="text-[11px] text-stone-500">{modalExtratoBarbeiro.nome} • Mês: {filtroMesComissao}</p>
+                    <p className="text-[11px] text-stone-500">{modalExtratoBarbeiro.nome} • Ciclo Pendente Atual</p>
                   </div>
                 </div>
                 <button 
@@ -2556,13 +2693,13 @@ export default function AdminDashboard() {
               {atendimentosPendentes.length === 0 ? (
                 <div className="text-center py-10 text-stone-400 text-xs font-medium space-y-1">
                   <p className="font-bold text-stone-700">Nenhum atendimento em aberto.</p>
-                  <p className="text-[11px]">Todos os serviços deste mês já foram quitados.</p>
+                  <p className="text-[11px]">Todos os serviços recentes já foram quitados.</p>
                 </div>
               ) : (
                 <div className="space-y-3">
                   <div className="bg-stone-50 p-3.5 rounded-2xl border border-stone-200/80 flex justify-between items-center text-xs">
                     <div>
-                      <span className="text-[10px] font-bold text-stone-400 uppercase block">Atendimentos</span>
+                      <span className="text-[10px] font-bold text-stone-400 uppercase block">Atendimentos Pendentes</span>
                       <span className="font-black text-stone-900">{atendimentosPendentes.length} serviços</span>
                     </div>
                     <div>
