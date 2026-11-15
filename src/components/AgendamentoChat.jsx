@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Bot, Send, CheckCircle2, AlertCircle, Clock, ArrowRight, Calendar as CalendarIcon, XCircle, Edit3, Scissors, User, Award, Gift, Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { enviarMensagemWhatsApp } from '@/lib/whatsapp';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://agendaestilo.com.br';
 
@@ -548,22 +549,13 @@ export default function AgendamentoChat({ barbeariaId }) {
         lido: false
       }]);
 
-      // Disparo automático via WhatsApp direto pela API da VPS
+      // Disparo automático via WhatsApp utilizando a função helper com autorização
       try {
         const telefoneFormatado = formatarTelefoneWhatsApp(telefone);
         const dataFormatadaBR = dataFmt.split('-').reverse().join('/');
         const mensagemTexto = `Olá ${nome}! Seu agendamento para ${servicoEscolhido.nome} foi confirmado para ${dataFormatadaBR} às ${horaEscolhida}. Aguardamos sua visita!`;
 
-        await fetch('http://184.107.106.72:8080/api/barbearia/send-message', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            phone: telefoneFormatado,
-            message: mensagemTexto,
-          }),
-        });
+        await enviarMensagemWhatsApp(telefoneFormatado, mensagemTexto);
       } catch (whatsErr) {
         console.error('Erro ao enviar mensagem via WhatsApp na VPS:', whatsErr);
       }
