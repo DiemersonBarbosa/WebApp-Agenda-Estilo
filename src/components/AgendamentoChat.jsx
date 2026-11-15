@@ -549,7 +549,7 @@ export default function AgendamentoChat({ barbeariaId }) {
         lido: false
       }]);
 
-      // Disparo automático via WhatsApp utilizando a função helper com autorização
+      // Disparo automático via WhatsApp incluindo o nome da barbearia
       try {
         const telefoneFormatado = formatarTelefoneWhatsApp(telefone);
         const dataFormatadaBR = dataFmt.split('-').reverse().join('/');
@@ -565,6 +565,7 @@ export default function AgendamentoChat({ barbeariaId }) {
       } catch (whatsErr) {
         console.error('Erro ao enviar mensagem via WhatsApp:', whatsErr);
       }
+
       try {
         const { data: barbData } = await supabase
           .from('barbearias')
