@@ -20,4 +20,4 @@ jobs:
           git pull origin main
           npm install
           npm run build
-          pm2 restart agendaestilo
+          pm2 restart agendaestilo-frontend
