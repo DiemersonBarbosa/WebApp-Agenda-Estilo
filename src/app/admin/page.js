@@ -372,36 +372,8 @@ export default function AdminDashboard() {
 
   const [produtos, setProdutos] = useState([]);
   const [tecladoAberto, setTecladoAberto] = useState(false);
-// DETECÇÃO ROBUSTA DE TECLADO VIRTUAL (BLOQUEIA O MENU E O OCULTA)
-  useEffect(() => {
-    const handleViewportResize = () => {
-      if (window.visualViewport) {
-        const diff = window.innerHeight - window.visualViewport.height;
-        // Maior que 250px significa que o teclado virtual de texto abriu de verdade
-        const tecladoVisivel = diff > 250;
-        
-        if (tecladoVisivel) {
-          setTecladoAberto(true);
-          document.body.classList.add('teclado-ativo');
-        } else {
-          setTecladoAberto(false);
-          document.body.classList.remove('teclado-ativo');
-        }
-      }
-    };
-
-    if (window.visualViewport) {
-      window.visualViewport.addEventListener('resize', handleViewportResize);
-      window.visualViewport.addEventListener('scroll', handleViewportResize);
-    }
-
-    return () => {
-      if (window.visualViewport) {
-        window.visualViewport.removeEventListener('resize', handleViewportResize);
-        window.visualViewport.removeEventListener('scroll', handleViewportResize);
-      }
-    };
-  }, []);
+// DETECÇÃO DEFINITIVA: FECHOU O TECLADO, O MENU VOLTA AUTOMATICAMENTE
+ 
 
   useEffect(() => {
     window.scrollTo({

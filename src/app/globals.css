@@ -25,11 +25,9 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-/* Ocultação forçada e absoluta do menu mobile quando o teclado estiver ativo */
-body.teclado-ativo #menu-mobile-bottom {
-  display: none !important;
-}
-body:has(input:focus, textarea:focus, select:focus) nav.fixed.bottom-0 {
+/* Oculta o menu mobile apenas quando QUALQUER elemento de texto dentro do formulário/corpo estiver em foco ativo (com o teclado aberto) */
+body:has(input[type="text"]:focus, input[type="number"]:focus, input[type="password"]:focus, input[type="email"]:focus, input[type="tel"]:focus, input[type="search"]:focus, textarea:focus) #menu-mobile-bottom,
+body:has(input[type="text"]:focus, input[type="number"]:focus, input[type="password"]:focus, input[type="email"]:focus, input[type="tel"]:focus, input[type="search"]:focus, textarea:focus) nav.fixed.bottom-0 {
   display: none !important;
   visibility: hidden !important;
   opacity: 0 !important;
