@@ -1008,21 +1008,21 @@ const [searchTerm, setSearchTerm] = useState('');
   };
 
   const handleOpenBarbeiroModal = (barbeiro = null) => {
-    if (barbeiro) {
-      setBarbeiroParaEditar(barbeiro);
-      setNome(barbeiro.nome || '');
-      setEspecialidade(barbeiro.especialidade || '');
-      setTaxaComissao(barbeiro.taxa_comissao || '');
-      setFotoUrl(barbeiro.foto || '');
-    } else {
-      setBarbeiroParaEditar(null);
-      setNome('');
-      setEspecialidade('');
-      setTaxaComissao('');
-      setFotoUrl('');
-    }
-    setModalBarbeiroOpen(true);
-  };
+  if (barbeiro) {
+    setBarbeiroParaEditar(barbeiro);
+    setNome(barbeiro.nome || '');
+    setEspecialidade(barbeiro.especialidade || '');
+    setTaxaComissao(barbeiro.taxa_comissao || '');
+    setFotoUrl(barbeiro.foto || '');
+  } else {
+    setBarbeiroParaEditar(null);
+    setNome('');
+    setEspecialidade('');
+    setTaxaComissao('');
+    setFotoUrl('');
+  }
+  setModalBarbeiroOpen(true);
+};
 
   const handleSaveBarbeiro = async (e) => {
     e.preventDefault();
@@ -2164,41 +2164,82 @@ const [searchTerm, setSearchTerm] = useState('');
 
         {activeTab === 'servicos' && (
             <div className="space-y-4 animate-in fade-in duration-200">
-              {/* HEADER SUPERIOR REFINADO E MODERNO */}
-              <div 
-                className="relative rounded-3xl p-5 border border-stone-200/90 min-w-0 overflow-hidden flex flex-col gap-4 shadow-xs"
-                style={{
-                  background: 'linear-gradient(135deg, #18181b 0%, #09090b 100%)',
-                  boxShadow: '0 10px 30px rgba(0, 0, 0, 0.12), inset 0 1px 1px rgba(255, 255, 255, 0.15)'
-                }}
-              >
-                
-
-                <div className="grid grid-cols-2 gap-2 bg-black/40 p-1.5 rounded-2xl border border-white/10 shadow-inner">
-                  <button
-                    type="button"
-                    onClick={() => setSubTabEquipe('servicos')}
-                    className={`py-2.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                      subTabEquipe === 'servicos'
-                        ? 'bg-white text-stone-900 shadow-md scale-102'
-                        : 'text-stone-400 hover:text-white'
-                    }`}
+              {/* DOIS CARDS DE MÉTRICAS NO TOPO (PADRÃO DAS DEMAIS ABAS) */}
+              <div className="grid grid-cols-2 gap-3 md:gap-4">
+                <div 
+                  className="relative rounded-3xl p-4 sm:p-5 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden"
+                  style={{
+                    background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
+                    boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
+                  }}
+                >
+                  <div className="flex flex-col justify-center min-w-0 pr-1">
+                    <span className="text-[8px] sm:text-[9px] font-bold text-stone-400 uppercase tracking-wider leading-tight">Total Serviços</span>
+                    <h3 className="text-base sm:text-lg font-black text-white mt-1 tracking-tight">{servicos.length}</h3>
+                  </div>
+                  <div 
+                    className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0"
+                    style={{
+                      background: 'radial-gradient(circle at 30% 30%, #ffffff 0%, #d8e2ec 60%, #9fb3c8 100%)',
+                      boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 1), inset 0 -4px 6px rgba(0, 0, 0, 0.25)',
+                      border: '1px solid rgba(255, 255, 255, 0.9)'
+                    }}
                   >
-                    <span>Serviços ({servicos.length})</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setSubTabEquipe('barbeiros')}
-                    className={`py-2.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                      subTabEquipe === 'barbeiros'
-                        ? 'bg-white text-stone-900 shadow-md scale-102'
-                        : 'text-stone-400 hover:text-white'
-                    }`}
-                  >
-                    <span>Equipe ({barbeiros.length})</span>
-                  </button>
+                    <Scissors className="w-4 h-4 sm:w-5 sm:h-5 text-stone-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]" />
+                  </div>
                 </div>
+
+                <div 
+                  className="relative rounded-3xl p-4 sm:p-5 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden"
+                  style={{
+                    background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
+                    boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
+                  }}
+                >
+                  <div className="flex flex-col justify-center min-w-0 pr-1">
+                    <span className="text-[8px] sm:text-[9px] font-bold text-stone-400 uppercase tracking-wider leading-tight">Total Equipe</span>
+                    <h3 className="text-base sm:text-lg font-black text-white mt-1 tracking-tight">{barbeiros.length}</h3>
+                  </div>
+                  <div 
+                    className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0"
+                    style={{
+                      background: 'radial-gradient(circle at 30% 30%, #ffffff 0%, #d8e2ec 60%, #9fb3c8 100%)',
+                      boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 1), inset 0 -4px 6px rgba(0, 0, 0, 0.25)',
+                      border: '1px solid rgba(255, 255, 255, 0.9)'
+                    }}
+                  >
+                    <Users className="w-4 h-4 sm:w-5 sm:h-5 text-stone-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]" />
+                  </div>
+                </div>
+              </div>
+
+              {/* BOTÕES SELETORES DAS SUBABAS (EQUIPE E SERVIÇOS) */}
+              <div className="bg-white rounded-3xl p-2 border border-stone-200/90 shadow-xs flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSubTabEquipe('servicos')}
+                  className={`flex-1 py-3 rounded-2xl text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-2 ${
+                    subTabEquipe === 'servicos'
+                      ? 'bg-stone-900 text-white shadow-md scale-[1.01]'
+                      : 'bg-stone-100 text-stone-600 hover:bg-stone-200 hover:text-stone-900'
+                  }`}
+                >
+                  <Scissors className="w-4 h-4" />
+                  <span>Serviços </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setSubTabEquipe('barbeiros')}
+                  className={`flex-1 py-3 rounded-2xl text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-2 ${
+                    subTabEquipe === 'barbeiros'
+                      ? 'bg-stone-900 text-white shadow-md scale-[1.01]'
+                      : 'bg-stone-100 text-stone-600 hover:bg-stone-200 hover:text-stone-900'
+                  }`}
+                >
+                  <Users className="w-4 h-4" />
+                  <span>Equipe</span>
+                </button>
               </div>
 
               {/* BARRA DE PESQUISA E BOTÃO DE NOVO ITEM LADO A LADO */}
@@ -2215,16 +2256,22 @@ const [searchTerm, setSearchTerm] = useState('');
                 </div>
 
                 <button
-                  type="button"
-                  onClick={() => subTabEquipe === 'servicos' ? handleOpenServicoModal() : handleOpenBarbeiroModal()}
-                  className="px-5 py-3 bg-stone-900 hover:bg-black text-white font-black text-xs rounded-2xl shadow-md transition-all cursor-pointer flex items-center justify-center gap-2 active:scale-98 border border-stone-800 shrink-0"
-                >
-                  <Plus className="w-4 h-4 text-stone-300" />
-                  <span>{subTabEquipe === 'servicos' ? 'Novo Serviço' : 'Novo Barbeiro'}</span>
-                </button>
+  type="button"
+  onClick={() => {
+    if (subTabEquipe === 'servicos') {
+      handleOpenServicoModal();
+    } else {
+      handleOpenBarbeiroModal();
+    }
+  }}
+  className="px-5 py-3 bg-stone-900 hover:bg-black text-white font-black text-xs rounded-2xl shadow-md transition-all cursor-pointer flex items-center justify-center gap-2 active:scale-98 border border-stone-800 shrink-0"
+>
+  <Plus className="w-4 h-4 text-stone-300" />
+  <span>{subTabEquipe === 'servicos' ? 'Adicionar' : 'Adicionar'}</span>
+</button>
               </div>
 
-              {/* ABA DE SERVIÇOS - CARDS NO ESTILO DA REFERÊNCIA */}
+              {/* ABA DE SERVIÇOS - CARDS REFINADOS */}
               {subTabEquipe === 'servicos' && (
                 <div className="space-y-3">
                   {servicos.length === 0 ? (
@@ -2237,7 +2284,6 @@ const [searchTerm, setSearchTerm] = useState('');
                         key={s.id} 
                         className="bg-white rounded-3xl p-5 border border-stone-200/90 shadow-xs hover:shadow-sm transition-all flex flex-col space-y-4"
                       >
-                        {/* PARTE SUPERIOR DO CARD */}
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex items-center gap-3.5 min-w-0">
                             <div className="w-12 h-12 rounded-full bg-stone-50 border border-stone-200 text-stone-800 flex items-center justify-center shrink-0 shadow-2xs">
@@ -2272,7 +2318,6 @@ const [searchTerm, setSearchTerm] = useState('');
                           </div>
                         </div>
 
-                        {/* PARTE INFERIOR DO CARD (RODAPÉ COM VALOR DO ATENDIMENTO) */}
                         <div className="pt-3.5 border-t border-stone-100 flex items-center justify-between">
                           <span className="text-[10px] font-black text-stone-400 uppercase tracking-wider">Valor do Atendimento</span>
                           <span className="text-sm sm:text-base font-black text-stone-900 tracking-tight">
@@ -2929,6 +2974,83 @@ const [searchTerm, setSearchTerm] = useState('');
           </div>
         </div>
       )}
+
+{modalBarbeiroOpen && (
+        <div className="fixed inset-0 bg-stone-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-stone-200 space-y-6">
+            <div className="flex justify-between items-center">
+              <h3 className="font-bold text-stone-900 text-lg">{barbeiroParaEditar ? 'Editar Profissional' : 'Novo Barbeiro'}</h3>
+              <button onClick={() => setModalBarbeiroOpen(false)} className="p-1 text-stone-400 hover:text-stone-600 rounded-lg cursor-pointer">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <form onSubmit={handleSaveBarbeiro} className="space-y-4">
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-stone-600">Nome do Profissional</label>
+                <input
+                  type="text"
+                  placeholder="Ex: Rafael Silva"
+                  value={nome}
+                  onChange={(e) => setNome(e.target.value)}
+                  className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2.5 text-xs text-stone-800 focus:outline-none focus:ring-2 focus:ring-stone-900"
+                  required
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-stone-600">Especialidade</label>
+                <input
+                  type="text"
+                  placeholder="Ex: Degradê, Barba, Tesoura"
+                  value={especialidade}
+                  onChange={(e) => setEspecialidade(e.target.value)}
+                  className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2.5 text-xs text-stone-800 focus:outline-none focus:ring-2 focus:ring-stone-900"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-stone-600">Taxa de Comissão (%)</label>
+                  <input
+                    type="number"
+                    placeholder="50"
+                    value={taxaComissao}
+                    onChange={(e) => setTaxaComissao(e.target.value)}
+                    className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2.5 text-xs text-stone-800 focus:outline-none focus:ring-2 focus:ring-stone-900"
+                    required
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-stone-600">Foto (Opcional)</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleUploadFoto}
+                    className="w-full text-xs text-stone-500 file:mr-2 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-stone-100 file:text-stone-700 hover:file:bg-stone-200 cursor-pointer"
+                  />
+                </div>
+              </div>
+
+              {uploading && (
+                <div className="text-xs text-stone-500 text-center font-medium">Enviando foto...</div>
+              )}
+
+              {fotoUrl && !uploading && (
+                <div className="flex items-center gap-3 bg-stone-50 p-2 rounded-xl border border-stone-200">
+                  <img src={fotoUrl} alt="Preview" className="w-10 h-10 rounded-lg object-cover" />
+                  <span className="text-[11px] text-emerald-600 font-bold">Foto carregada com sucesso!</span>
+                </div>
+              )}
+
+              <button type="submit" className="w-full bg-stone-900 hover:bg-stone-800 text-white font-bold py-3 rounded-xl transition duration-200 text-xs shadow-md cursor-pointer mt-2">
+                Salvar Profissional
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
 
       {modalServicoOpen && (
         <div className="fixed inset-0 bg-stone-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
