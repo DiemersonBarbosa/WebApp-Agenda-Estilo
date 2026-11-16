@@ -373,6 +373,19 @@ export default function AdminDashboard() {
   const [produtos, setProdutos] = useState([]);
   const [tecladoAberto, setTecladoAberto] = useState(false);
 // DETECÇÃO DEFINITIVA: FECHOU O TECLADO, O MENU VOLTA AUTOMATICAMENTE
+
+
+// ---> INSIRA AQUI O REF E O USEEFFECT DO SCROLL AUTOMÁTICO <---
+  const scrollRef = React.useRef(null);
+
+  useEffect(() => {
+    if (activeTab === 'despesas' && scrollRef.current) {
+      const elementoAtivo = scrollRef.current.querySelector('[data-selecionado="true"]');
+      if (elementoAtivo) {
+        elementoAtivo.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+      }
+    }
+  }, [activeTab]);
  
 
   useEffect(() => {
@@ -408,8 +421,10 @@ export default function AdminDashboard() {
   const [barbeiroParaEditar, setBarbeiroParaEditar] = useState(null);
   const [metodoPagamento, setMetodoPagamento] = useState('pix');
 
-  // Estado para o filtro de mês nas despesas
-const [filtroMesDespesas, setFiltroMesDespesas] = useState('');
+  // Inicializa o filtro de despesas com o mês atual (ex: "2026-11" para Novembro de 2026)
+const [filtroMesDespesas, setFiltroMesDespesas] = useState(() => {
+  return new Date().toISOString().split('T')[0].substring(0, 7);
+});
 
   const fecharMenuMobile = () => {
     setMobileMenuOpen(false);
@@ -2078,7 +2093,6 @@ const [filtroMesDespesas, setFiltroMesDespesas] = useState('');
           })()}
 
           {activeTab === 'despesas' && (() => {
-            // Filtra as despesas pelo mês selecionado (ex: "2026-11") ou exibe todas se vazio
             const despesasFiltradas = despesas.filter(d => {
               if (!filtroMesDespesas) return true;
               const dataDespesa = d.data || d.created_at || '';
@@ -2086,6 +2100,23 @@ const [filtroMesDespesas, setFiltroMesDespesas] = useState('');
             });
 
             const totalDespesasFiltradas = despesasFiltradas.reduce((acc, d) => acc + Number(d.valor || 0), 0);
+
+            // Lista de meses para o seletor rápido
+            const listaMeses = [
+              { id: '', label: 'Todos' },
+              { id: '2026-01', label: 'Jan' },
+              { id: '2026-02', label: 'Fev' },
+              { id: '2026-03', label: 'Mar' },
+              { id: '2026-04', label: 'Abr' },
+              { id: '2026-05', label: 'Mai' },
+              { id: '2026-06', label: 'Jun' },
+              { id: '2026-07', label: 'Jul' },
+              { id: '2026-08', label: 'Ago' },
+              { id: '2026-09', label: 'Set' },
+              { id: '2026-10', label: 'Out' },
+              { id: '2026-11', label: 'Nov' },
+              { id: '2026-12', label: 'Dez' },
+            ];
 
             return (
               <div className="space-y-4 animate-in fade-in duration-200">
@@ -2139,45 +2170,50 @@ const [filtroMesDespesas, setFiltroMesDespesas] = useState('');
                   </div>
                 </div>
 
-                {/* BARRA DE AÇÃO COM O FILTRO DE MÊS E O BOTÃO DE NOVA DESPESA LADO A LADO */}
+                {/* BARRA DE AÇÃO COM O BOTÃO DE NOVA DESPESA */}
                 <div 
-                  className="relative rounded-3xl p-4 sm:p-5 border border-white/80 overflow-hidden shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3"
+                  className="relative rounded-3xl p-4 sm:p-5 border border-white/80 overflow-hidden shadow-xs flex items-center justify-between gap-4"
                   style={{
                     background: 'linear-gradient(135deg, #f7f9f8 0%, #edf1f0 50%, #e2e8e6 100%)',
                     boxShadow: '0 15px 30px rgba(0, 0, 0, 0.05), inset 0 2px 4px rgba(255, 255, 255, 0.9), inset 0 -3px 6px rgba(0, 0, 0, 0.03)'
                   }}
                 >
-                  <div className="flex items-center gap-2 bg-white px-3.5 py-2.5 rounded-2xl border border-stone-200/80 shadow-xs w-full sm:w-auto">
-                    <Calendar className="w-4 h-4 text-stone-500 shrink-0" />
-                    <select 
-                      value={filtroMesDespesas} 
-                      onChange={(e) => setFiltroMesDespesas(e.target.value)}
-                      className="bg-transparent text-xs font-black text-stone-900 focus:outline-none cursor-pointer w-full"
-                    >
-                      <option value="">Todos os Períodos</option>
-                      <option value="2026-01">Janeiro / 2026</option>
-                      <option value="2026-02">Fevereiro / 2026</option>
-                      <option value="2026-03">Março / 2026</option>
-                      <option value="2026-04">Abril / 2026</option>
-                      <option value="2026-05">Maio / 2026</option>
-                      <option value="2026-06">Junho / 2026</option>
-                      <option value="2026-07">Julho / 2026</option>
-                      <option value="2026-08">Agosto / 2026</option>
-                      <option value="2026-09">Setembro / 2026</option>
-                      <option value="2026-10">Outubro / 2026</option>
-                      <option value="2026-11">Novembro / 2026</option>
-                      <option value="2026-12">Dezembro / 2026</option>
-                    </select>
+                  <div>
+                    <h3 className="text-xs sm:text-sm font-black text-stone-900">Controle Operacional</h3>
+                    <p className="text-[10px] sm:text-xs text-stone-500 font-medium">Filtre por mês ou adicione novos gastos.</p>
                   </div>
-
                   <button
                     onClick={() => handleOpenDespesaModal()}
-                    className="w-full sm:w-auto px-5 py-3 bg-stone-900 hover:bg-black text-white font-black text-xs rounded-2xl shadow-xs transition-all cursor-pointer flex items-center justify-center gap-2 active:scale-95 shrink-0"
+                    className="px-5 py-3 bg-stone-900 hover:bg-black text-white font-black text-xs rounded-2xl shadow-xs transition-all cursor-pointer flex items-center gap-2 active:scale-95 shrink-0"
                   >
                     <Plus className="w-4 h-4 text-amber-400" />
                     <span>Nova Despesa</span>
                   </button>
                 </div>
+
+                {/* SELETOR DE MESES EM FORMATO DE PÍLULAS COM SCROLL AUTOMÁTICO */}
+<div ref={scrollRef} className="bg-white rounded-3xl p-3 border border-stone-200/90 shadow-xs">
+  <div className="flex items-center gap-2 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+    {listaMeses.map((m) => {
+      const selecionado = filtroMesDespesas === m.id;
+      return (
+        <button
+          key={m.id}
+          type="button"
+          data-selecionado={selecionado}
+          onClick={() => setFiltroMesDespesas(m.id)}
+          className={`px-4 py-2 rounded-2xl text-xs font-black whitespace-nowrap transition-all cursor-pointer ${
+            selecionado
+              ? 'bg-stone-900 text-white shadow-md scale-105'
+              : 'bg-stone-100 text-stone-600 hover:bg-stone-200 hover:text-stone-900'
+          }`}
+        >
+          {m.label}
+        </button>
+      );
+    })}
+  </div>
+</div>
 
                 <div className="bg-white rounded-3xl p-4 sm:p-6 border border-stone-200/90 shadow-xs space-y-4">
                   <div className="flex items-center justify-between pb-3 border-b border-stone-100 px-1">
