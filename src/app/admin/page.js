@@ -47,7 +47,8 @@ import {
   Eye,
   EyeOff,
   HelpCircle,
-  History
+  History,
+  CheckCheck
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { Capacitor } from '@capacitor/core';
@@ -371,42 +372,33 @@ export default function AdminDashboard() {
 
   const [produtos, setProdutos] = useState([]);
   const [tecladoAberto, setTecladoAberto] = useState(false);
-
+// DETECÇÃO ROBUSTA DE TECLADO VIRTUAL (BLOQUEIA O MENU E O OCULTA)
   useEffect(() => {
-    const handleFocusIn = (e) => {
-      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) {
-        setTecladoAberto(true);
-      }
-    };
-
-    const handleFocusOut = () => {
-      setTimeout(() => {
-        if (!['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)) {
-          setTecladoAberto(false);
-        }
-      }, 150);
-    };
-
     const handleViewportResize = () => {
       if (window.visualViewport) {
         const diff = window.innerHeight - window.visualViewport.height;
-        if (diff < 100) {
+        // Maior que 250px significa que o teclado virtual de texto abriu de verdade
+        const tecladoVisivel = diff > 250;
+        
+        if (tecladoVisivel) {
+          setTecladoAberto(true);
+          document.body.classList.add('teclado-ativo');
+        } else {
           setTecladoAberto(false);
+          document.body.classList.remove('teclado-ativo');
         }
       }
     };
 
-    window.addEventListener('focusin', handleFocusIn);
-    window.addEventListener('focusout', handleFocusOut);
     if (window.visualViewport) {
       window.visualViewport.addEventListener('resize', handleViewportResize);
+      window.visualViewport.addEventListener('scroll', handleViewportResize);
     }
 
     return () => {
-      window.removeEventListener('focusin', handleFocusIn);
-      window.removeEventListener('focusout', handleFocusOut);
       if (window.visualViewport) {
         window.visualViewport.removeEventListener('resize', handleViewportResize);
+        window.visualViewport.removeEventListener('scroll', handleViewportResize);
       }
     };
   }, []);
@@ -443,6 +435,9 @@ export default function AdminDashboard() {
 
   const [barbeiroParaEditar, setBarbeiroParaEditar] = useState(null);
   const [metodoPagamento, setMetodoPagamento] = useState('pix');
+
+  // Estado para o filtro de mês nas despesas
+const [filtroMesDespesas, setFiltroMesDespesas] = useState('');
 
   const fecharMenuMobile = () => {
     setMobileMenuOpen(false);
@@ -508,7 +503,7 @@ export default function AdminDashboard() {
   const [filtroMesHistorico, setFiltroMesHistorico] = useState('');
 
   const formatarData = (item) => {
-    const rawData = item.data_hora || item.created_at;
+    const rawData = item.data_hora || item.created_at || item.data;
     if (!rawData) return '-';
     try {
       return new Date(rawData).toLocaleDateString('pt-BR');
@@ -1298,77 +1293,77 @@ export default function AdminDashboard() {
         </header>
       </div>
 
-      <main className="flex-1 flex flex-col">
-        {!tecladoAberto && (
-          <nav className="fixed bottom-0 left-0 right-0 z-40 md:hidden pb-safe">
-            <div className="bg-white border-t border-slate-200/80 shadow-[0_-8px_25px_rgba(0,0,0,0.08)] rounded-t-[1.75rem] px-3 pt-2 pb-3 relative">
-              <div className="grid grid-cols-5 items-center justify-items-center max-w-md mx-auto">
+      
+      {!tecladoAberto && (
+        <nav id="menu-mobile-bottom" className="fixed bottom-0 left-0 right-0 z-40 md:hidden pb-safe">
+          <div className="bg-white border-t border-slate-200/80 shadow-[0_-8px_25px_rgba(0,0,0,0.08)] rounded-t-[1.75rem] px-3 pt-2 pb-3 relative">
+            <div className="grid grid-cols-5 items-center justify-items-center max-w-md mx-auto">
 
+              <button
+                type="button"
+                onClick={() => setActiveTab('financeiro')}
+                className={`flex flex-col items-center justify-center gap-1 transition-all cursor-pointer ${
+                  activeTab === 'financeiro' ? 'text-slate-900 font-extrabold' : 'text-slate-500 font-medium hover:text-slate-800'
+                }`}
+              >
+                <TrendingUp className={`w-5 h-5 ${activeTab === 'financeiro' ? 'text-slate-900 stroke-[2.5]' : 'text-slate-500'}`} />
+                <span className="text-[10px] tracking-tight">Financeiro</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('agendamentos')}
+                className={`flex flex-col items-center justify-center gap-1 transition-all cursor-pointer ${
+                  activeTab === 'agendamentos' ? 'text-slate-900 font-extrabold' : 'text-slate-500 font-medium hover:text-slate-800'
+                }`}
+              >
+                <Calendar className={`w-5 h-5 ${activeTab === 'agendamentos' ? 'text-slate-900 stroke-[2.5]' : 'text-slate-500'}`} />
+                <span className="text-[10px] tracking-tight">Agenda</span>
+              </button>
+
+              <div className="relative -top-5 flex flex-col items-center justify-center">
                 <button
                   type="button"
-                  onClick={() => setActiveTab('financeiro')}
-                  className={`flex flex-col items-center justify-center gap-1 transition-all cursor-pointer ${
-                    activeTab === 'financeiro' ? 'text-slate-900 font-extrabold' : 'text-slate-500 font-medium hover:text-slate-800'
+                  onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                  className={`w-14 h-14 rounded-full bg-slate-900 text-white flex items-center justify-center shadow-lg transition-all active:scale-90 cursor-pointer border-[3.5px] border-white ring-2 ${
+                    mobileMenuOpen ? 'ring-slate-900 bg-black scale-105' : 'ring-slate-200 hover:bg-black'
                   }`}
+                  aria-label="Abrir Menu de Apps"
                 >
-                  <TrendingUp className={`w-5 h-5 ${activeTab === 'financeiro' ? 'text-slate-900 stroke-[2.5]' : 'text-slate-500'}`} />
-                  <span className="text-[10px] tracking-tight">Financeiro</span>
+                  <Menu className={`w-6 h-6 text-white transition-transform duration-200 ${mobileMenuOpen ? 'rotate-90' : ''}`} />
                 </button>
-
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('agendamentos')}
-                  className={`flex flex-col items-center justify-center gap-1 transition-all cursor-pointer ${
-                    activeTab === 'agendamentos' ? 'text-slate-900 font-extrabold' : 'text-slate-500 font-medium hover:text-slate-800'
-                  }`}
-                >
-                  <Calendar className={`w-5 h-5 ${activeTab === 'agendamentos' ? 'text-slate-900 stroke-[2.5]' : 'text-slate-500'}`} />
-                  <span className="text-[10px] tracking-tight">Agenda</span>
-                </button>
-
-                <div className="relative -top-5 flex flex-col items-center justify-center">
-                  <button
-                    type="button"
-                    onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                    className={`w-14 h-14 rounded-full bg-slate-900 text-white flex items-center justify-center shadow-lg transition-all active:scale-90 cursor-pointer border-[3.5px] border-white ring-2 ${
-                      mobileMenuOpen ? 'ring-slate-900 bg-black scale-105' : 'ring-slate-200 hover:bg-black'
-                    }`}
-                    aria-label="Abrir Menu de Apps"
-                  >
-                    <Menu className={`w-6 h-6 text-white transition-transform duration-200 ${mobileMenuOpen ? 'rotate-90' : ''}`} />
-                  </button>
-                  <span className="text-[10px] pt-2 font-extrabold text-slate-800 tracking-tight">
-                    Menu
-                  </span>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('fidelidade')}
-                  className={`flex flex-col items-center justify-center gap-1 transition-all cursor-pointer ${
-                    activeTab === 'fidel' ? 'text-slate-900 font-extrabold' : 'text-slate-500 font-medium hover:text-slate-800'
-                  }`}
-                >
-                  <Users className={`w-5 h-5 ${activeTab === 'clientes' ? 'text-slate-900 stroke-[2.5]' : 'text-slate-500'}`} />
-                  <span className="text-[10px] tracking-tight">Clientes</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('configuracoes')}
-                  className={`flex flex-col items-center justify-center gap-1 transition-all cursor-pointer ${
-                    activeTab === 'configuracoes' ? 'text-slate-900 font-extrabold' : 'text-slate-500 font-medium hover:text-slate-800'
-                  }`}
-                >
-                  <Settings className={`w-5 h-5 ${activeTab === 'configuracoes' ? 'text-slate-900 stroke-[2.5]' : 'text-slate-500'}`} />
-                  <span className="text-[10px] tracking-tight">Ajustes</span>
-                </button>
-
+                <span className="text-[10px] pt-2 font-extrabold text-slate-800 tracking-tight">
+                  Menu
+                </span>
               </div>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('fidelidade')}
+                className={`flex flex-col items-center justify-center gap-1 transition-all cursor-pointer ${
+                  activeTab === 'fidelidade' ? 'text-slate-900 font-extrabold' : 'text-slate-500 font-medium hover:text-slate-800'
+                }`}
+              >
+                <Users className={`w-5 h-5 ${activeTab === 'fidelidade' ? 'text-slate-900 stroke-[2.5]' : 'text-slate-500'}`} />
+                <span className="text-[10px] tracking-tight">Clientes</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('configuracoes')}
+                className={`flex flex-col items-center justify-center gap-1 transition-all cursor-pointer ${
+                  activeTab === 'configuracoes' ? 'text-slate-900 font-extrabold' : 'text-slate-500 font-medium hover:text-slate-800'
+                }`}
+              >
+                <Settings className={`w-5 h-5 ${activeTab === 'configuracoes' ? 'text-slate-900 stroke-[2.5]' : 'text-slate-500'}`} />
+                <span className="text-[10px] tracking-tight">Ajustes</span>
+              </button>
+
             </div>
-          </nav>
-        )}
-      </main>
+          </div>
+        </nav>
+      )}
+      
 
       {mobileMenuOpen && (
         <div className="fixed inset-0 z-[60] flex md:hidden items-end justify-center">
@@ -1396,6 +1391,7 @@ export default function AdminDashboard() {
                 { id: 'logout', label: 'Sair', icon: LogOut, action: handleLogout, isLogout: true },
               ].map((item) => {
                 const IconComponent = item.icon;
+                const isCurrentActive = activeTab === item.id;
                 
                 let buttonStyle = {};
                 if (item.isLogout) {
@@ -1403,6 +1399,12 @@ export default function AdminDashboard() {
                     background: 'linear-gradient(135deg, #9b1c2e 0%, #70121f 100%)',
                     boxShadow: '0 10px 20px rgba(112, 18, 31, 0.35), inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 5px rgba(0, 0, 0, 0.4)',
                     border: '1px solid rgba(255, 255, 255, 0.15)'
+                  };
+                } else if (isCurrentActive) {
+                  buttonStyle = {
+                    background: 'linear-gradient(135deg, #18181b 0%, #09090b 100%)',
+                    boxShadow: '0 8px 18px rgba(0, 0, 0, 0.35), inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 5px rgba(0, 0, 0, 0.6)',
+                    border: '1px solid rgba(255, 255, 255, 0.2)'
                   };
                 } else {
                   buttonStyle = {
@@ -1662,7 +1664,8 @@ export default function AdminDashboard() {
           </div>
         </aside>
 
-        <main className="flex-1 md:ml-72 px-2.5 pt-2.5 sm:px-6 sm:pt-4 md:p-10 pb-24 overflow-y-auto max-w-full">
+        {/* CORREÇÃO DO CONTAINER PRINCIPAL PARA ELIMINAR O ESPAÇO EM BRANCO EXCESSIVO */}
+        <main className="flex-1 md:ml-72 px-3 pt-3 sm:px-6 sm:pt-4 md:p-10 pb-24 max-w-full">
           {activeTab === 'configuracoes' && null}
 
           {errorMessage && (
@@ -1764,7 +1767,6 @@ export default function AdminDashboard() {
           )}
 
           {activeTab === 'comissoes' && (() => {
-            // Todos os agendamentos concluídos da barbearia ordenados por data cronológica
             const listaAgendamentos = Array.isArray(agendamentos) ? agendamentos : [];
             const agendamentosValidosComissao = listaAgendamentos.filter(item => {
               const status = (item.status || '').toLowerCase();
@@ -1777,7 +1779,6 @@ export default function AdminDashboard() {
             });
 
           const dadosComissaoProfissionais = barbeiros.map((b) => {
-              // 1. Filtra todos os atendimentos concluídos deste barbeiro específico
               const atendimentosBarb = agendamentosValidosComissao.filter((ag) => {
                 const idMatch = String(ag.barbeiro_id || ag.profissional_id) === String(b.id);
                 const nomeAg = (ag.barbeiro_nome || ag.profissional_nome || ag.barbeiros?.nome || '').trim().toLowerCase();
@@ -1786,7 +1787,6 @@ export default function AdminDashboard() {
                 return idMatch || nomeMatch;
               });
 
-              // 2. Coleta todos os IDs de agendamentos que JÁ foram quitados em fechamentos anteriores deste barbeiro
               const fechamentosAnteriores = fechamentosComissoes.filter(
                 (f) => String(f.barbeiro_id) === String(b.id) && f.status === 'pago'
               );
@@ -1798,10 +1798,7 @@ export default function AdminDashboard() {
                 }
               });
 
-              // 3. O ciclo pendente agora exclui estritamente os IDs que já foram pagos
               const atendimentosPendentes = atendimentosBarb.filter(ag => !idsQuitados.has(String(ag.id)));
-
-              // Fallback de segurança caso os IDs antigos venham vazios
               const totalAtendQuitado = fechamentosAnteriores.reduce((acc, f) => acc + Number(f.qtd_atendimentos || 0), 0);
               const listaFinalPendentes = atendimentosPendentes.length > 0 || idsQuitados.size > 0
                 ? atendimentosPendentes 
@@ -1816,7 +1813,6 @@ export default function AdminDashboard() {
               );
 
               const qtdAtendimentos = listaFinalPendentes.length;
-
               const taxaCrua = b.taxa_comissao ?? b.comissao_padrao ?? b.comissao ?? 50;
               const porcentagem = Number(taxaCrua) <= 1 ? Number(taxaCrua) * 100 : Number(taxaCrua);
               
@@ -1835,101 +1831,105 @@ export default function AdminDashboard() {
               };
             });
 
-            const totalGeralComissao = dadosComissaoProfissionais.reduce((acc, b) => acc + b.valorComissao, 0);
             const totalGeralFat = dadosComissaoProfissionais.reduce((acc, b) => acc + b.faturamentoBruto, 0);
             const totalPendente = dadosComissaoProfissionais.filter(b => !b.jaQuitado).reduce((acc, b) => acc + b.valorComissao, 0);
+            
+            // SOMA APENAS AS COMISSÕES PAGAS DO MÊS CORRENTE (EX: YYYY-MM)
+            const mesAtualStr = new Date().toISOString().split('T')[0].substring(0, 7);
+            const totalComissoesPagas = fechamentosComissoes
+              .filter(f => {
+                const dataRef = f.created_at || f.data || '';
+                return dataRef.startsWith(mesAtualStr) && f.status === 'pago';
+              })
+              .reduce((acc, f) => acc + Number(f.valor_comissao || 0), 0);
 
             return (
               <div className="space-y-4 pb-24 font-sans select-none animate-in fade-in duration-200">
-                
-                {/* CARDS DO TOPO */}
-<div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-  
-  <div 
-    className="relative rounded-3xl p-4 sm:p-5 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden"
-    style={{
-      background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
-      boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
-    }}
-  >
-    <div className="flex flex-col justify-center min-w-0 pr-1">
-      <span className="text-[8px] sm:text-[9px] font-bold text-stone-400 uppercase tracking-wider leading-tight">Comissão Pendente</span>
-      <h1 className="text-base sm:text-lg font-black text-white mt-1 tracking-tight">R$ {totalPendente.toFixed(2)}</h1>
-    </div>
-    <div 
-      className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0"
-      style={{
-        background: 'radial-gradient(circle at 30% 30%, #ffffff 0%, #d8e2ec 60%, #9fb3c8 100%)',
-        boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 1), inset 0 -4px 6px rgba(0, 0, 0, 0.25)',
-        border: '1px solid rgba(255, 255, 255, 0.9)'
-      }}
-    >
-      <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-stone-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]" />
-    </div>
-  </div>
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+                  <div 
+                    className="relative rounded-3xl p-4 sm:p-5 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden"
+                    style={{
+                      background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
+                      boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
+                    }}
+                  >
+                    <div className="flex flex-col justify-center min-w-0 pr-1">
+                      <span className="text-[8px] sm:text-[9px] font-bold text-stone-400 uppercase tracking-wider leading-tight">Comissão Pendente</span>
+                      <h1 className="text-base sm:text-lg font-black text-white mt-1 tracking-tight">R$ {totalPendente.toFixed(2)}</h1>
+                    </div>
+                    <div 
+                      className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0"
+                      style={{
+                        background: 'radial-gradient(circle at 30% 30%, #ffffff 0%, #d8e2ec 60%, #9fb3c8 100%)',
+                        boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 1), inset 0 -4px 6px rgba(0, 0, 0, 0.25)',
+                        border: '1px solid rgba(255, 255, 255, 0.9)'
+                      }}
+                    >
+                      <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-stone-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]" />
+                    </div>
+                  </div>
 
-  <div 
-    className="relative rounded-3xl p-4 sm:p-5 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden"
-    style={{
-      background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
-      boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
-    }}
-  >
-    <div className="flex flex-col justify-center min-w-0 pr-1">
-      <span className="text-[8px] sm:text-[9px] font-bold text-stone-400 uppercase tracking-wider leading-tight">Fat. Pendente Equipe</span>
-      <h3 className="text-base sm:text-lg font-black text-white mt-1 tracking-tight">R$ {totalGeralFat.toFixed(2)}</h3>
-    </div>
-    <div 
-      className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0"
-      style={{
-        background: 'radial-gradient(circle at 30% 30%, #ffffff 0%, #d8e2ec 60%, #9fb3c8 100%)',
-        boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 1), inset 0 -4px 6px rgba(0, 0, 0, 0.25)',
-        border: '1px solid rgba(255, 255, 255, 0.9)'
-      }}
-    >
-      <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-stone-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]" />
-    </div>
-  </div>
+                  <div 
+                    className="relative rounded-3xl p-4 sm:p-5 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden"
+                    style={{
+                      background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
+                      boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
+                    }}
+                  >
+                    <div className="flex flex-col justify-center min-w-0 pr-1">
+                      <span className="text-[8px] sm:text-[9px] font-bold text-stone-400 uppercase tracking-wider leading-tight">Fat. Pendente Equipe</span>
+                      <h3 className="text-base sm:text-lg font-black text-white mt-1 tracking-tight">R$ {totalGeralFat.toFixed(2)}</h3>
+                    </div>
+                    <div 
+                      className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0"
+                      style={{
+                        background: 'radial-gradient(circle at 30% 30%, #ffffff 0%, #d8e2ec 60%, #9fb3c8 100%)',
+                        boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 1), inset 0 -4px 6px rgba(0, 0, 0, 0.25)',
+                        border: '1px solid rgba(255, 255, 255, 0.9)'
+                      }}
+                    >
+                      <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-stone-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]" />
+                    </div>
+                  </div>
 
-  <div 
-    className="relative rounded-3xl p-4 sm:p-5 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden"
-    style={{
-      background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
-      boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
-    }}
-  >
-    <div className="flex flex-col justify-center min-w-0 pr-1">
-      <span className="text-[8px] sm:text-[9px] font-bold text-stone-400 uppercase tracking-wider leading-tight">Comissão Acumulada</span>
-      <h3 className="text-base sm:text-lg font-black text-white mt-1 tracking-tight">R$ {totalGeralComissao.toFixed(2)}</h3>
-    </div>
-    <div 
-      className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0"
-      style={{
-        background: 'radial-gradient(circle at 30% 30%, #ffffff 0%, #d8e2ec 60%, #9fb3c8 100%)',
-        boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 1), inset 0 -4px 6px rgba(0, 0, 0, 0.25)',
-        border: '1px solid rgba(255, 255, 255, 0.9)'
-      }}
-    >
-      <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-stone-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]" />
-    </div>
-  </div>
+                  {/* CARD DE COMISSÕES PAGAS DO MÊS */}
+                  <div 
+                    className="relative rounded-3xl p-4 sm:p-5 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden"
+                    style={{
+                      background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
+                      boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
+                    }}
+                  >
+                    <div className="flex flex-col justify-center min-w-0 pr-1">
+                      <span className="text-[8px] sm:text-[9px] font-bold text-stone-400 uppercase tracking-wider leading-tight">Comissões Pagas</span>
+                      <h3 className="text-base sm:text-lg font-black text-emerald-400 mt-1 tracking-tight">R$ {totalComissoesPagas.toFixed(2)}</h3>
+                    </div>
+                    <div 
+                      className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0"
+                      style={{
+                        background: 'radial-gradient(circle at 30% 30%, #ffffff 0%, #d8e2ec 60%, #9fb3c8 100%)',
+                        boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 1), inset 0 -4px 6px rgba(0, 0, 0, 0.25)',
+                        border: '1px solid rgba(255, 255, 255, 0.9)'
+                      }}
+                    >
+                      <CheckCheck className="w-4 h-4 sm:w-5 sm:h-5 text-stone-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]" />
+                    </div>
+                  </div>
 
-  <button
-    onClick={() => setModalHistoricoFechamentos(true)}
-    className="relative rounded-3xl p-4 sm:p-5 flex items-center justify-between border border-stone-200/80 bg-white transition-all cursor-pointer group min-w-0 overflow-hidden shadow-xs hover:shadow-sm text-left"
-  >
-    <div className="flex flex-col justify-center min-w-0 pr-1">
-      <span className="text-[8px] sm:text-[9px] font-extrabold text-stone-400 uppercase tracking-wider leading-tight">Registros</span>
-      <span className="text-xs sm:text-sm font-black text-stone-900 mt-1 truncate block">Ver Histórico</span>
-    </div>
-    <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#222222] text-white flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-      <History className="w-4 h-4 sm:w-5 sm:h-5" />
-    </div>
-  </button>
+                  <button
+                    onClick={() => setModalHistoricoFechamentos(true)}
+                    className="relative rounded-3xl p-4 sm:p-5 flex items-center justify-between border border-stone-200/80 bg-white transition-all cursor-pointer group min-w-0 overflow-hidden shadow-xs hover:shadow-sm text-left"
+                  >
+                    <div className="flex flex-col justify-center min-w-0 pr-1">
+                      <span className="text-[8px] sm:text-[9px] font-extrabold text-stone-400 uppercase tracking-wider leading-tight">Registros</span>
+                      <span className="text-xs sm:text-sm font-black text-stone-900 mt-1 truncate block">Ver Histórico</span>
+                    </div>
+                    <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#222222] text-white flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                      <History className="w-4 h-4 sm:w-5 sm:h-5" />
+                    </div>
+                  </button>
+                </div>
 
-</div>
-
-                {/* FILTRO DE BUSCA POR NOME */}
                 <div className="bg-white rounded-3xl p-4 sm:p-5 border border-stone-200 shadow-xs space-y-3">
                   <div className="flex flex-col sm:flex-row items-center gap-2">
                     <div className="relative w-full">
@@ -1945,7 +1945,6 @@ export default function AdminDashboard() {
                   </div>
                 </div>
 
-                {/* LISTAGEM DOS PROFISSIONAIS */}
                 <div className="bg-stone-100 rounded-3xl p-4 sm:p-6 border border-stone-300 shadow-inner space-y-3.5">
                   {dadosComissaoProfissionais.length === 0 ? (
                     <div className="text-center py-10 text-stone-500 text-xs font-bold">Nenhum profissional encontrado.</div>
@@ -2045,7 +2044,6 @@ export default function AdminDashboard() {
                                   return;
                                 }
 
-                                // Dispara o modal de confirmação profissional no lugar do confirm() nativo
                                 setModalConfirmacao({
                                   isOpen: true,
                                   titulo: 'Confirmar Pagamento de Comissão',
@@ -2107,58 +2105,165 @@ export default function AdminDashboard() {
             );
           })()}
 
-          {activeTab === 'despesas' && (
-            <div className="bg-white rounded-3xl border border-stone-200/80 shadow-sm overflow-hidden p-6 space-y-6">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-stone-100">
-                <div>
-                  <h3 className="text-base font-bold text-stone-900">Controle de Custos e Despesas</h3>
-                  <p className="text-xs text-stone-400">Adicione os gastos operacionais da barbearia.</p>
-                </div>
-                <button
-                  onClick={() => handleOpenDespesaModal()}
-                  className="bg-stone-900 hover:bg-stone-800 text-white px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer"
-                >
-                  <Plus className="w-4 h-4" /> Nova Despesa
-                </button>
-              </div>
+          {activeTab === 'despesas' && (() => {
+            // Filtra as despesas pelo mês selecionado (ex: "2026-11") ou exibe todas se vazio
+            const despesasFiltradas = despesas.filter(d => {
+              if (!filtroMesDespesas) return true;
+              const dataDespesa = d.data || d.created_at || '';
+              return dataDespesa.startsWith(filtroMesDespesas);
+            });
 
-              {despesas.length === 0 ? (
-                <div className="p-8 text-center text-stone-400 text-xs">Nenhuma despesa cadastrada.</div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse border-separate border-spacing-y-3">
-                    <thead>
-                      <tr className="text-[11px] font-bold text-stone-400 uppercase tracking-wider">
-                        <th className="p-3 pl-4">Descrição</th>
-                        <th className="p-3">Data</th>
-                        <th className="p-3">Valor</th>
-                        <th className="p-3 pr-4 text-right">Ações</th>
-                      </tr>
-                    </thead>
-                    <tbody className="text-xs text-stone-700">
-                      {despesas.map((d) => (
-                        <tr key={d.id} className="bg-stone-50/70 hover:bg-stone-50 border border-stone-200/60 rounded-2xl overflow-hidden">
-                          <td className="p-4 pl-5 font-medium text-stone-900 rounded-l-2xl">{d.descricao}</td>
-                          <td className="p-4 text-stone-600">{formatarData(d)}</td>
-                          <td className="p-4 font-bold text-rose-600">R$ {Number(d.valor).toFixed(2)}</td>
-                          <td className="p-4 pr-5 text-right rounded-r-2xl">
-                            <div className="flex items-center justify-end gap-1.5">
-                              <button onClick={() => handleOpenDespesaModal(d)} className="p-1.5 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-lg cursor-pointer">
+            const totalDespesasFiltradas = despesasFiltradas.reduce((acc, d) => acc + Number(d.valor || 0), 0);
+
+            return (
+              <div className="space-y-4 animate-in fade-in duration-200">
+                <div className="grid grid-cols-2 gap-3 md:gap-4">
+                  <div 
+                    className="relative rounded-3xl p-4 sm:p-5 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden"
+                    style={{
+                      background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
+                      boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
+                    }}
+                  >
+                    <div className="flex flex-col justify-center min-w-0 pr-1">
+                      <span className="text-[8px] sm:text-[9px] font-bold text-stone-400 uppercase tracking-wider leading-tight">Total em Despesas</span>
+                      <h3 className="text-base sm:text-lg font-black text-white mt-1 tracking-tight">
+                        R$ {totalDespesasFiltradas.toFixed(2)}
+                      </h3>
+                    </div>
+                    <div 
+                      className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0"
+                      style={{
+                        background: 'radial-gradient(circle at 30% 30%, #ffffff 0%, #d8e2ec 60%, #9fb3c8 100%)',
+                        boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 1), inset 0 -4px 6px rgba(0, 0, 0, 0.25)',
+                        border: '1px solid rgba(255, 255, 255, 0.9)'
+                      }}
+                    >
+                      <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-stone-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]" />
+                    </div>
+                  </div>
+
+                  <div 
+                    className="relative rounded-3xl p-4 sm:p-5 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden"
+                    style={{
+                      background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
+                      boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
+                    }}
+                  >
+                    <div className="flex flex-col justify-center min-w-0 pr-1">
+                      <span className="text-[8px] sm:text-[9px] font-bold text-stone-400 uppercase tracking-wider leading-tight">Registros</span>
+                      <h3 className="text-base sm:text-lg font-black text-white mt-1 tracking-tight">{despesasFiltradas.length}</h3>
+                    </div>
+                    <div 
+                      className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0"
+                      style={{
+                        background: 'radial-gradient(circle at 30% 30%, #ffffff 0%, #d8e2ec 60%, #9fb3c8 100%)',
+                        boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 1), inset 0 -4px 6px rgba(0, 0, 0, 0.25)',
+                        border: '1px solid rgba(255, 255, 255, 0.9)'
+                      }}
+                    >
+                      <History className="w-4 h-4 sm:w-5 sm:h-5 text-stone-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* BARRA DE AÇÃO COM O FILTRO DE MÊS E O BOTÃO DE NOVA DESPESA LADO A LADO */}
+                <div 
+                  className="relative rounded-3xl p-4 sm:p-5 border border-white/80 overflow-hidden shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3"
+                  style={{
+                    background: 'linear-gradient(135deg, #f7f9f8 0%, #edf1f0 50%, #e2e8e6 100%)',
+                    boxShadow: '0 15px 30px rgba(0, 0, 0, 0.05), inset 0 2px 4px rgba(255, 255, 255, 0.9), inset 0 -3px 6px rgba(0, 0, 0, 0.03)'
+                  }}
+                >
+                  <div className="flex items-center gap-2 bg-white px-3.5 py-2.5 rounded-2xl border border-stone-200/80 shadow-xs w-full sm:w-auto">
+                    <Calendar className="w-4 h-4 text-stone-500 shrink-0" />
+                    <select 
+                      value={filtroMesDespesas} 
+                      onChange={(e) => setFiltroMesDespesas(e.target.value)}
+                      className="bg-transparent text-xs font-black text-stone-900 focus:outline-none cursor-pointer w-full"
+                    >
+                      <option value="">Todos os Períodos</option>
+                      <option value="2026-01">Janeiro / 2026</option>
+                      <option value="2026-02">Fevereiro / 2026</option>
+                      <option value="2026-03">Março / 2026</option>
+                      <option value="2026-04">Abril / 2026</option>
+                      <option value="2026-05">Maio / 2026</option>
+                      <option value="2026-06">Junho / 2026</option>
+                      <option value="2026-07">Julho / 2026</option>
+                      <option value="2026-08">Agosto / 2026</option>
+                      <option value="2026-09">Setembro / 2026</option>
+                      <option value="2026-10">Outubro / 2026</option>
+                      <option value="2026-11">Novembro / 2026</option>
+                      <option value="2026-12">Dezembro / 2026</option>
+                    </select>
+                  </div>
+
+                  <button
+                    onClick={() => handleOpenDespesaModal()}
+                    className="w-full sm:w-auto px-5 py-3 bg-stone-900 hover:bg-black text-white font-black text-xs rounded-2xl shadow-xs transition-all cursor-pointer flex items-center justify-center gap-2 active:scale-95 shrink-0"
+                  >
+                    <Plus className="w-4 h-4 text-amber-400" />
+                    <span>Nova Despesa</span>
+                  </button>
+                </div>
+
+                <div className="bg-white rounded-3xl p-4 sm:p-6 border border-stone-200/90 shadow-xs space-y-4">
+                  <div className="flex items-center justify-between pb-3 border-b border-stone-100 px-1">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-stone-900" />
+                      <h3 className="text-xs font-black uppercase tracking-wider text-stone-900">Histórico de Gastos</h3>
+                    </div>
+                    <span className="text-[11px] font-bold text-stone-700 bg-stone-50 px-2.5 py-1 rounded-xl border border-stone-200 shadow-2xs">
+                      {despesasFiltradas.length} {despesasFiltradas.length === 1 ? 'item' : 'itens'}
+                    </span>
+                  </div>
+
+                  {despesasFiltradas.length === 0 ? (
+                    <div className="text-center py-10 text-stone-400 text-[11px] font-bold uppercase tracking-wider">
+                      Nenhuma despesa encontrada para este período.
+                    </div>
+                  ) : (
+                    <div className="space-y-2.5">
+                      {despesasFiltradas.map((d) => (
+                        <div 
+                          key={d.id} 
+                          className="p-3.5 bg-stone-50/80 hover:bg-stone-50 rounded-2xl border border-stone-200/70 flex items-center justify-between gap-3 transition-all"
+                        >
+                          <div className="min-w-0 space-y-0.5">
+                            <h4 className="text-xs sm:text-sm font-black text-stone-900 truncate">{d.descricao}</h4>
+                            <span className="text-[10px] text-stone-500 font-semibold block">{formatarData(d)}</span>
+                          </div>
+
+                          <div className="flex items-center gap-3 shrink-0">
+                            <span className="text-xs sm:text-sm font-black text-rose-600">
+                              - R$ {Number(d.valor).toFixed(2)}
+                            </span>
+                            
+                            <div className="flex items-center gap-1 border-l border-stone-200 pl-2.5">
+                              <button 
+                                onClick={() => handleOpenDespesaModal(d)} 
+                                className="w-7 h-7 rounded-lg bg-white hover:bg-stone-100 text-stone-700 flex items-center justify-center border border-stone-200 transition-all cursor-pointer shadow-2xs"
+                                title="Editar"
+                              >
                                 <Edit className="w-3.5 h-3.5" />
                               </button>
-                              <button onClick={() => handleDeleteDespesa(d.id)} className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg cursor-pointer">
+                              <button 
+                                onClick={() => handleDeleteDespesa(d.id)} 
+                                className="w-7 h-7 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 flex items-center justify-center border border-rose-200 transition-all cursor-pointer shadow-2xs"
+                                title="Excluir"
+                              >
                                 <Trash2 className="w-3.5 h-3.5" />
                               </button>
                             </div>
-                          </td>
-                        </tr>
+                          </div>
+                        </div>
                       ))}
-                    </tbody>
-                  </table>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-          )}
+              </div>
+            );
+          })()}
 
           {activeTab === 'servicos' && (
             <div className="space-y-6">
@@ -2508,91 +2613,83 @@ export default function AdminDashboard() {
       </div>
 
       {modalHistoricoFechamentos && (
-  <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
-    <div className="bg-white rounded-[2rem] max-w-2xl w-full p-6 space-y-4 shadow-2xl border border-stone-200">
-      
-      {/* Cabeçalho do Modal */}
-      <div className="flex items-center justify-between pb-3 border-b border-stone-100">
-        <div>
-          <h3 className="text-base font-black text-stone-900">Histórico de Acertos Pagos</h3>
-          <p className="text-xs text-stone-500">Consulte os fechamentos realizados</p>
-        </div>
-        
-        {/* FILTRO DE MÊS NO DROPDOWN DO HISTÓRICO */}
-        <div className="flex items-center gap-2 bg-stone-50 px-3 py-1.5 rounded-xl border border-stone-200">
-          <Calendar className="w-3.5 h-3.5 text-stone-500" />
-          <select 
-            value={filtroMesHistorico} 
-            onChange={(e) => setFiltroMesHistorico(e.target.value)}
-            className="bg-transparent text-xs font-bold text-stone-900 focus:outline-none cursor-pointer"
-          >
-            <option value="">Todos os Períodos</option>
-            <option value="2026-01">Janeiro / 2026</option>
-            <option value="2026-02">Fevereiro / 2026</option>
-            <option value="2026-03">Março / 2026</option>
-            <option value="2026-04">Abril / 2026</option>
-            <option value="2026-05">Maio / 2026</option>
-            <option value="2026-06">Junho / 2026</option>
-            <option value="2026-07">Julho / 2026</option>
-            <option value="2026-08">Agosto / 2026</option>
-            <option value="2026-09">Setembro / 2026</option>
-            <option value="2026-10">Outubro / 2026</option>
-            <option value="2026-11">Novembro / 2026</option>
-            <option value="2026-12">Dezembro / 2026</option>
-          </select>
-        </div>
-      </div>
-
-      {/* Lista de Histórico Filtrada */}
-      <div className="max-h-[60vh] overflow-y-auto space-y-2.5 pr-1">
-        {fechamentosComissoes
-          .filter(f => !filtroMesHistorico || f.periodo_referencia === filtroMesHistorico)
-          .length === 0 ? (
-            <div className="text-center py-12 text-stone-400 text-xs font-bold">
-              Nenhum registro encontrado para este período.
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-[2rem] max-w-2xl w-full p-6 space-y-4 shadow-2xl border border-stone-200">
+            <div className="flex items-center justify-between pb-3 border-b border-stone-100">
+              <div>
+                <h3 className="text-base font-black text-stone-900">Histórico de Acertos Pagos</h3>
+                <p className="text-xs text-stone-500">Consulte os fechamentos realizados</p>
+              </div>
+              
+              <div className="flex items-center gap-2 bg-stone-50 px-3 py-1.5 rounded-xl border border-stone-200">
+                <Calendar className="w-3.5 h-3.5 text-stone-500" />
+                <select 
+                  value={filtroMesHistorico} 
+                  onChange={(e) => setFiltroMesHistorico(e.target.value)}
+                  className="bg-transparent text-xs font-bold text-stone-900 focus:outline-none cursor-pointer"
+                >
+                  <option value="">Todos os Períodos</option>
+                  <option value="2026-01">Janeiro / 2026</option>
+                  <option value="2026-02">Fevereiro / 2026</option>
+                  <option value="2026-03">Março / 2026</option>
+                  <option value="2026-04">Abril / 2026</option>
+                  <option value="2026-05">Maio / 2026</option>
+                  <option value="2026-06">Junho / 2026</option>
+                  <option value="2026-07">Julho / 2026</option>
+                  <option value="2026-08">Agosto / 2026</option>
+                  <option value="2026-09">Setembro / 2026</option>
+                  <option value="2026-10">Outubro / 2026</option>
+                  <option value="2026-11">Novembro / 2026</option>
+                  <option value="2026-12">Dezembro / 2026</option>
+                </select>
+              </div>
             </div>
-          ) : (
-            fechamentosComissoes
-              .filter(f => !filtroMesHistorico || f.periodo_referencia === filtroMesHistorico)
-              .map((fechamento) => (
-                <div key={fechamento.id} className="bg-stone-50 p-4 rounded-2xl border border-stone-200 flex items-center justify-between text-xs">
-                  <div className="space-y-0.5">
-                    <span className="font-black text-stone-900 block">
-                      {fechamento.barbeiros?.nome || 'Profissional'}
-                    </span>
-                    <span className="text-[10px] text-stone-500 block">
-                      Referência: {fechamento.periodo_referencia} • {fechamento.qtd_atendimentos} atendimentos
-                    </span>
+
+            <div className="max-h-[60vh] overflow-y-auto space-y-2.5 pr-1">
+              {fechamentosComissoes
+                .filter(f => !filtroMesHistorico || f.periodo_referencia === filtroMesHistorico)
+                .length === 0 ? (
+                  <div className="text-center py-12 text-stone-400 text-xs font-bold">
+                    Nenhum registro encontrado para este período.
                   </div>
-                  <div className="text-right space-y-0.5">
-                    <span className="font-black text-emerald-600 block text-sm">
-                      R$ {Number(fechamento.valor_comissao).toFixed(2)}
-                    </span>
-                    <span className="text-[9px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full inline-block">
-                      Quitado
-                    </span>
-                  </div>
-                </div>
-              ))
-          )}
-      </div>
+                ) : (
+                  fechamentosComissoes
+                    .filter(f => !filtroMesHistorico || f.periodo_referencia === filtroMesHistorico)
+                    .map((fechamento) => (
+                      <div key={fechamento.id} className="bg-stone-50 p-4 rounded-2xl border border-stone-200 flex items-center justify-between text-xs">
+                        <div className="space-y-0.5">
+                          <span className="font-black text-stone-900 block">
+                            {fechamento.barbeiros?.nome || 'Profissional'}
+                          </span>
+                          <span className="text-[10px] text-stone-500 block">
+                            Referência: {fechamento.periodo_referencia} • {fechamento.qtd_atendimentos} atendimentos
+                          </span>
+                        </div>
+                        <div className="text-right space-y-0.5">
+                          <span className="font-black text-emerald-600 block text-sm">
+                            R$ {Number(fechamento.valor_comissao).toFixed(2)}
+                          </span>
+                          <span className="text-[9px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full inline-block">
+                            Quitado
+                          </span>
+                        </div>
+                      </div>
+                    ))
+                )}
+            </div>
 
-      {/* Rodapé do Modal */}
-      <div className="pt-2 border-t border-stone-100 flex justify-end">
-        <button
-          onClick={() => setModalHistoricoFechamentos(false)}
-          className="px-5 py-2.5 bg-stone-900 text-white font-bold text-xs rounded-xl cursor-pointer"
-        >
-          Fechar
-        </button>
-      </div>
+            <div className="pt-2 border-t border-stone-100 flex justify-end">
+              <button
+                onClick={() => setModalHistoricoFechamentos(false)}
+                className="px-5 py-2.5 bg-stone-900 text-white font-bold text-xs rounded-xl cursor-pointer"
+              >
+                Fechar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
-    </div>
-  </div>
-)}
-
-
-{/* MODAL DE CONFIRMAÇÃO PERSONALIZADO */}
       {modalConfirmacao.isOpen && (
         <div className="fixed inset-0 bg-stone-950/70 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-in fade-in duration-200 select-none">
           <div className="bg-white rounded-[2rem] max-w-md w-full p-6 shadow-2xl border border-stone-200 space-y-5 text-center">
@@ -2631,7 +2728,6 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* MODAL DE FEEDBACK (SUCESSO / ERRO) PERSONALIZADO */}
       {modalFeedback.isOpen && (
         <div className="fixed inset-0 bg-stone-950/70 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-in fade-in duration-200 select-none">
           <div className="bg-white rounded-[2rem] max-w-md w-full p-6 shadow-2xl border border-stone-200 space-y-5 text-center">
@@ -2659,8 +2755,6 @@ export default function AdminDashboard() {
         </div>
       )}
 
-
-{/* MODAL DE EXTRATO DETALHADO DO PROFISSIONAL */}
       {modalExtratoBarbeiro && (() => {
         const atendimentosPendentes = modalExtratoBarbeiro.atendimentosLista || [];
         const fatBrutoPendente = atendimentosPendentes.reduce((acc, ag) => acc + Number(ag.valor_total || ag.servicos?.preco || ag.valor || 0), 0);
@@ -2744,7 +2838,6 @@ export default function AdminDashboard() {
           </div>
         );
       })()}
-
 
       {!loading && modalInfoAssinaturaOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">

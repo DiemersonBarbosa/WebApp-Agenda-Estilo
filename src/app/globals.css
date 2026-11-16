@@ -19,40 +19,28 @@
   }
 }
 
-
-
-
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
 
-
-/* Esconde qualquer barra de navegação antiga se o modal estiver aberto */
-body:has(.modal-menu-aberto) nav[aria-label="Navegação inferior mobile"] {
+/* Ocultação forçada e absoluta do menu mobile quando o teclado estiver ativo */
+body.teclado-ativo #menu-mobile-bottom {
+  display: none !important;
+}
+body:has(input:focus, textarea:focus, select:focus) nav.fixed.bottom-0 {
   display: none !important;
   visibility: hidden !important;
   opacity: 0 !important;
-  transition: none !important;
+  pointer-events: none !important;
 }
 
-
 @media print {
-  /* Oculta barras laterais, menus, botões e cabeçalhos globais */
   aside, nav, header, footer, button, .print\:hidden {
     display: none !important;
   }
 
-  /* Oculta especificamente o banner azul/cinza de aviso de testes no topo */
-  div[class*="bg-blue"], 
-  div[class*="teste"], 
-  p[class*="teste"],
-  span {
-    /* Mantém textos úteis mas remove barras de aviso flutuantes */
-  }
-
-  /* Remove margens e cabeçalhos automáticos de data/URL do navegador */
   @page {
     margin: 1cm;
     size: auto;
@@ -65,9 +53,6 @@ body:has(.modal-menu-aberto) nav[aria-label="Navegação inferior mobile"] {
   }
 }
 
-
-
-/* Classe para travar o scroll apenas quando o painel de configurações estiver ativo */
 body.travar-scroll-painel {
   overflow: hidden !important;
   position: fixed !important;
@@ -77,16 +62,6 @@ body.travar-scroll-painel {
   touch-action: none !important;
 }
 
-
-/* Remove o efeito de elástico em toda a página / HTML / Body */
 html, body {
   overscroll-behavior-y: none;
 }
-
-
-/* No seu globals.css */
-body:has(input:focus, textarea:focus) #menu-mobile-bottom {
-  display: none !important;
-}
-
-
