@@ -371,11 +371,6 @@ export default function AdminDashboard() {
   const [errorMessage, setErrorMessage] = useState(null);
 
   const [produtos, setProdutos] = useState([]);
-  const [tecladoAberto, setTecladoAberto] = useState(false);
-// DETECÇÃO DEFINITIVA: FECHOU O TECLADO, O MENU VOLTA AUTOMATICAMENTE
-
-
-// ---> INSIRA AQUI O REF E O USEEFFECT DO SCROLL AUTOMÁTICO <---
   const scrollRef = React.useRef(null);
 
   useEffect(() => {
@@ -385,14 +380,6 @@ export default function AdminDashboard() {
         elementoAtivo.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
       }
     }
-  }, [activeTab]);
- 
-
-  useEffect(() => {
-    window.scrollTo({
-      top: 0,
-      behavior: 'smooth'
-    });
   }, [activeTab]);
 
   async function carregarProdutos(barbeariaId) {
@@ -421,11 +408,6 @@ export default function AdminDashboard() {
   const [barbeiroParaEditar, setBarbeiroParaEditar] = useState(null);
   const [metodoPagamento, setMetodoPagamento] = useState('pix');
 
-  // Inicializa o filtro de despesas com o mês atual (ex: "2026-11" para Novembro de 2026)
-const [filtroMesDespesas, setFiltroMesDespesas] = useState(() => {
-  return new Date().toISOString().split('T')[0].substring(0, 7);
-});
-
   const fecharMenuMobile = () => {
     setMobileMenuOpen(false);
   };
@@ -452,13 +434,17 @@ const [filtroMesDespesas, setFiltroMesDespesas] = useState(() => {
   const [servicos, setServicos] = useState([]);
   const [despesas, setDespesas] = useState([]);
 
+const [searchTerm, setSearchTerm] = useState('');
+
+  const [filtroMesDespesas, setFiltroMesDespesas] = useState(() => {
+    return new Date().toISOString().split('T')[0].substring(0, 7);
+  });
+
   // ESTADOS DA ABA DE COMISSÕES E HISTÓRICO
   const [fechamentosComissoes, setFechamentosComissoes] = useState([]);
   const [modalExtratoBarbeiro, setModalExtratoBarbeiro] = useState(null);
   const [modalHistoricoFechamentos, setModalHistoricoFechamentos] = useState(false);
 
-
-  // ESTADOS PARA OS MODAIS DE CONFIRMAÇÃO E FEEDBACK PERSONALIZADOS
   const [modalConfirmacao, setModalConfirmacao] = useState({
     isOpen: false,
     titulo: '',
@@ -468,26 +454,10 @@ const [filtroMesDespesas, setFiltroMesDespesas] = useState(() => {
 
   const [modalFeedback, setModalFeedback] = useState({
     isOpen: false,
-    tipo: 'sucesso', // 'sucesso' ou 'erro'
+    tipo: 'sucesso',
     titulo: '',
     mensagem: '',
   });
-
-  const carregarFechamentosComissoes = async (barbId) => {
-    if (!barbId) return;
-    const { data, error } = await supabase
-      .from('fechamentos_comissoes')
-      .select('*, barbeiros(nome, foto)')
-      .eq('barbearia_id', barbId)
-      .order('created_at', { ascending: false });
-
-    if (!error && data) {
-      setFechamentosComissoes(data);
-    }
-  };
-
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filtroMesHistorico, setFiltroMesHistorico] = useState('');
 
   const formatarData = (item) => {
     const rawData = item.data_hora || item.created_at || item.data;
@@ -803,72 +773,6 @@ const [filtroMesDespesas, setFiltroMesDespesas] = useState(() => {
     };
   }, [barbearia?.id, loadDashboardData]);
 
-  useEffect(() => {
-    let intervalId;
-
-    if (modalAssinaturaOpen && metodoPagamento === 'pix' && pixDataMP?.paymentId && !processandoPagamento) {
-      intervalId = setInterval(async () => {
-        try {
-          const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://www.agendaestilo.com.br';
-          const urlVerificacao = `${baseUrl}/api/verificar-pagamento`;
-
-          const res = await fetch(urlVerificacao, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ paymentId: pixDataMP.paymentId })
-          });
-
-          if (!res.ok) {
-            return;
-          }
-
-          const data = await res.json();
-          if (data && data.status === 'approved') {
-            clearInterval(intervalId);
-            handleProcessarPagamentoMercadoPago();
-          }
-        } catch (err) {
-          // Silencia erros
-        }
-      }, 5000);
-    }
-
-    return () => {
-      if (intervalId) clearInterval(intervalId);
-    };
-  }, [modalAssinaturaOpen, metodoPagamento, pixDataMP?.paymentId, processandoPagamento]);
-
-  useEffect(() => {
-    if (aberturaManual) return;
-
-    const dataCriacaoStr = barbearia?.created_at;
-    const status = barbearia?.status_assinatura;
-
-    if (status === 'ativo' || status === 'teste') {
-      if (dataCriacaoStr) {
-        const dataCriacao = new Date(dataCriacaoStr);
-        const hoje = new Date();
-        dataCriacao.setHours(0, 0, 0, 0);
-        hoje.setHours(0, 0, 0, 0);
-        const diasPassados = Math.floor((hoje - dataCriacao) / (1000 * 60 * 60 * 24));
-        const restante = 7 - diasPassados;
-
-        if (restante > 0) {
-          return;
-        }
-      }
-    }
-
-    if (modalAssinaturaOpen && metodoPagamento === 'pix' && !pixDataMP?.paymentId) {
-      gerarPixMercadoPago({
-        transaction_amount: 9.90,
-        description: 'Plano Mensal Gestor - Acesso Completo',
-        payer_email: user?.email || 'diemersonlimabarbosa@gmail.com',
-        payer_name: barbearia?.nome || 'Gestor'
-      });
-    }
-  }, [modalAssinaturaOpen, metodoPagamento, pixDataMP?.paymentId, gerarPixMercadoPago, user, barbearia, aberturaManual]);
-
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setUser(null);
@@ -900,7 +804,7 @@ const [filtroMesDespesas, setFiltroMesDespesas] = useState(() => {
             data_vencimento: dataExpiracao.toISOString().split('T')[0]
           };
 
-          const { data: updateData, error: updateError } = await supabase
+          const { error: updateError } = await supabase
             .from('barbearias')
             .update(novosDadosAssinatura)
             .eq('id', barbearia.id)
@@ -1190,11 +1094,6 @@ const [filtroMesDespesas, setFiltroMesDespesas] = useState(() => {
     loadDashboardData(barbearia.id);
   };
 
-  const totalFaturamento = agendamentos.filter((a) => (a.status || '').trim().toLowerCase() === 'concluido' || (a.status || '').trim().toLowerCase() === 'concluído').reduce((acc, curr) => acc + (Number(curr.valor_total) || 0), 0);
-  const totalDespesas = despesas.reduce((acc, curr) => acc + (Number(curr.valor) || 0), 0);
-  const lucroLiquido = totalFaturamento - totalDespesas;
-  const totalAtendimentosConcluidos = agendamentos.filter((a) => (a.status || '').trim().toLowerCase() === 'concluido' || (a.status || '').trim().toLowerCase() === 'concluído').length;
-  const ticketMedio = totalAtendimentosConcluidos > 0 ? (totalFaturamento / totalAtendimentosConcluidos).toFixed(2) : '0.00';
   const clientesFiltrados = clientes.filter((c) => c.nome?.toLowerCase().includes(searchTerm.toLowerCase()) || c.telefone?.includes(searchTerm));
 
   if (loading) {
@@ -1281,75 +1180,73 @@ const [filtroMesDespesas, setFiltroMesDespesas] = useState(() => {
       </div>
 
       
-      {!tecladoAberto && (
-        <nav id="menu-mobile-bottom" className="fixed bottom-0 left-0 right-0 z-40 md:hidden pb-safe">
-          <div className="bg-white border-t border-slate-200/80 shadow-[0_-8px_25px_rgba(0,0,0,0.08)] rounded-t-[1.75rem] px-3 pt-2 pb-3 relative">
-            <div className="grid grid-cols-5 items-center justify-items-center max-w-md mx-auto">
+      <nav id="menu-mobile-bottom" className="fixed bottom-0 left-0 right-0 z-40 md:hidden pb-safe">
+        <div className="bg-white border-t border-slate-200/80 shadow-[0_-8px_25px_rgba(0,0,0,0.08)] rounded-t-[1.75rem] px-3 pt-2 pb-3 relative">
+          <div className="grid grid-cols-5 items-center justify-items-center max-w-md mx-auto">
 
+            <button
+              type="button"
+              onClick={() => setActiveTab('financeiro')}
+              className={`flex flex-col items-center justify-center gap-1 transition-all cursor-pointer ${
+                activeTab === 'financeiro' ? 'text-slate-900 font-extrabold' : 'text-slate-500 font-medium hover:text-slate-800'
+              }`}
+            >
+              <TrendingUp className={`w-5 h-5 ${activeTab === 'financeiro' ? 'text-slate-900 stroke-[2.5]' : 'text-slate-500'}`} />
+              <span className="text-[10px] tracking-tight">Financeiro</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('agendamentos')}
+              className={`flex flex-col items-center justify-center gap-1 transition-all cursor-pointer ${
+                activeTab === 'agendamentos' ? 'text-slate-900 font-extrabold' : 'text-slate-500 font-medium hover:text-slate-800'
+              }`}
+            >
+              <Calendar className={`w-5 h-5 ${activeTab === 'agendamentos' ? 'text-slate-900 stroke-[2.5]' : 'text-slate-500'}`} />
+              <span className="text-[10px] tracking-tight">Agenda</span>
+            </button>
+
+            <div className="relative -top-5 flex flex-col items-center justify-center">
               <button
                 type="button"
-                onClick={() => setActiveTab('financeiro')}
-                className={`flex flex-col items-center justify-center gap-1 transition-all cursor-pointer ${
-                  activeTab === 'financeiro' ? 'text-slate-900 font-extrabold' : 'text-slate-500 font-medium hover:text-slate-800'
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className={`w-14 h-14 rounded-full bg-slate-900 text-white flex items-center justify-center shadow-lg transition-all active:scale-90 cursor-pointer border-[3.5px] border-white ring-2 ${
+                  mobileMenuOpen ? 'ring-slate-900 bg-black scale-105' : 'ring-slate-200 hover:bg-black'
                 }`}
+                aria-label="Abrir Menu de Apps"
               >
-                <TrendingUp className={`w-5 h-5 ${activeTab === 'financeiro' ? 'text-slate-900 stroke-[2.5]' : 'text-slate-500'}`} />
-                <span className="text-[10px] tracking-tight">Financeiro</span>
+                <Menu className={`w-6 h-6 text-white transition-transform duration-200 ${mobileMenuOpen ? 'rotate-90' : ''}`} />
               </button>
-
-              <button
-                type="button"
-                onClick={() => setActiveTab('agendamentos')}
-                className={`flex flex-col items-center justify-center gap-1 transition-all cursor-pointer ${
-                  activeTab === 'agendamentos' ? 'text-slate-900 font-extrabold' : 'text-slate-500 font-medium hover:text-slate-800'
-                }`}
-              >
-                <Calendar className={`w-5 h-5 ${activeTab === 'agendamentos' ? 'text-slate-900 stroke-[2.5]' : 'text-slate-500'}`} />
-                <span className="text-[10px] tracking-tight">Agenda</span>
-              </button>
-
-              <div className="relative -top-5 flex flex-col items-center justify-center">
-                <button
-                  type="button"
-                  onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                  className={`w-14 h-14 rounded-full bg-slate-900 text-white flex items-center justify-center shadow-lg transition-all active:scale-90 cursor-pointer border-[3.5px] border-white ring-2 ${
-                    mobileMenuOpen ? 'ring-slate-900 bg-black scale-105' : 'ring-slate-200 hover:bg-black'
-                  }`}
-                  aria-label="Abrir Menu de Apps"
-                >
-                  <Menu className={`w-6 h-6 text-white transition-transform duration-200 ${mobileMenuOpen ? 'rotate-90' : ''}`} />
-                </button>
-                <span className="text-[10px] pt-2 font-extrabold text-slate-800 tracking-tight">
-                  Menu
-                </span>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setActiveTab('fidelidade')}
-                className={`flex flex-col items-center justify-center gap-1 transition-all cursor-pointer ${
-                  activeTab === 'fidelidade' ? 'text-slate-900 font-extrabold' : 'text-slate-500 font-medium hover:text-slate-800'
-                }`}
-              >
-                <Users className={`w-5 h-5 ${activeTab === 'fidelidade' ? 'text-slate-900 stroke-[2.5]' : 'text-slate-500'}`} />
-                <span className="text-[10px] tracking-tight">Clientes</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setActiveTab('configuracoes')}
-                className={`flex flex-col items-center justify-center gap-1 transition-all cursor-pointer ${
-                  activeTab === 'configuracoes' ? 'text-slate-900 font-extrabold' : 'text-slate-500 font-medium hover:text-slate-800'
-                }`}
-              >
-                <Settings className={`w-5 h-5 ${activeTab === 'configuracoes' ? 'text-slate-900 stroke-[2.5]' : 'text-slate-500'}`} />
-                <span className="text-[10px] tracking-tight">Ajustes</span>
-              </button>
-
+              <span className="text-[10px] pt-2 font-extrabold text-slate-800 tracking-tight">
+                Menu
+              </span>
             </div>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('fidelidade')}
+              className={`flex flex-col items-center justify-center gap-1 transition-all cursor-pointer ${
+                activeTab === 'fidelidade' ? 'text-slate-900 font-extrabold' : 'text-slate-500 font-medium hover:text-slate-800'
+              }`}
+            >
+              <Users className={`w-5 h-5 ${activeTab === 'fidelidade' ? 'text-slate-900 stroke-[2.5]' : 'text-slate-500'}`} />
+              <span className="text-[10px] tracking-tight">Clientes</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('configuracoes')}
+              className={`flex flex-col items-center justify-center gap-1 transition-all cursor-pointer ${
+                activeTab === 'configuracoes' ? 'text-slate-900 font-extrabold' : 'text-slate-500 font-medium hover:text-slate-800'
+              }`}
+            >
+              <Settings className={`w-5 h-5 ${activeTab === 'configuracoes' ? 'text-slate-900 stroke-[2.5]' : 'text-slate-500'}`} />
+              <span className="text-[10px] tracking-tight">Ajustes</span>
+            </button>
+
           </div>
-        </nav>
-      )}
+        </div>
+      </nav>
       
 
       {mobileMenuOpen && (
@@ -1651,10 +1548,7 @@ const [filtroMesDespesas, setFiltroMesDespesas] = useState(() => {
           </div>
         </aside>
 
-        {/* CORREÇÃO DO CONTAINER PRINCIPAL PARA ELIMINAR O ESPAÇO EM BRANCO EXCESSIVO */}
         <main className="flex-1 md:ml-72 px-3 pt-3 sm:px-6 sm:pt-4 md:p-10 pb-24 max-w-full">
-          {activeTab === 'configuracoes' && null}
-
           {errorMessage && (
             <div className="mb-6 bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 rounded-2xl text-xs flex items-center gap-2">
               <AlertCircle className="w-4 h-4 text-rose-500" /> {errorMessage}
@@ -1765,7 +1659,7 @@ const [filtroMesDespesas, setFiltroMesDespesas] = useState(() => {
               return dataA - dataB;
             });
 
-          const dadosComissaoProfissionais = barbeiros.map((b) => {
+            const dadosComissaoProfissionais = barbeiros.map((b) => {
               const atendimentosBarb = agendamentosValidosComissao.filter((ag) => {
                 const idMatch = String(ag.barbeiro_id || ag.profissional_id) === String(b.id);
                 const nomeAg = (ag.barbeiro_nome || ag.profissional_nome || ag.barbeiros?.nome || '').trim().toLowerCase();
@@ -1821,7 +1715,6 @@ const [filtroMesDespesas, setFiltroMesDespesas] = useState(() => {
             const totalGeralFat = dadosComissaoProfissionais.reduce((acc, b) => acc + b.faturamentoBruto, 0);
             const totalPendente = dadosComissaoProfissionais.filter(b => !b.jaQuitado).reduce((acc, b) => acc + b.valorComissao, 0);
             
-            // SOMA APENAS AS COMISSÕES PAGAS DO MÊS CORRENTE (EX: YYYY-MM)
             const mesAtualStr = new Date().toISOString().split('T')[0].substring(0, 7);
             const totalComissoesPagas = fechamentosComissoes
               .filter(f => {
@@ -1879,7 +1772,6 @@ const [filtroMesDespesas, setFiltroMesDespesas] = useState(() => {
                     </div>
                   </div>
 
-                  {/* CARD DE COMISSÕES PAGAS DO MÊS */}
                   <div 
                     className="relative rounded-3xl p-4 sm:p-5 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden"
                     style={{
@@ -2101,7 +1993,6 @@ const [filtroMesDespesas, setFiltroMesDespesas] = useState(() => {
 
             const totalDespesasFiltradas = despesasFiltradas.reduce((acc, d) => acc + Number(d.valor || 0), 0);
 
-            // Lista de meses para o seletor rápido
             const listaMeses = [
               { id: '', label: 'Todos' },
               { id: '2026-01', label: 'Jan' },
@@ -2170,7 +2061,6 @@ const [filtroMesDespesas, setFiltroMesDespesas] = useState(() => {
                   </div>
                 </div>
 
-                {/* BARRA DE AÇÃO COM O BOTÃO DE NOVA DESPESA */}
                 <div 
                   className="relative rounded-3xl p-4 sm:p-5 border border-white/80 overflow-hidden shadow-xs flex items-center justify-between gap-4"
                   style={{
@@ -2191,29 +2081,28 @@ const [filtroMesDespesas, setFiltroMesDespesas] = useState(() => {
                   </button>
                 </div>
 
-                {/* SELETOR DE MESES EM FORMATO DE PÍLULAS COM SCROLL AUTOMÁTICO */}
-<div ref={scrollRef} className="bg-white rounded-3xl p-3 border border-stone-200/90 shadow-xs">
-  <div className="flex items-center gap-2 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-    {listaMeses.map((m) => {
-      const selecionado = filtroMesDespesas === m.id;
-      return (
-        <button
-          key={m.id}
-          type="button"
-          data-selecionado={selecionado}
-          onClick={() => setFiltroMesDespesas(m.id)}
-          className={`px-4 py-2 rounded-2xl text-xs font-black whitespace-nowrap transition-all cursor-pointer ${
-            selecionado
-              ? 'bg-stone-900 text-white shadow-md scale-105'
-              : 'bg-stone-100 text-stone-600 hover:bg-stone-200 hover:text-stone-900'
-          }`}
-        >
-          {m.label}
-        </button>
-      );
-    })}
-  </div>
-</div>
+                <div ref={scrollRef} className="bg-white rounded-3xl p-3 border border-stone-200/90 shadow-xs">
+                  <div className="flex items-center gap-2 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                    {listaMeses.map((m) => {
+                      const selecionado = filtroMesDespesas === m.id;
+                      return (
+                        <button
+                          key={m.id}
+                          type="button"
+                          data-selecionado={selecionado}
+                          onClick={() => setFiltroMesDespesas(m.id)}
+                          className={`px-4 py-2 rounded-2xl text-xs font-black whitespace-nowrap transition-all cursor-pointer ${
+                            selecionado
+                              ? 'bg-stone-900 text-white shadow-md scale-105'
+                              : 'bg-stone-100 text-stone-600 hover:bg-stone-200 hover:text-stone-900'
+                          }`}
+                        >
+                          {m.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
 
                 <div className="bg-white rounded-3xl p-4 sm:p-6 border border-stone-200/90 shadow-xs space-y-4">
                   <div className="flex items-center justify-between pb-3 border-b border-stone-100 px-1">
@@ -2273,95 +2162,182 @@ const [filtroMesDespesas, setFiltroMesDespesas] = useState(() => {
             );
           })()}
 
-          {activeTab === 'servicos' && (
-            <div className="space-y-6">
-              <div className="bg-white rounded-3xl border border-stone-200/80 p-5 sm:p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="flex items-center gap-3.5">
-                  <div className="w-12 h-12 rounded-2xl bg-stone-900 text-white flex items-center justify-center shadow-md shrink-0">
-                    <Scissors className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <h2 className="text-lg font-black text-stone-900 tracking-tight">Serviços & Equipe</h2>
-                    <p className="text-xs text-stone-500">Gerencie os tratamentos oferecidos e os profissionais da unidade.</p>
-                  </div>
-                </div>
+        {activeTab === 'servicos' && (
+            <div className="space-y-4 animate-in fade-in duration-200">
+              {/* HEADER SUPERIOR REFINADO E MODERNO */}
+              <div 
+                className="relative rounded-3xl p-5 border border-stone-200/90 min-w-0 overflow-hidden flex flex-col gap-4 shadow-xs"
+                style={{
+                  background: 'linear-gradient(135deg, #18181b 0%, #09090b 100%)',
+                  boxShadow: '0 10px 30px rgba(0, 0, 0, 0.12), inset 0 1px 1px rgba(255, 255, 255, 0.15)'
+                }}
+              >
+                
 
-                <div className="flex items-center bg-stone-100 p-1.5 rounded-2xl border border-stone-200/60 self-start md:self-auto w-full md:w-auto">
+                <div className="grid grid-cols-2 gap-2 bg-black/40 p-1.5 rounded-2xl border border-white/10 shadow-inner">
                   <button
+                    type="button"
                     onClick={() => setSubTabEquipe('servicos')}
-                    className={`flex-1 md:flex-none px-5 py-2.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-2 ${
+                    className={`py-2.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                       subTabEquipe === 'servicos'
-                        ? 'bg-stone-900 text-white shadow-md'
-                        : 'text-stone-500 hover:text-stone-900'
+                        ? 'bg-white text-stone-900 shadow-md scale-102'
+                        : 'text-stone-400 hover:text-white'
                     }`}
                   >
-                    <Scissors className="w-3.5 h-3.5" />
                     <span>Serviços ({servicos.length})</span>
                   </button>
 
                   <button
+                    type="button"
                     onClick={() => setSubTabEquipe('barbeiros')}
-                    className={`flex-1 md:flex-none px-5 py-2.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-2 ${
+                    className={`py-2.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                       subTabEquipe === 'barbeiros'
-                        ? 'bg-stone-900 text-white shadow-md'
-                        : 'text-stone-500 hover:text-stone-900'
+                        ? 'bg-white text-stone-900 shadow-md scale-102'
+                        : 'text-stone-400 hover:text-white'
                     }`}
                   >
-                    <Users className="w-3.5 h-3.5" />
                     <span>Equipe ({barbeiros.length})</span>
                   </button>
                 </div>
               </div>
 
-              {subTabEquipe === 'servicos' && (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-stone-500 uppercase tracking-wider">Catálogo Ativo</span>
-                    <button
-                      onClick={() => handleOpenServicoModal()}
-                      className="bg-stone-900 hover:bg-stone-800 text-white px-4 py-2.5 rounded-xl text-xs font-extrabold flex items-center gap-2 shadow-md transition-all cursor-pointer active:scale-95"
-                    >
-                      <Plus className="w-4 h-4" /> Cadastrar Serviço
-                    </button>
-                  </div>
+              {/* BARRA DE PESQUISA E BOTÃO DE NOVO ITEM LADO A LADO */}
+              <div className="flex items-center gap-2">
+                <div className="relative flex-1">
+                  <Search className="w-4 h-4 text-stone-400 absolute left-4 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    placeholder="Pesquisar..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-10 pr-4 py-3 bg-white border border-stone-200/90 rounded-2xl text-xs text-stone-900 focus:outline-none font-medium shadow-2xs"
+                  />
+                </div>
 
+                <button
+                  type="button"
+                  onClick={() => subTabEquipe === 'servicos' ? handleOpenServicoModal() : handleOpenBarbeiroModal()}
+                  className="px-5 py-3 bg-stone-900 hover:bg-black text-white font-black text-xs rounded-2xl shadow-md transition-all cursor-pointer flex items-center justify-center gap-2 active:scale-98 border border-stone-800 shrink-0"
+                >
+                  <Plus className="w-4 h-4 text-stone-300" />
+                  <span>{subTabEquipe === 'servicos' ? 'Novo Serviço' : 'Novo Barbeiro'}</span>
+                </button>
+              </div>
+
+              {/* ABA DE SERVIÇOS - CARDS NO ESTILO DA REFERÊNCIA */}
+              {subTabEquipe === 'servicos' && (
+                <div className="space-y-3">
                   {servicos.length === 0 ? (
-                    <div className="bg-white rounded-3xl border border-stone-200/80 p-12 text-center text-stone-400 space-y-2">
-                      <Scissors className="w-8 h-8 mx-auto text-stone-300" />
-                      <p className="text-xs font-medium">Nenhum serviço cadastrado até o momento.</p>
+                    <div className="bg-white rounded-3xl p-10 text-center text-stone-400 border border-stone-200 text-xs font-bold uppercase tracking-wider">
+                      Nenhum serviço cadastrado.
                     </div>
                   ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {servicos.map((s) => (
-                        <div 
-                          key={s.id} 
-                          className="bg-white rounded-3xl border border-stone-200/80 p-5 hover:border-stone-400 transition-all shadow-xs flex flex-col justify-between space-y-4 group"
-                        >
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-2xl bg-stone-50 border border-stone-100 flex items-center justify-center text-stone-800 shrink-0 group-hover:bg-stone-900 group-hover:text-white transition-colors">
-                                <Scissors className="w-5 h-5" />
+                    servicos.map((s) => (
+                      <div 
+                        key={s.id} 
+                        className="bg-white rounded-3xl p-5 border border-stone-200/90 shadow-xs hover:shadow-sm transition-all flex flex-col space-y-4"
+                      >
+                        {/* PARTE SUPERIOR DO CARD */}
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-center gap-3.5 min-w-0">
+                            <div className="w-12 h-12 rounded-full bg-stone-50 border border-stone-200 text-stone-800 flex items-center justify-center shrink-0 shadow-2xs">
+                              <Scissors className="w-5 h-5" />
+                            </div>
+                            <div className="min-w-0 space-y-0.5">
+                              <h4 className="text-xs sm:text-sm font-black text-stone-900 truncate tracking-tight">{s.nome}</h4>
+                              <div className="flex items-center gap-1.5 text-[11px] text-stone-500 font-medium">
+                                <Clock className="w-3.5 h-3.5 text-stone-400" />
+                                <span>{s.duracao_minutos || 60} minutos</span>
                               </div>
-                              <div>
-                                <h4 className="font-extrabold text-stone-900 text-sm tracking-tight">{s.nome}</h4>
-                                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-stone-500 mt-0.5">
-                                  <Clock className="w-3 h-3 text-stone-400" /> {s.duracao_minutos || 30} minutos
-                                </span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <button 
+                              type="button"
+                              onClick={() => handleOpenServicoModal(s)} 
+                              className="w-8 h-8 rounded-xl bg-stone-50 hover:bg-stone-100 text-stone-700 flex items-center justify-center border border-stone-200/80 transition-all cursor-pointer shadow-2xs"
+                              title="Editar"
+                            >
+                              <Edit className="w-3.5 h-3.5" />
+                            </button>
+                            <button 
+                              type="button"
+                              onClick={() => handleDeleteServico(s.id)} 
+                              className="w-8 h-8 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 flex items-center justify-center border border-rose-200/80 transition-all cursor-pointer shadow-2xs"
+                              title="Excluir"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* PARTE INFERIOR DO CARD (RODAPÉ COM VALOR DO ATENDIMENTO) */}
+                        <div className="pt-3.5 border-t border-stone-100 flex items-center justify-between">
+                          <span className="text-[10px] font-black text-stone-400 uppercase tracking-wider">Valor do Atendimento</span>
+                          <span className="text-sm sm:text-base font-black text-stone-900 tracking-tight">
+                            R$ {Number(s.preco).toFixed(2)}
+                          </span>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+
+              {/* ABA DE EQUIPE / PROFISSIONAIS */}
+              {subTabEquipe === 'barbeiros' && (
+                <div className="space-y-3">
+                  {barbeiros.length === 0 ? (
+                    <div className="bg-white rounded-3xl p-10 text-center text-stone-400 border border-stone-200 text-xs font-bold uppercase tracking-wider">
+                      Nenhum profissional cadastrado.
+                    </div>
+                  ) : (
+                    barbeiros.map((b) => {
+                      const isMenuAcessoAberto = openAcessoId === b.id;
+
+                      return (
+                        <div 
+                          key={b.id} 
+                          className="bg-white rounded-3xl p-5 border border-stone-200/90 shadow-xs hover:shadow-sm transition-all space-y-4"
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-3.5 min-w-0">
+                              <div className="relative shrink-0">
+                                {b.foto ? (
+                                  <img 
+                                    src={b.foto} 
+                                    alt={b.nome} 
+                                    className="w-12 h-12 rounded-full object-cover border border-stone-200 shadow-2xs" 
+                                  />
+                                ) : (
+                                  <div className="w-12 h-12 rounded-full bg-stone-900 text-white font-black flex items-center justify-center text-xs shadow-2xs">
+                                    {(b.nome || 'P').charAt(0).toUpperCase()}
+                                  </div>
+                                )}
+                                <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full" />
+                              </div>
+
+                              <div className="min-w-0 space-y-0.5">
+                                <h4 className="font-black text-stone-900 text-xs sm:text-sm tracking-tight truncate">{b.nome}</h4>
+                                <span className="text-[11px] text-stone-500 font-semibold block truncate">{b.especialidade || 'Profissional'}</span>
                               </div>
                             </div>
 
-                            <div className="flex items-center gap-1 opacity-90 group-hover:opacity-100 transition-opacity">
+                            <div className="flex items-center gap-1.5 shrink-0">
                               <button 
-                                onClick={() => handleOpenServicoModal(s)} 
-                                className="p-2 bg-stone-50 hover:bg-stone-100 text-stone-700 rounded-xl border border-stone-200/60 transition-colors cursor-pointer"
-                                title="Editar serviço"
+                                type="button"
+                                onClick={() => handleOpenBarbeiroModal(b)} 
+                                className="w-8 h-8 rounded-xl bg-stone-50 hover:bg-stone-100 text-stone-700 flex items-center justify-center border border-stone-200/85 transition-all cursor-pointer shadow-2xs"
+                                title="Editar"
                               >
                                 <Edit className="w-3.5 h-3.5" />
                               </button>
                               <button 
-                                onClick={() => handleDeleteServico(s.id)} 
-                                className="p-2 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl border border-rose-100 transition-colors cursor-pointer"
-                                title="Excluir serviço"
+                                type="button"
+                                onClick={() => handleDeleteBarbeiro(b.id)} 
+                                className="w-8 h-8 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 flex items-center justify-center border border-rose-200/85 transition-all cursor-pointer shadow-2xs"
+                                title="Excluir"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
                               </button>
@@ -2369,256 +2345,77 @@ const [filtroMesDespesas, setFiltroMesDespesas] = useState(() => {
                           </div>
 
                           <div className="pt-3 border-t border-stone-100 flex items-center justify-between">
-                            <span className="text-[10px] font-extrabold text-stone-400 uppercase tracking-wider">Valor do Atendimento</span>
-                            <span className="text-base font-black text-stone-900">
-                              R$ {Number(s.preco).toFixed(2)}
+                            <span className="text-[10px] font-black text-stone-400 uppercase tracking-wider">Taxa de Comissão</span>
+                            <span className="text-xs sm:text-sm font-black text-stone-900">
+                              {b.taxa_comissao || 50}%
                             </span>
                           </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
 
-              {subTabEquipe === 'barbeiros' && (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-stone-500 uppercase tracking-wider">Profissionais da Casa</span>
-                    <button
-                      onClick={() => handleOpenBarbeiroModal()}
-                      className="bg-stone-900 hover:bg-stone-800 text-white px-4 py-2.5 rounded-xl text-xs font-extrabold flex items-center gap-2 shadow-md transition-all cursor-pointer active:scale-95"
-                    >
-                      <Plus className="w-4 h-4" /> Novo Barbeiro
-                    </button>
-                  </div>
-
-                  {barbeiros.length === 0 ? (
-                    <div className="bg-white rounded-3xl border border-stone-200/80 p-12 text-center text-stone-400 space-y-2">
-                      <Users className="w-8 h-8 mx-auto text-stone-300" />
-                      <p className="text-xs font-medium">Nenhum barbeiro cadastrado até o momento.</p>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {barbeiros.map((b) => {
-                        const isMenuAcessoAberto = openAcessoId === b.id;
-
-                        return (
-                          <div 
-                            key={b.id} 
-                            className="bg-white rounded-3xl border border-stone-200/80 p-5 hover:border-stone-300 transition-all shadow-xs flex flex-col justify-between space-y-4"
-                          >
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="flex items-center gap-3 overflow-hidden">
-                                <div className="relative shrink-0">
-                                  {b.foto ? (
-                                    <img 
-                                      src={b.foto} 
-                                      alt={b.nome} 
-                                      className="w-12 h-12 rounded-2xl object-cover border border-stone-200 shadow-xs" 
-                                    />
-                                  ) : (
-                                    <div className="w-12 h-12 rounded-2xl bg-stone-900 text-white font-extrabold flex items-center justify-center text-sm shadow-xs border border-stone-800">
-                                      {(b.nome || 'P').charAt(0).toUpperCase()}
-                                    </div>
-                                  )}
-                                  <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-emerald-500 border-2 border-white rounded-full" />
-                                </div>
-
-                                <div className="min-w-0">
-                                  <h4 className="font-extrabold text-stone-900 text-sm tracking-tight truncate">{b.nome}</h4>
-                                  <span className="text-[11px] font-semibold text-stone-500 block truncate">{b.especialidade || 'Profissional'}</span>
-                                </div>
-                              </div>
-
-                              <div className="flex items-center gap-1 shrink-0">
-                                <button 
-                                  onClick={() => handleOpenBarbeiroModal(b)} 
-                                  className="p-2 bg-stone-50 hover:bg-stone-100 text-stone-700 rounded-xl border border-stone-200/60 transition-colors cursor-pointer"
-                                  title="Editar barbeiro"
-                                >
-                                  <Edit className="w-3.5 h-3.5" />
-                                </button>
-                                <button 
-                                  onClick={() => handleDeleteBarbeiro(b.id)} 
-                                  className="p-2 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl border border-rose-100 transition-colors cursor-pointer"
-                                  title="Excluir barbeiro"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
-                              </div>
-                            </div>
-
-                            <div className="pt-3 border-t border-stone-100 space-y-3">
-                              <div className="flex items-center justify-between text-xs">
-                                <span className="font-semibold text-stone-500">Taxa de Comissão:</span>
-                                <span className="font-extrabold text-stone-900 bg-stone-100 px-2.5 py-0.5 rounded-full border border-stone-200/60">
-                                  {b.taxa_comissao || 50}%
-                                </span>
-                              </div>
-
-                              <div className="bg-stone-50 rounded-2xl border border-stone-200/60 overflow-hidden">
-                                <button
-                                  onClick={() => setOpenAcessoId(isMenuAcessoAberto ? null : b.id)}
-                                  className="w-full px-3.5 py-2.5 flex items-center justify-between text-xs font-extrabold text-stone-700 hover:text-stone-900 cursor-pointer"
-                                >
-                                  <span className="flex items-center gap-2">
-                                    <KeyRound className="w-3.5 h-3.5 text-stone-500" />
-                                    <span>Gerar Acesso ao Painel</span>
-                                  </span>
-                                  <ChevronDown className={`w-4 h-4 transition-transform ${isMenuAcessoAberto ? 'rotate-180' : ''}`} />
-                                </button>
-
-                                {isMenuAcessoAberto && (
-                                  <div className="p-3 pt-1 border-t border-stone-200/60 space-y-2 bg-white">
-                                    <div className="space-y-1">
-                                      <label className="text-[10px] font-bold text-stone-500">E-mail do Barbeiro</label>
-                                      <input 
-                                        type="email" 
-                                        placeholder="barbeiro@exemplo.com" 
-                                        id={`email-${b.id}`}
-                                        className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-900 font-medium"
-                                      />
-                                    </div>
-
-                                    <div className="space-y-1">
-                                      <label className="text-[10px] font-bold text-stone-500">Senha Temporária</label>
-                                      <input 
-                                        type="password" 
-                                        placeholder="••••••••" 
-                                        id={`senha-${b.id}`}
-                                        className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-900 font-medium"
-                                      />
-                                    </div>
-
-                                    <button
-                                      onClick={() => {
-                                        const emailInput = document.getElementById(`email-${b.id}`).value;
-                                        const senhaInput = document.getElementById(`senha-${b.id}`).value;
-
-                                        if (!emailInput || !senhaInput) {
-                                          alert('Preencha o e-mail e a senha.');
-                                          return;
-                                        }
-
-                                        criarAcessoBarbeiro(b.id, emailInput, senhaInput);
-                                      }}
-                                      className="w-full py-2 bg-stone-900 hover:bg-stone-800 text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs mt-1"
-                                    >
-                                      Criar Credenciais
-                                    </button>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-
-                  {modalBarbeiroOpen && (
-                    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-                      <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 relative">
-                        <button 
-                          onClick={() => setModalBarbeiroOpen(false)}
-                          className="absolute top-4 right-4 p-1.5 bg-stone-100 rounded-full hover:bg-stone-200 text-stone-600 cursor-pointer"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-
-                        <h3 className="font-bold text-stone-900 text-base">
-                          {barbeiroParaEditar ? 'Editar Profissional' : 'Novo Profissional'}
-                        </h3>
-
-                        <form onSubmit={handleSaveBarbeiro} className="space-y-4">
-                          <div>
-                            <label className="block text-xs font-semibold text-stone-600 mb-1">Nome</label>
-                            <input 
-                              type="text" 
-                              required
-                              value={nome} 
-                              onChange={(e) => setNome(e.target.value)} 
-                              className="w-full p-3 rounded-xl bg-stone-50 border border-stone-200 text-xs text-stone-800 focus:outline-none"
-                              placeholder="Ex: Thais"
-                            />
-                          </div>
-
-                          <div>
-                            <label className="block text-xs font-semibold text-stone-600 mb-1">Especialidade</label>
-                            <input 
-                              type="text" 
-                              value={especialidade} 
-                              onChange={(e) => setEspecialidade(e.target.value)} 
-                              className="w-full p-3 rounded-xl bg-stone-50 border border-stone-200 text-xs text-stone-800 focus:outline-none"
-                              placeholder="Ex: Designer de sobrancelhas"
-                            />
-                          </div>
-
-                          <div>
-                            <label className="block text-xs font-semibold text-stone-600 mb-1">Taxa de Comissão (%)</label>
-                            <input 
-                              type="number" 
-                              value={taxaComissao} 
-                              onChange={(e) => setTaxaComissao(e.target.value)} 
-                              className="w-full p-3 rounded-xl bg-stone-50 border border-stone-200 text-xs text-stone-800 focus:outline-none"
-                              placeholder="Ex: 50"
-                            />
-                          </div>
-
-                          <div>
-                            <label className="block text-xs font-semibold text-stone-600 mb-1">Foto de Perfil</label>
-                            <div className="flex items-center gap-3">
-                              {fotoUrl ? (
-                                <img 
-                                  src={fotoUrl} 
-                                  alt="Preview" 
-                                  className="w-12 h-12 rounded-full object-cover border border-stone-200 shrink-0 shadow-sm" 
-                                />
-                              ) : (
-                                <div className="w-12 h-12 rounded-full bg-stone-100 border border-stone-200 flex items-center justify-center text-stone-400 text-[10px] shrink-0 font-bold">
-                                  Sem foto
-                                </div>
-                              )}
-
-                              <input 
-                                type="file" 
-                                accept="image/*"
-                                onChange={handleUploadFoto}
-                                disabled={uploading}
-                                className="w-full text-xs text-stone-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-stone-900 file:text-white hover:file:bg-stone-800 cursor-pointer"
-                              />
-                            </div>
-                            {uploading && <p className="text-[10px] text-amber-600 mt-1 font-medium">A enviar imagem...</p>}
-                          </div>
-
-                          <div className="pt-2 flex gap-2">
+                          <div className="pt-2">
                             <button
                               type="button"
-                              onClick={() => setModalBarbeiroOpen(false)}
-                              className="w-1/2 py-3 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-2xl text-xs font-semibold cursor-pointer transition-colors"
+                              onClick={() => setOpenAcessoId(isMenuAcessoAberto ? null : b.id)}
+                              className="w-full px-3.5 py-2.5 bg-stone-50 hover:bg-stone-100 rounded-2xl flex items-center justify-between text-xs font-bold text-stone-700 cursor-pointer transition-colors"
                             >
-                              Cancelar
+                              <span className="flex items-center gap-2">
+                                <KeyRound className="w-3.5 h-3.5 text-stone-500" />
+                                <span>Gerar Acesso ao Painel</span>
+                              </span>
+                              <ChevronDown className={`w-4 h-4 transition-transform ${isMenuAcessoAberto ? 'rotate-180' : ''}`} />
                             </button>
-                            <button 
-                              type="submit" 
-                              disabled={uploading}
-                              className="w-1/2 bg-stone-900 text-white font-semibold py-3 rounded-2xl text-xs uppercase tracking-wider shadow-md hover:bg-stone-800 cursor-pointer disabled:opacity-50 transition-all"
-                            >
-                              {uploading ? 'A aguardar...' : 'Salvar'}
-                            </button>
+
+                            {isMenuAcessoAberto && (
+                              <div className="p-3.5 mt-2 space-y-2.5 bg-stone-50/85 rounded-2xl border border-stone-200/80">
+                                <div className="space-y-1">
+                                  <label className="text-[10px] font-bold text-stone-500">E-mail do Barbeiro</label>
+                                  <input 
+                                    type="email" 
+                                    placeholder="barbeiro@exemplo.com" 
+                                    id={`email-${b.id}`}
+                                    className="w-full px-3 py-2 bg-white border border-stone-200 rounded-xl text-xs text-stone-900 focus:outline-none font-medium"
+                                  />
+                                </div>
+
+                                <div className="space-y-1">
+                                  <label className="text-[10px] font-bold text-stone-500">Senha Temporária</label>
+                                  <input 
+                                    type="password" 
+                                    placeholder="••••••••" 
+                                    id={`senha-${b.id}`}
+                                    className="w-full px-3 py-2 bg-white border border-stone-200 rounded-xl text-xs text-stone-900 focus:outline-none font-medium"
+                                  />
+                                </div>
+
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const emailInput = document.getElementById(`email-${b.id}`).value;
+                                    const senhaInput = document.getElementById(`senha-${b.id}`).value;
+
+                                    if (!emailInput || !senhaInput) {
+                                      alert('Preencha o e-mail e a senha.');
+                                      return;
+                                    }
+
+                                    criarAcessoBarbeiro(b.id, emailInput, senhaInput);
+                                  }}
+                                  className="w-full py-2.5 bg-stone-900 hover:bg-stone-800 text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs mt-1"
+                                >
+                                  Criar Credenciais
+                                </button>
+                              </div>
+                            )}
                           </div>
-                        </form>
-                      </div>
-                    </div>
+                        </div>
+                      );
+                    })
                   )}
                 </div>
               )}
-
             </div>
           )}
-        </main>
-      </div>
+          
+          </main></div>
 
       {modalHistoricoFechamentos && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
