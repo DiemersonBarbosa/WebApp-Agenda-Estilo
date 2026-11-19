@@ -50,6 +50,13 @@ export default function AgendamentoChat({ barbeariaId }) {
   const corTema = tema.cor_primaria || '#10b981';
   const corSecundaria = tema.cor_texto_secundario || '#94a3b8';
 
+  const getEstiloBotao3D = (ativo = false) => ({
+    background: ativo ? tema.botao_ativo_estilo : tema.botao_estilo,
+    color: tema.cor_texto_usuario,
+    boxShadow: ativo ? tema.sombra_botao_ativa : tema.sombra_botao,
+    borderColor: tema.borda_brilho_superior || 'rgba(255,255,255,0.45)',
+  });
+
   const formatarTelefoneWhatsApp = (telBruto) => {
     const apenasNumeros = telBruto.replace(/\D/g, '');
     if (apenasNumeros.startsWith('55') && apenasNumeros.length >= 12) {
@@ -607,10 +614,10 @@ export default function AgendamentoChat({ barbeariaId }) {
         <div className="flex items-center justify-between border-b pb-2.5" style={{ borderColor: tema.cor_borda }}>
           <div className="flex items-center gap-2">
             <div
-              className="w-7 h-7 rounded-xl flex items-center justify-center border"
-              style={{ backgroundColor: `${corTema}20`, borderColor: `${corTema}40`, color: corTema }}
+              className="w-7 h-7 rounded-full border flex items-center justify-center shadow-inner"
+              style={getEstiloBotao3D(false)}
             >
-              <Award className="w-4 h-4" />
+              <Award className="w-4 h-4 stroke-[2.2]" />
             </div>
             <span className="text-xs font-black uppercase tracking-wider">O seu Cartão Fidelidade</span>
           </div>
@@ -625,7 +632,7 @@ export default function AgendamentoChat({ barbeariaId }) {
           <div className="w-full h-2.5 rounded-full overflow-hidden p-0.5 border bg-black/25" style={{ borderColor: tema.cor_borda }}>
             <div
               className="h-full rounded-full transition-all duration-500"
-              style={{ width: `${percentual}%`, backgroundColor: corTema }}
+              style={{ width: `${percentual}%`, background: tema.botao_estilo }}
             />
           </div>
           <div className="flex justify-between text-[10px] font-medium" style={{ color: corSecundaria }}>
@@ -637,8 +644,8 @@ export default function AgendamentoChat({ barbeariaId }) {
           <button
             disabled={loading}
             onClick={handleResgatarPremioCliente}
-            className="w-full mt-2 py-2.5 rounded-xl font-black text-xs transition-all shadow-md cursor-pointer flex items-center justify-center gap-1.5"
-            style={{ backgroundColor: corTema, color: tema.cor_texto_usuario }}
+            style={getEstiloBotao3D(false)}
+            className="w-full mt-2 py-2.5 rounded-full border font-black text-xs transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95"
           >
             <Gift className="w-4 h-4" />
             <span>Resgatar Corte Grátis Agora</span>
@@ -652,7 +659,7 @@ export default function AgendamentoChat({ barbeariaId }) {
     <div
       className="fixed inset-0 w-full h-[100dvh] flex flex-col items-center justify-between overflow-hidden m-0 p-0 pb-6 md:pb-0"
       style={{
-        backgroundColor: tema.cor_fundo,
+        background: tema.fundo_estilo || tema.cor_fundo,
         color: tema.cor_texto_geral,
         fontFamily: tema.fonte,
       }}
@@ -707,8 +714,8 @@ export default function AgendamentoChat({ barbeariaId }) {
                 <img src={barbearia.logo_url} alt={barbearia.nome} className="w-full h-full object-cover rounded-2xl" />
               ) : (
                 <div
-                  className="w-full h-full rounded-2xl flex items-center justify-center font-black text-xl"
-                  style={{ backgroundColor: corTema, color: tema.cor_texto_usuario }}
+                  className="w-full h-full rounded-2xl flex items-center justify-center font-black text-xl border"
+                  style={getEstiloBotao3D(false)}
                 >
                   {barbearia?.nome?.charAt(0) || 'B'}
                 </div>
@@ -738,23 +745,19 @@ export default function AgendamentoChat({ barbeariaId }) {
             <div key={index} className={`flex items-start gap-2.5 ${msg.remetente === 'usuario' ? 'flex-row-reverse' : 'flex-row'}`}>
               {msg.remetente === 'bot' && (
                 <div
-                  className="w-7 h-7 rounded-xl border flex items-center justify-center shrink-0 shadow-sm mt-1"
-                  style={{ backgroundColor: `${corTema}20`, borderColor: `${corTema}50`, color: corTema }}
+                  className="w-7 h-7 rounded-full border flex items-center justify-center shrink-0 mt-1"
+                  style={getEstiloBotao3D(false)}
                 >
-                  <Bot className="w-3.5 h-3.5" />
+                  <Bot className="w-3.5 h-3.5 stroke-[2.2]" />
                 </div>
               )}
               <div
                 className={`p-3.5 rounded-3xl text-xs leading-relaxed max-w-[85%] backdrop-blur-md ${
-                  msg.remetente === 'usuario' ? 'font-bold rounded-tr-sm shadow-lg' : 'border shadow-sm'
+                  msg.remetente === 'usuario' ? 'font-bold rounded-tr-sm border' : 'border shadow-sm'
                 }`}
                 style={
                   msg.remetente === 'usuario'
-                    ? {
-                        backgroundColor: tema.cor_balao_usuario,
-                        color: tema.cor_texto_usuario,
-                        boxShadow: `0 5px 20px ${tema.cor_balao_usuario}40`,
-                      }
+                    ? getEstiloBotao3D(false)
                     : {
                         backgroundColor: tema.cor_balao_bot,
                         color: tema.cor_texto_bot,
@@ -770,10 +773,10 @@ export default function AgendamentoChat({ barbeariaId }) {
           {estaDigitando && (
             <div className="flex items-start gap-2.5 flex-row animate-fade-in">
               <div
-                className="w-7 h-7 rounded-xl border flex items-center justify-center shrink-0 shadow-sm mt-1"
-                style={{ backgroundColor: `${corTema}20`, borderColor: `${corTema}50`, color: corTema }}
+                className="w-7 h-7 rounded-full border flex items-center justify-center shrink-0 mt-1"
+                style={getEstiloBotao3D(false)}
               >
-                <Bot className="w-3.5 h-3.5" />
+                <Bot className="w-3.5 h-3.5 stroke-[2.2]" />
               </div>
               <div
                 className="p-4 rounded-3xl rounded-tl-sm border flex items-center gap-1.5 backdrop-blur-md shadow-inner"
@@ -789,32 +792,41 @@ export default function AgendamentoChat({ barbeariaId }) {
           {clienteId && !estaDigitando && ['menu_inicial', 'gerenciar', 'servico'].includes(etapa) && renderCartaoFidelidade()}
 
           {etapa === 'menu_inicial' && !estaDigitando && (
-            <div className="grid grid-cols-1 gap-2 pt-2">
+            <div className="grid grid-cols-1 gap-2.5 pt-2">
               {barbearia?.permite_agendamentos !== false && (
                 <button
                   onClick={() => escolherOpcaoMenu('novo')}
-                  className="p-3.5 rounded-2xl border text-left flex items-center justify-between transition-all cursor-pointer backdrop-blur-md font-bold text-xs"
-                  style={{
-                    backgroundColor: `${corTema}15`,
-                    borderColor: `${corTema}40`,
-                    color: tema.cor_texto_geral,
-                  }}
+                  style={getEstiloBotao3D(false)}
+                  className="p-3.5 rounded-2xl border text-left flex items-center justify-between transition-all cursor-pointer font-black text-xs active:scale-98"
                 >
-                  <span>Fazer novo agendamento</span>
-                  <ArrowRight className="w-4 h-4" style={{ color: corTema }} />
+                  <div className="flex items-center gap-2.5">
+                    <span className="w-7 h-7 rounded-full bg-black/15 flex items-center justify-center">
+                      <Scissors className="w-3.5 h-3.5" />
+                    </span>
+                    <span>Fazer novo agendamento</span>
+                  </div>
+                  <ArrowRight className="w-4 h-4" />
                 </button>
               )}
               <button
                 onClick={() => escolherOpcaoMenu('gerenciar')}
-                className="p-3.5 rounded-2xl border text-left flex items-center justify-between transition-all cursor-pointer backdrop-blur-md font-bold text-xs"
+                className="p-3.5 rounded-2xl border text-left flex items-center justify-between transition-all cursor-pointer backdrop-blur-md font-bold text-xs active:scale-98"
                 style={{
                   backgroundColor: tema.cor_card,
                   borderColor: tema.cor_borda,
                   color: tema.cor_texto_geral,
                 }}
               >
-                <span>{barbearia?.fidelidade_ativa !== false ? 'Ver / Gerenciar meus agendamentos e selos' : 'Ver / Gerenciar meus agendamentos'}</span>
-                <CalendarIcon className="w-4 h-4" style={{ color: corSecundaria }} />
+                <div className="flex items-center gap-2.5">
+                  <span
+                    className="w-7 h-7 rounded-full border flex items-center justify-center"
+                    style={getEstiloBotao3D(false)}
+                  >
+                    <CalendarIcon className="w-3.5 h-3.5" />
+                  </span>
+                  <span>{barbearia?.fidelidade_ativa !== false ? 'Ver / Gerenciar meus agendamentos e selos' : 'Ver / Gerenciar meus agendamentos'}</span>
+                </div>
+                <ArrowRight className="w-4 h-4" style={{ color: corSecundaria }} />
               </button>
             </div>
           )}
@@ -849,11 +861,15 @@ export default function AgendamentoChat({ barbeariaId }) {
                           </span>
                         ) : (
                           <>
-                            <button onClick={() => iniciarEdicao(ag)} className="px-3 py-2 rounded-xl bg-sky-500/20 hover:bg-sky-500/30 border border-sky-500/40 text-sky-500 text-[10px] font-bold transition-all flex items-center gap-1 cursor-pointer">
+                            <button
+                              onClick={() => iniciarEdicao(ag)}
+                              style={getEstiloBotao3D(false)}
+                              className="px-3 py-2 rounded-full border text-[10px] font-black transition-all flex items-center gap-1 cursor-pointer active:scale-95"
+                            >
                               <Edit3 className="w-3.5 h-3.5" />
                               <span>Editar</span>
                             </button>
-                            <button onClick={() => cancelarAgendamento(ag.id)} className="px-3 py-2 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/40 text-rose-500 text-[10px] font-bold transition-all flex items-center gap-1 cursor-pointer">
+                            <button onClick={() => cancelarAgendamento(ag.id)} className="px-3 py-2 rounded-full bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/40 text-rose-500 text-[10px] font-bold transition-all flex items-center gap-1 cursor-pointer">
                               <XCircle className="w-3.5 h-3.5" />
                               <span>Cancelar</span>
                             </button>
@@ -870,8 +886,8 @@ export default function AgendamentoChat({ barbeariaId }) {
                     setEtapa('servico');
                     setMensagens((prev) => [...prev, { remetente: 'bot', texto: 'Perfeito, vamos prosseguir com o novo agendamento. Escolha o serviço:' }]);
                   }}
-                  className="w-full py-3 rounded-2xl border text-xs font-bold transition-all cursor-pointer mt-2"
-                  style={{ backgroundColor: `${corTema}20`, color: corTema, borderColor: `${corTema}40` }}
+                  style={getEstiloBotao3D(false)}
+                  className="w-full py-3 rounded-full border text-xs font-black transition-all cursor-pointer mt-2 active:scale-98"
                 >
                   Fazer novo agendamento
                 </button>
@@ -886,8 +902,8 @@ export default function AgendamentoChat({ barbeariaId }) {
             >
               <div className="flex items-center justify-between pb-3 border-b" style={{ borderColor: tema.cor_borda }}>
                 <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-xl flex items-center justify-center shadow" style={{ backgroundColor: `${corTema}20`, color: corTema }}>
-                    <CalendarIcon className="w-4 h-4" />
+                  <div className="w-7 h-7 rounded-full border flex items-center justify-center" style={getEstiloBotao3D(false)}>
+                    <CalendarIcon className="w-4 h-4 stroke-[2.2]" />
                   </div>
                   <span className="text-xs font-black uppercase tracking-wider">Selecione o Dia</span>
                 </div>
@@ -895,20 +911,20 @@ export default function AgendamentoChat({ barbeariaId }) {
                 <div className="flex items-center gap-1.5">
                   <button
                     onClick={voltarMes}
-                    className="w-7 h-7 rounded-lg border flex items-center justify-center hover:opacity-80 transition-colors cursor-pointer"
-                    style={{ borderColor: `${corTema}50` }}
+                    style={getEstiloBotao3D(false)}
+                    className="w-7 h-7 rounded-full border flex items-center justify-center transition-all cursor-pointer active:scale-95"
                   >
-                    <ChevronLeft className="w-4 h-4" style={{ color: corTema }} />
+                    <ChevronLeft className="w-4 h-4 stroke-[2.2]" />
                   </button>
                   <span className="text-xs font-black uppercase tracking-tight px-1">
                     {dataAtualNavegacao.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
                   </span>
                   <button
                     onClick={avancarMes}
-                    className="w-7 h-7 rounded-lg border flex items-center justify-center hover:opacity-80 transition-colors cursor-pointer"
-                    style={{ borderColor: `${corTema}50` }}
+                    style={getEstiloBotao3D(false)}
+                    className="w-7 h-7 rounded-full border flex items-center justify-center transition-all cursor-pointer active:scale-95"
                   >
-                    <ChevronRight className="w-4 h-4" style={{ color: corTema }} />
+                    <ChevronRight className="w-4 h-4 stroke-[2.2]" />
                   </button>
                 </div>
               </div>
@@ -921,24 +937,18 @@ export default function AgendamentoChat({ barbeariaId }) {
                       key={diaObj.dataIso}
                       disabled={diaObj.bloqueado}
                       onClick={() => confirmarDataModerna(diaObj.dataIso, diaObj.bloqueado)}
+                      style={!diaObj.bloqueado ? getEstiloBotao3D(selecionado) : undefined}
                       className={`p-3 rounded-2xl border text-center flex flex-col items-center justify-center transition-all ${
                         diaObj.bloqueado
                           ? 'bg-rose-500/10 border-rose-500/20 text-rose-400 opacity-40 cursor-not-allowed line-through'
                           : selecionado
-                          ? 'shadow-lg scale-105'
-                          : ''
+                          ? 'scale-[1.03] translate-y-[1px] cursor-pointer'
+                          : 'cursor-pointer hover:brightness-105'
                       }`}
-                      style={
-                        !diaObj.bloqueado
-                          ? selecionado
-                            ? { backgroundColor: corTema, borderColor: corTema, color: tema.cor_texto_usuario }
-                            : { backgroundColor: tema.cor_container, borderColor: tema.cor_borda, color: tema.cor_texto_geral }
-                          : {}
-                      }
                     >
-                      <span className="text-[10px] uppercase font-bold opacity-70">{diaObj.diaSemanaStr}</span>
+                      <span className="text-[10px] uppercase font-bold opacity-80">{diaObj.diaSemanaStr}</span>
                       <span className="text-lg font-black my-0.5">{diaObj.diaNum}</span>
-                      <span className="text-[9px] uppercase font-semibold opacity-60">{diaObj.mesStr}</span>
+                      <span className="text-[9px] uppercase font-semibold opacity-75">{diaObj.mesStr}</span>
                       {diaObj.bloqueado && <span className="text-[8px] mt-1 text-rose-500 font-bold no-underline">Fechado</span>}
                     </button>
                   );
@@ -972,8 +982,8 @@ export default function AgendamentoChat({ barbeariaId }) {
                         setDataEscolhida('');
                         setEtapa('editar_data');
                       }}
-                      className="w-full py-3.5 px-4 rounded-2xl text-xs font-black transition-all cursor-pointer flex items-center justify-between shadow-md hover:scale-[1.01]"
-                      style={{ backgroundColor: corTema, color: tema.cor_texto_usuario }}
+                      style={getEstiloBotao3D(false)}
+                      className="w-full py-3.5 px-4 rounded-2xl border text-xs font-black transition-all cursor-pointer flex items-center justify-between active:scale-98"
                     >
                       <span className="flex items-center gap-2">
                         <CalendarIcon className="w-4 h-4" />
@@ -992,8 +1002,8 @@ export default function AgendamentoChat({ barbeariaId }) {
                         key={h}
                         disabled={loading}
                         onClick={() => salvarEdicaoHorario(h)}
-                        className="py-2.5 rounded-xl text-xs font-black border transition-all backdrop-blur-md cursor-pointer"
-                        style={{ backgroundColor: tema.cor_card, borderColor: tema.cor_borda, color: tema.cor_texto_geral }}
+                        style={getEstiloBotao3D(false)}
+                        className="py-2.5 rounded-xl text-xs font-black border transition-all cursor-pointer active:scale-95"
                       >
                         {h}
                       </button>
@@ -1005,51 +1015,55 @@ export default function AgendamentoChat({ barbeariaId }) {
 
           {etapa === 'servico' && !estaDigitando && (
             <div className="grid grid-cols-2 gap-3 pt-2">
-              {servicos.map((s) => (
-                <button
-                  key={s.id}
-                  onClick={() => selecionarServico(s)}
-                  className="p-4 rounded-3xl border text-left flex flex-col justify-between transition-all cursor-pointer backdrop-blur-xl group hover:scale-[1.02] shadow-lg"
-                  style={{ backgroundColor: tema.cor_card, borderColor: tema.cor_borda, color: tema.cor_texto_geral }}
-                >
-                  <div className="w-8 h-8 rounded-xl flex items-center justify-center mb-3 shadow-inner" style={{ backgroundColor: `${corTema}25`, color: corTema }}>
-                    <Scissors className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-extrabold tracking-tight">{s.nome}</p>
-                    <p className="text-[10px] mt-0.5" style={{ color: corSecundaria }}>{s.duracao_minutos || 30} min</p>
-                  </div>
-                  <div className="mt-3 pt-2 border-t flex items-center justify-between" style={{ borderColor: tema.cor_borda }}>
-                    <span className="text-[10px] font-bold uppercase" style={{ color: corSecundaria }}>Preço</span>
-                    <span className="text-xs font-black" style={{ color: corTema }}>R$ {Number(s.preco).toFixed(2)}</span>
-                  </div>
-                </button>
-              ))}
+              {servicos.map((s) => {
+                const isSelected = servicoEscolhido?.id === s.id;
+                return (
+                  <button
+                    key={s.id}
+                    onClick={() => selecionarServico(s)}
+                    style={getEstiloBotao3D(isSelected)}
+                    className="p-4 rounded-3xl border text-left flex flex-col justify-between transition-all cursor-pointer group hover:scale-[1.02] active:scale-98"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-black/15 flex items-center justify-center mb-3">
+                      <Scissors className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-black tracking-tight">{s.nome}</p>
+                      <p className="text-[10px] mt-0.5 opacity-80">{s.duracao_minutos || 30} min</p>
+                    </div>
+                    <div className="mt-3 pt-2 border-t border-black/15 flex items-center justify-between">
+                      <span className="text-[10px] font-bold uppercase opacity-75">Preço</span>
+                      <span className="text-xs font-black">R$ {Number(s.preco).toFixed(2)}</span>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           )}
 
           {etapa === 'barbeiro' && !estaDigitando && (
             <div className="grid grid-cols-2 gap-3 pt-2">
               {barbeiros.map((b) => {
+                const isSelected = barbeiroEscolhido?.id === b.id;
                 const foto = b.foto || b.avatar || b.imagem;
                 return (
                   <button
                     key={b.id}
                     onClick={() => selecionarBarbeiro(b)}
-                    className="p-3.5 rounded-3xl border text-left flex flex-col items-center text-center transition-all cursor-pointer backdrop-blur-xl group hover:scale-[1.02] shadow-lg"
-                    style={{ backgroundColor: tema.cor_card, borderColor: tema.cor_borda, color: tema.cor_texto_geral }}
+                    style={getEstiloBotao3D(isSelected)}
+                    className="p-3.5 rounded-3xl border text-left flex flex-col items-center text-center transition-all cursor-pointer group hover:scale-[1.02] active:scale-98"
                   >
-                    <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden border-2 mb-3 shadow-2xl relative" style={{ borderColor: `${corTema}66` }}>
+                    <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden border-2 border-white/60 mb-3 shadow-lg relative">
                       {foto ? (
                         <img src={foto} alt={b.nome} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center font-black text-lg" style={{ backgroundColor: corTema, color: tema.cor_texto_usuario }}>
+                        <div className="w-full h-full flex items-center justify-center font-black text-lg bg-black/20">
                           {b.nome?.charAt(0)}
                         </div>
                       )}
                     </div>
                     <p className="text-xs font-black tracking-tight line-clamp-1">{b.nome}</p>
-                    <span className="text-[9px] font-semibold mt-0.5 px-2 py-0.5 rounded-full border" style={{ backgroundColor: `${corTema}15`, color: corTema, borderColor: `${corTema}33` }}>
+                    <span className="text-[9px] font-bold mt-0.5 px-2.5 py-0.5 rounded-full bg-black/15">
                       Profissional
                     </span>
                   </button>
@@ -1083,8 +1097,8 @@ export default function AgendamentoChat({ barbeariaId }) {
                         setDataEscolhida('');
                         setEtapa('data');
                       }}
-                      className="w-full py-3.5 px-4 rounded-2xl text-xs font-black transition-all cursor-pointer flex items-center justify-between shadow-md hover:scale-[1.01]"
-                      style={{ backgroundColor: corTema, color: tema.cor_texto_usuario }}
+                      style={getEstiloBotao3D(false)}
+                      className="w-full py-3.5 px-4 rounded-2xl border text-xs font-black transition-all cursor-pointer flex items-center justify-between active:scale-98"
                     >
                       <span className="flex items-center gap-2">
                         <CalendarIcon className="w-4 h-4" />
@@ -1121,12 +1135,10 @@ export default function AgendamentoChat({ barbeariaId }) {
                           key={h}
                           disabled={loading}
                           onClick={() => selecionarHorario(h)}
-                          className={`py-2.5 rounded-xl text-xs font-black border transition-all backdrop-blur-md cursor-pointer ${selecionado ? 'shadow-lg scale-105' : ''}`}
-                          style={
-                            selecionado
-                              ? { backgroundColor: corTema, borderColor: corTema, color: tema.cor_texto_usuario }
-                              : { backgroundColor: tema.cor_card, borderColor: tema.cor_borda, color: tema.cor_texto_geral }
-                          }
+                          style={getEstiloBotao3D(selecionado)}
+                          className={`py-2.5 rounded-xl text-xs font-black border transition-all cursor-pointer active:scale-95 ${
+                            selecionado ? 'scale-[1.03] translate-y-[1px]' : 'hover:brightness-105'
+                          }`}
                         >
                           {h}
                         </button>
@@ -1153,8 +1165,8 @@ export default function AgendamentoChat({ barbeariaId }) {
               <button
                 disabled={loading}
                 onClick={confirmarAgendamentoFinal}
-                className="w-full mt-3 py-3 rounded-xl font-black text-xs uppercase tracking-widest cursor-pointer shadow-lg hover:brightness-110 transition-all"
-                style={{ backgroundColor: corTema, color: tema.cor_texto_usuario }}
+                style={getEstiloBotao3D(false)}
+                className="w-full mt-3 py-3 rounded-full border font-black text-xs uppercase tracking-widest cursor-pointer transition-all active:scale-98"
               >
                 {loading ? 'A confirmar...' : 'Confirmar Agendamento'}
               </button>
@@ -1164,8 +1176,8 @@ export default function AgendamentoChat({ barbeariaId }) {
           {etapa === 'sucesso' && !estaDigitando && (
             <div className="pt-2 text-center space-y-3">
               <div
-                className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto shadow-lg"
-                style={{ backgroundColor: corTema, color: tema.cor_texto_usuario }}
+                className="w-12 h-12 rounded-full border flex items-center justify-center mx-auto"
+                style={getEstiloBotao3D(false)}
               >
                 <CheckCircle2 className="w-6 h-6" />
               </div>
@@ -1176,8 +1188,8 @@ export default function AgendamentoChat({ barbeariaId }) {
                       setEtapa('servico');
                       setMensagens((prev) => [...prev, { remetente: 'bot', texto: 'Escolha o serviço para o novo agendamento:' }]);
                     }}
-                    className="w-full py-3 rounded-2xl font-bold text-xs transition-all cursor-pointer shadow-md"
-                    style={{ backgroundColor: corTema, color: tema.cor_texto_usuario }}
+                    style={getEstiloBotao3D(false)}
+                    className="w-full py-3 rounded-full border font-black text-xs transition-all cursor-pointer active:scale-98"
                   >
                     Fazer Novo Agendamento
                   </button>
@@ -1187,7 +1199,7 @@ export default function AgendamentoChat({ barbeariaId }) {
                     carregarDadosCliente(clienteId);
                     setEtapa('gerenciar');
                   }}
-                  className="w-full py-3 rounded-2xl font-bold text-xs transition-all cursor-pointer border"
+                  className="w-full py-3 rounded-full font-bold text-xs transition-all cursor-pointer border"
                   style={{ backgroundColor: tema.cor_card, borderColor: tema.cor_borda, color: tema.cor_texto_geral }}
                 >
                   {barbearia?.fidelidade_ativa !== false ? 'Ver Meus Agendamentos e Selos' : 'Ver Meus Agendamentos'}
@@ -1224,10 +1236,10 @@ export default function AgendamentoChat({ barbeariaId }) {
             />
             <button
               type="submit"
-              className="w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg shrink-0 cursor-pointer"
-              style={{ backgroundColor: corTema, color: tema.cor_texto_usuario }}
+              style={getEstiloBotao3D(false)}
+              className="w-12 h-12 rounded-full border flex items-center justify-center shrink-0 cursor-pointer transition-all active:scale-95"
             >
-              <Send className="w-4 h-4" />
+              <Send className="w-4 h-4 stroke-[2.2]" />
             </button>
           </form>
         )}

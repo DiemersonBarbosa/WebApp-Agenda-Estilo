@@ -12,9 +12,8 @@ export default function AgendamentoClientPage({ slug: initialSlug }) {
 
   useEffect(() => {
     async function carregarDadosBarbearia() {
-      // No APK/SPA, tenta obter o slug dinâmico da URL caso o parâmetro estático seja 'default'
       let slug = initialSlug;
-      
+
       if (typeof window !== 'undefined' && (!slug || slug === 'default')) {
         const pathParts = window.location.pathname.split('/');
         slug = pathParts[pathParts.length - 1] || pathParts[pathParts.length - 2];
@@ -79,13 +78,13 @@ export default function AgendamentoClientPage({ slug: initialSlug }) {
     <main
       className="min-h-screen py-8 px-4 relative overflow-x-hidden flex flex-col items-center justify-between transition-colors duration-200"
       style={{
-        backgroundColor: tema.cor_fundo,
+        background: tema.fundo_estilo || tema.cor_fundo,
         color: tema.cor_texto_geral,
         fontFamily: tema.fonte,
       }}
     >
       <div
-        className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-3xl h-72 blur-[120px] pointer-events-none opacity-20"
+        className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-3xl h-72 blur-[120px] pointer-events-none opacity-25"
         style={{ backgroundColor: tema.cor_primaria }}
       />
 

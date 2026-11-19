@@ -44,6 +44,13 @@ export default function AgendamentoClassico({ barbeariaId }) {
   const corTema = tema.cor_primaria || '#10b981';
   const corSecundaria = tema.cor_texto_secundario || '#94a3b8';
 
+  const getEstiloBotao3D = (ativo = false) => ({
+    background: ativo ? tema.botao_ativo_estilo : tema.botao_estilo,
+    color: tema.cor_texto_usuario,
+    boxShadow: ativo ? tema.sombra_botao_ativa : tema.sombra_botao,
+    borderColor: tema.borda_brilho_superior || 'rgba(255,255,255,0.45)',
+  });
+
   useEffect(() => {
     async function carregarDados() {
       try {
@@ -431,10 +438,10 @@ export default function AgendamentoClassico({ barbeariaId }) {
       >
         <div className="flex items-center gap-3">
           <div
-            className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 shadow-sm"
-            style={{ backgroundColor: `${corTema}20`, color: corTema }}
+            className="w-10 h-10 rounded-full border flex items-center justify-center shrink-0"
+            style={getEstiloBotao3D(false)}
           >
-            <Gift className="w-5 h-5" />
+            <Gift className="w-5 h-5 stroke-[2.2]" />
           </div>
           <div>
             <div className="flex items-center gap-2">
@@ -501,8 +508,8 @@ export default function AgendamentoClassico({ barbeariaId }) {
             <img src={barbearia.logo_url} alt={barbearia.nome} className="w-full h-full object-cover rounded-[1.4rem]" />
           ) : (
             <div
-              className="w-full h-full rounded-[1.4rem] flex items-center justify-center font-black text-xl"
-              style={{ backgroundColor: corTema, color: tema.cor_texto_usuario }}
+              className="w-full h-full rounded-[1.4rem] flex items-center justify-center font-black text-xl border"
+              style={getEstiloBotao3D(false)}
             >
               {barbearia?.nome?.charAt(0) || 'B'}
             </div>
@@ -537,8 +544,8 @@ export default function AgendamentoClassico({ barbeariaId }) {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg flex items-center justify-center gap-2 cursor-pointer transition-all hover:brightness-110 active:scale-98"
-                  style={{ backgroundColor: corTema, color: tema.cor_texto_usuario }}
+                  style={getEstiloBotao3D(false)}
+                  className="w-full py-3.5 rounded-full border font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-98"
                 >
                   <span>{loading ? 'A verificar...' : 'Avançar'}</span>
                   <ArrowRight className="w-4 h-4" />
@@ -569,8 +576,8 @@ export default function AgendamentoClassico({ barbeariaId }) {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg flex items-center justify-center gap-2 cursor-pointer transition-all hover:brightness-110 active:scale-98"
-                  style={{ backgroundColor: corTema, color: tema.cor_texto_usuario }}
+                  style={getEstiloBotao3D(false)}
+                  className="w-full py-3.5 rounded-full border font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-98"
                 >
                   <span>Iniciar Agendamento</span>
                   <ArrowRight className="w-4 h-4" />
@@ -584,34 +591,38 @@ export default function AgendamentoClassico({ barbeariaId }) {
             {renderCartaoFidelidade()}
 
             <div
-              className="flex gap-1.5 p-1 rounded-2xl border"
+              className="flex gap-2 p-1.5 rounded-2xl border"
               style={{ backgroundColor: tema.cor_card, borderColor: tema.cor_borda }}
             >
               <button
-                onClick={() => setModoVisualizacao('agendar')}
-                className="flex-1 py-2.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer"
-                style={
-                  modoVisualizacao === 'agendar'
-                    ? { backgroundColor: corTema, color: tema.cor_texto_usuario }
-                    : { color: corSecundaria }
-                }
-              >
-                Novo Agendamento
-              </button>
+          onClick={() => setModoVisualizacao('agendar')}
+          style={
+            modoVisualizacao === 'agendar'
+              ? getEstiloBotao3D(true)
+              : { color: corSecundaria }
+          }
+          className={`flex-1 py-2.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
+            modoVisualizacao === 'agendar' ? 'border translate-y-[1px]' : ''
+          }`}
+        >
+          Novo Agendamento
+        </button>
 
-              {agendamentosAtivos.length > 0 && (
-                <button
-                  onClick={() => setModoVisualizacao('gerenciar')}
-                  className="flex-1 py-2.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer"
-                  style={
-                    modoVisualizacao === 'gerenciar'
-                      ? { backgroundColor: corTema, color: tema.cor_texto_usuario }
-                      : { color: corSecundaria }
-                  }
-                >
-                  Meus Agendamentos ({agendamentosAtivos.length})
-                </button>
-              )}
+        {agendamentosAtivos.length > 0 && (
+          <button
+            onClick={() => setModoVisualizacao('gerenciar')}
+            style={
+              modoVisualizacao === 'gerenciar'
+                ? getEstiloBotao3D(true)
+                : { color: corSecundaria }
+            }
+            className={`flex-1 py-2.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
+              modoVisualizacao === 'gerenciar' ? 'border translate-y-[1px]' : ''
+            }`}
+          >
+            Meus Agendamentos ({agendamentosAtivos.length})
+          </button>
+        )}
             </div>
 
             {modoVisualizacao === 'gerenciar' ? (
@@ -654,14 +665,14 @@ export default function AgendamentoClassico({ barbeariaId }) {
                                   setHoraEscolhida('');
                                   setModoVisualizacao('agendar');
                                 }}
-                                className="p-2 rounded-xl text-[10px] font-bold flex items-center gap-1 cursor-pointer"
-                                style={{ backgroundColor: corTema, color: tema.cor_texto_usuario }}
+                                style={getEstiloBotao3D(false)}
+                                className="px-3 py-2 rounded-full border text-[10px] font-black flex items-center gap-1 cursor-pointer active:scale-95"
                               >
                                 <Edit3 className="w-3.5 h-3.5" /> Editar
                               </button>
                               <button
                                 onClick={() => cancelarAgendamento(ag.id)}
-                                className="p-2 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-500 text-[10px] font-bold flex items-center gap-1 cursor-pointer hover:bg-rose-500/25"
+                                className="px-3 py-2 rounded-full bg-rose-500/15 border border-rose-500/30 text-rose-500 text-[10px] font-bold flex items-center gap-1 cursor-pointer hover:bg-rose-500/25"
                               >
                                 <Trash2 className="w-3.5 h-3.5" /> Cancelar
                               </button>
@@ -674,8 +685,8 @@ export default function AgendamentoClassico({ barbeariaId }) {
                 )}
                 <button
                   onClick={() => setModoVisualizacao('agendar')}
-                  className="w-full py-3.5 rounded-2xl font-bold text-xs uppercase tracking-wider cursor-pointer shadow-md mt-2"
-                  style={{ backgroundColor: corTema, color: tema.cor_texto_usuario }}
+                  style={getEstiloBotao3D(false)}
+                  className="w-full py-3.5 rounded-full border font-black text-xs uppercase tracking-wider cursor-pointer mt-2 active:scale-98"
                 >
                   Fazer Novo Agendamento
                 </button>
@@ -685,7 +696,9 @@ export default function AgendamentoClassico({ barbeariaId }) {
                 <div ref={servicoRef} className="space-y-3 scroll-mt-6">
                   <div className="flex items-center justify-between">
                     <label className="text-xs font-black uppercase tracking-wider flex items-center gap-2" style={{ color: corSecundaria }}>
-                      <Scissors className="w-4 h-4" style={{ color: corTema }} />
+                      <span className="w-6 h-6 rounded-full border flex items-center justify-center" style={getEstiloBotao3D(false)}>
+                        <Scissors className="w-3.5 h-3.5 stroke-[2.2]" />
+                      </span>
                       1. Escolha o Serviço
                     </label>
                     {servicoEscolhido && (
@@ -708,12 +721,14 @@ export default function AgendamentoClassico({ barbeariaId }) {
                             setHoraEscolhida('');
                             setTimeout(() => barbeiroRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150);
                           }}
-                          className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer flex items-center justify-between ${isSelected ? 'border-2 shadow-md scale-[1.01]' : ''}`}
                           style={
                             isSelected
-                              ? { backgroundColor: corTema, borderColor: corTema, color: tema.cor_texto_usuario }
+                              ? getEstiloBotao3D(true)
                               : { backgroundColor: tema.cor_card, borderColor: tema.cor_borda, color: tema.cor_texto_geral }
                           }
+                          className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer flex items-center justify-between active:scale-98 ${
+                            isSelected ? 'scale-[1.01] translate-y-[1px] font-black' : 'hover:brightness-105'
+                          }`}
                         >
                           <div>
                             <p className="text-xs font-black">{s.nome}</p>
@@ -731,7 +746,9 @@ export default function AgendamentoClassico({ barbeariaId }) {
                 {servicoEscolhido && (
                   <div ref={barbeiroRef} className="space-y-3 pt-4 border-t scroll-mt-6" style={{ borderColor: tema.cor_borda }}>
                     <label className="text-xs font-black uppercase tracking-wider flex items-center gap-2" style={{ color: corSecundaria }}>
-                      <User className="w-4 h-4" style={{ color: corTema }} />
+                      <span className="w-6 h-6 rounded-full border flex items-center justify-center" style={getEstiloBotao3D(false)}>
+                        <User className="w-3.5 h-3.5 stroke-[2.2]" />
+                      </span>
                       2. Escolha o Profissional
                     </label>
 
@@ -748,18 +765,20 @@ export default function AgendamentoClassico({ barbeariaId }) {
                               setHoraEscolhida('');
                               setTimeout(() => dataRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150);
                             }}
-                            className={`p-3 rounded-2xl border text-center flex flex-col items-center transition-all cursor-pointer ${isSelected ? 'border-2 shadow-md scale-[1.02]' : ''}`}
                             style={
                               isSelected
-                                ? { backgroundColor: corTema, borderColor: corTema, color: tema.cor_texto_usuario }
+                                ? getEstiloBotao3D(true)
                                 : { backgroundColor: tema.cor_card, borderColor: tema.cor_borda, color: tema.cor_texto_geral }
                             }
+                            className={`p-3 rounded-2xl border text-center flex flex-col items-center transition-all cursor-pointer active:scale-98 ${
+                              isSelected ? 'scale-[1.02] translate-y-[1px] font-black' : 'hover:brightness-105'
+                            }`}
                           >
                             <div className="w-12 h-12 rounded-full overflow-hidden border-2 mb-1.5 shrink-0" style={{ borderColor: tema.cor_borda }}>
                               {foto ? (
                                 <img src={foto} alt={b.nome} className="w-full h-full object-cover" />
                               ) : (
-                                <div className="w-full h-full flex items-center justify-center font-black text-sm" style={{ backgroundColor: corTema, color: tema.cor_texto_usuario }}>
+                                <div className="w-full h-full flex items-center justify-center font-black text-sm border" style={getEstiloBotao3D(false)}>
                                   {b.nome?.charAt(0)}
                                 </div>
                               )}
@@ -775,7 +794,9 @@ export default function AgendamentoClassico({ barbeariaId }) {
                 {(barbeiroEscolhido || agendamentoEmEdicao) && (
                   <div ref={dataRef} className="space-y-3 pt-4 border-t scroll-mt-6" style={{ borderColor: tema.cor_borda }}>
                     <label className="text-xs font-black uppercase tracking-wider flex items-center gap-2" style={{ color: corSecundaria }}>
-                      <CalendarIcon className="w-4 h-4" style={{ color: corTema }} />
+                      <span className="w-6 h-6 rounded-full border flex items-center justify-center" style={getEstiloBotao3D(false)}>
+                        <CalendarIcon className="w-3.5 h-3.5 stroke-[2.2]" />
+                      </span>
                       3. Escolha a Data
                     </label>
 
@@ -791,20 +812,20 @@ export default function AgendamentoClassico({ barbeariaId }) {
                               setHoraEscolhida('');
                               setTimeout(() => horarioRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150);
                             }}
-                            className={`shrink-0 w-20 p-3 rounded-2xl border text-center transition-all flex flex-col items-center ${
-                              d.bloqueado
-                                ? 'opacity-30 cursor-not-allowed'
-                                : isSelected
-                                ? 'border-2 font-bold shadow-md scale-[1.02]'
-                                : ''
-                            }`}
                             style={
                               d.bloqueado
                                 ? { backgroundColor: tema.cor_card, borderColor: tema.cor_borda }
                                 : isSelected
-                                ? { backgroundColor: corTema, borderColor: corTema, color: tema.cor_texto_usuario }
+                                ? getEstiloBotao3D(true)
                                 : { backgroundColor: tema.cor_card, borderColor: tema.cor_borda, color: tema.cor_texto_geral }
                             }
+                            className={`shrink-0 w-20 p-3 rounded-2xl border text-center transition-all flex flex-col items-center ${
+                              d.bloqueado
+                                ? 'opacity-30 cursor-not-allowed'
+                                : isSelected
+                                ? 'font-bold scale-[1.02] translate-y-[1px] cursor-pointer'
+                                : 'cursor-pointer hover:brightness-105'
+                            }`}
                           >
                             <span className="text-[9px] font-extrabold uppercase opacity-75">{d.diaSemanaStr}</span>
                             <span className="text-base font-black my-0.5">{d.diaNum}</span>
@@ -821,7 +842,9 @@ export default function AgendamentoClassico({ barbeariaId }) {
                 {dataEscolhida && (
                   <div ref={horarioRef} className="space-y-3 pt-4 border-t scroll-mt-6" style={{ borderColor: tema.cor_borda }}>
                     <label className="text-xs font-black uppercase tracking-wider flex items-center gap-2" style={{ color: corSecundaria }}>
-                      <Clock className="w-4 h-4" style={{ color: corTema }} />
+                      <span className="w-6 h-6 rounded-full border flex items-center justify-center" style={getEstiloBotao3D(false)}>
+                        <Clock className="w-3.5 h-3.5 stroke-[2.2]" />
+                      </span>
                       4. Escolha o Horário
                     </label>
 
@@ -841,14 +864,14 @@ export default function AgendamentoClassico({ barbeariaId }) {
                                 setTimeout(() => resumoRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150);
                               }
                             }}
-                            className={`py-2.5 rounded-xl text-xs font-bold border transition-all ${
-                              ocupado ? 'opacity-30 line-through cursor-not-allowed' : isSelected ? 'border-2 font-extrabold shadow-md cursor-pointer' : 'cursor-pointer'
-                            }`}
                             style={
                               isSelected
-                                ? { backgroundColor: corTema, borderColor: corTema, color: tema.cor_texto_usuario }
+                                ? getEstiloBotao3D(true)
                                 : { backgroundColor: tema.cor_card, borderColor: tema.cor_borda, color: tema.cor_texto_geral }
                             }
+                            className={`py-2.5 rounded-xl text-xs font-bold border transition-all ${
+                              ocupado ? 'opacity-30 line-through cursor-not-allowed' : isSelected ? 'font-extrabold translate-y-[1px] cursor-pointer' : 'cursor-pointer hover:brightness-105'
+                            }`}
                           >
                             {h}
                           </button>
@@ -877,8 +900,8 @@ export default function AgendamentoClassico({ barbeariaId }) {
                     <button
                       disabled={loading}
                       onClick={confirmarAgendamento}
-                      className="w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest cursor-pointer shadow-lg hover:brightness-110 active:scale-98 transition-all flex items-center justify-center gap-2"
-                      style={{ backgroundColor: corTema, color: tema.cor_texto_usuario }}
+                      style={getEstiloBotao3D(false)}
+                      className="w-full py-4 rounded-full border font-black text-xs uppercase tracking-widest cursor-pointer transition-all active:scale-98 flex items-center justify-center gap-2"
                     >
                       {loading ? 'A processar...' : 'Confirmar Agendamento'}
                     </button>
@@ -888,8 +911,8 @@ export default function AgendamentoClassico({ barbeariaId }) {
                 {sucesso && (
                   <div className="py-6 text-center space-y-4 border-t" style={{ borderColor: tema.cor_borda }}>
                     <div
-                      className="w-14 h-14 rounded-full flex items-center justify-center mx-auto shadow-md"
-                      style={{ backgroundColor: corTema, color: tema.cor_texto_usuario }}
+                      className="w-14 h-14 rounded-full border flex items-center justify-center mx-auto"
+                      style={getEstiloBotao3D(false)}
                     >
                       <Check className="w-8 h-8 stroke-[3]" />
                     </div>
@@ -908,8 +931,8 @@ export default function AgendamentoClassico({ barbeariaId }) {
                           setHoraEscolhida('');
                           setModoVisualizacao('agendar');
                         }}
-                        className="w-full py-3.5 rounded-2xl font-bold text-xs uppercase shadow-md hover:brightness-110 cursor-pointer"
-                        style={{ backgroundColor: corTema, color: tema.cor_texto_usuario }}
+                        style={getEstiloBotao3D(false)}
+                        className="w-full py-3.5 rounded-full border font-black text-xs uppercase cursor-pointer active:scale-98"
                       >
                         Novo Agendamento
                       </button>
@@ -918,7 +941,7 @@ export default function AgendamentoClassico({ barbeariaId }) {
                           setSucesso(false);
                           setModoVisualizacao('gerenciar');
                         }}
-                        className="w-full py-3.5 rounded-2xl font-bold text-xs uppercase border cursor-pointer"
+                        className="w-full py-3.5 rounded-full font-bold text-xs uppercase border cursor-pointer"
                         style={{ backgroundColor: tema.cor_card, borderColor: tema.cor_borda, color: tema.cor_texto_geral }}
                       >
                         Ver Meus Agendamentos
