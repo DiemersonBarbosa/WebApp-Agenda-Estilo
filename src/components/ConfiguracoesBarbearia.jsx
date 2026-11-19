@@ -33,6 +33,61 @@ const FUSOS_HORARIOS = [
   { value: 'America/Noronha', label: 'Fernando de Noronha (GMT-2)' }
 ];
 
+const renderDetalheDecorativo = (temaObj) => {
+  const cor = temaObj?.cor_primaria || '#ec4899';
+  switch (temaObj?.decoracao) {
+    case 'coracao':
+    case 'coracao_3d':
+      return (
+        <span
+          className="pointer-events-none select-none text-lg opacity-35"
+          style={{ color: cor }}
+        >
+          ♥
+        </span>
+      );
+    case 'coroa':
+      return (
+        <span
+          className="pointer-events-none select-none text-base opacity-45"
+          style={{ color: cor }}
+        >
+          ♛
+        </span>
+      );
+    case 'folhas':
+      return (
+        <span
+          className="pointer-events-none select-none text-base opacity-35"
+          style={{ color: cor }}
+        >
+          ❀
+        </span>
+      );
+    case 'tesoura':
+    case 'tesoura_vermelha':
+      return (
+        <span
+          className="pointer-events-none select-none text-base opacity-35"
+          style={{ color: cor }}
+        >
+          ✂
+        </span>
+      );
+    case 'barber_pole':
+      return (
+        <span
+          className="pointer-events-none select-none text-[10px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded border opacity-50"
+          style={{ color: cor, borderColor: cor }}
+        >
+          BARBER
+        </span>
+      );
+    default:
+      return null;
+  }
+};
+
 export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
   const [secaoAtiva, setSecaoAtiva] = useState('geral');
 
@@ -48,6 +103,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
 
   const [temaPersonalizado, setTemaPersonalizado] = useState(() => resolverTemaBarbearia(barbearia));
   const [modoPreview, setModoPreview] = useState('chat');
+  const [filtroEstilos, setFiltroEstilos] = useState('todos');
 
   const [modoAtendimento, setModoAtendimento] = useState(
     barbearia?.tipo_atendimento || barbearia?.modo_agendamento || barbearia?.modo_chatbot || 'conversacional'
@@ -243,7 +299,6 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
     setArrastando(false);
   };
 
-  // Calcula tamanho visual inicial da imagem sem pré-cortar antes de arrastar
   const calcularDimensoesVisuaisImagem = () => {
     const isLogo = modalRecorte.tipo === 'logo';
     const caixaW = caixaRecorteRef.current?.clientWidth || (isLogo ? 224 : 360);
@@ -253,7 +308,6 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
       return { width: caixaW, height: caixaH, baseScale: 1 };
     }
 
-    // Escala base para cobrir o quadro mantendo proporção real
     const baseScale = Math.max(caixaW / modalRecorte.naturalWidth, caixaH / modalRecorte.naturalHeight);
     const escalaTotal = baseScale * modalRecorte.zoom;
 
@@ -295,12 +349,14 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
       const larguraVisualFinal = img.width * escalaBaseVisual * modalRecorte.zoom;
       const alturaVisualFinal = img.height * escalaBaseVisual * modalRecorte.zoom;
 
-      const fatorEscalaSaida = larguraSaida / larguraCaixaVisual;
-      const larguraDesenhada = larguraVisualFinal * fatorEscalaSaida;
-      const alturaDesenhada = alturaVisualFinal * fatorEscalaSaida;
+      const fatorEscalaSaidaX = larguraSaida / larguraCaixaVisual;
+      const fatorEscalaSaidaY = alturaSaida / alturaCaixaVisual;
 
-      const centroX = larguraSaida / 2 + modalRecorte.posX * fatorEscalaSaida;
-      const centroY = alturaSaida / 2 + modalRecorte.posY * (alturaSaida / alturaCaixaVisual);
+      const larguraDesenhada = larguraVisualFinal * fatorEscalaSaidaX;
+      const alturaDesenhada = alturaVisualFinal * fatorEscalaSaidaY;
+
+      const centroX = larguraSaida / 2 + modalRecorte.posX * fatorEscalaSaidaX;
+      const centroY = alturaSaida / 2 + modalRecorte.posY * fatorEscalaSaidaY;
 
       ctx.drawImage(
         img,
@@ -462,6 +518,11 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
     { id: 'atendimento', titulo: 'Atendimento', icone: MessageSquare },
     { id: 'barbeiros_horarios', titulo: 'Equipe', icone: Clock },
   ];
+
+  const presetsFiltrados = PRESETS_TEMA.filter((p) => {
+    if (filtroEstilos === 'todos') return true;
+    return p.grupo === filtroEstilos;
+  });
 
   const isRecorteLogo = modalRecorte.tipo === 'logo';
   const dimensoesVisuais = calcularDimensoesVisuaisImagem();
@@ -661,11 +722,32 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
               {/* CONTROLES DE PERSONALIZAÇÃO */}
               <div className="lg:col-span-7 bg-slate-50/90 p-3 rounded-2xl border border-slate-200/70 space-y-3">
                 <div className="space-y-1.5">
-                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider block">
-                    Estilos Prontos
-                  </span>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider">
+                      Estilos Prontos
+                    </span>
+                    <div className="flex items-center gap-1 bg-white p-0.5 rounded-lg border border-slate-200">
+                      {[
+                        { id: 'todos', label: 'Todos' },
+                        { id: 'feminino', label: 'Rosas / Glam' },
+                        { id: 'masculino', label: 'Dark / Clássicos' },
+                      ].map((f) => (
+                        <button
+                          key={f.id}
+                          type="button"
+                          onClick={() => setFiltroEstilos(f.id)}
+                          className={`px-2 py-0.5 rounded-md text-[9px] font-bold cursor-pointer ${
+                            filtroEstilos === f.id ? 'bg-slate-900 text-white' : 'text-slate-600'
+                          }`}
+                        >
+                          {f.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
-                    {PRESETS_TEMA.map((preset) => (
+                    {presetsFiltrados.map((preset) => (
                       <button
                         key={preset.id}
                         type="button"
@@ -674,7 +756,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                       >
                         <span
                           className="w-4 h-4 rounded-full shrink-0 border border-black/10"
-                          style={{ backgroundColor: preset.tema.cor_primaria }}
+                          style={{ background: preset.tema.botao_estilo || preset.tema.cor_primaria }}
                         />
                         <span className="text-[10px] font-bold text-slate-800 truncate">
                           {preset.nome}
@@ -752,7 +834,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                 </div>
               </div>
 
-              {/* PRÉVIA EM TEMPO REAL */}
+              {/* PRÉVIA EM TEMPO REAL ESTILIZADA */}
               <div className="lg:col-span-5 bg-slate-100 p-3 rounded-2xl border border-slate-200/80 space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-black text-slate-600 uppercase tracking-wider">
@@ -781,9 +863,9 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                 </div>
 
                 <div
-                  className="p-3 transition-all duration-200 overflow-hidden border"
+                  className="p-3 transition-all duration-300 overflow-hidden border relative"
                   style={{
-                    backgroundColor: temaPersonalizado.cor_fundo,
+                    background: temaPersonalizado.fundo_estilo || temaPersonalizado.cor_fundo,
                     color: temaPersonalizado.cor_texto_geral,
                     fontFamily: temaPersonalizado.fonte,
                     borderRadius: temaPersonalizado.raio_borda,
@@ -791,38 +873,51 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                   }}
                 >
                   <div
-                    className="p-3 space-y-3 border"
+                    className="p-3 space-y-3 border relative overflow-hidden"
                     style={{
                       backgroundColor: temaPersonalizado.cor_container,
                       borderRadius: temaPersonalizado.raio_borda,
                       borderColor: temaPersonalizado.cor_borda,
                     }}
                   >
-                    <div className="flex items-center gap-2.5 pb-2 border-b" style={{ borderColor: temaPersonalizado.cor_borda }}>
-                      <div
-                        className="w-9 h-9 rounded-full overflow-hidden flex items-center justify-center font-black text-xs shrink-0"
-                        style={{ backgroundColor: temaPersonalizado.cor_primaria, color: temaPersonalizado.cor_texto_usuario }}
-                      >
-                        {logoUrl ? (
-                          <img src={logoUrl} alt="" className="w-full h-full object-cover" />
-                        ) : (
-                          (nome || 'B').charAt(0)
-                        )}
+                    <div
+                      className="flex items-center justify-between gap-2 pb-2 border-b"
+                      style={{ borderColor: temaPersonalizado.cor_borda }}
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div
+                          className="w-9 h-9 rounded-full overflow-hidden flex items-center justify-center font-black text-xs shrink-0 ring-2"
+                          style={{
+                            background: temaPersonalizado.botao_estilo || temaPersonalizado.cor_primaria,
+                            color: temaPersonalizado.cor_texto_usuario,
+                            borderColor: temaPersonalizado.cor_primaria,
+                          }}
+                        >
+                          {logoUrl ? (
+                            <img src={logoUrl} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            (nome || 'B').charAt(0)
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs font-black truncate">{nome || 'Minha Barbearia'}</p>
+                          <p
+                            className="text-[10px] font-semibold truncate"
+                            style={{ color: temaPersonalizado.cor_primaria }}
+                          >
+                            {modoPreview === 'chat' ? 'Assistente Virtual Online' : 'Agendamento Online'}
+                          </p>
+                        </div>
                       </div>
-                      <div className="min-w-0">
-                        <p className="text-xs font-black truncate">{nome || 'Minha Barbearia'}</p>
-                        <p className="text-[10px] font-semibold truncate" style={{ color: temaPersonalizado.cor_primaria }}>
-                          {modoPreview === 'chat' ? 'Assistente Virtual Online' : 'Agendamento Online'}
-                        </p>
-                      </div>
+                      {renderDetalheDecorativo(temaPersonalizado)}
                     </div>
 
                     {modoPreview === 'chat' ? (
                       <div className="space-y-2">
                         <div
-                          className="p-2.5 text-[11px] leading-snug max-w-[85%] border"
+                          className="p-2.5 text-[11px] leading-snug max-w-[88%] border"
                           style={{
-                            backgroundColor: temaPersonalizado.cor_balao_bot,
+                            background: temaPersonalizado.cor_balao_bot,
                             color: temaPersonalizado.cor_texto_bot,
                             borderColor: temaPersonalizado.cor_borda,
                             borderRadius: '14px',
@@ -831,29 +926,32 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                           Olá! Qual serviço você gostaria de agendar hoje?
                         </div>
 
-                        <div className="flex justify-end">
-                          <div
-                            className="p-2.5 text-[11px] font-bold max-w-[85%]"
-                            style={{
-                              backgroundColor: temaPersonalizado.cor_balao_usuario,
-                              color: temaPersonalizado.cor_texto_usuario,
-                              borderRadius: '14px',
-                            }}
-                          >
-                            Corte Degradê - R$ 45,00
-                          </div>
-                        </div>
-
                         <button
                           type="button"
-                          className="w-full py-2 text-[11px] font-black uppercase tracking-wider cursor-default"
+                          className="w-full py-2.5 px-3 text-[11px] font-black tracking-wide flex items-center justify-between cursor-default transition-all"
                           style={{
-                            backgroundColor: temaPersonalizado.cor_primaria,
+                            background: temaPersonalizado.botao_estilo || temaPersonalizado.cor_primaria,
                             color: temaPersonalizado.cor_texto_usuario,
+                            boxShadow: temaPersonalizado.sombra_botao || 'none',
                             borderRadius: '12px',
                           }}
                         >
-                          Confirmar Horário
+                          <span>✂ Corte Degradê - R$ 45,00</span>
+                          <span>›</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          className="w-full py-2 px-3 text-[10px] font-extrabold uppercase tracking-wider flex items-center justify-between border cursor-default"
+                          style={{
+                            backgroundColor: temaPersonalizado.cor_card,
+                            color: temaPersonalizado.cor_primaria,
+                            borderColor: temaPersonalizado.cor_borda,
+                            borderRadius: '12px',
+                          }}
+                        >
+                          <span>📅 Confirmar Horário</span>
+                          <span>›</span>
                         </button>
                       </div>
                     ) : (
@@ -862,7 +960,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                           <div
                             className="p-2 border text-[10px]"
                             style={{
-                              backgroundColor: temaPersonalizado.cor_balao_bot,
+                              background: temaPersonalizado.cor_balao_bot,
                               color: temaPersonalizado.cor_texto_bot,
                               borderColor: temaPersonalizado.cor_primaria,
                               borderRadius: '12px',
@@ -876,7 +974,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                           <div
                             className="p-2 border text-[10px]"
                             style={{
-                              backgroundColor: temaPersonalizado.cor_balao_bot,
+                              background: temaPersonalizado.cor_balao_bot,
                               color: temaPersonalizado.cor_texto_bot,
                               borderColor: temaPersonalizado.cor_borda,
                               borderRadius: '12px',
@@ -893,8 +991,9 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                           type="button"
                           className="w-full py-2 text-[11px] font-black uppercase tracking-wider cursor-default"
                           style={{
-                            backgroundColor: temaPersonalizado.cor_primaria,
+                            background: temaPersonalizado.botao_estilo || temaPersonalizado.cor_primaria,
                             color: temaPersonalizado.cor_texto_usuario,
+                            boxShadow: temaPersonalizado.sombra_botao || 'none',
                             borderRadius: '12px',
                           }}
                         >
