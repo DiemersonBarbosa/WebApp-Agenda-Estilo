@@ -35,12 +35,12 @@ const FUSOS_HORARIOS = [
 
 const ESTILO_BOTAO_PRATEADO = {
   background: 'linear-gradient(145deg, #ffffff 0%, #f1f5f9 55%, #cbd5e1 100%)',
-  boxShadow: '0 6px 16px rgba(15, 23, 42, 0.22), inset 0 2px 3px rgba(255, 255, 255, 0.95), inset 0 -3px 6px rgba(100, 116, 139, 0.32)',
+  boxShadow: '0 1px 3px rgba(15, 23, 42, 0.08), inset 0 1px 1.5px rgba(255, 255, 255, 0.85), inset 0 -1px 2px rgba(100, 116, 139, 0.16)',
 };
 
 const ESTILO_BOTAO_PRATEADO_PRESSIONADO = {
   background: 'linear-gradient(145deg, #e2e8f0 0%, #f8fafc 60%, #cbd5e1 100%)',
-  boxShadow: 'inset 0 3px 7px rgba(15, 23, 42, 0.26), inset 0 -1px 2px rgba(255, 255, 255, 0.9)',
+  boxShadow: 'inset 0 2px 4px rgba(15, 23, 42, 0.14), inset 0 -1px 1px rgba(255, 255, 255, 0.75)',
 };
 
 const renderDetalheDecorativo = (temaObj) => {
@@ -124,7 +124,6 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
   const [enviandoLogo, setEnviandoLogo] = useState(false);
   const [enviandoCapa, setEnviandoCapa] = useState(false);
 
-  // Estado do modal de enquadramento estilo WhatsApp
   const [modalRecorte, setModalRecorte] = useState({
     aberto: false,
     tipo: 'logo',
@@ -537,7 +536,6 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
     { id: 'barbeiros_horarios', titulo: 'Equipe', icone: Clock },
   ];
 
-  // Masculinos primeiro, femininos em sequência
   const presetsFiltrados = [...PRESETS_TEMA]
     .sort((a, b) => {
       const peso = (grupo) => (grupo === 'masculino' ? 0 : grupo === 'feminino' ? 1 : 2);
@@ -555,8 +553,8 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
     <div className="w-full max-w-4xl mx-auto px-3 sm:px-4 py-2 space-y-2.5 font-sans text-slate-800 select-none pb-28">
 
       {/* HEADER / CARTÃO DE PERFIL EXECUTIVO REFINADO */}
-      <div className="bg-white/90 backdrop-blur-xl rounded-[28px] p-3 border border-slate-200/70 shadow-sm relative space-y-2">
-        <div className="h-36 sm:h-44 w-full relative bg-slate-900 overflow-hidden rounded-2xl shadow-inner group">
+      <div className="bg-white/95 backdrop-blur-md rounded-[28px] p-3 border border-slate-200/80 relative space-y-2">
+        <div className="h-36 sm:h-44 w-full relative bg-slate-900 overflow-hidden rounded-2xl group">
           {capaUrl ? (
             <img src={capaUrl} alt="Capa" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
           ) : (
@@ -564,7 +562,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
               <span className="text-slate-500/40 font-black text-xl uppercase tracking-widest">{nome || 'AgendaEstilo'}</span>
             </div>
           )}
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-black/20 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/75 via-black/15 to-transparent" />
 
           <div className="absolute top-3 right-3 flex items-center gap-2 z-10">
             <button
@@ -590,7 +588,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
         </div>
 
         <div className="flex flex-col items-center text-center -mt-16 relative z-10 space-y-1">
-          <div className="w-22 h-22 sm:w-26 sm:h-26 rounded-full bg-white p-1.5 shadow-2xl ring-4 ring-white/90 overflow-hidden flex items-center justify-center bg-zinc-900 relative group">
+          <div className="w-22 h-22 sm:w-26 sm:h-26 rounded-full bg-white p-1.5 border border-slate-200 ring-4 ring-white/90 overflow-hidden flex items-center justify-center relative group">
             {logoUrl ? (
               <img src={logoUrl} alt="Logo" className="w-full h-full object-cover rounded-full" />
             ) : (
@@ -622,7 +620,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                   : 'text-slate-800 border-white/85 hover:brightness-[1.02]'
               }`}
             >
-              <div className="w-6 h-6 rounded-full bg-white/80 border border-slate-300/80 shadow-inner flex items-center justify-center text-slate-900">
+              <div className="w-6 h-6 rounded-full bg-white/80 border border-slate-300/80 flex items-center justify-center text-slate-900">
                 <Icone className="w-3.5 h-3.5 stroke-[2.2]" />
               </div>
               <span className={`text-[10px] tracking-tight truncate w-full ${ativo ? 'font-black' : 'font-bold'}`}>
@@ -634,13 +632,12 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
       </div>
 
       {/* PAINEL DE CONTEÚDO MODERNO */}
-      <div className="bg-white/95 backdrop-blur-xl rounded-[28px] border border-slate-200/80 p-3.5 sm:p-5 shadow-sm space-y-4">
+      <div className="bg-white/95 backdrop-blur-md rounded-[28px] border border-slate-200/80 p-3.5 sm:p-5 space-y-4">
 
         {/* ================= GERAL & PERFIL ================= */}
         {secaoAtiva === 'geral' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 animate-in fade-in duration-200">
 
-            {/* CARTÃO 1: PERFIL DO ESTABELECIMENTO */}
             <div className="rounded-2xl border border-slate-200/80 bg-slate-50/40 p-4 space-y-4">
               <div className="flex items-start gap-3 pb-3 border-b border-slate-200/70">
                 <div
@@ -727,7 +724,6 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
               </div>
             </div>
 
-            {/* CARTÃO 2: ACESSO E SEGURANÇA */}
             <div className="rounded-2xl border border-slate-200/80 bg-slate-50/40 p-4 space-y-4 flex flex-col justify-between">
               <div className="space-y-4">
                 <div className="flex items-start gap-3 pb-3 border-b border-slate-200/70">
@@ -827,7 +823,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                   className="w-full border border-white rounded-xl p-2 flex flex-col items-center justify-center gap-1 cursor-pointer transition-all active:scale-[0.99]"
                 >
                   <input type="file" accept="image/*" onChange={(e) => abrirModalRecorte(e, 'logo')} className="hidden" />
-                  {logoUrl ? <img src={logoUrl} alt="" className="w-8 h-8 rounded-full object-cover shadow-xs ring-2 ring-white" /> : <Upload className="w-4 h-4 text-slate-800" />}
+                  {logoUrl ? <img src={logoUrl} alt="" className="w-8 h-8 rounded-full object-cover ring-2 ring-white" /> : <Upload className="w-4 h-4 text-slate-800" />}
                   <span className="text-[10px] font-bold text-slate-900">{enviandoLogo ? 'Enviando...' : 'Enquadrar Logo'}</span>
                 </label>
               </div>
@@ -839,14 +835,13 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                   className="w-full border border-white rounded-xl p-2 flex flex-col items-center justify-center gap-1 cursor-pointer transition-all active:scale-[0.99]"
                 >
                   <input type="file" accept="image/*" onChange={(e) => abrirModalRecorte(e, 'capa')} className="hidden" />
-                  {capaUrl ? <img src={capaUrl} alt="" className="w-full h-8 rounded-lg object-cover shadow-xs ring-1 ring-white" /> : <ImageIcon className="w-4 h-4 text-slate-800" />}
+                  {capaUrl ? <img src={capaUrl} alt="" className="w-full h-8 rounded-lg object-cover ring-1 ring-white" /> : <ImageIcon className="w-4 h-4 text-slate-800" />}
                   <span className="text-[10px] font-bold text-slate-900">{enviandoCapa ? 'Enviando...' : 'Enquadrar Capa'}</span>
                 </label>
               </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-start">
-              {/* CONTROLES DE PERSONALIZAÇÃO */}
               <div className="lg:col-span-7 bg-slate-50/90 p-3 rounded-2xl border border-slate-200/70 space-y-3">
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between gap-2">
@@ -881,7 +876,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                         key={preset.id}
                         type="button"
                         onClick={() => setTemaPersonalizado(preset.tema)}
-                        className="p-2 rounded-xl bg-white border border-slate-200 hover:border-slate-400 text-left transition-all cursor-pointer flex items-center gap-2 shadow-2xs"
+                        className="p-2 rounded-xl bg-white border border-slate-200 hover:border-slate-400 text-left transition-all cursor-pointer flex items-center gap-2"
                       >
                         <span
                           className="w-4 h-4 rounded-full shrink-0 border border-black/10"
@@ -963,7 +958,6 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                 </div>
               </div>
 
-              {/* PRÉVIA EM TEMPO REAL ESTILIZADA */}
               <div className="lg:col-span-5 bg-slate-100 p-3 rounded-2xl border border-slate-200/80 space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-black text-slate-600 uppercase tracking-wider">
@@ -1180,7 +1174,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                     step="5"
                     value={antecedenciaMinima}
                     onChange={(e) => setAntecedenciaMinima(e.target.value)}
-                    className="w-full bg-white border border-slate-200/90 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all shadow-2xs"
+                    className="w-full bg-white border border-slate-200/90 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all"
                     placeholder="30"
                   />
                 </div>
@@ -1226,7 +1220,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
               </div>
 
               {barbeiroSelecionado && (
-                <div className="bg-slate-50/80 rounded-2xl border border-slate-200/80 p-2 space-y-1.5 shadow-inner">
+                <div className="bg-slate-50/80 rounded-2xl border border-slate-200/80 p-2 space-y-1.5">
                   <div className="flex items-center justify-between pb-1 border-b border-slate-200/60">
                     <span className="text-[10px] font-bold text-slate-900">Escala de Horários: {barbeiroSelecionado.nome}</span>
                   </div>
@@ -1240,7 +1234,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                         return (
                           <div
                             key={key}
-                            className="w-[240px] sm:w-[250px] snap-center p-2.5 rounded-xl border bg-white border-slate-200 shadow-xs shrink-0 flex flex-col justify-between"
+                            className="w-[240px] sm:w-[250px] snap-center p-2.5 rounded-xl border bg-white border-slate-200 shrink-0 flex flex-col justify-between"
                           >
                             <div>
                               <div className="flex items-center justify-between pb-1.5 border-b border-slate-100">
@@ -1352,7 +1346,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
           onPointerUp={handlePointerUpRecorte}
           onPointerCancel={handlePointerUpRecorte}
         >
-          <div className="bg-zinc-900 text-white border border-white/10 rounded-3xl p-5 max-w-md w-full shadow-2xl space-y-4">
+          <div className="bg-zinc-900 text-white border border-white/10 rounded-3xl p-5 max-w-md w-full space-y-4">
             <div className="flex items-center justify-between border-b border-white/10 pb-3">
               <div>
                 <h3 className="text-sm font-black">
@@ -1479,7 +1473,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
       {/* MODAL DE COMPARTILHAMENTO */}
       {modalCompartilharOpen && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl space-y-4 relative">
+          <div className="bg-white rounded-3xl p-6 max-w-sm w-full border border-slate-200 space-y-4 relative">
             <button
               onClick={() => setModalCompartilharOpen(false)}
               style={ESTILO_BOTAO_PRATEADO}
@@ -1521,7 +1515,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
       {/* MODAL DE HORÁRIOS GERAIS E BLOQUEIOS */}
       {modalHorariosGeraisOpen && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-3xl p-6 max-w-md w-full border border-slate-200 space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <h3 className="font-bold text-slate-900 text-sm">Bloqueios & Feriados</h3>
               <button
