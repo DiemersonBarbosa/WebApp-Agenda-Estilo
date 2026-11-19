@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Store, Save, Check, ExternalLink, Share2,
   Send, X, MessageSquare, Bot, Grid, Palette,
   Clock, Trash2, Upload, Image as ImageIcon,
-  Link as LinkIcon, Type, Timer, Mail, Lock, CalendarOff, Globe
+  Link as LinkIcon, Type, Timer, Mail, Lock, CalendarOff, Globe,
+  ZoomIn, ZoomOut, RotateCcw
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import {
@@ -54,6 +55,19 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
 
   const [enviandoLogo, setEnviandoLogo] = useState(false);
   const [enviandoCapa, setEnviandoCapa] = useState(false);
+
+  // Estado do modal de enquadramento estilo WhatsApp
+  const [modalRecorte, setModalRecorte] = useState({
+    aberto: false,
+    tipo: 'logo', // 'logo' | 'capa'
+    src: '',
+    zoom: 1,
+    posX: 0,
+    posY: 0,
+  });
+  const [arrastando, setArrastando] = useState(false);
+  const inicioArrasteRef = useRef({ x: 0, y: 0, baseX: 0, baseY: 0 });
+  const caixaRecorteRef = useRef(null);
 
   const [modalHorariosGeraisOpen, setModalHorariosGeraisOpen] = useState(false);
   const [permiteAgendamentos, setPermiteAgendamentos] = useState(barbearia?.permite_agendamentos ?? true);
@@ -175,80 +189,128 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
     }
   };
 
-  const comprimirImagem = (file, larguraMaxima = 1200, qualidade = 0.85) => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = (event) => {
-        const img = new Image();
-        img.src = event.target.result;
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          let width = img.width;
-          let height = img.height;
-
-          if (width > larguraMaxima) {
-            height = Math.round((height * larguraMaxima) / width);
-            width = larguraMaxima;
-          }
-
-          canvas.width = width;
-          canvas.height = height;
-
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0, width, height);
-
-          canvas.toBlob(
-            (blob) => {
-              if (!blob) {
-                reject(new Error('Falha ao comprimir imagem.'));
-                return;
-              }
-              const arquivoComprimido = new File([blob], file.name.replace(/\.[^/.]+$/, '') + '.jpg', {
-                type: 'image/jpeg',
-                lastModified: Date.now(),
-              });
-              resolve(arquivoComprimido);
-            },
-            'image/jpeg',
-            qualidade
-          );
-        };
-        img.onerror = (error) => reject(error);
-      };
-      reader.onerror = (error) => reject(error);
-    });
-  };
-
-  const handleUploadImagem = async (e, tipo) => {
+  const abrirModalRecorte = (e, tipo) => {
     const file = e.target.files?.[0];
+    e.target.value = '';
     if (!file) return;
 
-    const isLogo = tipo === 'logo';
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setModalRecorte({
+        aberto: true,
+        tipo,
+        src: String(event.target?.result || ''),
+        zoom: 1,
+        posX: 0,
+        posY: 0,
+      });
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handlePointerDownRecorte = (e) => {
+    e.preventDefault();
+    setArrastando(true);
+    inicioArrasteRef.current = {
+      x: e.clientX,
+      y: e.clientY,
+      baseX: modalRecorte.posX,
+      baseY: modalRecorte.posY,
+    };
+  };
+
+  const handlePointerMoveRecorte = (e) => {
+    if (!arrastando) return;
+    const dx = e.clientX - inicioArrasteRef.current.x;
+    const dy = e.clientY - inicioArrasteRef.current.y;
+    setModalRecorte((prev) => ({
+      ...prev,
+      posX: inicioArrasteRef.current.baseX + dx,
+      posY: inicioArrasteRef.current.baseY + dy,
+    }));
+  };
+
+  const handlePointerUpRecorte = () => {
+    setArrastando(false);
+  };
+
+  const confirmarEnquadramentoEEnviar = async () => {
+    if (!modalRecorte.src) return;
+    const isLogo = modalRecorte.tipo === 'logo';
     if (isLogo) setEnviandoLogo(true);
     else setEnviandoCapa(true);
 
     try {
-      const larguraMax = isLogo ? 500 : 1200;
-      const arquivoOtimizado = await comprimirImagem(file, larguraMax, 0.85);
+      const img = await new Promise((resolve, reject) => {
+        const image = new Image();
+        image.onload = () => resolve(image);
+        image.onerror = reject;
+        image.src = modalRecorte.src;
+      });
 
-      const fileName = `${barbearia?.id}-${tipo}-${Date.now()}.jpg`;
-      const filePath = `${fileName}`;
+      const larguraSaida = isLogo ? 500 : 1200;
+      const alturaSaida = isLogo ? 500 : 600;
+      const canvas = document.createElement('canvas');
+      canvas.width = larguraSaida;
+      canvas.height = alturaSaida;
+      const ctx = canvas.getContext('2d');
 
+      ctx.fillStyle = '#09090b';
+      ctx.fillRect(0, 0, larguraSaida, alturaSaida);
+
+      const escalaCover = Math.max(larguraSaida / img.width, alturaSaida / img.height);
+      const escalaFinal = escalaCover * modalRecorte.zoom;
+
+      const larguraDesenhada = img.width * escalaFinal;
+      const alturaDesenhada = img.height * escalaFinal;
+
+      const larguraCaixaVisual = caixaRecorteRef.current?.clientWidth || (isLogo ? 220 : 320);
+      const alturaCaixaVisual = caixaRecorteRef.current?.clientHeight || (isLogo ? 220 : 160);
+
+      const proporcaoX = larguraSaida / larguraCaixaVisual;
+      const proporcaoY = alturaSaida / alturaCaixaVisual;
+
+      const centroX = larguraSaida / 2 + modalRecorte.posX * proporcaoX;
+      const centroY = alturaSaida / 2 + modalRecorte.posY * proporcaoY;
+
+      ctx.drawImage(
+        img,
+        centroX - larguraDesenhada / 2,
+        centroY - alturaDesenhada / 2,
+        larguraDesenhada,
+        alturaDesenhada
+      );
+
+      const blob = await new Promise((resolve, reject) => {
+        canvas.toBlob(
+          (b) => (b ? resolve(b) : reject(new Error('Falha ao gerar imagem recortada.'))),
+          'image/jpeg',
+          0.88
+        );
+      });
+
+      const arquivoOtimizado = new File([blob], `${modalRecorte.tipo}-${Date.now()}.jpg`, {
+        type: 'image/jpeg',
+        lastModified: Date.now(),
+      });
+
+      const fileName = `${barbearia?.id}-${modalRecorte.tipo}-${Date.now()}.jpg`;
       const { error: uploadError } = await supabase.storage
         .from('barbearia-bucket')
-        .upload(filePath, arquivoOtimizado, { upsert: true });
+        .upload(fileName, arquivoOtimizado, { upsert: true });
 
       if (uploadError) throw uploadError;
 
       const { data: publicURLData } = supabase.storage
         .from('barbearia-bucket')
-        .getPublicUrl(filePath);
+        .getPublicUrl(fileName);
 
       const urlPublica = publicURLData.publicUrl;
 
       if (isLogo) setLogoUrl(urlPublica);
       else setCapaUrl(urlPublica);
+
+      setModalRecorte((prev) => ({ ...prev, aberto: false, src: '' }));
     } catch (err) {
       alert('Erro ao fazer upload da imagem: ' + (err.message || err));
     } finally {
@@ -320,7 +382,6 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
           logo_url: logoUrl,
           capa_url: capaUrl,
           cor_tema: temaPersonalizado.modo_base || 'dark',
-          
           tema_personalizado: temaPersonalizado,
           tipo_atendimento: modoAtendimento,
           modo_agendamento: modoAtendimento,
@@ -372,6 +433,8 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
     { id: 'atendimento', titulo: 'Atendimento', icone: MessageSquare },
     { id: 'barbeiros_horarios', titulo: 'Equipe', icone: Clock },
   ];
+
+  const isRecorteLogo = modalRecorte.tipo === 'logo';
 
   return (
     <div className="w-full max-w-4xl mx-auto px-3 sm:px-4 py-2 space-y-2 font-sans text-slate-800 select-none pb-28">
@@ -548,18 +611,18 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
               <div className="bg-slate-50/80 p-2 rounded-2xl border border-slate-200/60 space-y-1 flex flex-col items-center text-center">
                 <label className="text-[10px] font-extrabold text-slate-600 uppercase tracking-wider w-full text-left">Logo</label>
                 <label className="w-full border-2 border-dashed border-slate-200 hover:border-slate-400 rounded-xl p-1.5 flex flex-col items-center justify-center gap-1 bg-white cursor-pointer transition-all shadow-2xs">
-                  <input type="file" accept="image/*" onChange={(e) => handleUploadImagem(e, 'logo')} className="hidden" />
+                  <input type="file" accept="image/*" onChange={(e) => abrirModalRecorte(e, 'logo')} className="hidden" />
                   {logoUrl ? <img src={logoUrl} alt="" className="w-8 h-8 rounded-full object-cover shadow-xs ring-2 ring-slate-200" /> : <Upload className="w-3.5 h-3.5 text-slate-400" />}
-                  <span className="text-[9px] font-bold text-slate-700">{enviandoLogo ? 'Enviando...' : 'Enviar Logo'}</span>
+                  <span className="text-[9px] font-bold text-slate-700">{enviandoLogo ? 'Enviando...' : 'Enquadrar Logo'}</span>
                 </label>
               </div>
 
               <div className="bg-slate-50/80 p-2 rounded-2xl border border-slate-200/60 space-y-1 flex flex-col items-center text-center">
                 <label className="text-[10px] font-extrabold text-slate-600 uppercase tracking-wider w-full text-left">Capa</label>
                 <label className="w-full border-2 border-dashed border-slate-200 hover:border-slate-400 rounded-xl p-1.5 flex flex-col items-center justify-center gap-1 bg-white cursor-pointer transition-all shadow-2xs">
-                  <input type="file" accept="image/*" onChange={(e) => handleUploadImagem(e, 'capa')} className="hidden" />
+                  <input type="file" accept="image/*" onChange={(e) => abrirModalRecorte(e, 'capa')} className="hidden" />
                   {capaUrl ? <img src={capaUrl} alt="" className="w-full h-8 rounded-lg object-cover shadow-xs ring-1 ring-slate-200" /> : <ImageIcon className="w-3.5 h-3.5 text-slate-400" />}
-                  <span className="text-[9px] font-bold text-slate-700">{enviandoCapa ? 'Enviando...' : 'Enviar Capa'}</span>
+                  <span className="text-[9px] font-bold text-slate-700">{enviandoCapa ? 'Enviando...' : 'Enquadrar Capa'}</span>
                 </label>
               </div>
             </div>
@@ -1017,6 +1080,133 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
         </div>
 
       </div>
+
+      {/* MODAL DE ENQUADRAMENTO ESTILO WHATSAPP */}
+      {modalRecorte.aberto && (
+        <div
+          className="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-4"
+          onPointerMove={handlePointerMoveRecorte}
+          onPointerUp={handlePointerUpRecorte}
+          onPointerCancel={handlePointerUpRecorte}
+        >
+          <div className="bg-zinc-900 text-white border border-white/10 rounded-3xl p-5 max-w-md w-full shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <div>
+                <h3 className="text-sm font-black">
+                  {isRecorteLogo ? 'Enquadrar Logo' : 'Enquadrar Capa'}
+                </h3>
+                <p className="text-[11px] text-slate-400">
+                  Arraste para centralizar e ajuste o zoom como no WhatsApp.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setModalRecorte((prev) => ({ ...prev, aberto: false, src: '' }))}
+                className="p-1.5 bg-white/10 hover:bg-white/20 rounded-full cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="flex items-center justify-center py-2">
+              <div
+                ref={caixaRecorteRef}
+                onPointerDown={handlePointerDownRecorte}
+                className={`relative overflow-hidden bg-black border-2 border-emerald-400/70 touch-none select-none ${
+                  arrastando ? 'cursor-grabbing' : 'cursor-grab'
+                } ${
+                  isRecorteLogo
+                    ? 'w-56 h-56 rounded-full'
+                    : 'w-full h-44 rounded-2xl'
+                }`}
+              >
+                <img
+                  src={modalRecorte.src}
+                  alt="Prévia de enquadramento"
+                  draggable={false}
+                  className="w-full h-full object-cover pointer-events-none"
+                  style={{
+                    transform: `translate(${modalRecorte.posX}px, ${modalRecorte.posY}px) scale(${modalRecorte.zoom})`,
+                    transformOrigin: 'center center',
+                  }}
+                />
+                {!isRecorteLogo && (
+                  <div className="absolute inset-0 grid grid-cols-3 grid-rows-3 pointer-events-none opacity-30">
+                    <div className="border-r border-b border-white/40" />
+                    <div className="border-r border-b border-white/40" />
+                    <div className="border-b border-white/40" />
+                    <div className="border-r border-b border-white/40" />
+                    <div className="border-r border-b border-white/40" />
+                    <div className="border-b border-white/40" />
+                    <div className="border-r border-white/40" />
+                    <div className="border-r border-white/40" />
+                    <div />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-2 bg-white/5 p-3 rounded-2xl border border-white/10">
+              <div className="flex items-center justify-between text-[11px] text-slate-300 font-bold">
+                <span className="flex items-center gap-1.5">
+                  <ZoomIn className="w-3.5 h-3.5 text-emerald-400" />
+                  Zoom: {Math.round(modalRecorte.zoom * 100)}%
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setModalRecorte((prev) => ({ ...prev, zoom: 1, posX: 0, posY: 0 }))}
+                  className="text-[10px] text-slate-300 hover:text-white flex items-center gap-1 cursor-pointer"
+                >
+                  <RotateCcw className="w-3 h-3" /> Centralizar
+                </button>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setModalRecorte((prev) => ({ ...prev, zoom: Math.max(1, Number((prev.zoom - 0.1).toFixed(2))) }))}
+                  className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 cursor-pointer"
+                >
+                  <ZoomOut className="w-3.5 h-3.5" />
+                </button>
+                <input
+                  type="range"
+                  min="1"
+                  max="2.5"
+                  step="0.05"
+                  value={modalRecorte.zoom}
+                  onChange={(e) => setModalRecorte((prev) => ({ ...prev, zoom: Number(e.target.value) }))}
+                  className="w-full accent-emerald-400 cursor-pointer"
+                />
+                <button
+                  type="button"
+                  onClick={() => setModalRecorte((prev) => ({ ...prev, zoom: Math.min(2.5, Number((prev.zoom + 0.1).toFixed(2))) }))}
+                  className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 cursor-pointer"
+                >
+                  <ZoomIn className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2.5">
+              <button
+                type="button"
+                onClick={() => setModalRecorte((prev) => ({ ...prev, aberto: false, src: '' }))}
+                className="py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-xs font-bold cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={confirmarEnquadramentoEEnviar}
+                disabled={enviandoLogo || enviandoCapa}
+                className="py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black cursor-pointer disabled:opacity-50"
+              >
+                {enviandoLogo || enviandoCapa ? 'Enviando...' : 'Aplicar e Enviar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* MODAL DE COMPARTILHAMENTO */}
       {modalCompartilharOpen && (
