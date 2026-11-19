@@ -1281,7 +1281,7 @@ const [searchTerm, setSearchTerm] = useState('');
                 if (item.isLogout) {
                   buttonStyle = {
                     background: 'linear-gradient(135deg, #9b1c2e 0%, #70121f 100%)',
-                    boxShadow: '0 10px 20px rgba(112, 18, 31, 0.35), inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 5px rgba(0, 0, 0, 0.4)',
+                    
                     border: '1px solid rgba(255, 255, 255, 0.15)'
                   };
                 } else if (isCurrentActive) {

@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Calendar as CalendarIcon, Clock, Scissors, User, Check, CheckCircle2, AlertCircle, ArrowRight, Gift, Sparkles, Edit3, Trash2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { resolverTemaBarbearia } from '@/lib/temaAgendamento';
 
 export default function AgendamentoClassico({ barbeariaId }) {
   const [barbearia, setBarbearia] = useState(null);
@@ -16,7 +17,7 @@ export default function AgendamentoClassico({ barbeariaId }) {
   const [clienteId, setClienteId] = useState(null);
   const [clienteIdentificado, setClienteIdentificado] = useState(false);
   const [isNovoCliente, setIsNovoCliente] = useState(false);
-  
+
   const [dadosFidelidade, setDadosFidelidade] = useState({ selos_atuais: 0, total_resgates: 0, id: null });
   const [agendamentosAtivos, setAgendamentosAtivos] = useState([]);
   const [modoVisualizacao, setModoVisualizacao] = useState('agendar');
@@ -39,16 +40,9 @@ export default function AgendamentoClassico({ barbeariaId }) {
   const horarioRef = useRef(null);
   const resumoRef = useRef(null);
 
-  const isClean = barbearia?.cor_tema === 'clean';
-  const corTema = barbearia?.cor_primaria || (isClean ? '#0f172a' : '#10b981');
-
-  const estiloFundoContainer = isClean 
-    ? 'bg-white text-slate-900 border-slate-200/90 shadow-[0_20px_50px_rgba(0,0,0,0.1)]' 
-    : 'bg-[#0b0c10]/95 text-white border-white/10 shadow-[0_25px_70px_rgba(0,0,0,0.85)]';
-
-  const estiloInput = isClean 
-    ? 'bg-slate-100 border-slate-200 text-slate-900 placeholder-slate-400 focus:border-slate-800 focus:bg-white' 
-    : 'bg-black/60 border-white/10 text-white placeholder-slate-500 focus:border-white/30';
+  const tema = resolverTemaBarbearia(barbearia);
+  const corTema = tema.cor_primaria || '#10b981';
+  const corSecundaria = tema.cor_texto_secundario || '#94a3b8';
 
   useEffect(() => {
     async function carregarDados() {
@@ -56,13 +50,11 @@ export default function AgendamentoClassico({ barbeariaId }) {
         const { data: barb } = await supabase.from('barbearias').select('*').eq('id', barbeariaId).single();
         if (barb) setBarbearia(barb);
 
-       const [resServicos, resBarbeiros, resBloqueios] = await Promise.all([
-  supabase.from('servicos').select('*').eq('barbearia_id', barbeariaId),
-  supabase.from('barbeiros').select('*').eq('barbearia_id', barbeariaId),
-  supabase.from('bloqueios_agenda').select('data_bloqueio, barbeiro_id').eq('barbearia_id', barbeariaId)
-]);
-
-// Salve os bloqueios completos no estado (ex: setDatasBloqueadas(resBloqueios.data || []))
+        const [resServicos, resBarbeiros, resBloqueios] = await Promise.all([
+          supabase.from('servicos').select('*').eq('barbearia_id', barbeariaId),
+          supabase.from('barbeiros').select('*').eq('barbearia_id', barbeariaId),
+          supabase.from('bloqueios_agenda').select('data_bloqueio, barbeiro_id').eq('barbearia_id', barbeariaId)
+        ]);
 
         setServicos(resServicos.data || []);
         setBarbeiros(resBarbeiros.data || []);
@@ -138,11 +130,11 @@ export default function AgendamentoClassico({ barbeariaId }) {
 
   const checarDiaAtivo = (configObj, dataObj) => {
     if (!configObj) return undefined;
-    
+
     const diasSemanaMap = ['domingo', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado'];
     const diasSemanaComAcento = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
     const indexDia = dataObj.getDay();
-    
+
     const nomeSemAcento = diasSemanaMap[indexDia];
     const nomeComAcento = diasSemanaComAcento[indexDia];
 
@@ -220,7 +212,7 @@ export default function AgendamentoClassico({ barbeariaId }) {
     const nomeSemAcento = diasSemanaMap[indexDia];
     const nomeComAcento = diasSemanaComAcento[indexDia];
 
-    let configHorariosBarbeiro = barbeiroAtivo?.horarios_trabalho?.[nomeSemAcento] || barbeiroAtivo?.horarios_trabalho?.[nomeComAcento];
+    const configHorariosBarbeiro = barbeiroAtivo?.horarios_trabalho?.[nomeSemAcento] || barbeiroAtivo?.horarios_trabalho?.[nomeComAcento];
 
     let aberturaStr = '08:00';
     let fechamentoStr = '18:00';
@@ -269,7 +261,6 @@ export default function AgendamentoClassico({ barbeariaId }) {
     const horariosGerados = [];
     const intervaloMinutos = 60;
 
-    // Regra de antecedência mínima
     const antecedenciaMinima = barbearia?.antecedencia_minima_minutos ?? 30;
     const agora = new Date();
     const dataAtualIso = `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, '0')}-${String(agora.getDate()).padStart(2, '0')}`;
@@ -316,7 +307,7 @@ export default function AgendamentoClassico({ barbeariaId }) {
         setNome(cli.nome);
         setClienteIdentificado(true);
         setIsNovoCliente(false);
-        
+
         await carregarDadosCliente(cli.id);
         setModoVisualizacao('agendar');
         setTimeout(() => servicoRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
@@ -434,59 +425,90 @@ export default function AgendamentoClassico({ barbeariaId }) {
     const atingiuMeta = selos >= metaSelos;
 
     return (
-      <div className={`p-4 rounded-3xl border flex items-center justify-between gap-3 shadow-sm relative overflow-hidden ${
-        isClean ? 'bg-slate-900 text-white border-slate-800' : 'bg-white/5 border-white/10'
-      }`}>
+      <div
+        className="p-4 rounded-3xl border flex items-center justify-between gap-3 shadow-sm relative overflow-hidden"
+        style={{ backgroundColor: tema.cor_card, borderColor: tema.cor_borda, color: tema.cor_texto_geral }}
+      >
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 shadow-sm bg-white/10 text-white">
+          <div
+            className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 shadow-sm"
+            style={{ backgroundColor: `${corTema}20`, color: corTema }}
+          >
             <Gift className="w-5 h-5" />
           </div>
           <div>
             <div className="flex items-center gap-2">
               <p className="text-xs font-black">{nome}</p>
-              <span className="text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-full border bg-white/10 border-white/20 text-white">
+              <span
+                className="text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-full border"
+                style={{ backgroundColor: `${corTema}20`, borderColor: `${corTema}40`, color: corTema }}
+              >
                 Cliente VIP
               </span>
             </div>
-            <p className="text-[10px] text-slate-400 mt-0.5">Programa de Fidelidade</p>
+            <p className="text-[10px] mt-0.5" style={{ color: corSecundaria }}>Programa de Fidelidade</p>
           </div>
         </div>
 
         <div className="text-right">
-          <span className="text-xs font-black block text-slate-100">{selos} / {metaSelos} Selos</span>
-          <span className="text-[9px] font-semibold text-slate-400">{atingiuMeta ? '🎁 Resgate Disponível!' : 'Cartão Ativo'}</span>
+          <span className="text-xs font-black block">{selos} / {metaSelos} Selos</span>
+          <span className="text-[9px] font-semibold" style={{ color: corSecundaria }}>
+            {atingiuMeta ? '🎁 Resgate Disponível!' : 'Cartão Ativo'}
+          </span>
         </div>
       </div>
     );
   };
 
   return (
-    <div className={`w-full max-w-xl mx-auto rounded-[2.5rem] border overflow-hidden relative backdrop-blur-2xl transition-all duration-300 ${estiloFundoContainer}`}>
-      
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-[3px] z-30 shadow-lg" style={{ background: `linear-gradient(to right, transparent, ${corTema}, transparent)` }} />
+    <div
+      className="w-full max-w-xl mx-auto border overflow-hidden relative backdrop-blur-2xl transition-all duration-300 shadow-2xl"
+      style={{
+        backgroundColor: tema.cor_container,
+        color: tema.cor_texto_geral,
+        borderColor: tema.cor_borda,
+        borderRadius: tema.raio_borda,
+        fontFamily: tema.fonte,
+      }}
+    >
+      <div
+        className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-[3px] z-30 shadow-lg"
+        style={{ background: `linear-gradient(to right, transparent, ${corTema}, transparent)` }}
+      />
 
-      <div className="relative h-36 w-full bg-slate-900 overflow-hidden">
+      <div className="relative h-36 w-full overflow-hidden" style={{ backgroundColor: tema.cor_card }}>
         {barbearia?.capa_url ? (
           <img src={barbearia.capa_url} alt="Capa" className="w-full h-full object-cover" />
         ) : (
-          <div className="w-full h-full bg-slate-900 flex items-center justify-center">
-            <span className="text-[10px] font-bold text-slate-500 tracking-widest uppercase">Capa da Unidade</span>
+          <div className="w-full h-full flex items-center justify-center">
+            <span className="text-[10px] font-bold tracking-widest uppercase" style={{ color: corSecundaria }}>
+              Capa da Unidade
+            </span>
           </div>
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+        <div
+          className="absolute inset-0"
+          style={{ background: `linear-gradient(to top, ${tema.cor_container}E6, transparent)` }}
+        />
       </div>
 
       <div className="px-6 pb-2 pt-0 relative flex flex-col items-center text-center -mt-12 mb-3 z-10">
-        <div className="w-20 h-20 rounded-[1.8rem] bg-white p-1 shadow-2xl border border-slate-200 overflow-hidden flex items-center justify-center mb-2">
+        <div
+          className="w-20 h-20 rounded-[1.8rem] p-1 shadow-2xl border overflow-hidden flex items-center justify-center mb-2"
+          style={{ backgroundColor: tema.cor_card, borderColor: tema.cor_borda }}
+        >
           {barbearia?.logo_url ? (
             <img src={barbearia.logo_url} alt={barbearia.nome} className="w-full h-full object-cover rounded-[1.4rem]" />
           ) : (
-            <div className="w-full h-full text-white rounded-[1.4rem] flex items-center justify-center font-black text-xl" style={{ backgroundColor: corTema }}>
+            <div
+              className="w-full h-full rounded-[1.4rem] flex items-center justify-center font-black text-xl"
+              style={{ backgroundColor: corTema, color: tema.cor_texto_usuario }}
+            >
               {barbearia?.nome?.charAt(0) || 'B'}
             </div>
           )}
         </div>
-        <h2 className={`text-lg font-black tracking-tight ${isClean ? 'text-slate-900' : 'text-white'}`}>{barbearia?.nome}</h2>
+        <h2 className="text-lg font-black tracking-tight">{barbearia?.nome}</h2>
         <p className="text-[10px] font-extrabold uppercase tracking-widest mt-0.5 flex items-center gap-1" style={{ color: corTema }}>
           <Sparkles className="w-3 h-3" /> Agendamento Online
         </p>
@@ -499,7 +521,7 @@ export default function AgendamentoClassico({ barbeariaId }) {
             {!isNovoCliente ? (
               <form onSubmit={handleVerificarTelefone} className="space-y-3.5">
                 <div className="space-y-1">
-                  <label className={`text-[10px] font-black uppercase tracking-wider block ${isClean ? 'text-slate-600' : 'text-slate-400'}`}>
+                  <label className="text-[10px] font-black uppercase tracking-wider block" style={{ color: corSecundaria }}>
                     1. Informe seu Celular / WhatsApp
                   </label>
                   <input
@@ -508,14 +530,15 @@ export default function AgendamentoClassico({ barbeariaId }) {
                     placeholder="(00) 00000-0000"
                     value={telefone}
                     onChange={(e) => setTelefone(e.target.value)}
-                    className={`w-full rounded-2xl px-4 py-3.5 text-xs font-bold focus:outline-none transition-all ${estiloInput}`}
+                    className="w-full rounded-2xl px-4 py-3.5 text-xs font-bold focus:outline-none transition-all border"
+                    style={{ backgroundColor: tema.cor_card, borderColor: tema.cor_borda, color: tema.cor_texto_geral }}
                   />
                 </div>
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full py-3.5 rounded-2xl text-white font-black text-xs uppercase tracking-widest shadow-lg flex items-center justify-center gap-2 cursor-pointer transition-all hover:brightness-110 active:scale-98"
-                  style={{ backgroundColor: corTema }}
+                  className="w-full py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg flex items-center justify-center gap-2 cursor-pointer transition-all hover:brightness-110 active:scale-98"
+                  style={{ backgroundColor: corTema, color: tema.cor_texto_usuario }}
                 >
                   <span>{loading ? 'A verificar...' : 'Avançar'}</span>
                   <ArrowRight className="w-4 h-4" />
@@ -523,11 +546,14 @@ export default function AgendamentoClassico({ barbeariaId }) {
               </form>
             ) : (
               <form onSubmit={handleCadastrarNovoCliente} className="space-y-3.5">
-                <div className="p-3.5 rounded-2xl bg-slate-100 border border-slate-300 text-slate-800 text-xs font-semibold">
+                <div
+                  className="p-3.5 rounded-2xl border text-xs font-semibold"
+                  style={{ backgroundColor: tema.cor_card, borderColor: tema.cor_borda, color: tema.cor_texto_geral }}
+                >
                   Seja bem-vindo(a)! Notamos que é o seu primeiro agendamento.
                 </div>
                 <div className="space-y-1">
-                  <label className={`text-[10px] font-black uppercase tracking-wider block ${isClean ? 'text-slate-600' : 'text-slate-400'}`}>
+                  <label className="text-[10px] font-black uppercase tracking-wider block" style={{ color: corSecundaria }}>
                     Qual o seu nome completo?
                   </label>
                   <input
@@ -536,14 +562,15 @@ export default function AgendamentoClassico({ barbeariaId }) {
                     placeholder="Seu Nome Completo"
                     value={nome}
                     onChange={(e) => setNome(e.target.value)}
-                    className={`w-full rounded-2xl px-4 py-3.5 text-xs font-bold focus:outline-none transition-all ${estiloInput}`}
+                    className="w-full rounded-2xl px-4 py-3.5 text-xs font-bold focus:outline-none transition-all border"
+                    style={{ backgroundColor: tema.cor_card, borderColor: tema.cor_borda, color: tema.cor_texto_geral }}
                   />
                 </div>
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full py-3.5 rounded-2xl text-white font-black text-xs uppercase tracking-widest shadow-lg flex items-center justify-center gap-2 cursor-pointer transition-all hover:brightness-110 active:scale-98"
-                  style={{ backgroundColor: corTema }}
+                  className="w-full py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg flex items-center justify-center gap-2 cursor-pointer transition-all hover:brightness-110 active:scale-98"
+                  style={{ backgroundColor: corTema, color: tema.cor_texto_usuario }}
                 >
                   <span>Iniciar Agendamento</span>
                   <ArrowRight className="w-4 h-4" />
@@ -553,33 +580,34 @@ export default function AgendamentoClassico({ barbeariaId }) {
           </div>
         ) : (
           <div className="space-y-6">
-            
+
             {renderCartaoFidelidade()}
 
-            <div className={`flex gap-1.5 p-1 rounded-2xl border ${
-              isClean ? 'bg-slate-100 border-slate-200' : 'bg-black/40 border-white/10'
-            }`}>
+            <div
+              className="flex gap-1.5 p-1 rounded-2xl border"
+              style={{ backgroundColor: tema.cor_card, borderColor: tema.cor_borda }}
+            >
               <button
                 onClick={() => setModoVisualizacao('agendar')}
-                className={`flex-1 py-2.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
+                className="flex-1 py-2.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer"
+                style={
                   modoVisualizacao === 'agendar'
-                    ? 'text-white shadow-md'
-                    : isClean ? 'text-slate-600 hover:text-slate-900' : 'text-slate-400 hover:text-white'
-                }`}
-                style={modoVisualizacao === 'agendar' ? { backgroundColor: corTema } : {}}
+                    ? { backgroundColor: corTema, color: tema.cor_texto_usuario }
+                    : { color: corSecundaria }
+                }
               >
                 Novo Agendamento
               </button>
-              
+
               {agendamentosAtivos.length > 0 && (
                 <button
                   onClick={() => setModoVisualizacao('gerenciar')}
-                  className={`flex-1 py-2.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
+                  className="flex-1 py-2.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer"
+                  style={
                     modoVisualizacao === 'gerenciar'
-                      ? 'text-white shadow-md'
-                      : isClean ? 'text-slate-600 hover:text-slate-900' : 'text-slate-400 hover:text-white'
-                  }`}
-                  style={modoVisualizacao === 'gerenciar' ? { backgroundColor: corTema } : {}}
+                      ? { backgroundColor: corTema, color: tema.cor_texto_usuario }
+                      : { color: corSecundaria }
+                  }
                 >
                   Meus Agendamentos ({agendamentosAtivos.length})
                 </button>
@@ -588,27 +616,33 @@ export default function AgendamentoClassico({ barbeariaId }) {
 
             {modoVisualizacao === 'gerenciar' ? (
               <div className="space-y-3">
-                <h3 className={`text-xs font-black uppercase tracking-wider ${isClean ? 'text-slate-600' : 'text-slate-400'}`}>Seus Agendamentos Ativos</h3>
+                <h3 className="text-xs font-black uppercase tracking-wider" style={{ color: corSecundaria }}>
+                  Seus Agendamentos Ativos
+                </h3>
                 {agendamentosAtivos.length === 0 ? (
-                  <p className="text-xs text-slate-400 italic text-center py-4">Você não possui agendamentos ativos no momento.</p>
+                  <p className="text-xs italic text-center py-4" style={{ color: corSecundaria }}>
+                    Você não possui agendamentos ativos no momento.
+                  </p>
                 ) : (
                   agendamentosAtivos.map((ag) => {
                     const isConcluido = ag.status === 'concluido';
 
                     return (
-                      <div key={ag.id} className={`p-4 rounded-2xl border flex items-center justify-between gap-3 ${
-                        isClean ? 'bg-slate-50 border-slate-200' : 'bg-white/5 border-white/10'
-                      }`}>
+                      <div
+                        key={ag.id}
+                        className="p-4 rounded-2xl border flex items-center justify-between gap-3"
+                        style={{ backgroundColor: tema.cor_card, borderColor: tema.cor_borda }}
+                      >
                         <div>
-                          <p className={`text-xs font-bold ${isClean ? 'text-slate-900' : 'text-white'}`}>{ag.servicos?.nome}</p>
+                          <p className="text-xs font-bold">{ag.servicos?.nome}</p>
                           <p className="text-[10px] font-bold" style={{ color: corTema }}>{ag.barbeiros?.nome}</p>
-                          <p className={`text-[10px] mt-0.5 ${isClean ? 'text-slate-500' : 'text-slate-400'}`}>
+                          <p className="text-[10px] mt-0.5" style={{ color: corSecundaria }}>
                             📅 {new Date(ag.data_hora).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
                           </p>
                         </div>
                         <div className="flex items-center gap-1.5 shrink-0 ml-auto">
                           {isConcluido ? (
-                            <span className="text-[9px] font-extrabold uppercase px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-600 border border-emerald-500/30 shadow-sm">
+                            <span className="text-[9px] font-extrabold uppercase px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-500 border border-emerald-500/30 shadow-sm">
                               Concluído
                             </span>
                           ) : (
@@ -620,13 +654,14 @@ export default function AgendamentoClassico({ barbeariaId }) {
                                   setHoraEscolhida('');
                                   setModoVisualizacao('agendar');
                                 }}
-                                className="p-2 rounded-xl bg-slate-900 border border-slate-800 text-white text-[10px] font-bold flex items-center gap-1 cursor-pointer hover:bg-slate-800"
+                                className="p-2 rounded-xl text-[10px] font-bold flex items-center gap-1 cursor-pointer"
+                                style={{ backgroundColor: corTema, color: tema.cor_texto_usuario }}
                               >
                                 <Edit3 className="w-3.5 h-3.5" /> Editar
                               </button>
                               <button
                                 onClick={() => cancelarAgendamento(ag.id)}
-                                className="p-2 rounded-xl bg-rose-50 border border-rose-200 text-rose-600 text-[10px] font-bold flex items-center gap-1 cursor-pointer hover:bg-rose-100"
+                                className="p-2 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-500 text-[10px] font-bold flex items-center gap-1 cursor-pointer hover:bg-rose-500/25"
                               >
                                 <Trash2 className="w-3.5 h-3.5" /> Cancelar
                               </button>
@@ -639,8 +674,8 @@ export default function AgendamentoClassico({ barbeariaId }) {
                 )}
                 <button
                   onClick={() => setModoVisualizacao('agendar')}
-                  className="w-full py-3.5 rounded-2xl text-white font-bold text-xs uppercase tracking-wider cursor-pointer shadow-md mt-2"
-                  style={{ backgroundColor: corTema }}
+                  className="w-full py-3.5 rounded-2xl font-bold text-xs uppercase tracking-wider cursor-pointer shadow-md mt-2"
+                  style={{ backgroundColor: corTema, color: tema.cor_texto_usuario }}
                 >
                   Fazer Novo Agendamento
                 </button>
@@ -649,13 +684,13 @@ export default function AgendamentoClassico({ barbeariaId }) {
               <>
                 <div ref={servicoRef} className="space-y-3 scroll-mt-6">
                   <div className="flex items-center justify-between">
-                    <label className={`text-xs font-black uppercase tracking-wider flex items-center gap-2 ${isClean ? 'text-slate-700' : 'text-slate-400'}`}>
+                    <label className="text-xs font-black uppercase tracking-wider flex items-center gap-2" style={{ color: corSecundaria }}>
                       <Scissors className="w-4 h-4" style={{ color: corTema }} />
                       1. Escolha o Serviço
                     </label>
                     {servicoEscolhido && (
-                      <span className="text-[10px] font-bold text-slate-900 flex items-center gap-1">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-slate-900" /> Selecionado
+                      <span className="text-[10px] font-bold flex items-center gap-1" style={{ color: corTema }}>
+                        <CheckCircle2 className="w-3.5 h-3.5" /> Selecionado
                       </span>
                     )}
                   </div>
@@ -673,17 +708,18 @@ export default function AgendamentoClassico({ barbeariaId }) {
                             setHoraEscolhida('');
                             setTimeout(() => barbeiroRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150);
                           }}
-                          className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer flex items-center justify-between ${
-                            isSelected 
-                              ? 'border-2 shadow-md bg-slate-900 text-white border-slate-900 scale-[1.01]' 
-                              : isClean ? 'bg-slate-50 border-slate-200 hover:border-slate-300 text-slate-900' : 'bg-white/5 border-white/10 hover:border-white/20'
-                          }`}
+                          className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer flex items-center justify-between ${isSelected ? 'border-2 shadow-md scale-[1.01]' : ''}`}
+                          style={
+                            isSelected
+                              ? { backgroundColor: corTema, borderColor: corTema, color: tema.cor_texto_usuario }
+                              : { backgroundColor: tema.cor_card, borderColor: tema.cor_borda, color: tema.cor_texto_geral }
+                          }
                         >
                           <div>
                             <p className="text-xs font-black">{s.nome}</p>
-                            <p className={`text-[10px] mt-0.5 ${isSelected ? 'text-slate-300' : 'text-slate-500'}`}>{s.duracao_minutos || 30} min</p>
+                            <p className="text-[10px] mt-0.5 opacity-75">{s.duracao_minutos || 30} min</p>
                           </div>
-                          <span className={`text-xs font-black shrink-0 ml-2 ${isSelected ? 'text-white' : ''}`} style={!isSelected ? { color: corTema } : {}}>
+                          <span className="text-xs font-black shrink-0 ml-2" style={!isSelected ? { color: corTema } : {}}>
                             R$ {Number(s.preco).toFixed(2)}
                           </span>
                         </button>
@@ -693,8 +729,8 @@ export default function AgendamentoClassico({ barbeariaId }) {
                 </div>
 
                 {servicoEscolhido && (
-                  <div ref={barbeiroRef} className={`space-y-3 pt-4 border-t scroll-mt-6 ${isClean ? 'border-slate-200' : 'border-white/10'}`}>
-                    <label className={`text-xs font-black uppercase tracking-wider flex items-center gap-2 ${isClean ? 'text-slate-700' : 'text-slate-400'}`}>
+                  <div ref={barbeiroRef} className="space-y-3 pt-4 border-t scroll-mt-6" style={{ borderColor: tema.cor_borda }}>
+                    <label className="text-xs font-black uppercase tracking-wider flex items-center gap-2" style={{ color: corSecundaria }}>
                       <User className="w-4 h-4" style={{ color: corTema }} />
                       2. Escolha o Profissional
                     </label>
@@ -712,17 +748,18 @@ export default function AgendamentoClassico({ barbeariaId }) {
                               setHoraEscolhida('');
                               setTimeout(() => dataRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150);
                             }}
-                            className={`p-3 rounded-2xl border text-center flex flex-col items-center transition-all cursor-pointer ${
-                              isSelected 
-                                ? 'border-2 shadow-md bg-slate-900 text-white border-slate-900 scale-[1.02]' 
-                                : isClean ? 'bg-slate-50 border-slate-200 hover:border-slate-300 text-slate-900' : 'bg-white/5 border-white/10 hover:border-white/20'
-                            }`}
+                            className={`p-3 rounded-2xl border text-center flex flex-col items-center transition-all cursor-pointer ${isSelected ? 'border-2 shadow-md scale-[1.02]' : ''}`}
+                            style={
+                              isSelected
+                                ? { backgroundColor: corTema, borderColor: corTema, color: tema.cor_texto_usuario }
+                                : { backgroundColor: tema.cor_card, borderColor: tema.cor_borda, color: tema.cor_texto_geral }
+                            }
                           >
-                            <div className="w-12 h-12 rounded-full overflow-hidden border-2 mb-1.5 shrink-0 border-slate-300">
+                            <div className="w-12 h-12 rounded-full overflow-hidden border-2 mb-1.5 shrink-0" style={{ borderColor: tema.cor_borda }}>
                               {foto ? (
                                 <img src={foto} alt={b.nome} className="w-full h-full object-cover" />
                               ) : (
-                                <div className="w-full h-full text-white flex items-center justify-center font-black text-sm bg-slate-900">
+                                <div className="w-full h-full flex items-center justify-center font-black text-sm" style={{ backgroundColor: corTema, color: tema.cor_texto_usuario }}>
                                   {b.nome?.charAt(0)}
                                 </div>
                               )}
@@ -736,8 +773,8 @@ export default function AgendamentoClassico({ barbeariaId }) {
                 )}
 
                 {(barbeiroEscolhido || agendamentoEmEdicao) && (
-                  <div ref={dataRef} className={`space-y-3 pt-4 border-t scroll-mt-6 ${isClean ? 'border-slate-200' : 'border-white/10'}`}>
-                    <label className={`text-xs font-black uppercase tracking-wider flex items-center gap-2 ${isClean ? 'text-slate-700' : 'text-slate-400'}`}>
+                  <div ref={dataRef} className="space-y-3 pt-4 border-t scroll-mt-6" style={{ borderColor: tema.cor_borda }}>
+                    <label className="text-xs font-black uppercase tracking-wider flex items-center gap-2" style={{ color: corSecundaria }}>
                       <CalendarIcon className="w-4 h-4" style={{ color: corTema }} />
                       3. Escolha a Data
                     </label>
@@ -756,17 +793,22 @@ export default function AgendamentoClassico({ barbeariaId }) {
                             }}
                             className={`shrink-0 w-20 p-3 rounded-2xl border text-center transition-all flex flex-col items-center ${
                               d.bloqueado
-                                ? 'opacity-30 border-slate-200 bg-slate-100 cursor-not-allowed'
+                                ? 'opacity-30 cursor-not-allowed'
                                 : isSelected
-                                ? 'border-2 font-bold shadow-md bg-slate-900 text-white border-slate-900 scale-[1.02]'
-                                : isClean
-                                ? 'bg-slate-50 border-slate-200 hover:border-slate-300 text-slate-900'
-                                : 'bg-white/5 border-white/10 hover:border-white/20'
+                                ? 'border-2 font-bold shadow-md scale-[1.02]'
+                                : ''
                             }`}
+                            style={
+                              d.bloqueado
+                                ? { backgroundColor: tema.cor_card, borderColor: tema.cor_borda }
+                                : isSelected
+                                ? { backgroundColor: corTema, borderColor: corTema, color: tema.cor_texto_usuario }
+                                : { backgroundColor: tema.cor_card, borderColor: tema.cor_borda, color: tema.cor_texto_geral }
+                            }
                           >
-                            <span className={`text-[9px] font-extrabold uppercase ${isSelected ? 'text-slate-300' : 'text-slate-500'}`}>{d.diaSemanaStr}</span>
+                            <span className="text-[9px] font-extrabold uppercase opacity-75">{d.diaSemanaStr}</span>
                             <span className="text-base font-black my-0.5">{d.diaNum}</span>
-                            <span className="text-[9px] font-bold uppercase" style={{ color: d.bloqueado ? '#f43f5e' : (isSelected ? '#ffffff' : corTema) }}>
+                            <span className="text-[9px] font-bold uppercase" style={{ color: d.bloqueado ? '#f43f5e' : (isSelected ? tema.cor_texto_usuario : corTema) }}>
                               {d.bloqueado ? 'Fechado' : d.mesStr}
                             </span>
                           </button>
@@ -777,8 +819,8 @@ export default function AgendamentoClassico({ barbeariaId }) {
                 )}
 
                 {dataEscolhida && (
-                  <div ref={horarioRef} className={`space-y-3 pt-4 border-t scroll-mt-6 ${isClean ? 'border-slate-200' : 'border-white/10'}`}>
-                    <label className={`text-xs font-black uppercase tracking-wider flex items-center gap-2 ${isClean ? 'text-slate-700' : 'text-slate-400'}`}>
+                  <div ref={horarioRef} className="space-y-3 pt-4 border-t scroll-mt-6" style={{ borderColor: tema.cor_borda }}>
+                    <label className="text-xs font-black uppercase tracking-wider flex items-center gap-2" style={{ color: corSecundaria }}>
                       <Clock className="w-4 h-4" style={{ color: corTema }} />
                       4. Escolha o Horário
                     </label>
@@ -800,12 +842,13 @@ export default function AgendamentoClassico({ barbeariaId }) {
                               }
                             }}
                             className={`py-2.5 rounded-xl text-xs font-bold border transition-all ${
-                              ocupado 
-                                ? 'opacity-30 line-through cursor-not-allowed border-slate-200' 
-                                : isSelected
-                                ? 'border-2 font-extrabold shadow-md bg-slate-900 text-white border-slate-900'
-                                : isClean ? 'bg-slate-50 border-slate-200 hover:border-slate-300 text-slate-800' : 'bg-white/5 border-white/10 hover:border-white/20'
+                              ocupado ? 'opacity-30 line-through cursor-not-allowed' : isSelected ? 'border-2 font-extrabold shadow-md cursor-pointer' : 'cursor-pointer'
                             }`}
+                            style={
+                              isSelected
+                                ? { backgroundColor: corTema, borderColor: corTema, color: tema.cor_texto_usuario }
+                                : { backgroundColor: tema.cor_card, borderColor: tema.cor_borda, color: tema.cor_texto_geral }
+                            }
                           >
                             {h}
                           </button>
@@ -816,12 +859,14 @@ export default function AgendamentoClassico({ barbeariaId }) {
                 )}
 
                 {horaEscolhida && !sucesso && !agendamentoEmEdicao && (
-                  <div ref={resumoRef} className={`p-5 rounded-3xl border space-y-4 shadow-lg scroll-mt-6 ${
-                    isClean ? 'bg-slate-900 text-white border-slate-800' : 'bg-gradient-to-br from-black/80 via-black/60 to-stone-900 border-white/15'
-                  }`}>
-                    <h4 className="text-xs font-black uppercase tracking-wider text-slate-200">Resumo da Reserva</h4>
-                    
-                    <div className="space-y-1.5 text-xs text-slate-300">
+                  <div
+                    ref={resumoRef}
+                    className="p-5 rounded-3xl border space-y-4 shadow-lg scroll-mt-6"
+                    style={{ backgroundColor: tema.cor_card, borderColor: `${corTema}66`, color: tema.cor_texto_geral }}
+                  >
+                    <h4 className="text-xs font-black uppercase tracking-wider" style={{ color: corTema }}>Resumo da Reserva</h4>
+
+                    <div className="space-y-1.5 text-xs">
                       <p>✂️ <strong>Serviço:</strong> {servicoEscolhido?.nome} (R$ {Number(servicoEscolhido?.preco || 0).toFixed(2)})</p>
                       <p>👤 <strong>Profissional:</strong> {barbeiroEscolhido?.nome}</p>
                       <p>📅 <strong>Data:</strong> {dataEscolhida.split('T')[0].split('-').reverse().join('/')}</p>
@@ -832,8 +877,8 @@ export default function AgendamentoClassico({ barbeariaId }) {
                     <button
                       disabled={loading}
                       onClick={confirmarAgendamento}
-                      className="w-full py-4 rounded-2xl text-white font-black text-xs uppercase tracking-widest cursor-pointer shadow-lg hover:brightness-110 active:scale-98 transition-all flex items-center justify-center gap-2"
-                      style={{ backgroundColor: corTema }}
+                      className="w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest cursor-pointer shadow-lg hover:brightness-110 active:scale-98 transition-all flex items-center justify-center gap-2"
+                      style={{ backgroundColor: corTema, color: tema.cor_texto_usuario }}
                     >
                       {loading ? 'A processar...' : 'Confirmar Agendamento'}
                     </button>
@@ -841,15 +886,18 @@ export default function AgendamentoClassico({ barbeariaId }) {
                 )}
 
                 {sucesso && (
-                  <div className={`py-6 text-center space-y-4 border-t ${isClean ? 'border-slate-200' : 'border-white/10'}`}>
-                    <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto shadow-md bg-slate-900 text-white">
+                  <div className="py-6 text-center space-y-4 border-t" style={{ borderColor: tema.cor_borda }}>
+                    <div
+                      className="w-14 h-14 rounded-full flex items-center justify-center mx-auto shadow-md"
+                      style={{ backgroundColor: corTema, color: tema.cor_texto_usuario }}
+                    >
                       <Check className="w-8 h-8 stroke-[3]" />
                     </div>
-                    <h3 className={`text-base font-black ${isClean ? 'text-slate-900' : 'text-white'}`}>Agendamento Concluído!</h3>
-                    <p className={`text-xs ${isClean ? 'text-slate-500' : 'text-slate-400'}`}>
+                    <h3 className="text-base font-black">Agendamento Concluído!</h3>
+                    <p className="text-xs" style={{ color: corSecundaria }}>
                       Horário registado com sucesso para {dataEscolhida.split('T')[0].split('-').reverse().join('/')} às {horaEscolhida}.
                     </p>
-                    
+
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
                       <button
                         onClick={() => {
@@ -860,8 +908,8 @@ export default function AgendamentoClassico({ barbeariaId }) {
                           setHoraEscolhida('');
                           setModoVisualizacao('agendar');
                         }}
-                        className="w-full py-3.5 rounded-2xl text-white font-bold text-xs uppercase shadow-md hover:brightness-110 cursor-pointer"
-                        style={{ backgroundColor: corTema }}
+                        className="w-full py-3.5 rounded-2xl font-bold text-xs uppercase shadow-md hover:brightness-110 cursor-pointer"
+                        style={{ backgroundColor: corTema, color: tema.cor_texto_usuario }}
                       >
                         Novo Agendamento
                       </button>
@@ -870,9 +918,8 @@ export default function AgendamentoClassico({ barbeariaId }) {
                           setSucesso(false);
                           setModoVisualizacao('gerenciar');
                         }}
-                        className={`w-full py-3.5 rounded-2xl font-bold text-xs uppercase border cursor-pointer ${
-                          isClean ? 'bg-slate-100 border-slate-300 text-slate-800 hover:bg-slate-200' : 'bg-white/10 border-white/10 text-white'
-                        }`}
+                        className="w-full py-3.5 rounded-2xl font-bold text-xs uppercase border cursor-pointer"
+                        style={{ backgroundColor: tema.cor_card, borderColor: tema.cor_borda, color: tema.cor_texto_geral }}
                       >
                         Ver Meus Agendamentos
                       </button>

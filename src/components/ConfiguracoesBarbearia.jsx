@@ -1,13 +1,18 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { 
-  Store, Save, Check, ExternalLink, Share2, 
-  Send, X, MessageSquare, Bot, Grid, Palette, 
-  Clock, Trash2, Upload, Image as ImageIcon, 
-  Link as LinkIcon, Type, Timer, Mail, Lock, CalendarOff, Globe 
+import {
+  Store, Save, Check, ExternalLink, Share2,
+  Send, X, MessageSquare, Bot, Grid, Palette,
+  Clock, Trash2, Upload, Image as ImageIcon,
+  Link as LinkIcon, Type, Timer, Mail, Lock, CalendarOff, Globe
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import {
+  PRESETS_TEMA,
+  FONTES_DISPONIVEIS,
+  resolverTemaBarbearia,
+} from '@/lib/temaAgendamento';
 
 const DIAS_SEMANA_NOMES = [
   { key: 'segunda', label: 'Segunda-feira' },
@@ -36,11 +41,13 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
   const [capaUrl, setCapaUrl] = useState(barbearia?.capa_url || '');
   const [antecedenciaMinima, setAntecedenciaMinima] = useState(barbearia?.antecedencia_minima_minutos ?? 30);
   const [timezone, setTimezone] = useState(barbearia?.timezone || 'America/Sao_Paulo');
-  
+
   const [email, setEmail] = useState('');
   const [novaSenha, setNovaSenha] = useState('');
 
-  const [temaVisual, setTemaVisual] = useState(barbearia?.cor_tema === '#10b981' || barbearia?.cor_tema === 'clean' ? 'clean' : 'dark');
+  const [temaPersonalizado, setTemaPersonalizado] = useState(() => resolverTemaBarbearia(barbearia));
+  const [modoPreview, setModoPreview] = useState('chat');
+
   const [modoAtendimento, setModoAtendimento] = useState(
     barbearia?.tipo_atendimento || barbearia?.modo_agendamento || barbearia?.modo_chatbot || 'conversacional'
   );
@@ -78,6 +85,22 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
     : 'https://agendaestilo.com.br';
 
   const urlCliente = `${baseUrl}/agendar/${slug || barbearia?.slug || 'barbearia'}`;
+
+  useEffect(() => {
+    setTemaPersonalizado(resolverTemaBarbearia(barbearia));
+  }, [barbearia]);
+
+  useEffect(() => {
+    if (modoAtendimento === 'classico') {
+      setModoPreview('classico');
+    } else {
+      setModoPreview('chat');
+    }
+  }, [modoAtendimento]);
+
+  const atualizarCampoTema = (campo, valor) => {
+    setTemaPersonalizado((prev) => ({ ...prev, [campo]: valor }));
+  };
 
   useEffect(() => {
     async function carregarUsuarioAuth() {
@@ -131,7 +154,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
       }
     };
     setHorariosBarbeiro(novosHorarios);
-    
+
     if (barbeiroSelecionado) {
       setBarbeiros(prev => prev.map(b => b.id === barbeiroSelecionado.id ? { ...b, horarios_trabalho: novosHorarios } : b));
     }
@@ -253,29 +276,6 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
     if (modalHorariosGeraisOpen) buscarBloqueios();
   }, [modalHorariosGeraisOpen, barbearia?.id]);
 
-  const handleAdicionarBloqueio = async () => {
-    if (!novaDataBloqueio) return;
-    try {
-      const { data, error } = await supabase
-        .from('bloqueios_agenda')
-        .insert([{
-          barbearia_id: barbearia.id,
-          data_bloqueio: novaDataBloqueio,
-          motivo: novoMotivoBloqueio || 'Feriado / Folga'
-        }])
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      setListaBloqueios(prev => [...prev, data]);
-      setNovaDataBloqueio('');
-      setNovoMotivoBloqueio('');
-    } catch (err) {
-      alert('Erro ao adicionar bloqueio: ' + err.message);
-    }
-  };
-
   const handleRemoverBloqueio = async (idBloqueio) => {
     try {
       const { error } = await supabase
@@ -312,15 +312,16 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
     setSucesso(false);
 
     try {
-      // 1. Atualiza as informações gerais da barbearia
       const { error: erroBarbearia } = await supabase
         .from('barbearias')
-        .update({ 
-          nome, 
-          slug, 
-          logo_url: logoUrl, 
+        .update({
+          nome,
+          slug,
+          logo_url: logoUrl,
           capa_url: capaUrl,
-          cor_tema: temaVisual,
+          cor_tema: temaPersonalizado.modo_base || 'dark',
+          
+          tema_personalizado: temaPersonalizado,
           tipo_atendimento: modoAtendimento,
           modo_agendamento: modoAtendimento,
           permite_agendamentos: permiteAgendamentos,
@@ -332,7 +333,6 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
 
       if (erroBarbearia) throw erroBarbearia;
 
-      // 2. Atualiza a escala de horários dos barbeiros
       for (const b of barbeiros) {
         await supabase
           .from('barbeiros')
@@ -340,11 +340,9 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
           .eq('id', b.id);
       }
 
-      // 3. Atualiza dados de autenticação APENAS se o e-mail mudou ou se digitou uma nova senha
       const authUpdates = {};
       if (email && email.trim() !== '') authUpdates.email = email;
-      
-      // SÓ altera a senha se o usuário digitou algo no campo de nova senha
+
       if (novaSenha && novaSenha.trim() !== '') {
         if (novaSenha.length < 6) {
           throw new Error('A nova senha deve ter pelo menos 6 caracteres.');
@@ -358,7 +356,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
       }
 
       setSucesso(true);
-      setNovaSenha(''); // Limpa o campo de senha após salvar com sucesso
+      setNovaSenha('');
       if (onUpdate) onUpdate();
       setTimeout(() => setSucesso(false), 3000);
     } catch (err) {
@@ -377,7 +375,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
 
   return (
     <div className="w-full max-w-4xl mx-auto px-3 sm:px-4 py-2 space-y-2 font-sans text-slate-800 select-none pb-28">
-      
+
       {/* HEADER / CARTÃO DE PERFIL EXECUTIVO REFINADO */}
       <div className="bg-white/90 backdrop-blur-xl rounded-[28px] p-3 border border-slate-200/70 shadow-sm relative space-y-2">
         <div className="h-36 sm:h-44 w-full relative bg-slate-900 overflow-hidden rounded-2xl shadow-inner group">
@@ -391,7 +389,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
           <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-black/20 to-transparent" />
 
           <div className="absolute top-3 right-3 flex items-center gap-2 z-10">
-            <button 
+            <button
               type="button"
               onClick={() => setModalCompartilharOpen(true)}
               className="w-8 h-8 bg-black/40 hover:bg-black/60 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/20 transition-all cursor-pointer shadow-md"
@@ -399,7 +397,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
             >
               <Share2 className="w-4 h-4" />
             </button>
-            <a 
+            <a
               href={urlCliente}
               target="_blank"
               rel="noopener noreferrer"
@@ -438,8 +436,8 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
               type="button"
               onClick={() => setSecaoAtiva(btn.id)}
               className={`p-2 rounded-2xl border transition-all cursor-pointer flex flex-col items-center justify-center gap-1 text-center shadow-xs ${
-                ativo 
-                  ? 'bg-slate-900 text-white border-slate-900 shadow-md scale-[1.01]' 
+                ativo
+                  ? 'bg-slate-900 text-white border-slate-900 shadow-md scale-[1.01]'
                   : 'bg-white/80 hover:bg-white text-slate-600 border-slate-200/80 hover:border-slate-300'
               }`}
             >
@@ -454,15 +452,14 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
 
       {/* PAINEL DE CONTEÚDO MODERNO */}
       <div className="bg-white/90 backdrop-blur-xl rounded-[28px] border border-slate-200/80 p-3 sm:p-3.5 shadow-sm space-y-2.5">
-        
+
         {/* ================= GERAL & PERFIL ================= */}
         {secaoAtiva === 'geral' && (
           <div className="space-y-2.5 animate-in fade-in duration-200">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              {/* Bloco 1: Informações do Estabelecimento */}
               <div className="bg-slate-50/90 p-2.5 rounded-2xl border border-slate-200/70 space-y-2">
                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Estabelecimento</span>
-                
+
                 <div className="space-y-0.5">
                   <label className="text-[10px] font-extrabold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
                     <Type className="w-3 h-3 text-slate-500" /> Nome da Barbearia
@@ -510,7 +507,6 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                 </div>
               </div>
 
-              {/* Bloco 2: Credenciais de Acesso */}
               <div className="bg-slate-50/90 p-2.5 rounded-2xl border border-slate-200/70 space-y-2">
                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Credenciais</span>
 
@@ -545,9 +541,9 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
           </div>
         )}
 
-        {/* ================= VISUAL & MÍDIA ================= */}
+        {/* ================= VISUAL, CORES & PREVIEW AO VIVO ================= */}
         {secaoAtiva === 'visual' && (
-          <div className="space-y-2.5 animate-in fade-in duration-200">
+          <div className="space-y-3 animate-in fade-in duration-200">
             <div className="grid grid-cols-2 gap-2.5">
               <div className="bg-slate-50/80 p-2 rounded-2xl border border-slate-200/60 space-y-1 flex flex-col items-center text-center">
                 <label className="text-[10px] font-extrabold text-slate-600 uppercase tracking-wider w-full text-left">Logo</label>
@@ -568,20 +564,252 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
               </div>
             </div>
 
-            <div className="bg-slate-50/80 p-2.5 rounded-2xl border border-slate-200/60 space-y-1.5">
-              <label className="text-[10px] font-extrabold text-slate-600 uppercase tracking-wider block">Tema Visual do App</label>
-              <div className="grid grid-cols-2 gap-2">
-                <div 
-                  onClick={() => setTemaVisual('clean')}
-                  className={`p-2 rounded-xl border cursor-pointer text-center transition-all flex flex-col items-center gap-0.5 bg-white ${temaVisual === 'clean' ? 'border-slate-900 ring-2 ring-slate-900/10 font-bold shadow-xs' : 'border-slate-200 text-slate-600'}`}
-                >
-                  <span className="text-xs text-slate-900 font-bold">Clean (Claro)</span>
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-start">
+              {/* CONTROLES DE PERSONALIZAÇÃO */}
+              <div className="lg:col-span-7 bg-slate-50/90 p-3 rounded-2xl border border-slate-200/70 space-y-3">
+                <div className="space-y-1.5">
+                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider block">
+                    Estilos Prontos
+                  </span>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                    {PRESETS_TEMA.map((preset) => (
+                      <button
+                        key={preset.id}
+                        type="button"
+                        onClick={() => setTemaPersonalizado(preset.tema)}
+                        className="p-2 rounded-xl bg-white border border-slate-200 hover:border-slate-900 text-left transition-all cursor-pointer flex items-center gap-2 shadow-2xs"
+                      >
+                        <span
+                          className="w-4 h-4 rounded-full shrink-0 border border-black/10"
+                          style={{ backgroundColor: preset.tema.cor_primaria }}
+                        />
+                        <span className="text-[10px] font-bold text-slate-800 truncate">
+                          {preset.nome}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                <div 
-                  onClick={() => setTemaVisual('dark')}
-                  className={`p-2 rounded-xl border cursor-pointer text-center transition-all flex flex-col items-center gap-0.5 ${temaVisual === 'dark' ? 'border-zinc-900 bg-zinc-900 text-white font-bold shadow-xs' : 'border-slate-200 bg-white text-slate-600'}`}
+
+                <div className="space-y-1.5 pt-1 border-t border-slate-200/70">
+                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider block">
+                    Cores da Página & Balões
+                  </span>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {[
+                      { label: 'Cor Principal', campo: 'cor_primaria' },
+                      { label: 'Fundo Página', campo: 'cor_fundo' },
+                      { label: 'Fundo Painel', campo: 'cor_container' },
+                      { label: 'Balão / Card Bot', campo: 'cor_balao_bot' },
+                      { label: 'Texto do Bot', campo: 'cor_texto_bot' },
+                      { label: 'Balão Cliente', campo: 'cor_balao_usuario' },
+                      { label: 'Texto Cliente', campo: 'cor_texto_usuario' },
+                      { label: 'Texto Geral', campo: 'cor_texto_geral' },
+                    ].map((item) => (
+                      <label
+                        key={item.campo}
+                        className="flex items-center justify-between gap-2 bg-white px-2.5 py-1.5 rounded-xl border border-slate-200/90 cursor-pointer"
+                      >
+                        <span className="text-[10px] font-bold text-slate-700 truncate">
+                          {item.label}
+                        </span>
+                        <input
+                          type="color"
+                          value={temaPersonalizado[item.campo] || '#10b981'}
+                          onChange={(e) => atualizarCampoTema(item.campo, e.target.value)}
+                          className="w-6 h-6 rounded cursor-pointer border-0 bg-transparent p-0 shrink-0"
+                        />
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 border-t border-slate-200/70">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-extrabold text-slate-600 uppercase tracking-wider block">
+                      Fonte Tipográfica
+                    </label>
+                    <select
+                      value={temaPersonalizado.fonte || 'Inter, sans-serif'}
+                      onChange={(e) => atualizarCampoTema('fonte', e.target.value)}
+                      className="w-full bg-white border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs font-semibold text-slate-900 focus:outline-none"
+                    >
+                      {FONTES_DISPONIVEIS.map((f) => (
+                        <option key={f.value} value={f.value}>
+                          {f.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-extrabold text-slate-600 uppercase tracking-wider block">
+                      Arredondamento
+                    </label>
+                    <select
+                      value={temaPersonalizado.raio_borda || '24px'}
+                      onChange={(e) => atualizarCampoTema('raio_borda', e.target.value)}
+                      className="w-full bg-white border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs font-semibold text-slate-900 focus:outline-none"
+                    >
+                      <option value="10px">Leve (10px)</option>
+                      <option value="18px">Médio (18px)</option>
+                      <option value="24px">Arredondado (24px)</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* PRÉVIA EM TEMPO REAL */}
+              <div className="lg:col-span-5 bg-slate-100 p-3 rounded-2xl border border-slate-200/80 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black text-slate-600 uppercase tracking-wider">
+                    Prévia em Tempo Real
+                  </span>
+                  <div className="flex items-center gap-1 bg-white p-0.5 rounded-lg border border-slate-200">
+                    <button
+                      type="button"
+                      onClick={() => setModoPreview('chat')}
+                      className={`px-2 py-0.5 rounded-md text-[10px] font-bold cursor-pointer ${
+                        modoPreview === 'chat' ? 'bg-slate-900 text-white' : 'text-slate-600'
+                      }`}
+                    >
+                      Chat
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setModoPreview('classico')}
+                      className={`px-2 py-0.5 rounded-md text-[10px] font-bold cursor-pointer ${
+                        modoPreview === 'classico' ? 'bg-slate-900 text-white' : 'text-slate-600'
+                      }`}
+                    >
+                      Clássico
+                    </button>
+                  </div>
+                </div>
+
+                <div
+                  className="p-3 transition-all duration-200 overflow-hidden border"
+                  style={{
+                    backgroundColor: temaPersonalizado.cor_fundo,
+                    color: temaPersonalizado.cor_texto_geral,
+                    fontFamily: temaPersonalizado.fonte,
+                    borderRadius: temaPersonalizado.raio_borda,
+                    borderColor: temaPersonalizado.cor_borda,
+                  }}
                 >
-                  <span className="text-xs font-bold">Dark (Escuro)</span>
+                  <div
+                    className="p-3 space-y-3 border"
+                    style={{
+                      backgroundColor: temaPersonalizado.cor_container,
+                      borderRadius: temaPersonalizado.raio_borda,
+                      borderColor: temaPersonalizado.cor_borda,
+                    }}
+                  >
+                    <div className="flex items-center gap-2.5 pb-2 border-b" style={{ borderColor: temaPersonalizado.cor_borda }}>
+                      <div
+                        className="w-9 h-9 rounded-full overflow-hidden flex items-center justify-center font-black text-xs shrink-0"
+                        style={{ backgroundColor: temaPersonalizado.cor_primaria, color: temaPersonalizado.cor_texto_usuario }}
+                      >
+                        {logoUrl ? (
+                          <img src={logoUrl} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          (nome || 'B').charAt(0)
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-black truncate">{nome || 'Minha Barbearia'}</p>
+                        <p className="text-[10px] font-semibold truncate" style={{ color: temaPersonalizado.cor_primaria }}>
+                          {modoPreview === 'chat' ? 'Assistente Virtual Online' : 'Agendamento Online'}
+                        </p>
+                      </div>
+                    </div>
+
+                    {modoPreview === 'chat' ? (
+                      <div className="space-y-2">
+                        <div
+                          className="p-2.5 text-[11px] leading-snug max-w-[85%] border"
+                          style={{
+                            backgroundColor: temaPersonalizado.cor_balao_bot,
+                            color: temaPersonalizado.cor_texto_bot,
+                            borderColor: temaPersonalizado.cor_borda,
+                            borderRadius: '14px',
+                          }}
+                        >
+                          Olá! Qual serviço você gostaria de agendar hoje?
+                        </div>
+
+                        <div className="flex justify-end">
+                          <div
+                            className="p-2.5 text-[11px] font-bold max-w-[85%]"
+                            style={{
+                              backgroundColor: temaPersonalizado.cor_balao_usuario,
+                              color: temaPersonalizado.cor_texto_usuario,
+                              borderRadius: '14px',
+                            }}
+                          >
+                            Corte Degradê - R$ 45,00
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          className="w-full py-2 text-[11px] font-black uppercase tracking-wider cursor-default"
+                          style={{
+                            backgroundColor: temaPersonalizado.cor_primaria,
+                            color: temaPersonalizado.cor_texto_usuario,
+                            borderRadius: '12px',
+                          }}
+                        >
+                          Confirmar Horário
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <div className="grid grid-cols-2 gap-1.5">
+                          <div
+                            className="p-2 border text-[10px]"
+                            style={{
+                              backgroundColor: temaPersonalizado.cor_balao_bot,
+                              color: temaPersonalizado.cor_texto_bot,
+                              borderColor: temaPersonalizado.cor_primaria,
+                              borderRadius: '12px',
+                            }}
+                          >
+                            <p className="font-bold truncate">Corte Social</p>
+                            <p className="font-black mt-0.5" style={{ color: temaPersonalizado.cor_primaria }}>
+                              R$ 35,00
+                            </p>
+                          </div>
+                          <div
+                            className="p-2 border text-[10px]"
+                            style={{
+                              backgroundColor: temaPersonalizado.cor_balao_bot,
+                              color: temaPersonalizado.cor_texto_bot,
+                              borderColor: temaPersonalizado.cor_borda,
+                              borderRadius: '12px',
+                            }}
+                          >
+                            <p className="font-bold truncate">Barba Completa</p>
+                            <p className="font-black mt-0.5" style={{ color: temaPersonalizado.cor_primaria }}>
+                              R$ 30,00
+                            </p>
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          className="w-full py-2 text-[11px] font-black uppercase tracking-wider cursor-default"
+                          style={{
+                            backgroundColor: temaPersonalizado.cor_primaria,
+                            color: temaPersonalizado.cor_texto_usuario,
+                            borderRadius: '12px',
+                          }}
+                        >
+                          Avançar Agendamento
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -592,12 +820,11 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
         {secaoAtiva === 'atendimento' && (
           <div className="space-y-2.5 animate-in fade-in duration-200">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              
-              {/* Bloco 1: Modo de Agendamento */}
+
               <div className="bg-slate-50/80 p-2.5 rounded-2xl border border-slate-200/60 space-y-2 flex flex-col justify-between">
                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Fluxo do Cliente</span>
                 <div className="grid grid-cols-2 gap-2">
-                  <div 
+                  <div
                     onClick={() => setModoAtendimento('conversacional')}
                     className={`p-2.5 rounded-xl border cursor-pointer transition-all flex flex-col items-center text-center gap-1 bg-white ${modoAtendimento === 'conversacional' ? 'border-slate-900 ring-2 ring-slate-900/10 shadow-xs' : 'border-slate-200 hover:bg-slate-50'}`}
                   >
@@ -607,7 +834,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                     <span className="font-bold text-[11px] text-slate-900">Chat</span>
                   </div>
 
-                  <div 
+                  <div
                     onClick={() => setModoAtendimento('classico')}
                     className={`p-2.5 rounded-xl border cursor-pointer transition-all flex flex-col items-center text-center gap-1 bg-white ${modoAtendimento === 'classico' ? 'border-slate-900 ring-2 ring-slate-900/10 shadow-xs' : 'border-slate-200 hover:bg-slate-50'}`}
                   >
@@ -619,10 +846,9 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                 </div>
               </div>
 
-              {/* Bloco 2: Antecedência e Horários Gerais */}
               <div className="bg-slate-50/80 p-2.5 rounded-2xl border border-slate-200/60 space-y-2">
                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Regras & Exceções</span>
-                
+
                 <div className="space-y-0.5">
                   <label className="text-[10px] font-extrabold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
                     <Timer className="w-3 h-3 text-slate-500" /> Antecedência Mínima (min)
@@ -689,8 +915,8 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                         const ativo = configDia.ativo !== false;
 
                         return (
-                          <div 
-                            key={key} 
+                          <div
+                            key={key}
                             className="w-[240px] sm:w-[250px] snap-center p-2.5 rounded-xl border bg-white border-slate-200 shadow-xs shrink-0 flex flex-col justify-between"
                           >
                             <div>
@@ -777,7 +1003,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
           </div>
         )}
 
-        {/* BOTÃO DE SALVAR NO FLUXO NORMAL COM BORDAS BRANCAS */}
+        {/* BOTÃO DE SALVAR */}
         <div className="pt-4 pb-2 flex justify-center border-t border-slate-100 mt-4">
           <button
             type="button"
@@ -849,8 +1075,8 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                   <input type="date" value={novaDataBloqueio} onChange={(e) => setNovaDataBloqueio(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900" />
                   <input type="text" placeholder="Motivo (Ex: Folga / Particular)" value={novoMotivoBloqueio} onChange={(e) => setNovoMotivoBloqueio(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900" />
                 </div>
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   onClick={async () => {
                     if (!novaDataBloqueio) return;
                     const barbIdSelect = document.getElementById('select-barbeiro-bloqueio').value || null;
@@ -873,7 +1099,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                     } catch (err) {
                       alert('Erro ao adicionar bloqueio: ' + err.message);
                     }
-                  }} 
+                  }}
                   className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold cursor-pointer mt-1"
                 >
                   Adicionar Bloqueio

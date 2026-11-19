@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import AgendamentoChat from '@/components/AgendamentoChat';
 import AgendamentoClassico from '@/components/AgendamentoClassico';
+import { resolverTemaBarbearia } from '@/lib/temaAgendamento';
 
 export default function AgendamentoClientPage({ slug: initialSlug }) {
   const [barbearia, setBarbearia] = useState(null);
@@ -30,8 +31,6 @@ export default function AgendamentoClientPage({ slug: initialSlug }) {
           .select('*')
           .eq('slug', slug)
           .single();
-
-        console.log('Resultado Supabase - Dados:', data, 'Erro:', error);
 
         if (!error && data) {
           setBarbearia(data);
@@ -72,25 +71,29 @@ export default function AgendamentoClientPage({ slug: initialSlug }) {
 
   const tipoAtendimento = (barbearia.tipo_atendimento || '').trim().toLowerCase();
   const modoAgendamento = (barbearia.modo_agendamento || '').trim().toLowerCase();
-  
   const modoClassico = tipoAtendimento === 'classico' || modoAgendamento === 'classico' || modoAgendamento === 'class';
-  const isClean = barbearia.cor_tema === 'clean' || barbearia.cor_tema === '#10b981';
 
-  const estiloFundoPagina = isClean 
-    ? 'bg-[#f8fafc] text-slate-900' 
-    : 'bg-[#050507] text-white';
-
-  const corLuzFundo = isClean ? 'bg-emerald-600/5' : 'bg-emerald-500/10';
+  const tema = resolverTemaBarbearia(barbearia);
 
   return (
-    <main className={`min-h-screen ${estiloFundoPagina} py-8 px-4 relative overflow-x-hidden flex flex-col items-center justify-between transition-colors duration-0`}>
-      <div className={`absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-3xl h-72 ${corLuzFundo} blur-[120px] pointer-events-none`}></div>
+    <main
+      className="min-h-screen py-8 px-4 relative overflow-x-hidden flex flex-col items-center justify-between transition-colors duration-200"
+      style={{
+        backgroundColor: tema.cor_fundo,
+        color: tema.cor_texto_geral,
+        fontFamily: tema.fonte,
+      }}
+    >
+      <div
+        className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-3xl h-72 blur-[120px] pointer-events-none opacity-20"
+        style={{ backgroundColor: tema.cor_primaria }}
+      />
 
       <div className="w-full relative z-10 flex justify-center my-auto">
         {modoClassico ? (
-          <AgendamentoClassico barbeariaId={barbearia.id} tema={isClean ? 'clean' : 'dark'} />
+          <AgendamentoClassico barbeariaId={barbearia.id} />
         ) : (
-          <AgendamentoChat barbeariaId={barbearia.id} tema={isClean ? 'clean' : 'dark'} />
+          <AgendamentoChat barbeariaId={barbearia.id} />
         )}
       </div>
     </main>

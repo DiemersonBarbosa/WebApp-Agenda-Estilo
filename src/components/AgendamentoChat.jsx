@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Bot, Send, CheckCircle2, AlertCircle, Clock, ArrowRight, Calendar as CalendarIcon, XCircle, Edit3, Scissors, User, Award, Gift, Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Bot, Send, CheckCircle2, AlertCircle, ArrowRight, Calendar as CalendarIcon, XCircle, Edit3, Scissors, User, Award, Gift, ChevronLeft, ChevronRight } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { enviarMensagemWhatsApp } from '@/lib/whatsapp';
+import { resolverTemaBarbearia } from '@/lib/temaAgendamento';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://agendaestilo.com.br';
 
@@ -22,7 +23,7 @@ export default function AgendamentoChat({ barbeariaId }) {
   const [clienteId, setClienteId] = useState(null);
   const [agendamentosCliente, setAgendamentosCliente] = useState([]);
   const [dadosFidelidade, setDadosFidelidade] = useState({ selos_atuais: 0, total_resgates: 0, id: null });
-  
+
   const [agendamentoEmEdicao, setAgendamentoEmEdicao] = useState(null);
   const [servicoEscolhido, setServicoEscolhido] = useState(null);
   const [barbeiroEscolhido, setBarbeiroEscolhido] = useState(null);
@@ -45,19 +46,10 @@ export default function AgendamentoChat({ barbeariaId }) {
     }
   }, [mensagens, estaDigitando]);
 
-  const isClean = barbearia?.cor_tema === 'clean';
-  const corTema = isClean ? '#064e3b' : '#10b981';
-  
-  const estiloFundoGlobal = isClean ? 'bg-[#f8fafc] text-slate-800' : 'bg-[#050507] text-white';
-  const estiloFundoContainer = isClean 
-    ? 'bg-[#ffffff] text-slate-900 border-none shadow-none md:border md:border-slate-300 md:rounded-[2.5rem] md:shadow-2xl' 
-    : 'bg-[#050507] text-white border-none shadow-none md:border md:border-white/15 md:rounded-[2.5rem] md:shadow-2xl';
+  const tema = resolverTemaBarbearia(barbearia);
+  const corTema = tema.cor_primaria || '#10b981';
+  const corSecundaria = tema.cor_texto_secundario || '#94a3b8';
 
-  const estiloHeader = isClean ? 'bg-white/95 border-slate-200 text-slate-900' : 'bg-[#050507]/95 border-white/10 text-white';
-  const estiloBotMsg = isClean ? 'bg-slate-100 border border-slate-200 text-slate-800 shadow-sm' : 'bg-stone-900 border border-white/10 text-slate-200 shadow-inner';
-  const estiloInput = isClean ? 'bg-slate-100 border-slate-300 text-slate-900 placeholder-slate-400' : 'bg-stone-900 border-white/10 text-white placeholder-slate-500';
-
-  // Função para padronizar o telefone para o padrão do WhatsApp (com 55)
   const formatarTelefoneWhatsApp = (telBruto) => {
     const apenasNumeros = telBruto.replace(/\D/g, '');
     if (apenasNumeros.startsWith('55') && apenasNumeros.length >= 12) {
@@ -66,21 +58,10 @@ export default function AgendamentoChat({ barbeariaId }) {
     return `55${apenasNumeros}`;
   };
 
-const isDataBloqueadaParaProfissional = (dataIso, barbeiroId) => {
-  return datasBloqueadas.some(b => {
-    const dataBloqFmt = String(b.data_bloqueio).split('T')[0];
-    if (dataBloqFmt !== dataIso) return false;
-    
-    // Se o bloqueio for geral ou for específico para este barbeiro
-    return !b.barbeiro_id || String(b.barbeiro_id) === String(barbeiroId);
-  });
-};
-
-
   const gerarDiasDoMes = () => {
     const ano = dataAtualNavegacao.getFullYear();
     const mes = dataAtualNavegacao.getMonth();
-    
+
     const totalDias = new Date(ano, mes + 1, 0).getDate();
     const dias = [];
     const hoje = new Date();
@@ -91,7 +72,7 @@ const isDataBloqueadaParaProfissional = (dataIso, barbeiroId) => {
 
     for (let i = diaInicio; i <= totalDias; i++) {
       const d = new Date(ano, mes, i);
-      
+
       const anoIso = d.getFullYear();
       const mesIso = String(d.getMonth() + 1).padStart(2, '0');
       const diaIso = String(d.getDate()).padStart(2, '0');
@@ -177,9 +158,8 @@ const isDataBloqueadaParaProfissional = (dataIso, barbeiroId) => {
     const diasSemanaMap = ['domingo', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado'];
     const nomeDia = diasSemanaMap[dateObj.getDay()];
 
-    let configHorariosBarbeiro = barbeiroAtivo?.horarios_trabalho?.[nomeDia];
+    const configHorariosBarbeiro = barbeiroAtivo?.horarios_trabalho?.[nomeDia];
 
-    let ativo = true;
     let aberturaStr = '08:00';
     let fechamentoStr = '18:00';
     let pausaInicioStr = '';
@@ -271,13 +251,11 @@ const isDataBloqueadaParaProfissional = (dataIso, barbeiroId) => {
         const { data: barb } = await supabase.from('barbearias').select('*').eq('id', barbeariaId).single();
         if (barb) setBarbearia(barb);
 
-       const [resServicos, resBarbeiros, resBloqueios] = await Promise.all([
-  supabase.from('servicos').select('*').eq('barbearia_id', barbeariaId),
-  supabase.from('barbeiros').select('*').eq('barbearia_id', barbeariaId),
-  supabase.from('bloqueios_agenda').select('data_bloqueio, barbeiro_id').eq('barbearia_id', barbeariaId)
-]);
-
-// Salve os bloqueios completos no estado (ex: setDatasBloqueadas(resBloqueios.data || []))
+        const [resServicos, resBarbeiros, resBloqueios] = await Promise.all([
+          supabase.from('servicos').select('*').eq('barbearia_id', barbeariaId),
+          supabase.from('barbeiros').select('*').eq('barbearia_id', barbeariaId),
+          supabase.from('bloqueios_agenda').select('data_bloqueio, barbeiro_id').eq('barbearia_id', barbeariaId)
+        ]);
 
         setServicos(resServicos.data || []);
         setBarbeiros(resBarbeiros.data || []);
@@ -410,7 +388,7 @@ const isDataBloqueadaParaProfissional = (dataIso, barbeiroId) => {
           const agsAtivos = await carregarDadosCliente(cliExistente.id);
 
           const temFidelidade = barbearia?.fidelidade_ativa !== false;
-          const msgTexto = temFidelidade 
+          const msgTexto = temFidelidade
             ? `Que bom vê-lo novamente, ${cliExistente.nome}! Verificamos os seus agendamentos e o seu cartão fidelidade abaixo:`
             : `Que bom vê-lo novamente, ${cliExistente.nome}! Verificamos os seus agendamentos abaixo:`;
 
@@ -443,7 +421,7 @@ const isDataBloqueadaParaProfissional = (dataIso, barbeiroId) => {
         const { data: novoCli } = await supabase.from('clientes').insert([{ barbearia_id: barbeariaId, nome: valorInput, telefone }]).select('id').single();
         setClienteId(novoCli.id);
         await carregarDadosCliente(novoCli.id);
-        
+
         if (barbearia?.permite_agendamentos === false) {
           adicionarMensagemBotComDelay(`Prazer em conhecê-lo, ${valorInput}! No momento, os agendamentos online estão pausados.`, 'menu_inicial');
         } else {
@@ -498,7 +476,7 @@ const isDataBloqueadaParaProfissional = (dataIso, barbeiroId) => {
     setDataEscolhida(dataFmt);
     const dataExibicao = dataFmt.split('-').reverse().join('/');
     setMensagens((prev) => [...prev, { remetente: 'usuario', texto: dataExibicao }]);
-    
+
     if (etapa.startsWith('editar')) {
       adicionarMensagemBotComDelay('Agora, selecione o novo horário disponível:', 'editar_horario');
     } else {
@@ -550,7 +528,7 @@ const isDataBloqueadaParaProfissional = (dataIso, barbeiroId) => {
     setLoading(true);
     try {
       const dataHoraIso = new Date(`${dataFmt}T${horaEscolhida}:00`).toISOString();
-      
+
       await supabase.from('agendamentos').insert([{
         barbearia_id: barbeariaId,
         cliente_id: clienteId,
@@ -562,11 +540,10 @@ const isDataBloqueadaParaProfissional = (dataIso, barbeiroId) => {
         lido: false
       }]);
 
-      // Disparo automático via WhatsApp incluindo o nome da barbearia
       try {
         const telefoneFormatado = formatarTelefoneWhatsApp(telefone);
         const dataFormatadaBR = dataFmt.split('-').reverse().join('/');
-        
+
         await enviarMensagemWhatsApp({
           phone: telefoneFormatado,
           nomeCliente: nome,
@@ -619,30 +596,51 @@ const isDataBloqueadaParaProfissional = (dataIso, barbeiroId) => {
     const atingiuMeta = selos >= metaSelos;
 
     return (
-      <div className={`p-4 rounded-3xl border backdrop-blur-xl space-y-3 shadow-lg ${isClean ? 'bg-slate-50 border-slate-200 text-slate-900' : 'bg-stone-900 border-white/10 text-white'}`}>
-        <div className={`flex items-center justify-between border-b pb-2.5 ${isClean ? 'border-slate-200' : 'border-white/10'}`}>
+      <div
+        className="p-4 rounded-3xl border backdrop-blur-xl space-y-3 shadow-lg"
+        style={{
+          backgroundColor: tema.cor_card,
+          borderColor: tema.cor_borda,
+          color: tema.cor_texto_geral,
+        }}
+      >
+        <div className="flex items-center justify-between border-b pb-2.5" style={{ borderColor: tema.cor_borda }}>
           <div className="flex items-center gap-2">
-            <div className={`w-7 h-7 rounded-xl flex items-center justify-center border ${isClean ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-amber-500/20 text-amber-400 border-amber-500/40'}`}>
+            <div
+              className="w-7 h-7 rounded-xl flex items-center justify-center border"
+              style={{ backgroundColor: `${corTema}20`, borderColor: `${corTema}40`, color: corTema }}
+            >
               <Award className="w-4 h-4" />
             </div>
             <span className="text-xs font-black uppercase tracking-wider">O seu Cartão Fidelidade</span>
           </div>
-          <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border ${atingiuMeta ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40' : isClean ? 'bg-slate-200 text-slate-700 border-slate-300' : 'bg-amber-500/20 text-amber-400 border-amber-500/40'}`}>
+          <span
+            className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border"
+            style={{ backgroundColor: `${corTema}20`, borderColor: `${corTema}40`, color: corTema }}
+          >
             {atingiuMeta ? '🎁 Resgate Disponível!' : `${selos} / ${metaSelos} Selos`}
           </span>
         </div>
         <div className="space-y-1.5">
-          <div className={`w-full h-2.5 rounded-full overflow-hidden p-0.5 border ${isClean ? 'bg-slate-200 border-slate-300' : 'bg-stone-950 border-slate-800'}`}>
-            <div className={`h-full rounded-full transition-all duration-500 ${atingiuMeta ? 'bg-emerald-400' : isClean ? 'bg-emerald-900' : 'bg-amber-400'}`} style={{ width: `${percentual}%` }}></div>
+          <div className="w-full h-2.5 rounded-full overflow-hidden p-0.5 border bg-black/25" style={{ borderColor: tema.cor_borda }}>
+            <div
+              className="h-full rounded-full transition-all duration-500"
+              style={{ width: `${percentual}%`, backgroundColor: corTema }}
+            />
           </div>
-          <div className="flex justify-between text-[10px] text-slate-400 font-medium">
+          <div className="flex justify-between text-[10px] font-medium" style={{ color: corSecundaria }}>
             <span>Resgates: {dadosFidelidade?.total_resgates || 0}</span>
             <span>{atingiuMeta ? 'Parabéns! Ganhou um corte grátis' : `Faltam ${metaSelos - selos} selos`}</span>
           </div>
         </div>
         {atingiuMeta && (
-          <button disabled={loading} onClick={handleResgatarPremioCliente} className={`w-full mt-2 py-2.5 rounded-xl font-black text-xs transition-all shadow-md cursor-pointer flex items-center justify-center gap-1.5 ${isClean ? 'bg-emerald-900 hover:bg-emerald-950 text-white' : 'bg-emerald-500 hover:bg-emerald-400 text-slate-950'}`}>
-            <Gift className="w-4 h-4 text-emerald-400" />
+          <button
+            disabled={loading}
+            onClick={handleResgatarPremioCliente}
+            className="w-full mt-2 py-2.5 rounded-xl font-black text-xs transition-all shadow-md cursor-pointer flex items-center justify-center gap-1.5"
+            style={{ backgroundColor: corTema, color: tema.cor_texto_usuario }}
+          >
+            <Gift className="w-4 h-4" />
             <span>Resgatar Corte Grátis Agora</span>
           </button>
         )}
@@ -651,37 +649,77 @@ const isDataBloqueadaParaProfissional = (dataIso, barbeiroId) => {
   };
 
   return (
-    <div className={`fixed inset-0 w-full h-[100dvh] flex flex-col items-center justify-between overflow-hidden m-0 p-0 pb-6 md:pb-0 ${estiloFundoGlobal}`}>
-      <div className={`w-full h-full md:max-w-xl md:h-[90vh] md:my-auto flex flex-col overflow-hidden relative ${estiloFundoContainer}`}>
-        
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-4/5 h-[3px] z-30" style={{ background: `linear-gradient(to right, transparent, ${corTema}, transparent)` }}></div>
+    <div
+      className="fixed inset-0 w-full h-[100dvh] flex flex-col items-center justify-between overflow-hidden m-0 p-0 pb-6 md:pb-0"
+      style={{
+        backgroundColor: tema.cor_fundo,
+        color: tema.cor_texto_geral,
+        fontFamily: tema.fonte,
+      }}
+    >
+      <div
+        className="w-full h-full md:max-w-xl md:h-[90vh] md:my-auto flex flex-col overflow-hidden relative md:border md:shadow-2xl"
+        style={{
+          backgroundColor: tema.cor_container,
+          color: tema.cor_texto_geral,
+          borderColor: tema.cor_borda,
+          borderRadius: tema.raio_borda,
+        }}
+      >
+        <div
+          className="absolute top-0 left-1/2 -translate-x-1/2 w-4/5 h-[3px] z-30"
+          style={{ background: `linear-gradient(to right, transparent, ${corTema}, transparent)` }}
+        />
 
-        <div className={`shrink-0 z-20 backdrop-blur-xl border-b ${estiloHeader}`}>
-          <div className={`relative h-40 sm:h-48 w-full overflow-hidden ${isClean ? 'bg-slate-200' : 'bg-stone-900'}`}>
+        <div
+          className="shrink-0 z-20 backdrop-blur-xl border-b"
+          style={{
+            backgroundColor: `${tema.cor_container}F2`,
+            borderColor: tema.cor_borda,
+            color: tema.cor_texto_geral,
+          }}
+        >
+          <div className="relative h-40 sm:h-48 w-full overflow-hidden">
             {barbearia?.capa_url ? (
               <img src={barbearia.capa_url} alt="Capa" className="w-full h-full object-cover" />
             ) : (
-              <div className={`w-full h-full flex items-center justify-center ${isClean ? 'bg-gradient-to-r from-slate-200 via-slate-100 to-slate-200 text-slate-500' : 'bg-gradient-to-r from-stone-900 via-stone-800 to-stone-900 text-stone-500'}`}>
+              <div
+                className="w-full h-full flex items-center justify-center"
+                style={{ backgroundColor: tema.cor_card, color: corSecundaria }}
+              >
                 <span className="text-[10px] font-bold tracking-wider uppercase">Capa da Unidade</span>
               </div>
             )}
-            <div className={`absolute inset-0 ${isClean ? 'bg-gradient-to-t from-white/95 via-white/40 to-transparent' : 'bg-gradient-to-t from-black/95 via-black/50 to-transparent'}`}></div>
+            <div
+              className="absolute inset-0"
+              style={{
+                background: `linear-gradient(to top, ${tema.cor_container}F5, ${tema.cor_container}66, transparent)`,
+              }}
+            />
           </div>
 
           <div className="px-5 pb-4 pt-0 relative flex items-center gap-4 -mt-12 sm:-mt-14">
-            <div className={`w-20 h-20 sm:w-24 sm:h-24 rounded-3xl p-1.5 shadow-2xl border-2 overflow-hidden flex items-center justify-center shrink-0 backdrop-blur-xl ${isClean ? 'bg-white border-slate-200 shadow-md' : 'bg-black border-white/30'}`}>
+            <div
+              className="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl p-1.5 shadow-2xl border-2 overflow-hidden flex items-center justify-center shrink-0 backdrop-blur-xl"
+              style={{ backgroundColor: tema.cor_card, borderColor: tema.cor_borda }}
+            >
               {barbearia?.logo_url ? (
                 <img src={barbearia.logo_url} alt={barbearia.nome} className="w-full h-full object-cover rounded-2xl" />
               ) : (
-                <div className="w-full h-full bg-gradient-to-br from-stone-800 to-black text-white rounded-2xl flex items-center justify-center font-black text-xl">
+                <div
+                  className="w-full h-full rounded-2xl flex items-center justify-center font-black text-xl"
+                  style={{ backgroundColor: corTema, color: tema.cor_texto_usuario }}
+                >
                   {barbearia?.nome?.charAt(0) || 'B'}
                 </div>
               )}
             </div>
             <div className="pt-3">
-              <h2 className={`text-base sm:text-lg font-black tracking-tight ${isClean ? 'text-slate-900' : 'text-white'}`}>{barbearia?.nome}</h2>
+              <h2 className="text-base sm:text-lg font-black tracking-tight" style={{ color: tema.cor_texto_geral }}>
+                {barbearia?.nome}
+              </h2>
               <p className="text-[10px] font-semibold uppercase tracking-wider flex items-center gap-1 mt-0.5" style={{ color: corTema }}>
-                <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: corTema }}></span>
+                <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: corTema }} />
                 Assistente Virtual Inteligente
               </p>
             </div>
@@ -699,11 +737,31 @@ const isDataBloqueadaParaProfissional = (dataIso, barbeiroId) => {
           {mensagens.map((msg, index) => (
             <div key={index} className={`flex items-start gap-2.5 ${msg.remetente === 'usuario' ? 'flex-row-reverse' : 'flex-row'}`}>
               {msg.remetente === 'bot' && (
-                <div className="w-7 h-7 rounded-xl border flex items-center justify-center shrink-0 shadow-sm mt-1" style={{ backgroundColor: `${corTema}20`, borderColor: `${corTema}50`, color: corTema }}>
+                <div
+                  className="w-7 h-7 rounded-xl border flex items-center justify-center shrink-0 shadow-sm mt-1"
+                  style={{ backgroundColor: `${corTema}20`, borderColor: `${corTema}50`, color: corTema }}
+                >
                   <Bot className="w-3.5 h-3.5" />
                 </div>
               )}
-              <div className={`p-3.5 rounded-3xl text-xs leading-relaxed max-w-[85%] backdrop-blur-md ${msg.remetente === 'usuario' ? 'text-white font-bold rounded-tr-sm shadow-lg' : estiloBotMsg}`} style={msg.remetente === 'usuario' ? { backgroundColor: corTema, boxShadow: `0 5px 20px ${corTema}40` } : {}}>
+              <div
+                className={`p-3.5 rounded-3xl text-xs leading-relaxed max-w-[85%] backdrop-blur-md ${
+                  msg.remetente === 'usuario' ? 'font-bold rounded-tr-sm shadow-lg' : 'border shadow-sm'
+                }`}
+                style={
+                  msg.remetente === 'usuario'
+                    ? {
+                        backgroundColor: tema.cor_balao_usuario,
+                        color: tema.cor_texto_usuario,
+                        boxShadow: `0 5px 20px ${tema.cor_balao_usuario}40`,
+                      }
+                    : {
+                        backgroundColor: tema.cor_balao_bot,
+                        color: tema.cor_texto_bot,
+                        borderColor: tema.cor_borda,
+                      }
+                }
+              >
                 {msg.texto}
               </div>
             </div>
@@ -711,13 +769,19 @@ const isDataBloqueadaParaProfissional = (dataIso, barbeiroId) => {
 
           {estaDigitando && (
             <div className="flex items-start gap-2.5 flex-row animate-fade-in">
-              <div className="w-7 h-7 rounded-xl border flex items-center justify-center shrink-0 shadow-sm mt-1" style={{ backgroundColor: `${corTema}20`, borderColor: `${corTema}50`, color: corTema }}>
+              <div
+                className="w-7 h-7 rounded-xl border flex items-center justify-center shrink-0 shadow-sm mt-1"
+                style={{ backgroundColor: `${corTema}20`, borderColor: `${corTema}50`, color: corTema }}
+              >
                 <Bot className="w-3.5 h-3.5" />
               </div>
-              <div className={`p-4 rounded-3xl rounded-tl-sm border flex items-center gap-1.5 backdrop-blur-md shadow-inner ${isClean ? 'bg-slate-100 border-slate-200' : 'bg-stone-900 border-white/10'}`}>
-                <div className="w-1.5 h-1.5 rounded-full animate-bounce [animation-delay:-0.3s]" style={{ backgroundColor: corTema }}></div>
-                <div className="w-1.5 h-1.5 rounded-full animate-bounce [animation-delay:-0.15s]" style={{ backgroundColor: corTema }}></div>
-                <div className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ backgroundColor: corTema }}></div>
+              <div
+                className="p-4 rounded-3xl rounded-tl-sm border flex items-center gap-1.5 backdrop-blur-md shadow-inner"
+                style={{ backgroundColor: tema.cor_balao_bot, borderColor: tema.cor_borda }}
+              >
+                <div className="w-1.5 h-1.5 rounded-full animate-bounce [animation-delay:-0.3s]" style={{ backgroundColor: corTema }} />
+                <div className="w-1.5 h-1.5 rounded-full animate-bounce [animation-delay:-0.15s]" style={{ backgroundColor: corTema }} />
+                <div className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ backgroundColor: corTema }} />
               </div>
             </div>
           )}
@@ -727,14 +791,30 @@ const isDataBloqueadaParaProfissional = (dataIso, barbeiroId) => {
           {etapa === 'menu_inicial' && !estaDigitando && (
             <div className="grid grid-cols-1 gap-2 pt-2">
               {barbearia?.permite_agendamentos !== false && (
-                <button onClick={() => escolherOpcaoMenu('novo')} className="p-3.5 rounded-2xl border text-left flex items-center justify-between transition-all cursor-pointer backdrop-blur-md font-bold text-xs" style={{ backgroundColor: `${corTema}15`, borderColor: `${corTema}40`, color: isClean ? '#0f172a' : '#ffffff' }}>
+                <button
+                  onClick={() => escolherOpcaoMenu('novo')}
+                  className="p-3.5 rounded-2xl border text-left flex items-center justify-between transition-all cursor-pointer backdrop-blur-md font-bold text-xs"
+                  style={{
+                    backgroundColor: `${corTema}15`,
+                    borderColor: `${corTema}40`,
+                    color: tema.cor_texto_geral,
+                  }}
+                >
                   <span>Fazer novo agendamento</span>
                   <ArrowRight className="w-4 h-4" style={{ color: corTema }} />
                 </button>
               )}
-              <button onClick={() => escolherOpcaoMenu('gerenciar')} className={`p-3.5 rounded-2xl border text-left flex items-center justify-between transition-all cursor-pointer backdrop-blur-md font-bold text-xs ${isClean ? 'bg-slate-100 border-slate-200 text-slate-800' : 'bg-stone-900 border-white/10 text-white'}`}>
+              <button
+                onClick={() => escolherOpcaoMenu('gerenciar')}
+                className="p-3.5 rounded-2xl border text-left flex items-center justify-between transition-all cursor-pointer backdrop-blur-md font-bold text-xs"
+                style={{
+                  backgroundColor: tema.cor_card,
+                  borderColor: tema.cor_borda,
+                  color: tema.cor_texto_geral,
+                }}
+              >
                 <span>{barbearia?.fidelidade_ativa !== false ? 'Ver / Gerenciar meus agendamentos e selos' : 'Ver / Gerenciar meus agendamentos'}</span>
-                <CalendarIcon className="w-4 h-4 text-slate-400" />
+                <CalendarIcon className="w-4 h-4" style={{ color: corSecundaria }} />
               </button>
             </div>
           )}
@@ -742,18 +822,24 @@ const isDataBloqueadaParaProfissional = (dataIso, barbeiroId) => {
           {etapa === 'gerenciar' && !estaDigitando && (
             <div className="space-y-3 pt-2">
               {agendamentosCliente.length === 0 ? (
-                <p className="text-xs text-slate-400 italic text-center py-2">Você não tem agendamentos ativos no momento.</p>
+                <p className="text-xs italic text-center py-2" style={{ color: corSecundaria }}>
+                  Você não tem agendamentos ativos no momento.
+                </p>
               ) : (
                 agendamentosCliente.map((ag) => {
                   const dataFormatada = new Date(ag.data_hora).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
                   const isConcluido = ag.status === 'concluido';
 
                   return (
-                    <div key={ag.id} className={`p-4 rounded-2xl border flex items-center justify-between gap-3 backdrop-blur-md ${isClean ? 'bg-slate-50 border-slate-200' : 'bg-stone-900 border-white/10'}`}>
+                    <div
+                      key={ag.id}
+                      className="p-4 rounded-2xl border flex items-center justify-between gap-3 backdrop-blur-md"
+                      style={{ backgroundColor: tema.cor_card, borderColor: tema.cor_borda }}
+                    >
                       <div>
-                        <p className={`text-xs font-bold ${isClean ? 'text-slate-900' : 'text-white'}`}>{ag.servicos?.nome || 'Serviço'}</p>
+                        <p className="text-xs font-bold" style={{ color: tema.cor_texto_geral }}>{ag.servicos?.nome || 'Serviço'}</p>
                         <p className="text-[10px] font-medium" style={{ color: corTema }}>Profissional: {ag.barbeiros?.nome || 'Barbeiro'}</p>
-                        <p className={`text-[10px] mt-0.5 ${isClean ? 'text-slate-600' : 'text-slate-300'}`}>📅 {dataFormatada}</p>
+                        <p className="text-[10px] mt-0.5" style={{ color: corSecundaria }}>📅 {dataFormatada}</p>
                       </div>
 
                       <div className="flex items-center gap-1.5 shrink-0 ml-auto">
@@ -779,7 +865,14 @@ const isDataBloqueadaParaProfissional = (dataIso, barbeiroId) => {
                 })
               )}
               {barbearia?.permite_agendamentos !== false && (
-                <button onClick={() => { setEtapa('servico'); setMensagens((prev) => [...prev, { remetente: 'bot', texto: 'Perfeito, vamos prosseguir com o novo agendamento. Escolha o serviço:' }]); }} className="w-full py-3 rounded-2xl border text-xs font-bold transition-all cursor-pointer mt-2" style={{ backgroundColor: `${corTema}20`, color: corTema, borderColor: `${corTema}40` }}>
+                <button
+                  onClick={() => {
+                    setEtapa('servico');
+                    setMensagens((prev) => [...prev, { remetente: 'bot', texto: 'Perfeito, vamos prosseguir com o novo agendamento. Escolha o serviço:' }]);
+                  }}
+                  className="w-full py-3 rounded-2xl border text-xs font-bold transition-all cursor-pointer mt-2"
+                  style={{ backgroundColor: `${corTema}20`, color: corTema, borderColor: `${corTema}40` }}
+                >
                   Fazer novo agendamento
                 </button>
               )}
@@ -787,9 +880,11 @@ const isDataBloqueadaParaProfissional = (dataIso, barbeiroId) => {
           )}
 
           {(etapa === 'data' || etapa === 'editar_data') && !estaDigitando && (
-            <div className={`p-5 rounded-3xl border backdrop-blur-xl space-y-4 shadow-xl ${isClean ? 'bg-slate-50 border-slate-200 text-slate-900' : 'bg-stone-900 border-white/15 text-white'}`}>
-              
-              <div className="flex items-center justify-between pb-3 border-b border-white/10">
+            <div
+              className="p-5 rounded-3xl border backdrop-blur-xl space-y-4 shadow-xl"
+              style={{ backgroundColor: tema.cor_card, borderColor: tema.cor_borda, color: tema.cor_texto_geral }}
+            >
+              <div className="flex items-center justify-between pb-3 border-b" style={{ borderColor: tema.cor_borda }}>
                 <div className="flex items-center gap-2">
                   <div className="w-7 h-7 rounded-xl flex items-center justify-center shadow" style={{ backgroundColor: `${corTema}20`, color: corTema }}>
                     <CalendarIcon className="w-4 h-4" />
@@ -798,9 +893,9 @@ const isDataBloqueadaParaProfissional = (dataIso, barbeiroId) => {
                 </div>
 
                 <div className="flex items-center gap-1.5">
-                  <button 
+                  <button
                     onClick={voltarMes}
-                    className="w-7 h-7 rounded-lg border flex items-center justify-center hover:bg-white/10 transition-colors cursor-pointer"
+                    className="w-7 h-7 rounded-lg border flex items-center justify-center hover:opacity-80 transition-colors cursor-pointer"
                     style={{ borderColor: `${corTema}50` }}
                   >
                     <ChevronLeft className="w-4 h-4" style={{ color: corTema }} />
@@ -808,9 +903,9 @@ const isDataBloqueadaParaProfissional = (dataIso, barbeiroId) => {
                   <span className="text-xs font-black uppercase tracking-tight px-1">
                     {dataAtualNavegacao.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
                   </span>
-                  <button 
+                  <button
                     onClick={avancarMes}
-                    className="w-7 h-7 rounded-lg border flex items-center justify-center hover:bg-white/10 transition-colors cursor-pointer"
+                    className="w-7 h-7 rounded-lg border flex items-center justify-center hover:opacity-80 transition-colors cursor-pointer"
                     style={{ borderColor: `${corTema}50` }}
                   >
                     <ChevronRight className="w-4 h-4" style={{ color: corTema }} />
@@ -830,10 +925,16 @@ const isDataBloqueadaParaProfissional = (dataIso, barbeiroId) => {
                         diaObj.bloqueado
                           ? 'bg-rose-500/10 border-rose-500/20 text-rose-400 opacity-40 cursor-not-allowed line-through'
                           : selecionado
-                          ? 'text-white shadow-lg scale-105'
-                          : isClean ? 'bg-white border-slate-200 hover:border-emerald-700 text-slate-800' : 'bg-stone-950 border-white/10 hover:border-white/30 text-white'
+                          ? 'shadow-lg scale-105'
+                          : ''
                       }`}
-                      style={selecionado ? { backgroundColor: corTema, borderColor: corTema } : {}}
+                      style={
+                        !diaObj.bloqueado
+                          ? selecionado
+                            ? { backgroundColor: corTema, borderColor: corTema, color: tema.cor_texto_usuario }
+                            : { backgroundColor: tema.cor_container, borderColor: tema.cor_borda, color: tema.cor_texto_geral }
+                          : {}
+                      }
                     >
                       <span className="text-[10px] uppercase font-bold opacity-70">{diaObj.diaSemanaStr}</span>
                       <span className="text-lg font-black my-0.5">{diaObj.diaNum}</span>
@@ -849,30 +950,30 @@ const isDataBloqueadaParaProfissional = (dataIso, barbeiroId) => {
           {etapa === 'editar_horario' && !estaDigitando && (
             <div className="space-y-3 pt-2">
               {horariosDisponiveisAtuais.filter(h => !horariosOcupados.includes(h)).length === 0 ? (
-                <div className={`p-5 rounded-3xl border backdrop-blur-xl space-y-4 shadow-xl ${isClean ? 'bg-slate-50 border-slate-200 text-slate-900' : 'bg-stone-900 border-white/15 text-white'}`}>
+                <div
+                  className="p-5 rounded-3xl border backdrop-blur-xl space-y-4 shadow-xl"
+                  style={{ backgroundColor: tema.cor_card, borderColor: tema.cor_borda, color: tema.cor_texto_geral }}
+                >
                   <div className="flex items-center gap-3 pb-3 border-b border-rose-500/20">
                     <div className="w-9 h-9 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-500 flex items-center justify-center shrink-0">
                       <AlertCircle className="w-5 h-5" />
                     </div>
                     <div>
                       <h4 className="text-xs font-black text-rose-500 uppercase tracking-wider">Horários Indisponíveis</h4>
-                      <p className={`text-[11px] font-medium leading-tight mt-0.5 ${isClean ? 'text-slate-600' : 'text-slate-400'}`}>
+                      <p className="text-[11px] font-medium leading-tight mt-0.5" style={{ color: corSecundaria }}>
                         Nenhum horário livre nesta data (agenda cheia, estabelecimento fechado ou antecedência mínima atingida).
                       </p>
                     </div>
                   </div>
 
                   <div className="space-y-2 pt-1">
-                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block px-1">
-                      O que deseja fazer?
-                    </span>
                     <button
                       onClick={() => {
                         setDataEscolhida('');
                         setEtapa('editar_data');
                       }}
                       className="w-full py-3.5 px-4 rounded-2xl text-xs font-black transition-all cursor-pointer flex items-center justify-between shadow-md hover:scale-[1.01]"
-                      style={{ backgroundColor: corTema, color: '#ffffff' }}
+                      style={{ backgroundColor: corTema, color: tema.cor_texto_usuario }}
                     >
                       <span className="flex items-center gap-2">
                         <CalendarIcon className="w-4 h-4" />
@@ -887,7 +988,13 @@ const isDataBloqueadaParaProfissional = (dataIso, barbeiroId) => {
                   {horariosDisponiveisAtuais
                     .filter(h => !horariosOcupados.includes(h))
                     .map((h) => (
-                      <button key={h} disabled={loading} onClick={() => salvarEdicaoHorario(h)} className={`py-2.5 rounded-xl text-xs font-black border transition-all backdrop-blur-md cursor-pointer ${isClean ? 'bg-slate-100 text-slate-800 border-slate-300 hover:border-emerald-700' : 'bg-stone-900 text-white border-white/10 hover:border-white/30'}`}>
+                      <button
+                        key={h}
+                        disabled={loading}
+                        onClick={() => salvarEdicaoHorario(h)}
+                        className="py-2.5 rounded-xl text-xs font-black border transition-all backdrop-blur-md cursor-pointer"
+                        style={{ backgroundColor: tema.cor_card, borderColor: tema.cor_borda, color: tema.cor_texto_geral }}
+                      >
                         {h}
                       </button>
                     ))}
@@ -899,16 +1006,21 @@ const isDataBloqueadaParaProfissional = (dataIso, barbeiroId) => {
           {etapa === 'servico' && !estaDigitando && (
             <div className="grid grid-cols-2 gap-3 pt-2">
               {servicos.map((s) => (
-                <button key={s.id} onClick={() => selecionarServico(s)} className={`p-4 rounded-3xl border text-left flex flex-col justify-between transition-all cursor-pointer backdrop-blur-xl group hover:scale-[1.02] shadow-lg ${isClean ? 'bg-slate-50 border-slate-200 hover:border-emerald-700' : 'bg-stone-900 border-white/10 hover:border-white/30'}`}>
+                <button
+                  key={s.id}
+                  onClick={() => selecionarServico(s)}
+                  className="p-4 rounded-3xl border text-left flex flex-col justify-between transition-all cursor-pointer backdrop-blur-xl group hover:scale-[1.02] shadow-lg"
+                  style={{ backgroundColor: tema.cor_card, borderColor: tema.cor_borda, color: tema.cor_texto_geral }}
+                >
                   <div className="w-8 h-8 rounded-xl flex items-center justify-center mb-3 shadow-inner" style={{ backgroundColor: `${corTema}25`, color: corTema }}>
                     <Scissors className="w-4 h-4" />
                   </div>
                   <div>
-                    <p className={`text-xs font-extrabold tracking-tight ${isClean ? 'text-slate-900' : 'text-white'}`}>{s.nome}</p>
-                    <p className={`text-[10px] mt-0.5 ${isClean ? 'text-slate-500' : 'text-slate-400'}`}>{s.duracao_minutos || 30} min</p>
+                    <p className="text-xs font-extrabold tracking-tight">{s.nome}</p>
+                    <p className="text-[10px] mt-0.5" style={{ color: corSecundaria }}>{s.duracao_minutos || 30} min</p>
                   </div>
-                  <div className="mt-3 pt-2 border-t border-white/5 flex items-center justify-between">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase">Preço</span>
+                  <div className="mt-3 pt-2 border-t flex items-center justify-between" style={{ borderColor: tema.cor_borda }}>
+                    <span className="text-[10px] font-bold uppercase" style={{ color: corSecundaria }}>Preço</span>
                     <span className="text-xs font-black" style={{ color: corTema }}>R$ {Number(s.preco).toFixed(2)}</span>
                   </div>
                 </button>
@@ -921,17 +1033,22 @@ const isDataBloqueadaParaProfissional = (dataIso, barbeiroId) => {
               {barbeiros.map((b) => {
                 const foto = b.foto || b.avatar || b.imagem;
                 return (
-                  <button key={b.id} onClick={() => selecionarBarbeiro(b)} className={`p-3.5 rounded-3xl border text-left flex flex-col items-center text-center transition-all cursor-pointer backdrop-blur-xl group hover:scale-[1.02] shadow-lg ${isClean ? 'bg-slate-50 border-slate-200 hover:border-emerald-700' : 'bg-stone-900 border-white/10 hover:border-white/30'}`}>
+                  <button
+                    key={b.id}
+                    onClick={() => selecionarBarbeiro(b)}
+                    className="p-3.5 rounded-3xl border text-left flex flex-col items-center text-center transition-all cursor-pointer backdrop-blur-xl group hover:scale-[1.02] shadow-lg"
+                    style={{ backgroundColor: tema.cor_card, borderColor: tema.cor_borda, color: tema.cor_texto_geral }}
+                  >
                     <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden border-2 mb-3 shadow-2xl relative" style={{ borderColor: `${corTema}66` }}>
                       {foto ? (
                         <img src={foto} alt={b.nome} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                       ) : (
-                        <div className="w-full h-full text-white flex items-center justify-center font-black text-lg" style={{ backgroundColor: corTema }}>
+                        <div className="w-full h-full flex items-center justify-center font-black text-lg" style={{ backgroundColor: corTema, color: tema.cor_texto_usuario }}>
                           {b.nome?.charAt(0)}
                         </div>
                       )}
                     </div>
-                    <p className={`text-xs font-black tracking-tight line-clamp-1 ${isClean ? 'text-slate-900' : 'text-white'}`}>{b.nome}</p>
+                    <p className="text-xs font-black tracking-tight line-clamp-1">{b.nome}</p>
                     <span className="text-[9px] font-semibold mt-0.5 px-2 py-0.5 rounded-full border" style={{ backgroundColor: `${corTema}15`, color: corTema, borderColor: `${corTema}33` }}>
                       Profissional
                     </span>
@@ -944,31 +1061,30 @@ const isDataBloqueadaParaProfissional = (dataIso, barbeiroId) => {
           {etapa === 'horario' && !estaDigitando && (
             <div className="space-y-3 pt-2">
               {horariosDisponiveisAtuais.filter(h => !horariosOcupados.includes(h)).length === 0 ? (
-                <div className={`p-5 rounded-3xl border backdrop-blur-xl space-y-4 shadow-xl ${isClean ? 'bg-slate-50 border-slate-200 text-slate-900' : 'bg-stone-900 border-white/15 text-white'}`}>
+                <div
+                  className="p-5 rounded-3xl border backdrop-blur-xl space-y-4 shadow-xl"
+                  style={{ backgroundColor: tema.cor_card, borderColor: tema.cor_borda, color: tema.cor_texto_geral }}
+                >
                   <div className="flex items-center gap-3 pb-3 border-b border-rose-500/20">
                     <div className="w-9 h-9 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-500 flex items-center justify-center shrink-0">
                       <AlertCircle className="w-5 h-5" />
                     </div>
                     <div>
                       <h4 className="text-xs font-black text-rose-500 uppercase tracking-wider">Horários Indisponíveis</h4>
-                      <p className={`text-[11px] font-medium leading-tight mt-0.5 ${isClean ? 'text-slate-600' : 'text-slate-400'}`}>
+                      <p className="text-[11px] font-medium leading-tight mt-0.5" style={{ color: corSecundaria }}>
                         Nenhum horário livre nesta data (agenda cheia, folga ou limite de antecedência atingido).
                       </p>
                     </div>
                   </div>
 
                   <div className="space-y-2 pt-1">
-                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block px-1">
-                      O que deseja fazer?
-                    </span>
-
                     <button
                       onClick={() => {
                         setDataEscolhida('');
                         setEtapa('data');
                       }}
                       className="w-full py-3.5 px-4 rounded-2xl text-xs font-black transition-all cursor-pointer flex items-center justify-between shadow-md hover:scale-[1.01]"
-                      style={{ backgroundColor: corTema, color: '#ffffff' }}
+                      style={{ backgroundColor: corTema, color: tema.cor_texto_usuario }}
                     >
                       <span className="flex items-center gap-2">
                         <CalendarIcon className="w-4 h-4" />
@@ -983,17 +1099,14 @@ const isDataBloqueadaParaProfissional = (dataIso, barbeiroId) => {
                         setDataEscolhida('');
                         setEtapa('barbeiro');
                       }}
-                      className={`w-full py-3.5 px-4 rounded-2xl border text-xs font-black transition-all cursor-pointer flex items-center justify-between shadow-sm hover:scale-[1.01] ${
-                        isClean 
-                          ? 'bg-slate-100 border-slate-300 text-slate-800 hover:bg-slate-200' 
-                          : 'bg-stone-950 border-white/15 text-white hover:bg-stone-900'
-                      }`}
+                      className="w-full py-3.5 px-4 rounded-2xl border text-xs font-black transition-all cursor-pointer flex items-center justify-between shadow-sm hover:scale-[1.01]"
+                      style={{ backgroundColor: tema.cor_container, borderColor: tema.cor_borda, color: tema.cor_texto_geral }}
                     >
                       <span className="flex items-center gap-2">
-                        <User className="w-4 h-4 text-slate-400" />
+                        <User className="w-4 h-4" style={{ color: corSecundaria }} />
                         <span>Escolher outro profissional</span>
                       </span>
-                      <ArrowRight className="w-4 h-4 text-slate-400" />
+                      <ArrowRight className="w-4 h-4" style={{ color: corSecundaria }} />
                     </button>
                   </div>
                 </div>
@@ -1008,12 +1121,12 @@ const isDataBloqueadaParaProfissional = (dataIso, barbeiroId) => {
                           key={h}
                           disabled={loading}
                           onClick={() => selecionarHorario(h)}
-                          className={`py-2.5 rounded-xl text-xs font-black border transition-all backdrop-blur-md cursor-pointer ${
+                          className={`py-2.5 rounded-xl text-xs font-black border transition-all backdrop-blur-md cursor-pointer ${selecionado ? 'shadow-lg scale-105' : ''}`}
+                          style={
                             selecionado
-                              ? 'text-white shadow-lg scale-105'
-                              : isClean ? 'bg-slate-100 text-slate-800 border-slate-300 hover:border-emerald-700' : 'bg-stone-900 text-white border-white/10 hover:border-white/30'
-                          }`}
-                          style={selecionado ? { backgroundColor: corTema, borderColor: corTema } : {}}
+                              ? { backgroundColor: corTema, borderColor: corTema, color: tema.cor_texto_usuario }
+                              : { backgroundColor: tema.cor_card, borderColor: tema.cor_borda, color: tema.cor_texto_geral }
+                          }
                         >
                           {h}
                         </button>
@@ -1025,7 +1138,10 @@ const isDataBloqueadaParaProfissional = (dataIso, barbeiroId) => {
           )}
 
           {etapa === 'resumo' && !estaDigitando && (
-            <div className={`p-4 rounded-2xl border space-y-2.5 backdrop-blur-md mt-2 ${isClean ? 'bg-slate-50 border-emerald-700/40 text-slate-800' : 'bg-stone-900 border-emerald-500/40 text-slate-200'}`} style={{ borderColor: `${corTema}66` }}>
+            <div
+              className="p-4 rounded-2xl border space-y-2.5 backdrop-blur-md mt-2"
+              style={{ backgroundColor: tema.cor_card, borderColor: `${corTema}66`, color: tema.cor_texto_geral }}
+            >
               <h4 className="text-xs font-black uppercase tracking-wider" style={{ color: corTema }}>Resumo do Agendamento</h4>
               <div className="space-y-1 text-xs">
                 <p>✂️ <strong>Serviço:</strong> {servicoEscolhido?.nome} (R$ {Number(servicoEscolhido?.preco || 0).toFixed(2)})</p>
@@ -1034,7 +1150,12 @@ const isDataBloqueadaParaProfissional = (dataIso, barbeiroId) => {
                 <p>⏰ <strong>Horário:</strong> {horaEscolhida}</p>
                 <p>👤 <strong>Cliente:</strong> {nome} ({telefone})</p>
               </div>
-              <button disabled={loading} onClick={confirmarAgendamentoFinal} className="w-full mt-3 py-3 rounded-xl text-white font-black text-xs uppercase tracking-widest cursor-pointer shadow-lg hover:brightness-110 transition-all" style={{ backgroundColor: corTema }}>
+              <button
+                disabled={loading}
+                onClick={confirmarAgendamentoFinal}
+                className="w-full mt-3 py-3 rounded-xl font-black text-xs uppercase tracking-widest cursor-pointer shadow-lg hover:brightness-110 transition-all"
+                style={{ backgroundColor: corTema, color: tema.cor_texto_usuario }}
+              >
                 {loading ? 'A confirmar...' : 'Confirmar Agendamento'}
               </button>
             </div>
@@ -1042,16 +1163,33 @@ const isDataBloqueadaParaProfissional = (dataIso, barbeiroId) => {
 
           {etapa === 'sucesso' && !estaDigitando && (
             <div className="pt-2 text-center space-y-3">
-              <div className="w-12 h-12 rounded-2xl text-white flex items-center justify-center mx-auto shadow-lg" style={{ backgroundColor: corTema }}>
+              <div
+                className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto shadow-lg"
+                style={{ backgroundColor: corTema, color: tema.cor_texto_usuario }}
+              >
                 <CheckCircle2 className="w-6 h-6" />
               </div>
               <div className="grid grid-cols-1 gap-2 pt-2">
                 {barbearia?.permite_agendamentos !== false && (
-                  <button onClick={() => { setEtapa('servico'); setMensagens((prev) => [...prev, { remetente: 'bot', texto: 'Escolha o serviço para o novo agendamento:' }]); }} className="w-full py-3 rounded-2xl text-white font-bold text-xs transition-all cursor-pointer shadow-md" style={{ backgroundColor: corTema }}>
+                  <button
+                    onClick={() => {
+                      setEtapa('servico');
+                      setMensagens((prev) => [...prev, { remetente: 'bot', texto: 'Escolha o serviço para o novo agendamento:' }]);
+                    }}
+                    className="w-full py-3 rounded-2xl font-bold text-xs transition-all cursor-pointer shadow-md"
+                    style={{ backgroundColor: corTema, color: tema.cor_texto_usuario }}
+                  >
                     Fazer Novo Agendamento
                   </button>
                 )}
-                <button onClick={() => { carregarDadosCliente(clienteId); setEtapa('gerenciar'); }} className={`w-full py-3 rounded-2xl font-bold text-xs transition-all cursor-pointer border ${isClean ? 'bg-slate-200 border-slate-300 text-slate-800' : 'bg-stone-900 text-white border-white/10'}`}>
+                <button
+                  onClick={() => {
+                    carregarDadosCliente(clienteId);
+                    setEtapa('gerenciar');
+                  }}
+                  className="w-full py-3 rounded-2xl font-bold text-xs transition-all cursor-pointer border"
+                  style={{ backgroundColor: tema.cor_card, borderColor: tema.cor_borda, color: tema.cor_texto_geral }}
+                >
                   {barbearia?.fidelidade_ativa !== false ? 'Ver Meus Agendamentos e Selos' : 'Ver Meus Agendamentos'}
                 </button>
               </div>
@@ -1067,15 +1205,28 @@ const isDataBloqueadaParaProfissional = (dataIso, barbeiroId) => {
         )}
 
         {(etapa === 'telefone' || etapa === 'nome') && !estaDigitando && (
-          <form onSubmit={handleEnviarResposta} className={`p-4 sm:p-5 pb-8 sm:pb-5 border-t backdrop-blur-xl flex items-center gap-2 shrink-0 ${isClean ? 'bg-white/95 border-slate-200' : 'bg-[#050507]/95 border-white/10'}`}>
+          <form
+            onSubmit={handleEnviarResposta}
+            className="p-4 sm:p-5 pb-8 sm:pb-5 border-t backdrop-blur-xl flex items-center gap-2 shrink-0"
+            style={{ backgroundColor: `${tema.cor_container}F2`, borderColor: tema.cor_borda }}
+          >
             <input
               type={etapa === 'telefone' ? 'tel' : 'text'}
               placeholder={etapa === 'telefone' ? 'Digite seu celular...' : 'Digite seu nome completo...'}
               value={inputTexto}
               onChange={(e) => setInputTexto(e.target.value)}
-              className={`w-full rounded-2xl px-4 py-3.5 text-xs focus:outline-none shadow-inner ${estiloInput}`}
+              className="w-full rounded-2xl px-4 py-3.5 text-xs focus:outline-none shadow-inner border"
+              style={{
+                backgroundColor: tema.cor_card,
+                borderColor: tema.cor_borda,
+                color: tema.cor_texto_geral,
+              }}
             />
-            <button type="submit" className="w-12 h-12 rounded-2xl text-white flex items-center justify-center shadow-lg shrink-0 cursor-pointer" style={{ backgroundColor: corTema }}>
+            <button
+              type="submit"
+              className="w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg shrink-0 cursor-pointer"
+              style={{ backgroundColor: corTema, color: tema.cor_texto_usuario }}
+            >
               <Send className="w-4 h-4" />
             </button>
           </form>
