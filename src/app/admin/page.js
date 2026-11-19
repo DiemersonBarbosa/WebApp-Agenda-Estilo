@@ -1287,13 +1287,13 @@ const [searchTerm, setSearchTerm] = useState('');
                 } else if (isCurrentActive) {
                   buttonStyle = {
                     background: 'linear-gradient(135deg, #18181b 0%, #09090b 100%)',
-                    boxShadow: '0 8px 18px rgba(0, 0, 0, 0.35), inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 5px rgba(0, 0, 0, 0.6)',
+                    
                     border: '1px solid rgba(255, 255, 255, 0.2)'
                   };
                 } else {
                   buttonStyle = {
                     background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
-                    boxShadow: '0 10px 20px rgba(0, 0, 0, 0.45), inset 0 2px 3px rgba(255, 255, 255, 0.2), inset 0 -3px 5px rgba(0, 0, 0, 0.8)',
+                    
                     border: '1px solid rgba(255, 255, 255, 0.15)'
                   };
                 }

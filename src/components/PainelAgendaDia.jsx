@@ -84,7 +84,7 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, barbearia
     }
   };
 
- const extrairHoraMinuto = (dataHoraStr) => {
+  const extrairHoraMinuto = (dataHoraStr) => {
     if (!dataHoraStr) return '--:--';
     try {
       const data = new Date(dataHoraStr);
@@ -232,11 +232,21 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, barbearia
     };
   }, [barbeariaId, profissionalId]);
 
-  const concluirAgendamento = async (id) => {
+ const concluirAgendamento = async (id) => {
     try {
       setProcessandoId(id);
-      const { error } = await supabase.from('agendamentos').update({ status: 'concluido' }).eq('id', id);
+      const { error } = await supabase
+        .from('agendamentos')
+        .update({ status: 'concluido' })
+        .eq('id', id);
+
       if (error) throw error;
+
+      setTodosAgendamentos((prev) =>
+        prev.map((ag) =>
+          String(ag.id) === String(id) ? { ...ag, status: 'concluido' } : ag
+        )
+      );
     } catch (err) {
       alert('Erro ao concluir agendamento: ' + err.message);
     } finally {
@@ -247,8 +257,15 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, barbearia
   const cancelarAgendamento = async (id) => {
     try {
       setProcessandoId(id);
-      const { error } = await supabase.from('agendamentos').update({ status: 'cancelado' }).eq('id', id);
+      const { error } = await supabase
+        .from('agendamentos')
+        .update({ status: 'cancelado' })
+        .eq('id', id);
       if (error) throw error;
+
+      setTodosAgendamentos((prev) =>
+        prev.map((ag) => (ag.id === id ? { ...ag, status: 'cancelado' } : ag))
+      );
     } catch (err) {
       alert('Erro ao cancelar agendamento: ' + err.message);
     } finally {
@@ -262,6 +279,8 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, barbearia
       setProcessandoId(id);
       const { error } = await supabase.from('agendamentos').delete().eq('id', id);
       if (error) throw error;
+
+      setTodosAgendamentos((prev) => prev.filter((ag) => ag.id !== id));
     } catch (err) {
       alert('Erro ao excluir agendamento: ' + err.message);
     } finally {
@@ -337,18 +356,19 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, barbearia
     .filter(item => extrairDataIso(item) === dataSelecionada)
     .filter(item => barbeiroSelecionado === 'todos' || String(item.barbeiro_id) === String(barbeiroSelecionado));
 
-  const agendamentosPendentesDia = agendamentosDoDiaSelecionado.filter(item => {
+  const agendamentosAtivosDia = agendamentosDoDiaSelecionado.filter(item => {
     const status = (item.status || 'agendado').toLowerCase();
-    return status !== 'cancelado' && status !== 'cancelada' && status !== 'concluido';
+    return status !== 'cancelado' && status !== 'cancelada';
   });
 
-  const totalAtendimentosDia = agendamentosDoDiaSelecionado.filter(item => {
+  const agendamentosPendentesDia = agendamentosAtivosDia.filter(item => {
     const status = (item.status || 'agendado').toLowerCase();
-    return status !== 'cancelado' && status !== 'cancelada' && status !== 'concluido';
-  }).length;
-  const concluidosDia = agendamentosDoDiaSelecionado.filter(i => (i.status || '').toLowerCase() === 'concluido').length;
-  const valorTotalDia = agendamentosDoDiaSelecionado
-    .filter(i => (i.status || '').toLowerCase() !== 'cancelado')
+    return status !== 'concluido';
+  });
+
+  const totalAtendimentosDia = agendamentosAtivosDia.length;
+  const concluidosDia = agendamentosAtivosDia.filter(i => (i.status || '').toLowerCase() === 'concluido').length;
+  const valorTotalDia = agendamentosAtivosDia
     .reduce((acc, item) => acc + Number(item.valor_total || item.servicos?.preco || 0), 0);
 
   const isDiaBloqueadoParaProfissional = (dataIso, barbId) => {
@@ -591,11 +611,6 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, barbearia
         <div className="grid grid-cols-7 gap-1.5 pt-1">
           {proximaSemanaDias.map((dia) => {
             const selecionado = dataSelecionada === dia.iso;
-            const qtdNoDia = todosAgendamentos.filter(item => {
-              const dataItem = extrairDataIso(item);
-              const status = (item.status || 'agendado').toLowerCase();
-              return dataItem === dia.iso && status !== 'cancelado';
-            }).length;
 
             return (
               <button
@@ -652,16 +667,33 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, barbearia
             }`}
           >
             <User className="w-3.5 h-3.5" />
-            <span>Todos ({todosAgendamentos.filter(i => extrairDataIso(i) === dataSelecionada && (i.status || '').toLowerCase() !== 'cancelado').length})</span>
+            <span>
+              Todos (
+              {todosAgendamentos.filter((i) => {
+                const status = (i.status || 'agendado').toLowerCase();
+                return (
+                  extrairDataIso(i) === dataSelecionada &&
+                  status !== 'cancelado' &&
+                  status !== 'cancelada' &&
+                  status !== 'concluido'
+                );
+              }).length}
+              )
+            </span>
           </button>
 
           {barbeiros.map((b) => {
             const isSelected = String(barbeiroSelecionado) === String(b.id);
-            const qtdBarbeiro = todosAgendamentos.filter(
-              i => extrairDataIso(i) === dataSelecionada && 
-                   String(i.barbeiro_id) === String(b.id) && 
-                   (i.status || '').toLowerCase() !== 'cancelado'
-            ).length;
+            const qtdBarbeiro = todosAgendamentos.filter((i) => {
+              const status = (i.status || 'agendado').toLowerCase();
+              return (
+                extrairDataIso(i) === dataSelecionada &&
+                String(i.barbeiro_id) === String(b.id) &&
+                status !== 'cancelado' &&
+                status !== 'cancelada' &&
+                status !== 'concluido'
+              );
+            }).length;
 
             return (
               <button
