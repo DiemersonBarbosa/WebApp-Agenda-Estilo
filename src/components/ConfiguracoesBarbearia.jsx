@@ -5,8 +5,8 @@ import {
   Store, Save, Check, ExternalLink, Share2,
   Send, X, MessageSquare, Bot, Grid, Palette,
   Clock, Trash2, Upload, Image as ImageIcon,
-  Link as LinkIcon, Type, Timer, Mail, Lock, CalendarOff, Globe,
-  ZoomIn, ZoomOut, RotateCcw
+  Link as LinkIcon, Timer, Mail, Lock, CalendarOff, Globe,
+  ZoomIn, ZoomOut, RotateCcw, Copy, Eye, EyeOff, ShieldCheck, Building2
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import {
@@ -26,12 +26,22 @@ const DIAS_SEMANA_NOMES = [
 ];
 
 const FUSOS_HORARIOS = [
-  { value: 'America/Sao_Paulo', label: 'Horário de Brasília (São Paulo / Sul / Sudeste / Nordeste)' },
-  { value: 'America/Manaus', label: 'Manaus / Amazonas (GMT-4)' },
-  { value: 'America/Cuiaba', label: 'Cuiabá / Mato Grosso (GMT-4)' },
-  { value: 'America/Rio_Branco', label: 'Rio Branco / Acre (GMT-5)' },
+  { value: 'America/Sao_Paulo', label: 'Brasília (GMT-3) — SP, Sul, Sudeste e Nordeste' },
+  { value: 'America/Manaus', label: 'Manaus (GMT-4) — Amazonas e Rondônia' },
+  { value: 'America/Cuiaba', label: 'Cuiabá (GMT-4) — Mato Grosso e MS' },
+  { value: 'America/Rio_Branco', label: 'Rio Branco (GMT-5) — Acre' },
   { value: 'America/Noronha', label: 'Fernando de Noronha (GMT-2)' }
 ];
+
+const ESTILO_BOTAO_PRATEADO = {
+  background: 'linear-gradient(145deg, #ffffff 0%, #f1f5f9 55%, #cbd5e1 100%)',
+  boxShadow: '0 6px 16px rgba(15, 23, 42, 0.22), inset 0 2px 3px rgba(255, 255, 255, 0.95), inset 0 -3px 6px rgba(100, 116, 139, 0.32)',
+};
+
+const ESTILO_BOTAO_PRATEADO_PRESSIONADO = {
+  background: 'linear-gradient(145deg, #e2e8f0 0%, #f8fafc 60%, #cbd5e1 100%)',
+  boxShadow: 'inset 0 3px 7px rgba(15, 23, 42, 0.26), inset 0 -1px 2px rgba(255, 255, 255, 0.9)',
+};
 
 const renderDetalheDecorativo = (temaObj) => {
   const cor = temaObj?.cor_primaria || '#ec4899';
@@ -100,6 +110,8 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
 
   const [email, setEmail] = useState('');
   const [novaSenha, setNovaSenha] = useState('');
+  const [mostrarSenha, setMostrarSenha] = useState(false);
+  const [slugCopiado, setSlugCopiado] = useState(false);
 
   const [temaPersonalizado, setTemaPersonalizado] = useState(() => resolverTemaBarbearia(barbearia));
   const [modoPreview, setModoPreview] = useState('chat');
@@ -112,10 +124,10 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
   const [enviandoLogo, setEnviandoLogo] = useState(false);
   const [enviandoCapa, setEnviandoCapa] = useState(false);
 
-  // Estado do modal de enquadramento estilo WhatsApp (com dimensões naturais da imagem)
+  // Estado do modal de enquadramento estilo WhatsApp
   const [modalRecorte, setModalRecorte] = useState({
     aberto: false,
-    tipo: 'logo', // 'logo' | 'capa'
+    tipo: 'logo',
     src: '',
     naturalWidth: 0,
     naturalHeight: 0,
@@ -443,6 +455,12 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
     setTimeout(() => setCopiado(false), 3000);
   };
 
+  const handleCopiarSlugInline = () => {
+    navigator.clipboard.writeText(urlCliente);
+    setSlugCopiado(true);
+    setTimeout(() => setSlugCopiado(false), 2500);
+  };
+
   const handleCompartilharWhatsApp = () => {
     const texto = encodeURIComponent(`Olá! Agende seu horário na ${nome || 'nossa barbearia'} através do link abaixo: \n\n${urlCliente}`);
     window.open(`https://api.whatsapp.com/send?text=${texto}`, '_blank');
@@ -519,16 +537,22 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
     { id: 'barbeiros_horarios', titulo: 'Equipe', icone: Clock },
   ];
 
-  const presetsFiltrados = PRESETS_TEMA.filter((p) => {
-    if (filtroEstilos === 'todos') return true;
-    return p.grupo === filtroEstilos;
-  });
+  // Masculinos primeiro, femininos em sequência
+  const presetsFiltrados = [...PRESETS_TEMA]
+    .sort((a, b) => {
+      const peso = (grupo) => (grupo === 'masculino' ? 0 : grupo === 'feminino' ? 1 : 2);
+      return peso(a.grupo) - peso(b.grupo);
+    })
+    .filter((p) => {
+      if (filtroEstilos === 'todos') return true;
+      return p.grupo === filtroEstilos;
+    });
 
   const isRecorteLogo = modalRecorte.tipo === 'logo';
   const dimensoesVisuais = calcularDimensoesVisuaisImagem();
 
   return (
-    <div className="w-full max-w-4xl mx-auto px-3 sm:px-4 py-2 space-y-2 font-sans text-slate-800 select-none pb-28">
+    <div className="w-full max-w-4xl mx-auto px-3 sm:px-4 py-2 space-y-2.5 font-sans text-slate-800 select-none pb-28">
 
       {/* HEADER / CARTÃO DE PERFIL EXECUTIVO REFINADO */}
       <div className="bg-white/90 backdrop-blur-xl rounded-[28px] p-3 border border-slate-200/70 shadow-sm relative space-y-2">
@@ -546,19 +570,21 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
             <button
               type="button"
               onClick={() => setModalCompartilharOpen(true)}
-              className="w-8 h-8 bg-black/40 hover:bg-black/60 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/20 transition-all cursor-pointer shadow-md"
+              style={ESTILO_BOTAO_PRATEADO}
+              className="w-9 h-9 rounded-full flex items-center justify-center text-slate-900 border border-white/90 transition-all cursor-pointer active:scale-95"
               title="Compartilhar Link"
             >
-              <Share2 className="w-4 h-4" />
+              <Share2 className="w-4 h-4 stroke-[2.2]" />
             </button>
             <a
               href={urlCliente}
               target="_blank"
               rel="noopener noreferrer"
-              className="w-8 h-8 bg-black/40 hover:bg-black/60 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/20 transition-all cursor-pointer shadow-md"
+              style={ESTILO_BOTAO_PRATEADO}
+              className="w-9 h-9 rounded-full flex items-center justify-center text-slate-900 border border-white/90 transition-all cursor-pointer active:scale-95"
               title="Abrir Página Pública"
             >
-              <ExternalLink className="w-4 h-4" />
+              <ExternalLink className="w-4 h-4 stroke-[2.2]" />
             </a>
           </div>
         </div>
@@ -589,109 +615,204 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
               key={btn.id}
               type="button"
               onClick={() => setSecaoAtiva(btn.id)}
-              className={`p-2 rounded-2xl border transition-all cursor-pointer flex flex-col items-center justify-center gap-1 text-center shadow-xs ${
+              style={ativo ? ESTILO_BOTAO_PRATEADO_PRESSIONADO : ESTILO_BOTAO_PRATEADO}
+              className={`p-2 rounded-2xl border transition-all cursor-pointer flex flex-col items-center justify-center gap-1 text-center ${
                 ativo
-                  ? 'bg-slate-900 text-white border-slate-900 shadow-md scale-[1.01]'
-                  : 'bg-white/80 hover:bg-white text-slate-600 border-slate-200/80 hover:border-slate-300'
+                  ? 'text-slate-950 border-slate-300 translate-y-[1px]'
+                  : 'text-slate-800 border-white/85 hover:brightness-[1.02]'
               }`}
             >
-              <div className={`w-5 h-5 rounded-lg flex items-center justify-center ${ativo ? 'bg-white/10 text-emerald-400' : 'bg-slate-100 text-slate-700'}`}>
-                <Icone className="w-3.5 h-3.5" />
+              <div className="w-6 h-6 rounded-full bg-white/80 border border-slate-300/80 shadow-inner flex items-center justify-center text-slate-900">
+                <Icone className="w-3.5 h-3.5 stroke-[2.2]" />
               </div>
-              <span className="text-[10px] font-bold tracking-tight truncate w-full">{btn.titulo}</span>
+              <span className={`text-[10px] tracking-tight truncate w-full ${ativo ? 'font-black' : 'font-bold'}`}>
+                {btn.titulo}
+              </span>
             </button>
           );
         })}
       </div>
 
       {/* PAINEL DE CONTEÚDO MODERNO */}
-      <div className="bg-white/90 backdrop-blur-xl rounded-[28px] border border-slate-200/80 p-3 sm:p-3.5 shadow-sm space-y-2.5">
+      <div className="bg-white/95 backdrop-blur-xl rounded-[28px] border border-slate-200/80 p-3.5 sm:p-5 shadow-sm space-y-4">
 
         {/* ================= GERAL & PERFIL ================= */}
         {secaoAtiva === 'geral' && (
-          <div className="space-y-2.5 animate-in fade-in duration-200">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              <div className="bg-slate-50/90 p-2.5 rounded-2xl border border-slate-200/70 space-y-2">
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Estabelecimento</span>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 animate-in fade-in duration-200">
 
-                <div className="space-y-0.5">
-                  <label className="text-[10px] font-extrabold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
-                    <Type className="w-3 h-3 text-slate-500" /> Nome da Barbearia
-                  </label>
-                  <input
-                    type="text"
-                    value={nome}
-                    onChange={(e) => setNome(e.target.value)}
-                    className="w-full bg-white border border-slate-200/90 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all shadow-2xs"
-                    placeholder="Ex: Barbearia"
-                  />
+            {/* CARTÃO 1: PERFIL DO ESTABELECIMENTO */}
+            <div className="rounded-2xl border border-slate-200/80 bg-slate-50/40 p-4 space-y-4">
+              <div className="flex items-start gap-3 pb-3 border-b border-slate-200/70">
+                <div
+                  style={ESTILO_BOTAO_PRATEADO}
+                  className="w-10 h-10 rounded-full border border-white text-slate-900 flex items-center justify-center shrink-0"
+                >
+                  <Building2 className="w-4 h-4 stroke-[2.2]" />
                 </div>
+                <div className="min-w-0">
+                  <h3 className="text-sm font-bold text-slate-900 leading-tight">
+                    Perfil do Estabelecimento
+                  </h3>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    Identidade pública, endereço de agendamento e fuso local.
+                  </p>
+                </div>
+              </div>
 
-                <div className="space-y-0.5">
-                  <label className="text-[10px] font-extrabold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
-                    <LinkIcon className="w-3 h-3 text-slate-500" /> Link (Slug)
+              <div className="space-y-3.5">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-700 flex items-center justify-between">
+                    <span>Nome da barbearia</span>
+                    <span className="text-[10px] font-medium text-slate-400">Visível aos clientes</span>
                   </label>
-                  <div className="flex items-center bg-white border border-slate-200/90 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-slate-900/10 focus-within:border-slate-900 transition-all shadow-2xs">
-                    <span className="pl-2.5 pr-1.5 text-[10px] text-slate-500 font-bold bg-slate-100/80 border-r border-slate-200/90 py-1.5">/agendar/</span>
+                  <div className="relative">
+                    <Store className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                     <input
                       type="text"
-                      value={slug}
-                      onChange={(e) => setSlug(e.target.value)}
-                      className="w-full bg-transparent px-2.5 py-1.5 text-xs font-semibold text-slate-900 focus:outline-none"
-                      placeholder="slug"
+                      value={nome}
+                      onChange={(e) => setNome(e.target.value)}
+                      className="w-full h-10 bg-white border border-slate-200 rounded-xl pl-10 pr-3.5 text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all"
+                      placeholder="Ex: Barbearia do Vidal"
                     />
                   </div>
                 </div>
 
-                <div className="space-y-0.5">
-                  <label className="text-[10px] font-extrabold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
-                    <Globe className="w-3 h-3 text-slate-500" /> Fuso Horário (Timezone)
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-700 flex items-center justify-between">
+                    <span>Link de agendamento</span>
+                    <button
+                      type="button"
+                      onClick={handleCopiarSlugInline}
+                      style={ESTILO_BOTAO_PRATEADO}
+                      className="px-2.5 py-1 rounded-full border border-white text-[10px] font-bold text-slate-900 flex items-center gap-1 cursor-pointer active:scale-95"
+                    >
+                      {slugCopiado ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                      <span>{slugCopiado ? 'Copiado!' : 'Copiar link'}</span>
+                    </button>
                   </label>
-                  <select
-                    value={timezone}
-                    onChange={(e) => setTimezone(e.target.value)}
-                    className="w-full bg-white border border-slate-200/90 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all shadow-2xs"
-                  >
-                    {FUSOS_HORARIOS.map((fuso) => (
-                      <option key={fuso.value} value={fuso.value}>
-                        {fuso.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="bg-slate-50/90 p-2.5 rounded-2xl border border-slate-200/70 space-y-2">
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Credenciais</span>
-
-                <div className="space-y-0.5">
-                  <label className="text-[10px] font-extrabold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
-                    <Mail className="w-3 h-3 text-slate-500" /> E-mail de Acesso
-                  </label>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full bg-white border border-slate-200/90 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all shadow-2xs"
-                    placeholder="email@email.com"
-                  />
+                  <div className="flex items-center h-10 bg-white border border-slate-200 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-slate-900/10 focus-within:border-slate-900 transition-all">
+                    <span className="h-full px-3 flex items-center gap-1.5 text-[11px] font-medium text-slate-500 bg-slate-100/80 border-r border-slate-200 shrink-0">
+                      <LinkIcon className="w-3.5 h-3.5 text-slate-400" />
+                      /agendar/
+                    </span>
+                    <input
+                      type="text"
+                      value={slug}
+                      onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/\s+/g, '-'))}
+                      className="w-full h-full bg-transparent px-3 text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:outline-none"
+                      placeholder="sua-barbearia"
+                    />
+                  </div>
                 </div>
 
-                <div className="space-y-0.5">
-                  <label className="text-[10px] font-extrabold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
-                    <Lock className="w-3 h-3 text-slate-500" /> Nova Senha
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-700 block">
+                    Fuso horário da agenda
                   </label>
-                  <input
-                    type="password"
-                    value={novaSenha}
-                    onChange={(e) => setNovaSenha(e.target.value)}
-                    autoComplete="new-password"
-                    className="w-full bg-white border border-slate-200/90 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all shadow-2xs"
-                    placeholder="Deixe em branco para não alterar"
-                  />
+                  <div className="relative">
+                    <Globe className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <select
+                      value={timezone}
+                      onChange={(e) => setTimezone(e.target.value)}
+                      className="w-full h-10 bg-white border border-slate-200 rounded-xl pl-10 pr-8 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all truncate"
+                    >
+                      {FUSOS_HORARIOS.map((fuso) => (
+                        <option key={fuso.value} value={fuso.value}>
+                          {fuso.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               </div>
             </div>
+
+            {/* CARTÃO 2: ACESSO E SEGURANÇA */}
+            <div className="rounded-2xl border border-slate-200/80 bg-slate-50/40 p-4 space-y-4 flex flex-col justify-between">
+              <div className="space-y-4">
+                <div className="flex items-start gap-3 pb-3 border-b border-slate-200/70">
+                  <div
+                    style={ESTILO_BOTAO_PRATEADO}
+                    className="w-10 h-10 rounded-full border border-white text-slate-900 flex items-center justify-center shrink-0"
+                  >
+                    <ShieldCheck className="w-4 h-4 stroke-[2.2]" />
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="text-sm font-bold text-slate-900 leading-tight">
+                      Acesso e Segurança
+                    </h3>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      Credenciais de login do painel administrativo.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-3.5">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-700 block">
+                      E-mail administrativo
+                    </label>
+                    <div className="relative">
+                      <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      <input
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className="w-full h-10 bg-white border border-slate-200 rounded-xl pl-10 pr-3.5 text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all"
+                        placeholder="seuemail@exemplo.com"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-700 flex items-center justify-between">
+                      <span>Nova senha</span>
+                      <span className="text-[10px] font-medium text-slate-400">Opcional</span>
+                    </label>
+                    <div className="relative">
+                      <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      <input
+                        type={mostrarSenha ? 'text' : 'password'}
+                        value={novaSenha}
+                        onChange={(e) => setNovaSenha(e.target.value)}
+                        autoComplete="new-password"
+                        className="w-full h-10 bg-white border border-slate-200 rounded-xl pl-10 pr-10 text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all"
+                        placeholder="Mínimo de 6 caracteres"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setMostrarSenha((prev) => !prev)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-900 cursor-pointer p-0.5"
+                        title={mostrarSenha ? 'Ocultar senha' : 'Mostrar senha'}
+                      >
+                        {mostrarSenha ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                    <p className="text-[11px] text-slate-400">
+                      Deixe em branco para manter sua senha atual sem alterações.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-xl bg-white border border-slate-200/80 flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-[11px] font-bold text-slate-800 truncate">Página pública ativa</p>
+                  <p className="text-[10px] text-slate-500 truncate">{urlCliente}</p>
+                </div>
+                <a
+                  href={urlCliente}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={ESTILO_BOTAO_PRATEADO}
+                  className="px-3 py-1.5 rounded-full border border-white text-slate-900 text-[11px] font-bold shrink-0 transition-all flex items-center gap-1 active:scale-95"
+                >
+                  <span>Abrir</span>
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+              </div>
+            </div>
+
           </div>
         )}
 
@@ -701,19 +822,25 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
             <div className="grid grid-cols-2 gap-2.5">
               <div className="bg-slate-50/80 p-2 rounded-2xl border border-slate-200/60 space-y-1 flex flex-col items-center text-center">
                 <label className="text-[10px] font-extrabold text-slate-600 uppercase tracking-wider w-full text-left">Logo</label>
-                <label className="w-full border-2 border-dashed border-slate-200 hover:border-slate-400 rounded-xl p-1.5 flex flex-col items-center justify-center gap-1 bg-white cursor-pointer transition-all shadow-2xs">
+                <label
+                  style={ESTILO_BOTAO_PRATEADO}
+                  className="w-full border border-white rounded-xl p-2 flex flex-col items-center justify-center gap-1 cursor-pointer transition-all active:scale-[0.99]"
+                >
                   <input type="file" accept="image/*" onChange={(e) => abrirModalRecorte(e, 'logo')} className="hidden" />
-                  {logoUrl ? <img src={logoUrl} alt="" className="w-8 h-8 rounded-full object-cover shadow-xs ring-2 ring-slate-200" /> : <Upload className="w-3.5 h-3.5 text-slate-400" />}
-                  <span className="text-[9px] font-bold text-slate-700">{enviandoLogo ? 'Enviando...' : 'Enquadrar Logo'}</span>
+                  {logoUrl ? <img src={logoUrl} alt="" className="w-8 h-8 rounded-full object-cover shadow-xs ring-2 ring-white" /> : <Upload className="w-4 h-4 text-slate-800" />}
+                  <span className="text-[10px] font-bold text-slate-900">{enviandoLogo ? 'Enviando...' : 'Enquadrar Logo'}</span>
                 </label>
               </div>
 
               <div className="bg-slate-50/80 p-2 rounded-2xl border border-slate-200/60 space-y-1 flex flex-col items-center text-center">
                 <label className="text-[10px] font-extrabold text-slate-600 uppercase tracking-wider w-full text-left">Capa</label>
-                <label className="w-full border-2 border-dashed border-slate-200 hover:border-slate-400 rounded-xl p-1.5 flex flex-col items-center justify-center gap-1 bg-white cursor-pointer transition-all shadow-2xs">
+                <label
+                  style={ESTILO_BOTAO_PRATEADO}
+                  className="w-full border border-white rounded-xl p-2 flex flex-col items-center justify-center gap-1 cursor-pointer transition-all active:scale-[0.99]"
+                >
                   <input type="file" accept="image/*" onChange={(e) => abrirModalRecorte(e, 'capa')} className="hidden" />
-                  {capaUrl ? <img src={capaUrl} alt="" className="w-full h-8 rounded-lg object-cover shadow-xs ring-1 ring-slate-200" /> : <ImageIcon className="w-3.5 h-3.5 text-slate-400" />}
-                  <span className="text-[9px] font-bold text-slate-700">{enviandoCapa ? 'Enviando...' : 'Enquadrar Capa'}</span>
+                  {capaUrl ? <img src={capaUrl} alt="" className="w-full h-8 rounded-lg object-cover shadow-xs ring-1 ring-white" /> : <ImageIcon className="w-4 h-4 text-slate-800" />}
+                  <span className="text-[10px] font-bold text-slate-900">{enviandoCapa ? 'Enviando...' : 'Enquadrar Capa'}</span>
                 </label>
               </div>
             </div>
@@ -726,23 +853,25 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                     <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider">
                       Estilos Prontos
                     </span>
-                    <div className="flex items-center gap-1 bg-white p-0.5 rounded-lg border border-slate-200">
+                    <div className="flex items-center gap-1">
                       {[
                         { id: 'todos', label: 'Todos' },
-                        { id: 'feminino', label: 'Rosas / Glam' },
                         { id: 'masculino', label: 'Dark / Clássicos' },
-                      ].map((f) => (
-                        <button
-                          key={f.id}
-                          type="button"
-                          onClick={() => setFiltroEstilos(f.id)}
-                          className={`px-2 py-0.5 rounded-md text-[9px] font-bold cursor-pointer ${
-                            filtroEstilos === f.id ? 'bg-slate-900 text-white' : 'text-slate-600'
-                          }`}
-                        >
-                          {f.label}
-                        </button>
-                      ))}
+                        { id: 'feminino', label: 'Rosas / Glam' },
+                      ].map((f) => {
+                        const ativoFiltro = filtroEstilos === f.id;
+                        return (
+                          <button
+                            key={f.id}
+                            type="button"
+                            onClick={() => setFiltroEstilos(f.id)}
+                            style={ativoFiltro ? ESTILO_BOTAO_PRATEADO_PRESSIONADO : ESTILO_BOTAO_PRATEADO}
+                            className="px-2.5 py-1 rounded-full border border-white text-[9px] font-bold text-slate-900 cursor-pointer"
+                          >
+                            {f.label}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
 
@@ -752,7 +881,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                         key={preset.id}
                         type="button"
                         onClick={() => setTemaPersonalizado(preset.tema)}
-                        className="p-2 rounded-xl bg-white border border-slate-200 hover:border-slate-900 text-left transition-all cursor-pointer flex items-center gap-2 shadow-2xs"
+                        className="p-2 rounded-xl bg-white border border-slate-200 hover:border-slate-400 text-left transition-all cursor-pointer flex items-center gap-2 shadow-2xs"
                       >
                         <span
                           className="w-4 h-4 rounded-full shrink-0 border border-black/10"
@@ -840,22 +969,20 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                   <span className="text-[10px] font-black text-slate-600 uppercase tracking-wider">
                     Prévia em Tempo Real
                   </span>
-                  <div className="flex items-center gap-1 bg-white p-0.5 rounded-lg border border-slate-200">
+                  <div className="flex items-center gap-1">
                     <button
                       type="button"
                       onClick={() => setModoPreview('chat')}
-                      className={`px-2 py-0.5 rounded-md text-[10px] font-bold cursor-pointer ${
-                        modoPreview === 'chat' ? 'bg-slate-900 text-white' : 'text-slate-600'
-                      }`}
+                      style={modoPreview === 'chat' ? ESTILO_BOTAO_PRATEADO_PRESSIONADO : ESTILO_BOTAO_PRATEADO}
+                      className="px-2.5 py-0.5 rounded-full border border-white text-[10px] font-bold text-slate-900 cursor-pointer"
                     >
                       Chat
                     </button>
                     <button
                       type="button"
                       onClick={() => setModoPreview('classico')}
-                      className={`px-2 py-0.5 rounded-md text-[10px] font-bold cursor-pointer ${
-                        modoPreview === 'classico' ? 'bg-slate-900 text-white' : 'text-slate-600'
-                      }`}
+                      style={modoPreview === 'classico' ? ESTILO_BOTAO_PRATEADO_PRESSIONADO : ESTILO_BOTAO_PRATEADO}
+                      className="px-2.5 py-0.5 rounded-full border border-white text-[10px] font-bold text-slate-900 cursor-pointer"
                     >
                       Clássico
                     </button>
@@ -1018,22 +1145,24 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                 <div className="grid grid-cols-2 gap-2">
                   <div
                     onClick={() => setModoAtendimento('conversacional')}
-                    className={`p-2.5 rounded-xl border cursor-pointer transition-all flex flex-col items-center text-center gap-1 bg-white ${modoAtendimento === 'conversacional' ? 'border-slate-900 ring-2 ring-slate-900/10 shadow-xs' : 'border-slate-200 hover:bg-slate-50'}`}
+                    style={modoAtendimento === 'conversacional' ? ESTILO_BOTAO_PRATEADO_PRESSIONADO : ESTILO_BOTAO_PRATEADO}
+                    className="p-2.5 rounded-2xl border border-white cursor-pointer transition-all flex flex-col items-center text-center gap-1 text-slate-900"
                   >
-                    <div className="w-6 h-6 rounded-lg bg-slate-100 flex items-center justify-center text-slate-900">
-                      <Bot className="w-3.5 h-3.5" />
+                    <div className="w-7 h-7 rounded-full bg-white/80 border border-slate-300/80 flex items-center justify-center text-slate-900">
+                      <Bot className="w-4 h-4 stroke-[2.2]" />
                     </div>
-                    <span className="font-bold text-[11px] text-slate-900">Chat</span>
+                    <span className="font-bold text-[11px]">Chat</span>
                   </div>
 
                   <div
                     onClick={() => setModoAtendimento('classico')}
-                    className={`p-2.5 rounded-xl border cursor-pointer transition-all flex flex-col items-center text-center gap-1 bg-white ${modoAtendimento === 'classico' ? 'border-slate-900 ring-2 ring-slate-900/10 shadow-xs' : 'border-slate-200 hover:bg-slate-50'}`}
+                    style={modoAtendimento === 'classico' ? ESTILO_BOTAO_PRATEADO_PRESSIONADO : ESTILO_BOTAO_PRATEADO}
+                    className="p-2.5 rounded-2xl border border-white cursor-pointer transition-all flex flex-col items-center text-center gap-1 text-slate-900"
                   >
-                    <div className="w-6 h-6 rounded-lg bg-slate-100 flex items-center justify-center text-slate-900">
-                      <Grid className="w-3.5 h-3.5" />
+                    <div className="w-7 h-7 rounded-full bg-white/80 border border-slate-300/80 flex items-center justify-center text-slate-900">
+                      <Grid className="w-4 h-4 stroke-[2.2]" />
                     </div>
-                    <span className="font-bold text-[11px] text-slate-900">Grade</span>
+                    <span className="font-bold text-[11px]">Grade</span>
                   </div>
                 </div>
               </div>
@@ -1060,9 +1189,12 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                   <button
                     type="button"
                     onClick={() => setModalHorariosGeraisOpen(true)}
-                    className="w-full py-2 px-3 bg-gradient-to-r from-slate-900 to-zinc-900 hover:from-slate-800 hover:to-zinc-800 text-white rounded-xl text-xs font-bold cursor-pointer shadow-sm transition-all flex items-center justify-center gap-1.5"
+                    style={ESTILO_BOTAO_PRATEADO}
+                    className="w-full py-2.5 px-3 border border-white text-slate-900 rounded-2xl text-xs font-bold cursor-pointer transition-all flex items-center justify-center gap-2 active:scale-[0.99]"
                   >
-                    <CalendarOff className="w-3.5 h-3.5 text-emerald-400" />
+                    <span className="w-6 h-6 rounded-full bg-white/80 border border-slate-300/80 flex items-center justify-center">
+                      <CalendarOff className="w-3.5 h-3.5 text-slate-900 stroke-[2.2]" />
+                    </span>
                     <span>Gerenciar Feriados & Bloqueios</span>
                   </button>
                 </div>
@@ -1076,7 +1208,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
         {secaoAtiva === 'barbeiros_horarios' && (
           <div className="space-y-2 animate-in fade-in duration-200">
             <div className="space-y-1.5">
-              <div className="flex flex-wrap gap-1 pb-0.5">
+              <div className="flex flex-wrap gap-1.5 pb-0.5">
                 {barbeiros.map((b) => {
                   const selecionado = barbeiroSelecionado?.id === b.id;
                   return (
@@ -1084,9 +1216,8 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                       key={b.id}
                       type="button"
                       onClick={() => selecionarBarbeiroParaEditar(b)}
-                      className={`px-3 py-1 rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer border ${
-                        selecionado ? 'bg-slate-900 text-white border-slate-900 shadow-sm' : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
-                      }`}
+                      style={selecionado ? ESTILO_BOTAO_PRATEADO_PRESSIONADO : ESTILO_BOTAO_PRATEADO}
+                      className="px-3.5 py-1.5 rounded-full text-xs font-bold text-slate-900 border border-white transition-all flex items-center gap-1 cursor-pointer active:scale-95"
                     >
                       <span>{b.nome}</span>
                     </button>
@@ -1201,9 +1332,12 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
             type="button"
             onClick={handleSubmit}
             disabled={salvando}
-            className="w-52 py-2.5 bg-gradient-to-r from-slate-900 via-slate-800 to-zinc-900 hover:from-slate-800 hover:to-zinc-800 text-white font-black text-[11px] uppercase tracking-wider rounded-2xl shadow-xl transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 border-2 border-white backdrop-blur-md active:scale-95 group"
+            style={ESTILO_BOTAO_PRATEADO}
+            className="w-56 py-2.5 text-slate-950 font-black text-[11px] uppercase tracking-wider rounded-full transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 border border-white active:scale-95 group"
           >
-            {sucesso ? <Check className="w-4 h-4 text-emerald-400" /> : <Save className="w-4 h-4 text-emerald-400 transition-transform group-hover:scale-110" />}
+            <span className="w-6 h-6 rounded-full bg-white/85 border border-slate-300/80 flex items-center justify-center">
+              {sucesso ? <Check className="w-3.5 h-3.5 text-slate-950 stroke-[2.5]" /> : <Save className="w-3.5 h-3.5 text-slate-950 stroke-[2.2] transition-transform group-hover:scale-110" />}
+            </span>
             <span>{salvando ? 'Salvando...' : sucesso ? 'Salvo com Sucesso!' : 'Salvar Alterações'}</span>
           </button>
         </div>
@@ -1231,9 +1365,10 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
               <button
                 type="button"
                 onClick={() => setModalRecorte((prev) => ({ ...prev, aberto: false, src: '' }))}
-                className="p-1.5 bg-white/10 hover:bg-white/20 rounded-full cursor-pointer"
+                style={ESTILO_BOTAO_PRATEADO}
+                className="w-8 h-8 rounded-full border border-white text-slate-900 flex items-center justify-center cursor-pointer active:scale-95"
               >
-                <X className="w-4 h-4" />
+                <X className="w-4 h-4 stroke-[2.2]" />
               </button>
             </div>
 
@@ -1241,7 +1376,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
               <div
                 ref={caixaRecorteRef}
                 onPointerDown={handlePointerDownRecorte}
-                className={`relative overflow-hidden bg-zinc-950 border-2 border-emerald-400/70 touch-none select-none flex items-center justify-center ${
+                className={`relative overflow-hidden bg-zinc-950 border-2 border-slate-300/80 touch-none select-none flex items-center justify-center ${
                   arrastando ? 'cursor-grabbing' : 'cursor-grab'
                 } ${
                   isRecorteLogo
@@ -1279,7 +1414,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
             <div className="space-y-2 bg-white/5 p-3 rounded-2xl border border-white/10">
               <div className="flex items-center justify-between text-[11px] text-slate-300 font-bold">
                 <span className="flex items-center gap-1.5">
-                  <ZoomIn className="w-3.5 h-3.5 text-emerald-400" />
+                  <ZoomIn className="w-3.5 h-3.5 text-slate-200" />
                   Zoom: {Math.round(modalRecorte.zoom * 100)}%
                 </span>
                 <button
@@ -1294,9 +1429,10 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                 <button
                   type="button"
                   onClick={() => setModalRecorte((prev) => ({ ...prev, zoom: Math.max(1, Number((prev.zoom - 0.1).toFixed(2))) }))}
-                  className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 cursor-pointer"
+                  style={ESTILO_BOTAO_PRATEADO}
+                  className="w-8 h-8 rounded-full border border-white text-slate-900 flex items-center justify-center cursor-pointer active:scale-95 shrink-0"
                 >
-                  <ZoomOut className="w-3.5 h-3.5" />
+                  <ZoomOut className="w-3.5 h-3.5 stroke-[2.2]" />
                 </button>
                 <input
                   type="range"
@@ -1305,14 +1441,15 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                   step="0.05"
                   value={modalRecorte.zoom}
                   onChange={(e) => setModalRecorte((prev) => ({ ...prev, zoom: Number(e.target.value) }))}
-                  className="w-full accent-emerald-400 cursor-pointer"
+                  className="w-full accent-slate-200 cursor-pointer"
                 />
                 <button
                   type="button"
                   onClick={() => setModalRecorte((prev) => ({ ...prev, zoom: Math.min(3, Number((prev.zoom + 0.1).toFixed(2))) }))}
-                  className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 cursor-pointer"
+                  style={ESTILO_BOTAO_PRATEADO}
+                  className="w-8 h-8 rounded-full border border-white text-slate-900 flex items-center justify-center cursor-pointer active:scale-95 shrink-0"
                 >
-                  <ZoomIn className="w-3.5 h-3.5" />
+                  <ZoomIn className="w-3.5 h-3.5 stroke-[2.2]" />
                 </button>
               </div>
             </div>
@@ -1321,7 +1458,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
               <button
                 type="button"
                 onClick={() => setModalRecorte((prev) => ({ ...prev, aberto: false, src: '' }))}
-                className="py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-xs font-bold cursor-pointer"
+                className="py-2.5 rounded-full bg-white/10 hover:bg-white/15 text-xs font-bold cursor-pointer"
               >
                 Cancelar
               </button>
@@ -1329,7 +1466,8 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                 type="button"
                 onClick={confirmarEnquadramentoEEnviar}
                 disabled={enviandoLogo || enviandoCapa}
-                className="py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black cursor-pointer disabled:opacity-50"
+                style={ESTILO_BOTAO_PRATEADO}
+                className="py-2.5 rounded-full border border-white text-slate-950 text-xs font-black cursor-pointer disabled:opacity-50 active:scale-95"
               >
                 {enviandoLogo || enviandoCapa ? 'Enviando...' : 'Aplicar e Enviar'}
               </button>
@@ -1342,15 +1480,39 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
       {modalCompartilharOpen && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl space-y-4 relative">
-            <button onClick={() => setModalCompartilharOpen(false)} className="absolute top-4 right-4 p-1.5 bg-slate-100 hover:bg-slate-200 rounded-full cursor-pointer"><X className="w-4 h-4" /></button>
+            <button
+              onClick={() => setModalCompartilharOpen(false)}
+              style={ESTILO_BOTAO_PRATEADO}
+              className="w-8 h-8 rounded-full border border-white text-slate-900 flex items-center justify-center absolute top-4 right-4 cursor-pointer active:scale-95"
+            >
+              <X className="w-4 h-4 stroke-[2.2]" />
+            </button>
             <h3 className="text-sm font-black text-slate-900">Compartilhar Link de Agendamento</h3>
-            <div className="flex items-center gap-2 bg-slate-50 p-2.5 rounded-2xl border border-slate-200">
-              <input type="text" readOnly value={urlCliente} className="w-full bg-transparent text-xs truncate outline-none font-semibold text-slate-700" />
-              <button onClick={handleCopiarLink} className="px-3.5 py-1.5 bg-slate-900 text-white rounded-xl text-xs font-bold cursor-pointer shrink-0">{copiado ? 'Copiado!' : 'Copiar'}</button>
+            <div className="flex items-center gap-2 bg-slate-50 p-2 rounded-2xl border border-slate-200">
+              <input type="text" readOnly value={urlCliente} className="w-full bg-transparent text-xs truncate outline-none font-semibold text-slate-700 px-1" />
+              <button
+                onClick={handleCopiarLink}
+                style={ESTILO_BOTAO_PRATEADO}
+                className="px-4 py-1.5 border border-white text-slate-950 rounded-full text-xs font-bold cursor-pointer shrink-0 active:scale-95"
+              >
+                {copiado ? 'Copiado!' : 'Copiar'}
+              </button>
             </div>
             <div className="grid grid-cols-2 gap-2.5 pt-1">
-              <button onClick={handleCompartilharWhatsApp} className="p-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-xs rounded-2xl flex items-center justify-center gap-2 cursor-pointer transition-colors"><MessageSquare className="w-4 h-4" /> WhatsApp</button>
-              <button onClick={handleCompartilharTelegram} className="p-3 bg-sky-50 hover:bg-sky-100 text-sky-800 font-bold text-xs rounded-2xl flex items-center justify-center gap-2 cursor-pointer transition-colors"><Send className="w-4 h-4" /> Telegram</button>
+              <button
+                onClick={handleCompartilharWhatsApp}
+                style={ESTILO_BOTAO_PRATEADO}
+                className="p-3 border border-white text-slate-900 font-bold text-xs rounded-2xl flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+              >
+                <MessageSquare className="w-4 h-4 stroke-[2.2]" /> WhatsApp
+              </button>
+              <button
+                onClick={handleCompartilharTelegram}
+                style={ESTILO_BOTAO_PRATEADO}
+                className="p-3 border border-white text-slate-900 font-bold text-xs rounded-2xl flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+              >
+                <Send className="w-4 h-4 stroke-[2.2]" /> Telegram
+              </button>
             </div>
           </div>
         </div>
@@ -1362,7 +1524,13 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
           <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <h3 className="font-bold text-slate-900 text-sm">Bloqueios & Feriados</h3>
-              <button onClick={() => setModalHorariosGeraisOpen(false)} className="p-1.5 bg-slate-100 hover:bg-slate-200 rounded-full cursor-pointer"><X className="w-4 h-4" /></button>
+              <button
+                onClick={() => setModalHorariosGeraisOpen(false)}
+                style={ESTILO_BOTAO_PRATEADO}
+                className="w-8 h-8 rounded-full border border-white text-slate-900 flex items-center justify-center cursor-pointer active:scale-95"
+              >
+                <X className="w-4 h-4 stroke-[2.2]" />
+              </button>
             </div>
 
             <div className="space-y-4">
@@ -1374,7 +1542,8 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                 <button
                   type="button"
                   onClick={() => setPermiteAgendamentos(!permiteAgendamentos)}
-                  className={`px-4 py-1.5 rounded-xl text-xs font-bold cursor-pointer shadow-2xs ${permiteAgendamentos ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}
+                  style={permiteAgendamentos ? ESTILO_BOTAO_PRATEADO : ESTILO_BOTAO_PRATEADO_PRESSIONADO}
+                  className="px-4 py-1.5 rounded-full border border-white text-xs font-bold text-slate-900 cursor-pointer active:scale-95"
                 >
                   {permiteAgendamentos ? 'Ativo' : 'Pausado'}
                 </button>
@@ -1420,7 +1589,8 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                       alert('Erro ao adicionar bloqueio: ' + err.message);
                     }
                   }}
-                  className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold cursor-pointer mt-1"
+                  style={ESTILO_BOTAO_PRATEADO}
+                  className="w-full py-2.5 border border-white text-slate-950 rounded-full text-xs font-black cursor-pointer mt-1 active:scale-[0.99]"
                 >
                   Adicionar Bloqueio
                 </button>
@@ -1437,14 +1607,19 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                           {barbEncontrado ? `Profissional: ${barbEncontrado.nome}` : 'Geral (Toda a barbearia)'}
                         </span>
                       </div>
-                      <button type="button" onClick={() => handleRemoverBloqueio(b.id)} className="text-rose-600 hover:text-rose-800 p-1"><Trash2 className="w-4 h-4" /></button>
+                      <button type="button" onClick={() => handleRemoverBloqueio(b.id)} className="text-rose-600 hover:text-rose-800 p-1 cursor-pointer"><Trash2 className="w-4 h-4" /></button>
                     </div>
                   );
                 })}
               </div>
             </div>
 
-            <button type="button" onClick={() => setModalHorariosGeraisOpen(false)} className="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold cursor-pointer">
+            <button
+              type="button"
+              onClick={() => setModalHorariosGeraisOpen(false)}
+              style={ESTILO_BOTAO_PRATEADO}
+              className="w-full py-3 border border-white text-slate-950 rounded-full text-xs font-black cursor-pointer active:scale-[0.99]"
+            >
               Concluir
             </button>
           </div>
