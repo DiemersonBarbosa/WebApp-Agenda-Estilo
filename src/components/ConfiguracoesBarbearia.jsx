@@ -56,11 +56,13 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
   const [enviandoLogo, setEnviandoLogo] = useState(false);
   const [enviandoCapa, setEnviandoCapa] = useState(false);
 
-  // Estado do modal de enquadramento estilo WhatsApp
+  // Estado do modal de enquadramento estilo WhatsApp (com dimensões naturais da imagem)
   const [modalRecorte, setModalRecorte] = useState({
     aberto: false,
     tipo: 'logo', // 'logo' | 'capa'
     src: '',
+    naturalWidth: 0,
+    naturalHeight: 0,
     zoom: 1,
     posX: 0,
     posY: 0,
@@ -196,14 +198,21 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
 
     const reader = new FileReader();
     reader.onload = (event) => {
-      setModalRecorte({
-        aberto: true,
-        tipo,
-        src: String(event.target?.result || ''),
-        zoom: 1,
-        posX: 0,
-        posY: 0,
-      });
+      const src = String(event.target?.result || '');
+      const img = new Image();
+      img.onload = () => {
+        setModalRecorte({
+          aberto: true,
+          tipo,
+          src,
+          naturalWidth: img.naturalWidth || img.width,
+          naturalHeight: img.naturalHeight || img.height,
+          zoom: 1,
+          posX: 0,
+          posY: 0,
+        });
+      };
+      img.src = src;
     };
     reader.readAsDataURL(file);
   };
@@ -234,6 +243,27 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
     setArrastando(false);
   };
 
+  // Calcula tamanho visual inicial da imagem sem pré-cortar antes de arrastar
+  const calcularDimensoesVisuaisImagem = () => {
+    const isLogo = modalRecorte.tipo === 'logo';
+    const caixaW = caixaRecorteRef.current?.clientWidth || (isLogo ? 224 : 360);
+    const caixaH = caixaRecorteRef.current?.clientHeight || (isLogo ? 224 : 176);
+
+    if (!modalRecorte.naturalWidth || !modalRecorte.naturalHeight) {
+      return { width: caixaW, height: caixaH, baseScale: 1 };
+    }
+
+    // Escala base para cobrir o quadro mantendo proporção real
+    const baseScale = Math.max(caixaW / modalRecorte.naturalWidth, caixaH / modalRecorte.naturalHeight);
+    const escalaTotal = baseScale * modalRecorte.zoom;
+
+    return {
+      width: modalRecorte.naturalWidth * escalaTotal,
+      height: modalRecorte.naturalHeight * escalaTotal,
+      baseScale,
+    };
+  };
+
   const confirmarEnquadramentoEEnviar = async () => {
     if (!modalRecorte.src) return;
     const isLogo = modalRecorte.tipo === 'logo';
@@ -258,20 +288,19 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
       ctx.fillStyle = '#09090b';
       ctx.fillRect(0, 0, larguraSaida, alturaSaida);
 
-      const escalaCover = Math.max(larguraSaida / img.width, alturaSaida / img.height);
-      const escalaFinal = escalaCover * modalRecorte.zoom;
+      const larguraCaixaVisual = caixaRecorteRef.current?.clientWidth || (isLogo ? 224 : 360);
+      const alturaCaixaVisual = caixaRecorteRef.current?.clientHeight || (isLogo ? 224 : 176);
 
-      const larguraDesenhada = img.width * escalaFinal;
-      const alturaDesenhada = img.height * escalaFinal;
+      const escalaBaseVisual = Math.max(larguraCaixaVisual / img.width, alturaCaixaVisual / img.height);
+      const larguraVisualFinal = img.width * escalaBaseVisual * modalRecorte.zoom;
+      const alturaVisualFinal = img.height * escalaBaseVisual * modalRecorte.zoom;
 
-      const larguraCaixaVisual = caixaRecorteRef.current?.clientWidth || (isLogo ? 220 : 320);
-      const alturaCaixaVisual = caixaRecorteRef.current?.clientHeight || (isLogo ? 220 : 160);
+      const fatorEscalaSaida = larguraSaida / larguraCaixaVisual;
+      const larguraDesenhada = larguraVisualFinal * fatorEscalaSaida;
+      const alturaDesenhada = alturaVisualFinal * fatorEscalaSaida;
 
-      const proporcaoX = larguraSaida / larguraCaixaVisual;
-      const proporcaoY = alturaSaida / alturaCaixaVisual;
-
-      const centroX = larguraSaida / 2 + modalRecorte.posX * proporcaoX;
-      const centroY = alturaSaida / 2 + modalRecorte.posY * proporcaoY;
+      const centroX = larguraSaida / 2 + modalRecorte.posX * fatorEscalaSaida;
+      const centroY = alturaSaida / 2 + modalRecorte.posY * (alturaSaida / alturaCaixaVisual);
 
       ctx.drawImage(
         img,
@@ -285,7 +314,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
         canvas.toBlob(
           (b) => (b ? resolve(b) : reject(new Error('Falha ao gerar imagem recortada.'))),
           'image/jpeg',
-          0.88
+          0.9
         );
       });
 
@@ -435,6 +464,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
   ];
 
   const isRecorteLogo = modalRecorte.tipo === 'logo';
+  const dimensoesVisuais = calcularDimensoesVisuaisImagem();
 
   return (
     <div className="w-full max-w-4xl mx-auto px-3 sm:px-4 py-2 space-y-2 font-sans text-slate-800 select-none pb-28">
@@ -1112,7 +1142,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
               <div
                 ref={caixaRecorteRef}
                 onPointerDown={handlePointerDownRecorte}
-                className={`relative overflow-hidden bg-black border-2 border-emerald-400/70 touch-none select-none ${
+                className={`relative overflow-hidden bg-zinc-950 border-2 border-emerald-400/70 touch-none select-none flex items-center justify-center ${
                   arrastando ? 'cursor-grabbing' : 'cursor-grab'
                 } ${
                   isRecorteLogo
@@ -1124,10 +1154,11 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                   src={modalRecorte.src}
                   alt="Prévia de enquadramento"
                   draggable={false}
-                  className="w-full h-full object-cover pointer-events-none"
+                  className="max-w-none pointer-events-none shrink-0"
                   style={{
-                    transform: `translate(${modalRecorte.posX}px, ${modalRecorte.posY}px) scale(${modalRecorte.zoom})`,
-                    transformOrigin: 'center center',
+                    width: `${dimensoesVisuais.width}px`,
+                    height: `${dimensoesVisuais.height}px`,
+                    transform: `translate(${modalRecorte.posX}px, ${modalRecorte.posY}px)`,
                   }}
                 />
                 {!isRecorteLogo && (
@@ -1171,7 +1202,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                 <input
                   type="range"
                   min="1"
-                  max="2.5"
+                  max="3"
                   step="0.05"
                   value={modalRecorte.zoom}
                   onChange={(e) => setModalRecorte((prev) => ({ ...prev, zoom: Number(e.target.value) }))}
@@ -1179,7 +1210,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                 />
                 <button
                   type="button"
-                  onClick={() => setModalRecorte((prev) => ({ ...prev, zoom: Math.min(2.5, Number((prev.zoom + 0.1).toFixed(2))) }))}
+                  onClick={() => setModalRecorte((prev) => ({ ...prev, zoom: Math.min(3, Number((prev.zoom + 0.1).toFixed(2))) }))}
                   className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 cursor-pointer"
                 >
                   <ZoomIn className="w-3.5 h-3.5" />
