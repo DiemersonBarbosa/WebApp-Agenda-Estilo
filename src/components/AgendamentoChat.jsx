@@ -697,12 +697,6 @@ export default function AgendamentoChat({ barbeariaId }) {
                 <span className="text-[10px] font-bold tracking-wider uppercase">Capa da Unidade</span>
               </div>
             )}
-            <div
-              className="absolute inset-0"
-              style={{
-                background: `linear-gradient(to top, ${tema.cor_container}F5, ${tema.cor_container}66, transparent)`,
-              }}
-            />
           </div>
 
           <div className="px-5 pb-4 pt-0 relative flex items-center gap-4 -mt-12 sm:-mt-14">
