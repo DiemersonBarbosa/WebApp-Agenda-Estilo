@@ -557,7 +557,8 @@ export default function AgendamentoChat({ barbeariaId }) {
           servico: servicoEscolhido.nome,
           data: dataFormatadaBR,
           hora: horaEscolhida,
-          nomeBarbearia: barbearia?.nome || 'AgendaEstilo'
+          nomeBarbearia: barbearia?.nome || 'AgendaEstilo',
+          slug: barbearia?.slug,
         });
       } catch (whatsErr) {
         console.error('Erro ao enviar mensagem via WhatsApp:', whatsErr);
