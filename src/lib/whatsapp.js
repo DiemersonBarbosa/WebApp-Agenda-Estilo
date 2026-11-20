@@ -1,6 +1,27 @@
-export async function enviarMensagemWhatsApp({ phone, nomeCliente, servico, data, hora, nomeBarbearia }) {
+export async function enviarMensagemWhatsApp({
+  phone,
+  nomeCliente,
+  servico,
+  data,
+  hora,
+  nomeBarbearia,
+  mensagem: mensagemCustomizada,
+}) {
   try {
-    const mensagem = `Olá, *${nomeCliente}*! O seu agendamento na *${nomeBarbearia || 'Barbearia'}* para *${servico}* foi confirmado para o dia *${data}* às *${hora}*. Obrigado pela preferência!`;
+    const estabelecimento = nomeBarbearia || 'Estabelecimento';
+
+    const mensagemPadrao = [
+      `Olá, *${nomeCliente}*! Seu horário está confirmado.`,
+      ``,
+      `• *Local:* ${estabelecimento}`,
+      `• *Serviço:* ${servico}`,
+      `• *Data:* ${data}`,
+      `• *Horário:* ${hora}`,
+      ``,
+      `Agradecemos a sua confiança!`,
+    ].join('\n');
+
+    const mensagem = mensagemCustomizada || mensagemPadrao;
 
     const response = await fetch('/api/whatsapp', {
       method: 'POST',
