@@ -5,10 +5,17 @@ export async function enviarMensagemWhatsApp({
   data,
   hora,
   nomeBarbearia,
+  slug,
   mensagem: mensagemCustomizada,
 }) {
   try {
     const estabelecimento = nomeBarbearia || 'Estabelecimento';
+    const baseUrl =
+      typeof window !== 'undefined' && !window.location.origin.includes('localhost')
+        ? window.location.origin
+        : 'https://agendaestilo.com.br';
+
+    const linkAgendamento = slug ? `${baseUrl}/agendar/${slug}` : baseUrl;
 
     const mensagemPadrao = [
       `Olá, *${nomeCliente}*! Seu horário está confirmado.`,
@@ -18,7 +25,7 @@ export async function enviarMensagemWhatsApp({
       `• *Data:* ${data}`,
       `• *Horário:* ${hora}`,
       ``,
-      `Agradecemos a sua confiança!`,
+      `Se for necessário alguma alteração de horário ou serviço, você pode alterar acessando o link ${linkAgendamento} na opção *Meus Agendamentos*! Obrigado pela confiança.`,
     ].join('\n');
 
     const mensagem = mensagemCustomizada || mensagemPadrao;
