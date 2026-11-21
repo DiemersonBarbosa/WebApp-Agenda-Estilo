@@ -232,7 +232,7 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, barbearia
     };
   }, [barbeariaId, profissionalId]);
 
- const concluirAgendamento = async (id) => {
+  const concluirAgendamento = async (id) => {
     try {
       setProcessandoId(id);
       const { error } = await supabase
@@ -586,6 +586,7 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, barbearia
         </div>
 
         <button
+          type="button"
           onClick={() => setModalHistoricoOpen(true)}
           className="relative rounded-3xl p-4 sm:p-5 flex items-center justify-between border border-stone-200/80 bg-white transition-all cursor-pointer group min-w-0 overflow-hidden shadow-xs hover:shadow-sm"
         >
@@ -615,6 +616,7 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, barbearia
             return (
               <button
                 key={dia.iso}
+                type="button"
                 onClick={() => setDataSelecionada(dia.iso)}
                 className={`flex flex-col items-center justify-center py-2 px-1 rounded-2xl transition-all cursor-pointer relative ${
                   selecionado 
@@ -839,6 +841,7 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, barbearia
 
                         <div className="pt-2 border-t border-stone-100 grid grid-cols-3 gap-1.5">
                           <button 
+                            type="button"
                             onClick={() => concluirAgendamento(item.id)}
                             disabled={processandoId === item.id}
                             className="py-1.5 px-1 bg-stone-900 hover:bg-black text-white rounded-xl text-[10px] sm:text-[11px] font-extrabold flex items-center justify-center gap-1 transition-all cursor-pointer shadow-2xs active:scale-95"
@@ -848,6 +851,7 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, barbearia
                           </button>
 
                           <button 
+                            type="button"
                             onClick={() => cancelarAgendamento(item.id)}
                             disabled={processandoId === item.id}
                             className="py-1.5 px-1 bg-stone-100 hover:bg-stone-200 text-stone-700 border border-stone-200/80 rounded-xl text-[10px] sm:text-[11px] font-bold flex items-center justify-center gap-1 transition-all cursor-pointer"
@@ -857,6 +861,7 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, barbearia
                           </button>
 
                           <button 
+                            type="button"
                             onClick={() => excluirAgendamento(item.id)}
                             disabled={processandoId === item.id}
                             className="py-1.5 px-1 bg-stone-50 hover:bg-rose-50 text-rose-600 border border-stone-200/80 hover:border-rose-200 rounded-xl text-[10px] sm:text-[11px] font-bold flex items-center justify-center gap-1 transition-all cursor-pointer"
@@ -889,6 +894,7 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, barbearia
                         </div>
 
                         <button
+                          type="button"
                           onClick={() => {
                             setHorarioSelecionadoSlot(slot.horario);
                             setBarbeiroIdManual(barbeiroSelecionado);
@@ -929,6 +935,7 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, barbearia
                 </div>
               </div>
               <button 
+                type="button"
                 onClick={() => setModalAgendamentoOpen(false)}
                 className="w-9 h-9 rounded-full bg-stone-100 border border-stone-200 flex items-center justify-center text-stone-600 hover:bg-stone-200 transition-colors cursor-pointer"
               >
@@ -1044,7 +1051,7 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, barbearia
           <div className="relative w-full max-w-md bg-white rounded-[2.5rem] p-6 shadow-2xl border border-white/90 z-10 space-y-4 max-h-[80vh] flex flex-col">
             <div className="flex items-center justify-between pb-3 border-b border-stone-200">
               <h3 className="text-sm font-black text-stone-900 uppercase tracking-wider">Selecionar Serviço</h3>
-              <button onClick={() => setModalServicosOpen(false)} className="w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center text-stone-600 hover:bg-stone-200">
+              <button type="button" onClick={() => setModalServicosOpen(false)} className="w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center text-stone-600 hover:bg-stone-200">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -1086,7 +1093,7 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, barbearia
           <div className="relative w-full max-w-md bg-white rounded-[2.5rem] p-6 shadow-2xl border border-white/90 z-10 space-y-4 max-h-[80vh] flex flex-col">
             <div className="flex items-center justify-between pb-3 border-b border-stone-200">
               <h3 className="text-sm font-black text-stone-900 uppercase tracking-wider">Selecionar Profissional</h3>
-              <button onClick={() => setModalProfissionaisOpen(false)} className="w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center text-stone-600 hover:bg-stone-200">
+              <button type="button" onClick={() => setModalProfissionaisOpen(false)} className="w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center text-stone-600 hover:bg-stone-200">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -1149,6 +1156,7 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, barbearia
                 </div>
               </div>
               <button 
+                type="button"
                 onClick={() => setModalHistoricoOpen(false)}
                 className="w-10 h-10 rounded-full bg-white border border-stone-200 flex items-center justify-center text-stone-600 hover:bg-stone-100 transition-colors cursor-pointer shadow-xs"
               >
@@ -1168,6 +1176,7 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, barbearia
                   />
                   {filtroDataHistorico && (
                     <button 
+                      type="button"
                       onClick={() => setFiltroDataHistorico('')} 
                       className="absolute right-3 text-xs text-stone-500 hover:text-stone-900 font-bold"
                     >
@@ -1200,49 +1209,69 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, barbearia
               ) : (
                 todosAgendamentos
                   .filter(item => !filtroDataHistorico || extrairDataIso(item) === filtroDataHistorico)
-                  .filter(item => filtroStatusHistorico === 'todos' || (item.status || 'agendado') === filtroStatusHistorico)
-                  .map((item) => (
-                    <div key={item.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-white hover:bg-stone-50 rounded-2xl border border-stone-200/80 transition-all gap-4 shadow-xs">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-3">
-                          <span className="font-bold text-stone-900 text-sm sm:text-base">
-                            {item.clientes?.nome || 'Cliente'}
-                          </span>
-                          <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase ${
-                            item.status === 'concluido' ? 'bg-[#222222] text-white' :
-                            item.status === 'cancelado' ? 'bg-red-100 text-red-800' : 'bg-stone-200 text-stone-800'
-                          }`}>
-                            {item.status || 'agendado'}
-                          </span>
-                        </div>
-                        <p className="text-xs text-stone-500 flex flex-wrap gap-x-3 gap-y-1 items-center">
-                          <span className="text-stone-700 font-medium">{item.servicos?.nome || 'Serviço'}</span>
-                          <span>•</span>
-                          <span>{item.barbeiros?.nome || 'Barbeiro'}</span>
-                          <span>•</span>
-                          <span className="font-semibold text-stone-700">{formatarDataHora(item.data_hora)}</span>
-                        </p>
-                      </div>
+                  .filter(item => filtroStatusHistorico === 'todos' || (item.status || 'agendado').toLowerCase() === filtroStatusHistorico)
+                  .map((item) => {
+                    const statusAtual = (item.status || 'agendado').toLowerCase();
+                    const podeConcluir = !['concluido', 'concluida', 'realizado', 'finalizado', 'cancelado', 'cancelada'].includes(statusAtual);
 
-                      <div className="flex items-center justify-between sm:justify-end gap-4 pt-3 sm:pt-0 border-t sm:border-t-0 border-stone-100">
-                        <span className="text-sm sm:text-base font-extrabold text-stone-900">
-                          R$ {Number(item.valor_total || item.servicos?.preco || 0).toFixed(2)}
-                        </span>
-                        <button 
-                          onClick={() => excluirAgendamento(item.id)}
-                          disabled={processandoId === item.id}
-                          className="px-3 py-1.5 text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 rounded-xl transition-colors disabled:opacity-50 flex items-center gap-1 cursor-pointer"
-                        >
-                          Excluir
-                        </button>
+                    return (
+                      <div key={item.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-white hover:bg-stone-50 rounded-2xl border border-stone-200/80 transition-all gap-4 shadow-xs">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-3">
+                            <span className="font-bold text-stone-900 text-sm sm:text-base">
+                              {item.clientes?.nome || 'Cliente'}
+                            </span>
+                            <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase ${
+                              statusAtual === 'concluido' ? 'bg-[#222222] text-white' :
+                              statusAtual === 'cancelado' ? 'bg-red-100 text-red-800' : 'bg-stone-200 text-stone-800'
+                            }`}>
+                              {item.status || 'agendado'}
+                            </span>
+                          </div>
+                          <p className="text-xs text-stone-500 flex flex-wrap gap-x-3 gap-y-1 items-center">
+                            <span className="text-stone-700 font-medium">{item.servicos?.nome || 'Serviço'}</span>
+                            <span>•</span>
+                            <span>{item.barbeiros?.nome || 'Barbeiro'}</span>
+                            <span>•</span>
+                            <span className="font-semibold text-stone-700">{formatarDataHora(item.data_hora)}</span>
+                          </p>
+                        </div>
+
+                        <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-3 pt-3 sm:pt-0 border-t sm:border-t-0 border-stone-100">
+                          <span className="text-sm sm:text-base font-extrabold text-stone-900 mr-auto sm:mr-1">
+                            R$ {Number(item.valor_total || item.servicos?.preco || 0).toFixed(2)}
+                          </span>
+
+                          {podeConcluir && (
+                            <button
+                              type="button"
+                              onClick={() => concluirAgendamento(item.id)}
+                              disabled={processandoId === item.id}
+                              className="px-3.5 py-1.5 text-xs font-extrabold text-white bg-stone-900 hover:bg-black rounded-full transition-all disabled:opacity-50 flex items-center gap-1 cursor-pointer active:scale-95 shadow-2xs"
+                            >
+                              <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                              <span>{processandoId === item.id ? 'Concluindo...' : 'Concluir'}</span>
+                            </button>
+                          )}
+
+                          <button 
+                            type="button"
+                            onClick={() => excluirAgendamento(item.id)}
+                            disabled={processandoId === item.id}
+                            className="px-3.5 py-1.5 text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 rounded-full transition-colors disabled:opacity-50 flex items-center gap-1 cursor-pointer"
+                          >
+                            Excluir
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  ))
+                    );
+                  })
               )}
             </div>
 
             <div className="pt-4 border-t border-stone-300/60 flex justify-end">
               <button
+                type="button"
                 onClick={() => setModalHistoricoOpen(false)}
                 className="px-6 py-2.5 bg-[#222222] text-white rounded-xl text-xs font-bold hover:bg-stone-800 transition-colors cursor-pointer shadow-md"
               >

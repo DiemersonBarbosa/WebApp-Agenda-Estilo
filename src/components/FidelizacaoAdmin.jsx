@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Award, Gift, Users, Star, Plus, Minus, CheckCircle2, Search, Sparkles, History, Settings, BarChart3, Save, Edit3, X } from 'lucide-react';
+import { Award, Gift, Users, Plus, Minus, Search, Sparkles, History, Settings, BarChart3, Save, Edit3, X } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 export default function FidelizacaoAdmin({ barbeariaId }) {
@@ -250,145 +250,193 @@ export default function FidelizacaoAdmin({ barbeariaId }) {
   const totalSelosEmitidos = Object.values(fidelidadeMap).reduce((acc, curr) => acc + curr.selos_atuais, 0);
   const totalResgatesFeitos = Object.values(fidelidadeMap).reduce((acc, curr) => acc + curr.total_resgates, 0);
 
+  const iconeMetalicoStyle = {
+    background: 'radial-gradient(circle at 30% 30%, #ffffff 0%, #d8e2ec 60%, #9fb3c8 100%)',
+    boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 1), inset 0 -4px 6px rgba(0, 0, 0, 0.25)',
+    border: '1px solid rgba(255, 255, 255, 0.9)'
+  };
+
+  const cardEscuroStyle = {
+    background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
+    boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
+  };
+
+  const getBotaoAbaStyle = (ativo) => ({
+    background: ativo
+      ? 'linear-gradient(145deg, #e2e8f0 0%, #cbd5e1 55%, #b8c4d4 100%)'
+      : 'linear-gradient(145deg, #f8fafc 0%, #eef2f6 55%, #e2e8f0 100%)',
+    boxShadow: ativo
+      ? '0 8px 18px rgba(15, 23, 42, 0.08), inset 0 1px 2px rgba(255, 255, 255, 0.95)'
+      : '0 6px 14px rgba(15, 23, 42, 0.05), inset 0 1px 2px rgba(255, 255, 255, 0.95)'
+  });
+
   return (
-    <div className="space-y-4 pb-24 font-sans select-none animate-in fade-in duration-200">
+    <div className="max-w-7xl mx-auto px-2 sm:px-0 space-y-4 pb-24">
       
-      {/* 1. CARDS DO TOPO */}
+      {/* CARDS DO TOPO */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-        
         <div 
           className="relative rounded-3xl p-4 sm:p-5 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden"
-          style={{
-            background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
-            boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
-          }}
+          style={cardEscuroStyle}
         >
           <div className="flex flex-col justify-center min-w-0 pr-2">
             <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider truncate block">Clientes</span>
-            <h3 className="text-base sm:text-xl font-black text-white mt-0.5 tracking-tight truncate">{clientes.length}</h3>
+            <h3 className="text-lg sm:text-xl font-black text-white mt-0.5 truncate">{clientes.length}</h3>
           </div>
-          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0 bg-white/10 border border-white/20">
-            <Users className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+          <div 
+            className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0"
+            style={iconeMetalicoStyle}
+          >
+            <Users className="w-4 h-4 sm:w-5 sm:h-5 text-stone-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]" />
           </div>
         </div>
 
         <div 
           className="relative rounded-3xl p-4 sm:p-5 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden"
-          style={{
-            background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
-            boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
-          }}
+          style={cardEscuroStyle}
         >
           <div className="flex flex-col justify-center min-w-0 pr-2">
             <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider truncate block">Selos Ativos</span>
-            <h3 className="text-base sm:text-xl font-black text-white mt-0.5 tracking-tight truncate">{totalSelosEmitidos}</h3>
+            <h3 className="text-lg sm:text-xl font-black text-white mt-0.5 truncate">{totalSelosEmitidos}</h3>
           </div>
-          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0 bg-white/10 border border-white/20">
-            <Award className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+          <div 
+            className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0"
+            style={iconeMetalicoStyle}
+          >
+            <Award className="w-4 h-4 sm:w-5 sm:h-5 text-stone-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]" />
           </div>
         </div>
 
         <div 
           className="relative rounded-3xl p-4 sm:p-5 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden"
-          style={{
-            background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
-            boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
-          }}
+          style={cardEscuroStyle}
         >
           <div className="flex flex-col justify-center min-w-0 pr-2">
             <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider truncate block">Resgates</span>
-            <h3 className="text-base sm:text-xl font-black text-white mt-0.5 tracking-tight truncate">{totalResgatesFeitos}</h3>
+            <h3 className="text-lg sm:text-xl font-black text-white mt-0.5 truncate">{totalResgatesFeitos}</h3>
           </div>
-          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0 bg-white/10 border border-white/20">
-            <Gift className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+          <div 
+            className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0"
+            style={iconeMetalicoStyle}
+          >
+            <Gift className="w-4 h-4 sm:w-5 sm:h-5 text-stone-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]" />
           </div>
         </div>
 
         <div 
           className="relative rounded-3xl p-4 sm:p-5 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden"
-          style={{
-            background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
-            boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
-          }}
+          style={cardEscuroStyle}
         >
           <div className="flex flex-col justify-center min-w-0 pr-2">
             <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider truncate block">Fidelização</span>
-            <h3 className={`text-sm sm:text-base font-black mt-0.5 tracking-tight truncate ${fidelidadeAtiva ? 'text-emerald-400' : 'text-rose-400'}`}>
+            <h3 className={`text-lg sm:text-xl font-black mt-0.5 truncate ${fidelidadeAtiva ? 'text-emerald-400' : 'text-rose-400'}`}>
               {fidelidadeAtiva ? 'Ativo' : 'Desativado'}
             </h3>
           </div>
           <button
+            type="button"
             onClick={alternarStatusFidelidade}
-            className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors duration-300 cursor-pointer shrink-0 ${
+            className={`w-10 h-6 flex items-center rounded-full p-1 transition-colors duration-300 cursor-pointer shrink-0 ${
               fidelidadeAtiva ? 'bg-emerald-500' : 'bg-stone-700'
             }`}
           >
-            <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-300 ${fidelidadeAtiva ? 'translate-x-5' : 'translate-x-0'}`} />
+            <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-300 ${fidelidadeAtiva ? 'translate-x-4' : 'translate-x-0'}`} />
           </button>
         </div>
-
       </div>
 
-      {/* 2. MENU DE ABAS */}
-      <div className="grid grid-cols-4 gap-2">
+      {/* MENU DE ABAS */}
+      <div className="grid grid-cols-4 gap-2 sm:gap-3">
         <button
+          type="button"
           onClick={() => setAbaAtiva('clientes')}
-          className={`relative rounded-2xl p-3 flex flex-col items-center justify-center gap-1.5 border transition-all cursor-pointer ${
+          style={getBotaoAbaStyle(abaAtiva === 'clientes')}
+          className={`relative rounded-2xl py-3 px-2 flex flex-col items-center justify-center gap-1.5 border transition-all cursor-pointer ${
             abaAtiva === 'clientes'
-              ? 'bg-[#111111] text-white border-stone-800 shadow-md'
-              : 'bg-white text-stone-900 border-stone-200/90 hover:bg-stone-50 shadow-xs'
+              ? 'text-slate-950 border-slate-400 ring-1 ring-slate-300'
+              : 'text-slate-700 border-white/90 hover:border-slate-300'
           }`}
         >
-          <div className={`w-7 h-7 rounded-full flex items-center justify-center ${abaAtiva === 'clientes' ? 'bg-stone-800 text-white' : 'bg-stone-100 text-stone-700'}`}>
-            <Users className="w-3.5 h-3.5" />
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center border ${
+            abaAtiva === 'clientes'
+              ? 'bg-[#18181b] border-stone-800 text-white shadow-xs'
+              : 'bg-white/80 border-slate-200/90 text-slate-800 shadow-2xs'
+          }`}>
+            <Users className="w-4 h-4" />
           </div>
-          <span className="text-[10px] sm:text-xs font-bold tracking-tight truncate w-full text-center">Clientes</span>
+          <span className={`text-[10px] sm:text-xs tracking-tight truncate w-full text-center ${
+            abaAtiva === 'clientes' ? 'font-black text-slate-950' : 'font-bold text-slate-700'
+          }`}>Clientes</span>
         </button>
 
         <button
+          type="button"
           onClick={() => setAbaAtiva('resgates')}
-          className={`relative rounded-2xl p-3 flex flex-col items-center justify-center gap-1.5 border transition-all cursor-pointer ${
+          style={getBotaoAbaStyle(abaAtiva === 'resgates')}
+          className={`relative rounded-2xl py-3 px-2 flex flex-col items-center justify-center gap-1.5 border transition-all cursor-pointer ${
             abaAtiva === 'resgates'
-              ? 'bg-[#111111] text-white border-stone-800 shadow-md'
-              : 'bg-white text-stone-900 border-stone-200/90 hover:bg-stone-50 shadow-xs'
+              ? 'text-slate-950 border-slate-400 ring-1 ring-slate-300'
+              : 'text-slate-700 border-white/90 hover:border-slate-300'
           }`}
         >
-          <div className={`w-7 h-7 rounded-full flex items-center justify-center ${abaAtiva === 'resgates' ? 'bg-stone-800 text-white' : 'bg-stone-100 text-stone-700'}`}>
-            <Gift className="w-3.5 h-3.5 text-emerald-500" />
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center border ${
+            abaAtiva === 'resgates'
+              ? 'bg-[#18181b] border-stone-800 text-white shadow-xs'
+              : 'bg-white/80 border-slate-200/90 text-slate-800 shadow-2xs'
+          }`}>
+            <Gift className="w-4 h-4" />
           </div>
-          <span className="text-[10px] sm:text-xs font-bold tracking-tight truncate w-full text-center">Resgates</span>
+          <span className={`text-[10px] sm:text-xs tracking-tight truncate w-full text-center ${
+            abaAtiva === 'resgates' ? 'font-black text-slate-950' : 'font-bold text-slate-700'
+          }`}>Resgates</span>
         </button>
 
         <button
+          type="button"
           onClick={() => setAbaAtiva('config')}
-          className={`relative rounded-2xl p-3 flex flex-col items-center justify-center gap-1.5 border transition-all cursor-pointer ${
+          style={getBotaoAbaStyle(abaAtiva === 'config')}
+          className={`relative rounded-2xl py-3 px-2 flex flex-col items-center justify-center gap-1.5 border transition-all cursor-pointer ${
             abaAtiva === 'config'
-              ? 'bg-[#111111] text-white border-stone-800 shadow-md'
-              : 'bg-white text-stone-900 border-stone-200/90 hover:bg-stone-50 shadow-xs'
+              ? 'text-slate-950 border-slate-400 ring-1 ring-slate-300'
+              : 'text-slate-700 border-white/90 hover:border-slate-300'
           }`}
         >
-          <div className={`w-7 h-7 rounded-full flex items-center justify-center ${abaAtiva === 'config' ? 'bg-stone-800 text-white' : 'bg-stone-100 text-stone-700'}`}>
-            <Settings className="w-3.5 h-3.5 text-amber-500" />
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center border ${
+            abaAtiva === 'config'
+              ? 'bg-[#18181b] border-stone-800 text-white shadow-xs'
+              : 'bg-white/80 border-slate-200/90 text-slate-800 shadow-2xs'
+          }`}>
+            <Settings className="w-4 h-4" />
           </div>
-          <span className="text-[9px] sm:text-[11px] font-bold tracking-tighter truncate w-full text-center">Ajustes</span>
+          <span className={`text-[10px] sm:text-xs tracking-tight truncate w-full text-center ${
+            abaAtiva === 'config' ? 'font-black text-slate-950' : 'font-bold text-slate-700'
+          }`}>Ajustes</span>
         </button>
 
         <button
+          type="button"
           onClick={() => setAbaAtiva('stats')}
-          className={`relative rounded-2xl p-3 flex flex-col items-center justify-center gap-1.5 border transition-all cursor-pointer ${
+          style={getBotaoAbaStyle(abaAtiva === 'stats')}
+          className={`relative rounded-2xl py-3 px-2 flex flex-col items-center justify-center gap-1.5 border transition-all cursor-pointer ${
             abaAtiva === 'stats'
-              ? 'bg-[#111111] text-white border-stone-800 shadow-md'
-              : 'bg-white text-stone-900 border-stone-200/90 hover:bg-stone-50 shadow-xs'
+              ? 'text-slate-950 border-slate-400 ring-1 ring-slate-300'
+              : 'text-slate-700 border-white/90 hover:border-slate-300'
           }`}
         >
-          <div className={`w-7 h-7 rounded-full flex items-center justify-center ${abaAtiva === 'stats' ? 'bg-stone-800 text-white' : 'bg-stone-100 text-stone-700'}`}>
-            <BarChart3 className="w-3.5 h-3.5 text-sky-500" />
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center border ${
+            abaAtiva === 'stats'
+              ? 'bg-[#18181b] border-stone-800 text-white shadow-xs'
+              : 'bg-white/80 border-slate-200/90 text-slate-800 shadow-2xs'
+          }`}>
+            <BarChart3 className="w-4 h-4" />
           </div>
-          <span className="text-[9px] sm:text-[11px] font-bold tracking-tighter truncate w-full text-center">Painel</span>
+          <span className={`text-[10px] sm:text-xs tracking-tight truncate w-full text-center ${
+            abaAtiva === 'stats' ? 'font-black text-slate-950' : 'font-bold text-slate-700'
+          }`}>Painel</span>
         </button>
       </div>
 
-      {/* 3. BARRA DE BUSCA (APENAS NAS ABAS CLIENTES E RESGATES) */}
+      {/* BARRA DE BUSCA */}
       {(abaAtiva === 'clientes' || abaAtiva === 'resgates') && (
         <div className="bg-white rounded-3xl p-4 sm:p-5 border border-stone-200/90 shadow-xs space-y-3">
           <div className="flex items-center justify-between px-1">
@@ -417,8 +465,8 @@ export default function FidelizacaoAdmin({ barbeariaId }) {
         </div>
       )}
 
-      {/* 4. CONTEÚDO DAS ABAS COM ALTURA MÍNIMA FIXA PARA EVITAR REFLUXO / SALTOS DE LAYOUT */}
-      <div className="min-h-[420px] w-full transition-all">
+      {/* CONTEÚDO DAS ABAS */}
+      <div className="min-h-[420px] w-full">
         {abaAtiva === 'config' ? (
           <div className="bg-white rounded-3xl p-5 sm:p-6 border border-stone-200/90 shadow-xs space-y-4">
             <div className="flex items-center gap-2 pb-3 border-b border-stone-100">
@@ -434,6 +482,7 @@ export default function FidelizacaoAdmin({ barbeariaId }) {
               />
               <span className="text-xs font-bold text-stone-700">Selos necessários</span>
               <button
+                type="button"
                 onClick={salvarMetaSelos}
                 className="ml-auto px-4 py-2.5 rounded-2xl bg-stone-900 hover:bg-black text-white font-black text-xs transition-all shadow-xs cursor-pointer flex items-center gap-2 active:scale-95"
               >
@@ -504,6 +553,7 @@ export default function FidelizacaoAdmin({ barbeariaId }) {
                         <div className="flex items-center justify-between pt-1">
                           <span className="text-xs font-bold text-stone-700">{fid.selos_atuais} / {metaSelos} Selos</span>
                           <button
+                            type="button"
                             onClick={() => resgatarPremioAdmin(cliente.id)}
                             className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs transition-all shadow-xs cursor-pointer flex items-center gap-1.5 active:scale-95"
                           >
@@ -547,7 +597,6 @@ export default function FidelizacaoAdmin({ barbeariaId }) {
             </div>
           </div>
         ) : (
-          /* ABA CLIENTES */
           <div 
             className="relative rounded-3xl p-4 sm:p-6 border border-white/80 overflow-hidden shadow-xs"
             style={{
@@ -588,6 +637,7 @@ export default function FidelizacaoAdmin({ barbeariaId }) {
                           <div className="flex items-center gap-2">
                             <h4 className="text-xs sm:text-sm font-black text-stone-900 truncate">{cliente.nome}</h4>
                             <button
+                              type="button"
                               onClick={() => abrirEdicaoCliente(cliente)}
                               className="p-1 rounded-lg hover:bg-stone-100 text-stone-500 transition-all cursor-pointer"
                               title="Editar Cliente"
@@ -617,6 +667,7 @@ export default function FidelizacaoAdmin({ barbeariaId }) {
                       <div className="flex items-center justify-between pt-1">
                         <div className="flex items-center gap-1.5">
                           <button
+                            type="button"
                             onClick={() => alterarSelos(cliente.id, -1)}
                             disabled={selos <= 0 || !fidelidadeAtiva}
                             className="w-8 h-8 rounded-xl bg-stone-100 hover:bg-stone-200 disabled:opacity-30 text-stone-700 flex items-center justify-center transition-all cursor-pointer shadow-2xs"
@@ -624,6 +675,7 @@ export default function FidelizacaoAdmin({ barbeariaId }) {
                             <Minus className="w-3.5 h-3.5" />
                           </button>
                           <button
+                            type="button"
                             onClick={() => alterarSelos(cliente.id, 1)}
                             disabled={!fidelidadeAtiva}
                             className="w-8 h-8 rounded-xl bg-stone-900 hover:bg-black disabled:opacity-30 text-white flex items-center justify-center transition-all cursor-pointer shadow-2xs"
@@ -634,6 +686,7 @@ export default function FidelizacaoAdmin({ barbeariaId }) {
 
                         {atingiuMeta && fidelidadeAtiva && (
                           <button
+                            type="button"
                             onClick={() => resgatarPremioAdmin(cliente.id)}
                             className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs transition-all shadow-xs cursor-pointer flex items-center gap-1.5 active:scale-95"
                           >
@@ -661,6 +714,7 @@ export default function FidelizacaoAdmin({ barbeariaId }) {
                 Editar Cliente
               </h3>
               <button 
+                type="button"
                 onClick={() => setClienteEditando(null)}
                 className="w-8 h-8 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-700 flex items-center justify-center cursor-pointer"
               >
@@ -692,12 +746,14 @@ export default function FidelizacaoAdmin({ barbeariaId }) {
 
             <div className="flex items-center justify-end gap-2 pt-2">
               <button
+                type="button"
                 onClick={() => setClienteEditando(null)}
                 className="px-4 py-2.5 rounded-2xl bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-xs cursor-pointer transition-all"
               >
                 Cancelar
               </button>
               <button
+                type="button"
                 onClick={salvarEdicaoCliente}
                 className="px-4 py-2.5 rounded-2xl bg-stone-900 hover:bg-black text-white font-black text-xs cursor-pointer transition-all shadow-xs flex items-center gap-1.5"
               >

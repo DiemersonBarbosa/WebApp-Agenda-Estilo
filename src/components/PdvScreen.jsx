@@ -1,7 +1,22 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ShoppingCart, Plus, Minus, Trash2, DollarSign, CreditCard, QrCode, CheckCircle, X, Search, Clock, ShieldCheck, Package } from 'lucide-react';
+import {
+  ShoppingCart,
+  Plus,
+  Minus,
+  Trash2,
+  DollarSign,
+  CreditCard,
+  QrCode,
+  CheckCircle,
+  X,
+  Search,
+  Clock,
+  ShieldCheck,
+  Package,
+  Trash
+} from 'lucide-react';
 
 export default function PdvScreen({ barbeariaId, supabase, produtos: produtosProp = [], onReload }) {
   const [busca, setBusca] = useState('');
@@ -9,6 +24,8 @@ export default function PdvScreen({ barbeariaId, supabase, produtos: produtosPro
   const [carrinho, setCarrinho] = useState([]);
   const [clienteNome, setClienteNome] = useState('');
   const [formaPagamento, setFormaPagamento] = useState('dinheiro');
+  const [abaAtiva, setAbaAtiva] = useState('caixa'); // 'caixa' | 'itens'
+  const [tecladoAberto, setTecladoAberto] = useState(false);
   const [modalFechamentoAberto, setModalFechamentoAberto] = useState(false);
   const [salvando, setSalvando] = useState(false);
   const [vendasPdV, setVendasPdV] = useState([]);
@@ -73,12 +90,18 @@ export default function PdvScreen({ barbeariaId, supabase, produtos: produtosPro
   };
 
   const hojeStr = obterDataLocalIso();
-  const vendasHoje = vendasPdV.filter(v => extrairDataIso(v) === hojeStr);
+  const vendasHoje = vendasPdV.filter((v) => extrairDataIso(v) === hojeStr);
 
   const faturamentoTotalDia = vendasHoje.reduce((acc, v) => acc + Number(v.total), 0);
-  const totalDinheiro = vendasHoje.filter(v => v.forma_pagamento === 'dinheiro').reduce((acc, v) => acc + Number(v.total), 0);
-  const totalCartao = vendasHoje.filter(v => v.forma_pagamento === 'cartao').reduce((acc, v) => acc + Number(v.total), 0);
-  const totalPix = vendasHoje.filter(v => v.forma_pagamento === 'pix').reduce((acc, v) => acc + Number(v.total), 0);
+  const totalDinheiro = vendasHoje
+    .filter((v) => v.forma_pagamento === 'dinheiro')
+    .reduce((acc, v) => acc + Number(v.total), 0);
+  const totalCartao = vendasHoje
+    .filter((v) => v.forma_pagamento === 'cartao')
+    .reduce((acc, v) => acc + Number(v.total), 0);
+  const totalPix = vendasHoje
+    .filter((v) => v.forma_pagamento === 'pix')
+    .reduce((acc, v) => acc + Number(v.total), 0);
 
   const adicionarAoCarrinho = (produto) => {
     if (Number(produto.estoque || 0) <= 0) {
@@ -86,14 +109,14 @@ export default function PdvScreen({ barbeariaId, supabase, produtos: produtosPro
       return;
     }
 
-    setCarrinho(prev => {
-      const itemExistente = prev.find(item => item.id === produto.id);
+    setCarrinho((prev) => {
+      const itemExistente = prev.find((item) => item.id === produto.id);
       if (itemExistente) {
         if (itemExistente.quantidade >= Number(produto.estoque)) {
           alert('Quantidade máxima em estoque atingida.');
           return prev;
         }
-        return prev.map(item =>
+        return prev.map((item) =>
           item.id === produto.id ? { ...item, quantidade: item.quantidade + 1 } : item
         );
       }
@@ -104,27 +127,32 @@ export default function PdvScreen({ barbeariaId, supabase, produtos: produtosPro
   };
 
   const alterarQuantidade = (id, delta) => {
-    setCarrinho(prev => {
-      return prev.map(item => {
-        if (item.id === id) {
-          const novaQtd = item.quantidade + delta;
-          if (novaQtd <= 0) return null;
-          if (novaQtd > Number(item.estoque || 999)) {
-            alert('Estoque insuficiente.');
-            return item;
+    setCarrinho((prev) =>
+      prev
+        .map((item) => {
+          if (item.id === id) {
+            const novaQtd = item.quantidade + delta;
+            if (novaQtd <= 0) return null;
+            if (novaQtd > Number(item.estoque || 999)) {
+              alert('Estoque insuficiente.');
+              return item;
+            }
+            return { ...item, quantidade: novaQtd };
           }
-          return { ...item, quantidade: novaQtd };
-        }
-        return item;
-      }).filter(Boolean);
-    });
+          return item;
+        })
+        .filter(Boolean)
+    );
   };
 
   const removerDoCarrinho = (id) => {
-    setCarrinho(prev => prev.filter(item => item.id !== id));
+    setCarrinho((prev) => prev.filter((item) => item.id !== id));
   };
 
-  const valorTotalCarrinho = carrinho.reduce((acc, item) => acc + (Number(item.preco) * item.quantidade), 0);
+  const valorTotalCarrinho = carrinho.reduce(
+    (acc, item) => acc + Number(item.preco) * item.quantidade,
+    0
+  );
   const totalItensCarrinho = carrinho.reduce((acc, item) => acc + item.quantidade, 0);
 
   const dispararNotificacao = () => {
@@ -147,7 +175,12 @@ export default function PdvScreen({ barbeariaId, supabase, produtos: produtosPro
       cliente_nome: clienteNome.trim() || 'Cliente Balcão',
       forma_pagamento: formaPagamento,
       total: valorTotalCarrinho,
-      itens: carrinho.map(i => ({ id: i.id, nome: i.nome, preco: i.preco, quantidade: i.quantidade }))
+      itens: carrinho.map((i) => ({
+        id: i.id,
+        nome: i.nome,
+        preco: i.preco,
+        quantidade: i.quantidade
+      }))
     };
 
     const { error } = await supabase.from('vendas_pdv').insert([dadosVenda]);
@@ -171,11 +204,10 @@ export default function PdvScreen({ barbeariaId, supabase, produtos: produtosPro
     carregarProdutosDireto();
     if (onReload) onReload();
 
-    // Exibe a notificação customizada no lugar do alert do navegador
     dispararNotificacao();
   };
 
-  const produtosFiltrados = produtosLocal.filter(p => {
+  const produtosFiltrados = produtosLocal.filter((p) => {
     if (!busca.trim()) return false;
     const termo = busca.toLowerCase().trim();
     const nomeProd = (p.nome || '').toLowerCase();
@@ -183,10 +215,25 @@ export default function PdvScreen({ barbeariaId, supabase, produtos: produtosPro
     return nomeProd.includes(termo) || catProd.includes(termo);
   });
 
+  const handleFocusCampo = () => setTecladoAberto(true);
+  const handleBlurCampo = () => {
+    setTimeout(() => {
+      setTecladoAberto(false);
+    }, 120);
+  };
+
+  const getBotaoAbaStyle = (ativo) => ({
+    background: ativo
+      ? 'linear-gradient(145deg, #e2e8f0 0%, #cbd5e1 55%, #b8c4d4 100%)'
+      : 'linear-gradient(145deg, #f8fafc 0%, #eef2f6 55%, #e2e8f0 100%)',
+    boxShadow: ativo
+      ? '0 8px 18px rgba(15, 23, 42, 0.08), inset 0 1px 2px rgba(255, 255, 255, 0.95)'
+      : '0 6px 14px rgba(15, 23, 42, 0.05), inset 0 1px 2px rgba(255, 255, 255, 0.95)'
+  });
+
   return (
-    <div className="max-w-md mx-auto sm:max-w-4xl px-2 sm:px-0 space-y-3 pb-48 font-sans relative">
-      
-      {/* NOTIFICAÇÃO FLUTUANTE (TOAST DE SUCESSO) */}
+    <div className="max-w-7xl mx-auto px-2 sm:px-0 space-y-2.5 pb-52 font-sans relative">
+      {/* NOTIFICAÇÃO FLUTUANTE */}
       {notificacaoSucesso && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none animate-in fade-in zoom-in-95 duration-200">
           <div className="bg-stone-900/95 backdrop-blur-md border border-stone-800 text-white px-6 py-4 rounded-3xl shadow-2xl flex items-center gap-3.5 pointer-events-auto">
@@ -195,52 +242,121 @@ export default function PdvScreen({ barbeariaId, supabase, produtos: produtosPro
             </div>
             <div>
               <h5 className="font-bold text-sm">Venda Realizada!</h5>
-              <p className="text-[11px] text-stone-400">Registrada e estoque atualizado com sucesso.</p>
+              <p className="text-[11px] text-stone-400">
+                Registrada e estoque atualizado com sucesso.
+              </p>
             </div>
           </div>
         </div>
       )}
 
-      {/* HEADER DO PDV MOBILE */}
-      <div className="bg-white rounded-2xl p-3.5 border border-stone-200 shadow-sm flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl bg-stone-900 text-white flex items-center justify-center shadow-xs">
-            <ShoppingCart className="w-4 h-4" />
+      {/* 1. 4 BOTÕES NO ESTILO DO APP */}
+      <div className="grid grid-cols-4 gap-2">
+        <button
+          type="button"
+          onClick={() => setAbaAtiva('caixa')}
+          style={getBotaoAbaStyle(abaAtiva === 'caixa')}
+          className={`relative rounded-2xl py-2 px-1.5 flex flex-col items-center justify-center gap-1 border transition-all cursor-pointer ${
+            abaAtiva === 'caixa'
+              ? 'text-slate-950 border-slate-400 ring-1 ring-slate-300'
+              : 'text-slate-700 border-white/90 hover:border-slate-300'
+          }`}
+        >
+          <div
+            className={`w-7 h-7 rounded-full flex items-center justify-center border ${
+              abaAtiva === 'caixa'
+                ? 'bg-[#18181b] border-stone-800 text-white shadow-2xs'
+                : 'bg-white/80 border-slate-200/90 text-slate-800 shadow-2xs'
+            }`}
+          >
+            <ShoppingCart className="w-3.5 h-3.5" />
           </div>
-          <div>
-            <h3 className="text-xs sm:text-sm font-extrabold text-stone-900 tracking-tight">Frente de Caixa (PDV)</h3>
-            <p className="text-[10px] text-stone-500">Toque para buscar e vender rápido.</p>
-          </div>
-        </div>
+          <span
+            className={`text-[10px] tracking-tight truncate w-full text-center ${
+              abaAtiva === 'caixa' ? 'font-black text-slate-950' : 'font-bold text-slate-700'
+            }`}
+          >
+            Caixa
+          </span>
+        </button>
 
         <button
-          onClick={() => setModalFechamentoAberto(true)}
-          className="px-3 py-2 bg-stone-100 hover:bg-stone-200 text-stone-800 rounded-xl text-[11px] font-bold transition-all flex items-center gap-1.5 cursor-pointer border border-stone-200"
+          type="button"
+          onClick={() => setAbaAtiva('itens')}
+          style={getBotaoAbaStyle(abaAtiva === 'itens')}
+          className={`relative rounded-2xl py-2 px-1.5 flex flex-col items-center justify-center gap-1 border transition-all cursor-pointer ${
+            abaAtiva === 'itens'
+              ? 'text-slate-950 border-slate-400 ring-1 ring-slate-300'
+              : 'text-slate-700 border-white/90 hover:border-slate-300'
+          }`}
         >
-          <Clock className="w-3.5 h-3.5 text-emerald-600" />
-          <span>Caixa Hoje</span>
+          <div
+            className={`w-7 h-7 rounded-full flex items-center justify-center border ${
+              abaAtiva === 'itens'
+                ? 'bg-[#18181b] border-stone-800 text-white shadow-2xs'
+                : 'bg-white/80 border-slate-200/90 text-slate-800 shadow-2xs'
+            }`}
+          >
+            <Package className="w-3.5 h-3.5" />
+          </div>
+          <span
+            className={`text-[10px] tracking-tight truncate w-full text-center ${
+              abaAtiva === 'itens' ? 'font-black text-slate-950' : 'font-bold text-slate-700'
+            }`}
+          >
+            Itens ({totalItensCarrinho})
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setModalFechamentoAberto(true)}
+          style={getBotaoAbaStyle(false)}
+          className="relative rounded-2xl py-2 px-1.5 flex flex-col items-center justify-center gap-1 border text-slate-700 border-white/90 hover:border-slate-300 transition-all cursor-pointer"
+        >
+          <div className="w-7 h-7 rounded-full flex items-center justify-center border bg-white/80 border-slate-200/90 text-slate-800 shadow-2xs">
+            <Clock className="w-3.5 h-3.5" />
+          </div>
+          <span className="text-[10px] font-bold tracking-tight truncate w-full text-center text-slate-700">
+            Resumo
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setCarrinho([])}
+          style={getBotaoAbaStyle(false)}
+          className="relative rounded-2xl py-2 px-1.5 flex flex-col items-center justify-center gap-1 border text-slate-700 border-white/90 hover:border-slate-300 transition-all cursor-pointer"
+        >
+          <div className="w-7 h-7 rounded-full flex items-center justify-center border bg-white/80 border-slate-200/90 text-slate-800 shadow-2xs">
+            <Trash className="w-3.5 h-3.5" />
+          </div>
+          <span className="text-[10px] font-bold tracking-tight truncate w-full text-center text-slate-700">
+            Limpar
+          </span>
         </button>
       </div>
 
-      {/* BARRA DE BUSCA RÁPIDA DE PRODUTOS */}
-      <div className="relative">
+      {/* 2. BUSCA RÁPIDA DE PRODUTOS */}
+      <div className="bg-white rounded-2xl p-2.5 border border-stone-200/90 shadow-2xs space-y-1.5 relative">
         <div className="relative">
-          <Search className="w-4 h-4 text-stone-400 absolute left-3.5 top-3.5" />
+          <Search className="w-4 h-4 text-stone-400 absolute left-3 top-2" />
           <input
             type="text"
-            placeholder="🔍 Buscar produto por nome ou categoria..."
+            placeholder="Buscar produto por nome ou categoria..."
             value={busca}
+            onFocus={handleFocusCampo}
+            onBlur={handleBlurCampo}
             onChange={(e) => setBusca(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 bg-white border border-stone-300 rounded-2xl text-xs font-bold text-stone-900 focus:outline-none focus:ring-2 focus:ring-stone-900 shadow-xs"
+            className="w-full pl-9 pr-3 py-1.5 bg-stone-50 border border-stone-200 rounded-xl text-xs font-bold text-stone-900 focus:outline-none focus:border-stone-900"
           />
         </div>
 
-        {/* LISTA FLUTUANTE DE RESULTADOS DA BUSCA */}
         {busca.trim() && (
-          <div className="absolute left-0 right-0 top-14 bg-white rounded-2xl border border-stone-200 shadow-xl z-30 max-h-56 overflow-y-auto p-2 space-y-1">
+          <div className="bg-white rounded-xl border border-stone-200 shadow-lg max-h-40 overflow-y-auto p-1.5 space-y-1">
             {produtosFiltrados.length === 0 ? (
-              <div className="p-3 text-center text-stone-400 text-xs">
-                Nenhum produto encontrado para &quot;{busca}&quot;.
+              <div className="p-2 text-center text-stone-400 text-[11px]">
+                Nenhum produto encontrado para "{busca}".
               </div>
             ) : (
               produtosFiltrados.map((prod) => {
@@ -248,24 +364,34 @@ export default function PdvScreen({ barbeariaId, supabase, produtos: produtosPro
                 const esgotado = estoqueQtd <= 0;
 
                 return (
-                  <div 
+                  <div
                     key={prod.id}
                     onClick={() => !esgotado && adicionarAoCarrinho(prod)}
-                    className={`p-2.5 rounded-xl border transition-all flex items-center justify-between gap-2 ${
-                      esgotado ? 'bg-stone-100/50 border-stone-200 opacity-50 cursor-not-allowed' : 'bg-stone-50 hover:bg-stone-100 border-stone-200 cursor-pointer'
+                    className={`p-2 rounded-lg border transition-all flex items-center justify-between gap-2 ${
+                      esgotado
+                        ? 'bg-stone-100/50 border-stone-200 opacity-50 cursor-not-allowed'
+                        : 'bg-stone-50 hover:bg-stone-100 border-stone-200 cursor-pointer'
                     }`}
                   >
                     <div className="min-w-0 pr-1">
                       <h5 className="font-extrabold text-stone-900 text-xs truncate">{prod.nome}</h5>
-                      <span className="text-[11px] text-stone-600 font-bold">R$ {Number(prod.preco).toFixed(2)}</span>
+                      <span className="text-[10px] text-stone-600 font-bold">
+                        R$ {Number(prod.preco).toFixed(2)}
+                      </span>
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${esgotado ? 'bg-rose-100 text-rose-700' : 'bg-emerald-50 text-emerald-700'}`}>
-                        {esgotado ? 'Esgotado' : `${estoqueQtd} em estoque`}
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <span
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
+                          esgotado
+                            ? 'bg-rose-100 text-rose-700'
+                            : 'bg-emerald-50 text-emerald-700'
+                        }`}
+                      >
+                        {esgotado ? 'Esgotado' : `${estoqueQtd} un.`}
                       </span>
                       {!esgotado && (
-                        <span className="text-[11px] font-bold bg-stone-900 text-white px-2.5 py-1 rounded-lg">
-                          + Adicionar
+                        <span className="text-[10px] font-bold bg-stone-900 text-white px-2 py-0.5 rounded-md">
+                          + Add
                         </span>
                       )}
                     </div>
@@ -277,164 +403,238 @@ export default function PdvScreen({ barbeariaId, supabase, produtos: produtosPro
         )}
       </div>
 
-      {/* ÁREA DO CARRINHO E OPÇÕES */}
-      <div className="bg-white rounded-2xl border border-stone-200 shadow-sm p-4 space-y-4">
-        <div className="flex items-center justify-between pb-2 border-b border-stone-100">
-          <h4 className="font-black text-stone-900 text-xs tracking-wider uppercase flex items-center gap-1.5">
-            <ShoppingCart className="w-3.5 h-3.5 text-emerald-600" /> Itens no Carrinho ({totalItensCarrinho})
-          </h4>
-          {carrinho.length > 0 && (
-            <button onClick={() => setCarrinho([])} className="text-[11px] font-bold text-rose-600 hover:underline">
-              Esvaziar
-            </button>
-          )}
-        </div>
+      {/* 3. ÁREA PRINCIPAL COMPACTA (CAIXA / ITENS) */}
+      <div
+        className="relative rounded-3xl p-3 border border-white/80 overflow-hidden shadow-2xs"
+        style={{
+          background: 'linear-gradient(135deg, #f7f9f8 0%, #edf1f0 50%, #e2e8e6 100%)',
+          boxShadow: '0 12px 24px rgba(0, 0, 0, 0.05), inset 0 2px 4px rgba(255, 255, 255, 0.9), inset 0 -3px 6px rgba(0, 0, 0, 0.03)'
+        }}
+      >
+        <div className="bg-white rounded-2xl border border-stone-200/90 p-3 space-y-2.5 shadow-2xs">
+          <div className="flex items-center justify-between pb-1.5 border-b border-stone-100">
+            <h4 className="font-black text-stone-900 text-[11px] tracking-wider uppercase flex items-center gap-1.5">
+              <ShoppingCart className="w-3.5 h-3.5 text-emerald-600" />
+              {abaAtiva === 'itens'
+                ? `Itens Selecionados (${totalItensCarrinho})`
+                : `Comanda / Carrinho (${totalItensCarrinho})`}
+            </h4>
+            {carrinho.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setCarrinho([])}
+                className="text-[10px] font-bold text-rose-600 hover:underline cursor-pointer"
+              >
+                Esvaziar
+              </button>
+            )}
+          </div>
 
-        {/* NOME DO CLIENTE */}
-        <div>
-          <label className="block text-[10px] font-extrabold uppercase tracking-wider text-stone-500 mb-1">Cliente (Opcional)</label>
-          <input
-            type="text"
-            placeholder="Nome do cliente no balcão..."
-            value={clienteNome}
-            onChange={(e) => setClienteNome(e.target.value)}
-            className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs font-bold text-stone-900 focus:outline-none focus:ring-1 focus:ring-stone-900"
-          />
-        </div>
-
-        {/* LISTA DE PRODUTOS SELECIONADOS */}
-        <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-          {carrinho.length === 0 ? (
-            <div className="py-8 text-center text-stone-400 text-xs border border-dashed border-stone-200 rounded-xl space-y-1">
-              <Package className="w-5 h-5 mx-auto text-stone-300" />
-              <p>Nenhum item adicionado ainda.</p>
-              <span className="text-[10px] text-stone-400">Use a busca acima para incluir produtos.</span>
+          {abaAtiva === 'caixa' && (
+            <div>
+              <label className="block text-[9px] font-extrabold uppercase tracking-wider text-stone-500 mb-1">
+                Cliente (Opcional)
+              </label>
+              <input
+                type="text"
+                placeholder="Nome do cliente no balcão..."
+                value={clienteNome}
+                onFocus={handleFocusCampo}
+                onBlur={handleBlurCampo}
+                onChange={(e) => setClienteNome(e.target.value)}
+                className="w-full px-3 py-1.5 bg-stone-50 border border-stone-200 rounded-xl text-xs font-bold text-stone-900 focus:outline-none focus:border-stone-900"
+              />
             </div>
-          ) : (
-            carrinho.map((item) => (
-              <div key={item.id} className="p-2.5 rounded-xl bg-stone-50 border border-stone-200 flex items-center justify-between gap-2">
-                <div className="min-w-0 pr-1">
-                  <h6 className="font-extrabold text-stone-900 text-xs truncate">{item.nome}</h6>
-                  <span className="text-[11px] text-stone-500 font-semibold">R$ {Number(item.preco).toFixed(2)} un.</span>
-                </div>
+          )}
 
-                <div className="flex items-center gap-2 shrink-0">
-                  <div className="flex items-center bg-white border border-stone-200 rounded-lg overflow-hidden shadow-xs">
-                    <button onClick={() => alterarQuantidade(item.id, -1)} className="p-1.5 hover:bg-stone-100 text-stone-700">
-                      <Minus className="w-3 h-3" />
-                    </button>
-                    <span className="px-2 text-xs font-bold text-stone-900">{item.quantidade}</span>
-                    <button onClick={() => alterarQuantidade(item.id, 1)} className="p-1.5 hover:bg-stone-100 text-stone-700">
-                      <Plus className="w-3 h-3" />
+          <div className={`space-y-1.5 ${abaAtiva === 'itens' ? 'max-h-48' : 'max-h-24'} overflow-y-auto pr-0.5`}>
+            {carrinho.length === 0 ? (
+              <div className="py-4 text-center text-stone-400 text-[11px] border border-dashed border-stone-200 rounded-xl flex flex-col items-center justify-center gap-0.5">
+                <Package className="w-4 h-4 text-stone-300" />
+                <span>Nenhum item adicionado ainda.</span>
+              </div>
+            ) : (
+              carrinho.map((item) => (
+                <div
+                  key={item.id}
+                  className="px-2.5 py-1.5 rounded-xl bg-stone-50 border border-stone-200 flex items-center justify-between gap-2"
+                >
+                  <div className="min-w-0 pr-1">
+                    <h6 className="font-extrabold text-stone-900 text-xs truncate leading-tight">
+                      {item.nome}
+                    </h6>
+                    <span className="text-[10px] text-stone-500 font-semibold leading-tight">
+                      R$ {Number(item.preco).toFixed(2)} un.
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <div className="flex items-center bg-white border border-stone-200 rounded-lg overflow-hidden shadow-2xs">
+                      <button
+                        type="button"
+                        onClick={() => alterarQuantidade(item.id, -1)}
+                        className="p-1 hover:bg-stone-100 text-stone-700 cursor-pointer"
+                      >
+                        <Minus className="w-3 h-3" />
+                      </button>
+                      <span className="px-2 text-xs font-bold text-stone-900">{item.quantidade}</span>
+                      <button
+                        type="button"
+                        onClick={() => alterarQuantidade(item.id, 1)}
+                        className="p-1 hover:bg-stone-100 text-stone-700 cursor-pointer"
+                      >
+                        <Plus className="w-3 h-3" />
+                      </button>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removerDoCarrinho(item.id)}
+                      className="p-1 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg cursor-pointer"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   </div>
-                  <button onClick={() => removerDoCarrinho(item.id)} className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg">
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
                 </div>
+              ))
+            )}
+          </div>
+
+          {abaAtiva === 'caixa' && (
+            <div>
+              <label className="block text-[9px] font-extrabold uppercase tracking-wider text-stone-500 mb-1">
+                Forma de Pagamento
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { id: 'dinheiro', label: 'Dinheiro', icon: DollarSign },
+                  { id: 'cartao', label: 'Cartão', icon: CreditCard },
+                  { id: 'pix', label: 'PIX', icon: QrCode }
+                ].map((metodo) => {
+                  const Icon = metodo.icon;
+                  const selecionado = formaPagamento === metodo.id;
+                  return (
+                    <button
+                      key={metodo.id}
+                      type="button"
+                      onClick={() => setFormaPagamento(metodo.id)}
+                      className={`py-1.5 px-2 rounded-xl border text-[11px] font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                        selecionado
+                          ? 'bg-stone-900 text-white border-stone-900 shadow-2xs'
+                          : 'bg-stone-50 text-stone-700 border-stone-200 hover:bg-stone-100'
+                      }`}
+                    >
+                      <Icon className="w-3.5 h-3.5" />
+                      <span>{metodo.label}</span>
+                    </button>
+                  );
+                })}
               </div>
-            ))
+            </div>
           )}
         </div>
-
-        {/* FORMA DE PAGAMENTO */}
-        <div className="pt-2">
-          <label className="block text-[10px] font-extrabold uppercase tracking-wider text-stone-500 mb-1.5">Forma de Pagamento</label>
-          <div className="grid grid-cols-3 gap-2">
-            {[
-              { id: 'dinheiro', label: 'Dinheiro', icon: DollarSign },
-              { id: 'cartao', label: 'Cartão', icon: CreditCard },
-              { id: 'pix', label: 'PIX', icon: QrCode },
-            ].map((metodo) => {
-              const Icon = metodo.icon;
-              const selecionado = formaPagamento === metodo.id;
-              return (
-                <button
-                  key={metodo.id}
-                  type="button"
-                  onClick={() => setFormaPagamento(metodo.id)}
-                  className={`py-2.5 px-2 rounded-xl border text-xs font-bold flex flex-col items-center justify-center gap-1 transition-all cursor-pointer ${
-                    selecionado ? 'bg-stone-900 text-white border-stone-900 shadow-sm' : 'bg-stone-50 text-stone-700 border-stone-200 hover:bg-stone-100'
-                  }`}
-                >
-                  <Icon className="w-4 h-4" />
-                  <span>{metodo.label}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
       </div>
 
-      {/* BARRA INFERIOR FIXA COM MARGEM SEGURA DA BARRA DE NAVEGAÇÃO MOBILE */}
-      <div className="fixed bottom-20 left-3 right-3 bg-white/95 backdrop-blur-md border border-stone-200 p-3.5 z-30 shadow-xl rounded-2xl max-w-md mx-auto sm:max-w-4xl sm:bottom-4">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <span className="text-[10px] font-extrabold text-stone-400 uppercase block">Total a Pagar</span>
-            <span className="text-lg font-black text-emerald-600">R$ {valorTotalCarrinho.toFixed(2)}</span>
-          </div>
+      {/* BARRA INFERIOR FIXA COM MAIOR RESPIRO ACIMA DO MENU MOBILE */}
+      {!tecladoAberto && (
+        <div className="fixed bottom-32 left-3 right-3 bg-white/95 backdrop-blur-md border border-stone-200 px-3.5 py-2.5 z-30 shadow-xl rounded-2xl max-w-md mx-auto sm:max-w-4xl sm:bottom-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <span className="text-[9px] font-extrabold text-stone-400 uppercase block leading-tight">
+                Total a Pagar
+              </span>
+              <span className="text-base sm:text-lg font-black text-emerald-600 leading-tight">
+                R$ {valorTotalCarrinho.toFixed(2)}
+              </span>
+            </div>
 
-          <button
-            onClick={finalizarVenda}
-            disabled={carrinho.length === 0 || salvando}
-            className={`flex-1 py-3 px-4 rounded-xl text-xs font-bold shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer ${
-              carrinho.length === 0 || salvando ? 'bg-stone-200 text-stone-400 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700 text-white active:scale-95'
-            }`}
-          >
-            <CheckCircle className="w-4 h-4" />
-            {salvando ? 'Processando...' : 'Finalizar Venda Agora'}
-          </button>
+            <button
+              type="button"
+              onClick={finalizarVenda}
+              disabled={carrinho.length === 0 || salvando}
+              className={`flex-1 py-2.5 px-3.5 rounded-xl text-xs font-bold shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                carrinho.length === 0 || salvando
+                  ? 'bg-stone-200 text-stone-400 cursor-not-allowed'
+                  : 'bg-emerald-600 hover:bg-emerald-700 text-white active:scale-95'
+              }`}
+            >
+              <CheckCircle className="w-4 h-4 shrink-0" />
+              <span className="truncate">
+                {salvando ? 'Processando...' : 'Finalizar Venda Agora'}
+              </span>
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* MODAL DE RESUMO DO CAIXA */}
       {modalFechamentoAberto && (
         <div className="fixed inset-0 bg-stone-950/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-md rounded-3xl p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-150">
+          <div className="bg-white w-full max-w-md rounded-3xl p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-stone-100">
               <div>
                 <h4 className="font-black text-stone-900 text-base flex items-center gap-2">
                   <ShieldCheck className="w-5 h-5 text-emerald-600" /> Resumo do Caixa (Hoje)
                 </h4>
-                <p className="text-[11px] text-stone-400">Valores consolidados até o momento.</p>
+                <p className="text-[11px] text-stone-400">
+                  Valores consolidados até o momento.
+                </p>
               </div>
-              <button onClick={() => setModalFechamentoAberto(false)} className="text-stone-400 hover:text-stone-600 p-1 rounded-lg">
+              <button
+                type="button"
+                onClick={() => setModalFechamentoAberto(false)}
+                className="text-stone-400 hover:text-stone-600 p-1 rounded-lg cursor-pointer"
+              >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <div className="bg-stone-900 rounded-2xl p-5 text-center space-y-1 text-white shadow-inner">
-              <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider block">Faturamento Total do Dia</span>
-              <h3 className="text-2xl font-black text-emerald-400">R$ {faturamentoTotalDia.toFixed(2)}</h3>
-              <p className="text-[11px] text-stone-300">{vendasHoje.length} venda(s) realizada(s)</p>
+              <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider block">
+                Faturamento Total do Dia
+              </span>
+              <h3 className="text-2xl font-black text-emerald-400">
+                R$ {faturamentoTotalDia.toFixed(2)}
+              </h3>
+              <p className="text-[11px] text-stone-300">
+                {vendasHoje.length} venda(s) realizada(s)
+              </p>
             </div>
 
             <div className="space-y-2.5">
-              <span className="text-[10px] font-extrabold uppercase tracking-wider text-stone-400 block">Detalhamento por Pagamento</span>
-              
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-stone-400 block">
+                Detalhamento por Pagamento
+              </span>
+
               <div className="flex items-center justify-between p-3 rounded-xl bg-stone-50 border border-stone-200">
                 <span className="font-bold text-xs text-stone-700 flex items-center gap-2">
                   <DollarSign className="w-4 h-4 text-emerald-600" /> Dinheiro
                 </span>
-                <span className="font-extrabold text-xs text-stone-900">R$ {totalDinheiro.toFixed(2)}</span>
+                <span className="font-extrabold text-xs text-stone-900">
+                  R$ {totalDinheiro.toFixed(2)}
+                </span>
               </div>
 
               <div className="flex items-center justify-between p-3 rounded-xl bg-stone-50 border border-stone-200">
                 <span className="font-bold text-xs text-stone-700 flex items-center gap-2">
                   <CreditCard className="w-4 h-4 text-indigo-600" /> Cartão
                 </span>
-                <span className="font-extrabold text-xs text-stone-900">R$ {totalCartao.toFixed(2)}</span>
+                <span className="font-extrabold text-xs text-stone-900">
+                  R$ {totalCartao.toFixed(2)}
+                </span>
               </div>
 
               <div className="flex items-center justify-between p-3 rounded-xl bg-stone-50 border border-stone-200">
                 <span className="font-bold text-xs text-stone-700 flex items-center gap-2">
                   <QrCode className="w-4 h-4 text-teal-600" /> PIX
                 </span>
-                <span className="font-extrabold text-xs text-stone-900">R$ {totalPix.toFixed(2)}</span>
+                <span className="font-extrabold text-xs text-stone-900">
+                  R$ {totalPix.toFixed(2)}
+                </span>
               </div>
             </div>
 
             <button
+              type="button"
               onClick={() => setModalFechamentoAberto(false)}
               className="w-full py-3 bg-stone-900 hover:bg-stone-800 text-white text-xs font-bold rounded-xl shadow-md text-center cursor-pointer mt-2"
             >

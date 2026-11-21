@@ -1548,7 +1548,7 @@ const [searchTerm, setSearchTerm] = useState('');
           </div>
         </aside>
 
-        <main className="flex-1 md:ml-72 px-3 pt-3 sm:px-6 sm:pt-4 md:p-10 pb-24 max-w-full">
+        <main className="flex-1 md:ml-72 max-w-7xl mx-auto px-2 sm:px-0 pt-3 sm:pt-4 md:p-10 pb-24 w-full min-w-0">
           {errorMessage && (
             <div className="mb-6 bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 rounded-2xl text-xs flex items-center gap-2">
               <AlertCircle className="w-4 h-4 text-rose-500" /> {errorMessage}
@@ -1724,7 +1724,7 @@ const [searchTerm, setSearchTerm] = useState('');
               .reduce((acc, f) => acc + Number(f.valor_comissao || 0), 0);
 
             return (
-              <div className="space-y-4 pb-24 font-sans select-none animate-in fade-in duration-200">
+              <div className="max-w-7xl mx-auto px-2 sm:px-0 space-y-4 pb-24 font-sans select-none animate-in fade-in duration-200">
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
                   <div 
                     className="relative rounded-3xl p-4 sm:p-5 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden"
@@ -1733,9 +1733,9 @@ const [searchTerm, setSearchTerm] = useState('');
                       boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
                     }}
                   >
-                    <div className="flex flex-col justify-center min-w-0 pr-1">
-                      <span className="text-[8px] sm:text-[9px] font-bold text-stone-400 uppercase tracking-wider leading-tight">Comissão Pendente</span>
-                      <h1 className="text-base sm:text-lg font-black text-white mt-1 tracking-tight">R$ {totalPendente.toFixed(2)}</h1>
+                    <div className="flex flex-col justify-center min-w-0 pr-2">
+                      <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider truncate block">Comissão Pendente</span>
+                      <h1 className="text-lg sm:text-xl font-black text-white mt-0.5 truncate">R$ {totalPendente.toFixed(0)}</h1>
                     </div>
                     <div 
                       className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0"
@@ -1756,9 +1756,9 @@ const [searchTerm, setSearchTerm] = useState('');
                       boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
                     }}
                   >
-                    <div className="flex flex-col justify-center min-w-0 pr-1">
-                      <span className="text-[8px] sm:text-[9px] font-bold text-stone-400 uppercase tracking-wider leading-tight">Fat. Pendente Equipe</span>
-                      <h3 className="text-base sm:text-lg font-black text-white mt-1 tracking-tight">R$ {totalGeralFat.toFixed(2)}</h3>
+                    <div className="flex flex-col justify-center min-w-0 pr-2">
+                      <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider truncate block">Fat. Pendente Equipe</span>
+                      <h3 className="text-lg sm:text-xl font-black text-white mt-0.5 truncate">R$ {totalGeralFat.toFixed(0)}</h3>
                     </div>
                     <div 
                       className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0"
@@ -1779,9 +1779,9 @@ const [searchTerm, setSearchTerm] = useState('');
                       boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
                     }}
                   >
-                    <div className="flex flex-col justify-center min-w-0 pr-1">
-                      <span className="text-[8px] sm:text-[9px] font-bold text-stone-400 uppercase tracking-wider leading-tight">Comissões Pagas</span>
-                      <h3 className="text-base sm:text-lg font-black text-emerald-400 mt-1 tracking-tight">R$ {totalComissoesPagas.toFixed(2)}</h3>
+                    <div className="flex flex-col justify-center min-w-0 pr-2">
+                      <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider truncate block">Comissões Pagas</span>
+                      <h3 className="text-lg sm:text-xl font-black text-emerald-400 mt-0.5 truncate">R$ {totalComissoesPagas.toFixed(0)}</h3>
                     </div>
                     <div 
                       className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0"
@@ -1796,12 +1796,13 @@ const [searchTerm, setSearchTerm] = useState('');
                   </div>
 
                   <button
+                  type='button'
                     onClick={() => setModalHistoricoFechamentos(true)}
                     className="relative rounded-3xl p-4 sm:p-5 flex items-center justify-between border border-stone-200/80 bg-white transition-all cursor-pointer group min-w-0 overflow-hidden shadow-xs hover:shadow-sm text-left"
                   >
-                    <div className="flex flex-col justify-center min-w-0 pr-1">
-                      <span className="text-[8px] sm:text-[9px] font-extrabold text-stone-400 uppercase tracking-wider leading-tight">Registros</span>
-                      <span className="text-xs sm:text-sm font-black text-stone-900 mt-1 truncate block">Ver Histórico</span>
+                    <div className="flex flex-col justify-center min-w-0 pr-2">
+                      <span className="text-[9px] font-extrabold text-stone-400 uppercase tracking-wider truncate block">Registros</span>
+                      <span className="text-lg sm:text-xl font-black text-stone-900 mt-0.5 truncate block">Histórico</span>
                     </div>
                     <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#222222] text-white flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
                       <History className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -2010,7 +2011,7 @@ const [searchTerm, setSearchTerm] = useState('');
             ];
 
             return (
-              <div className="space-y-4 animate-in fade-in duration-200">
+              <div className="max-w-7xl mx-auto px-2 sm:px-0 space-y-4 animate-in fade-in duration-200">
                 <div className="grid grid-cols-2 gap-3 md:gap-4">
                   <div 
                     className="relative rounded-3xl p-4 sm:p-5 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden"
@@ -2019,10 +2020,10 @@ const [searchTerm, setSearchTerm] = useState('');
                       boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
                     }}
                   >
-                    <div className="flex flex-col justify-center min-w-0 pr-1">
-                      <span className="text-[8px] sm:text-[9px] font-bold text-stone-400 uppercase tracking-wider leading-tight">Total em Despesas</span>
-                      <h3 className="text-base sm:text-lg font-black text-white mt-1 tracking-tight">
-                        R$ {totalDespesasFiltradas.toFixed(2)}
+                    <div className="flex flex-col justify-center min-w-0 pr-2">
+                      <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider truncate block">Total em Despesas</span>
+                      <h3 className="text-lg sm:text-xl font-black text-white mt-0.5 truncate">
+                        R$ {totalDespesasFiltradas.toFixed(0)}
                       </h3>
                     </div>
                     <div 
@@ -2044,9 +2045,9 @@ const [searchTerm, setSearchTerm] = useState('');
                       boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
                     }}
                   >
-                    <div className="flex flex-col justify-center min-w-0 pr-1">
-                      <span className="text-[8px] sm:text-[9px] font-bold text-stone-400 uppercase tracking-wider leading-tight">Registros</span>
-                      <h3 className="text-base sm:text-lg font-black text-white mt-1 tracking-tight">{despesasFiltradas.length}</h3>
+                    <div className="flex flex-col justify-center min-w-0 pr-2">
+                      <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider truncate block">Registros</span>
+                      <h3 className="text-lg sm:text-xl font-black text-white mt-0.5 truncate">{despesasFiltradas.length}</h3>
                     </div>
                     <div 
                       className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0"
@@ -2163,7 +2164,7 @@ const [searchTerm, setSearchTerm] = useState('');
           })()}
 
         {activeTab === 'servicos' && (
-            <div className="space-y-4 animate-in fade-in duration-200">
+            <div className="max-w-7xl mx-auto px-2 sm:px-0 space-y-4 animate-in fade-in duration-200">
               {/* DOIS CARDS DE MÉTRICAS NO TOPO (PADRÃO DAS DEMAIS ABAS) */}
               <div className="grid grid-cols-2 gap-3 md:gap-4">
                 <div 
@@ -2173,9 +2174,9 @@ const [searchTerm, setSearchTerm] = useState('');
                     boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
                   }}
                 >
-                  <div className="flex flex-col justify-center min-w-0 pr-1">
-                    <span className="text-[8px] sm:text-[9px] font-bold text-stone-400 uppercase tracking-wider leading-tight">Total Serviços</span>
-                    <h3 className="text-base sm:text-lg font-black text-white mt-1 tracking-tight">{servicos.length}</h3>
+                  <div className="flex flex-col justify-center min-w-0 pr-2">
+                    <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider truncate block">Total Serviços</span>
+                    <h3 className="text-lg sm:text-xl font-black text-white mt-0.5 truncate">{servicos.length}</h3>
                   </div>
                   <div 
                     className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0"
@@ -2196,9 +2197,9 @@ const [searchTerm, setSearchTerm] = useState('');
                     boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
                   }}
                 >
-                  <div className="flex flex-col justify-center min-w-0 pr-1">
-                    <span className="text-[8px] sm:text-[9px] font-bold text-stone-400 uppercase tracking-wider leading-tight">Total Equipe</span>
-                    <h3 className="text-base sm:text-lg font-black text-white mt-1 tracking-tight">{barbeiros.length}</h3>
+                  <div className="flex flex-col justify-center min-w-0 pr-2">
+                    <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider truncate block">Total Equipe</span>
+                    <h3 className="text-lg sm:text-xl font-black text-white mt-0.5 truncate">{barbeiros.length}</h3>
                   </div>
                   <div 
                     className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0"
@@ -2463,82 +2464,92 @@ const [searchTerm, setSearchTerm] = useState('');
           </main></div>
 
       {modalHistoricoFechamentos && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-white rounded-[2rem] max-w-2xl w-full p-6 space-y-4 shadow-2xl border border-stone-200">
-            <div className="flex items-center justify-between pb-3 border-b border-stone-100">
-              <div>
-                <h3 className="text-base font-black text-stone-900">Histórico de Acertos Pagos</h3>
-                <p className="text-xs text-stone-500">Consulte os fechamentos realizados</p>
-              </div>
-              
-              <div className="flex items-center gap-2 bg-stone-50 px-3 py-1.5 rounded-xl border border-stone-200">
-                <Calendar className="w-3.5 h-3.5 text-stone-500" />
-                <select 
-                  value={filtroMesHistorico} 
-                  onChange={(e) => setFiltroMesHistorico(e.target.value)}
-                  className="bg-transparent text-xs font-bold text-stone-900 focus:outline-none cursor-pointer"
-                >
-                  <option value="">Todos os Períodos</option>
-                  <option value="2026-01">Janeiro / 2026</option>
-                  <option value="2026-02">Fevereiro / 2026</option>
-                  <option value="2026-03">Março / 2026</option>
-                  <option value="2026-04">Abril / 2026</option>
-                  <option value="2026-05">Maio / 2026</option>
-                  <option value="2026-06">Junho / 2026</option>
-                  <option value="2026-07">Julho / 2026</option>
-                  <option value="2026-08">Agosto / 2026</option>
-                  <option value="2026-09">Setembro / 2026</option>
-                  <option value="2026-10">Outubro / 2026</option>
-                  <option value="2026-11">Novembro / 2026</option>
-                  <option value="2026-12">Dezembro / 2026</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="max-h-[60vh] overflow-y-auto space-y-2.5 pr-1">
-              {fechamentosComissoes
-                .filter(f => !filtroMesHistorico || f.periodo_referencia === filtroMesHistorico)
-                .length === 0 ? (
-                  <div className="text-center py-12 text-stone-400 text-xs font-bold">
-                    Nenhum registro encontrado para este período.
-                  </div>
-                ) : (
-                  fechamentosComissoes
-                    .filter(f => !filtroMesHistorico || f.periodo_referencia === filtroMesHistorico)
-                    .map((fechamento) => (
-                      <div key={fechamento.id} className="bg-stone-50 p-4 rounded-2xl border border-stone-200 flex items-center justify-between text-xs">
-                        <div className="space-y-0.5">
-                          <span className="font-black text-stone-900 block">
-                            {fechamento.barbeiros?.nome || 'Profissional'}
-                          </span>
-                          <span className="text-[10px] text-stone-500 block">
-                            Referência: {fechamento.periodo_referencia} • {fechamento.qtd_atendimentos} atendimentos
-                          </span>
-                        </div>
-                        <div className="text-right space-y-0.5">
-                          <span className="font-black text-emerald-600 block text-sm">
-                            R$ {Number(fechamento.valor_comissao).toFixed(2)}
-                          </span>
-                          <span className="text-[9px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full inline-block">
-                            Quitado
-                          </span>
-                        </div>
-                      </div>
-                    ))
-                )}
-            </div>
-
-            <div className="pt-2 border-t border-stone-100 flex justify-end">
-              <button
-                onClick={() => setModalHistoricoFechamentos(false)}
-                className="px-5 py-2.5 bg-stone-900 text-white font-bold text-xs rounded-xl cursor-pointer"
-              >
-                Fechar
-              </button>
-            </div>
-          </div>
+  <div className="fixed inset-0 bg-stone-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+    <div className="bg-white rounded-3xl p-5 sm:p-6 max-w-lg w-full border border-stone-200 space-y-4 max-h-[85vh] flex flex-col">
+      <div className="flex items-center justify-between pb-3 border-b border-stone-100 shrink-0">
+        <div>
+          <h3 className="text-sm font-black text-stone-900">Histórico de Comissões Pagas</h3>
+          <p className="text-[11px] text-stone-500">Registros de fechamentos realizados</p>
         </div>
-      )}
+        <button
+          type="button"
+          onClick={() => setModalHistoricoFechamentos(false)}
+          className="w-8 h-8 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-800 flex items-center justify-center cursor-pointer"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+
+      <div className="space-y-2.5 overflow-y-auto pr-1 flex-1">
+        {(!Array.isArray(fechamentosComissoes) || fechamentosComissoes.length === 0) ? (
+          <div className="text-center py-10 text-stone-400 text-xs font-bold">
+            Nenhum pagamento de comissão registrado ainda.
+          </div>
+        ) : (
+          fechamentosComissoes.map((item, idx) => {
+            const barbRel = Array.isArray(item.barbeiros) ? item.barbeiros[0] : item.barbeiros;
+            const barbLista = Array.isArray(barbeiros)
+              ? barbeiros.find((b) => String(b.id) === String(item.barbeiro_id))
+              : null;
+
+            const nomeProf = barbRel?.nome || barbLista?.nome || item.barbeiro_nome || 'Profissional';
+            const fotoProf = barbRel?.foto || barbLista?.foto || null;
+            const valorPago = Number(item.valor_comissao || 0).toFixed(2);
+            const valorBruto = Number(item.valor_bruto || 0).toFixed(2);
+            const qtd = Number(item.qtd_atendimentos || 0);
+            const pct = Number(item.porcentagem_aplicada || 0);
+
+            let dataFormatada = item.periodo_referencia || '';
+            const rawDate = item.created_at || item.data;
+            if (rawDate) {
+              const d = new Date(rawDate);
+              if (!Number.isNaN(d.getTime())) {
+                dataFormatada = d.toLocaleDateString('pt-BR');
+              }
+            }
+
+            return (
+              <div
+                key={item.id || idx}
+                className="p-3.5 rounded-2xl bg-stone-50 border border-stone-200/80 flex items-center justify-between gap-3"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  {fotoProf ? (
+                    <img src={fotoProf} alt={nomeProf} className="w-9 h-9 rounded-xl object-cover border shrink-0" />
+                  ) : (
+                    <div className="w-9 h-9 rounded-xl bg-stone-900 text-white font-black flex items-center justify-center text-xs shrink-0">
+                      {nomeProf.charAt(0)}
+                    </div>
+                  )}
+                  <div className="min-w-0">
+                    <p className="text-xs font-black text-stone-900 truncate">{nomeProf}</p>
+                    <p className="text-[10px] text-stone-500">
+                      {dataFormatada ? `${dataFormatada} • ` : ''}
+                      {qtd} atendimento(s) ({pct}%)
+                    </p>
+                  </div>
+                </div>
+
+                <div className="text-right shrink-0">
+                  <span className="text-xs font-black text-emerald-600 block">R$ {valorPago}</span>
+                  <span className="text-[9px] text-stone-400">Bruto: R$ {valorBruto}</span>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      <button
+        type="button"
+        onClick={() => setModalHistoricoFechamentos(false)}
+        className="w-full py-2.5 rounded-2xl bg-stone-900 text-white text-xs font-black cursor-pointer shrink-0"
+      >
+        Fechar
+      </button>
+    </div>
+  </div>
+)}
 
       {modalConfirmacao.isOpen && (
         <div className="fixed inset-0 bg-stone-950/70 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-in fade-in duration-200 select-none">

@@ -225,32 +225,31 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
   ];
 
   return (
-    <div className="max-w-7xl mx-auto space-y-5 pb-28 px-1 sm:px-0">
+    <div className="max-w-7xl mx-auto px-2 sm:px-0 space-y-4 pb-24">
       
       {erroFatal && (
-        <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-2xl shadow-sm">
-          <div className="text-red-700 text-sm font-medium">Erro ao carregar relatórios: {erroFatal}</div>
+        <div className="bg-red-50 border-l-4 border-red-500 p-3 rounded-2xl shadow-sm">
+          <div className="text-red-700 text-xs font-medium">Erro ao carregar relatórios: {erroFatal}</div>
         </div>
       )}
 
       {/* Cards de Indicadores (KPIs) */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4 mb-2">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
         
         {/* 1. Faturamento */}
         <div 
-          className="relative rounded-3xl p-3.5 sm:p-5 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden"
+          className="relative rounded-3xl p-4 sm:p-5 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden"
           style={{
             background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
             boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
           }}
         >
-          <div className="flex flex-col justify-center min-w-0 pr-1">
-            <span className="text-[9px] sm:text-[10px] xl:text-xs font-bold text-stone-400 uppercase tracking-wider truncate block">Faturamento</span>
-            <h3 className="text-sm sm:text-xl xl:text-2xl font-black text-white mt-0.5 whitespace-nowrap">R$ {faturamentoTotal.toFixed(0)}</h3>
-            <p className="text-[9px] sm:text-[10px] text-emerald-400 font-medium mt-0.5 truncate">{atendimentosConcluidos.length} concluídos</p>
+          <div className="flex flex-col justify-center min-w-0 pr-2">
+            <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider truncate block">Faturamento</span>
+            <h3 className="text-lg sm:text-xl font-black text-white mt-0.5 truncate">R$ {faturamentoTotal.toFixed(0)}</h3>
           </div>
           <div 
-            className="w-8 h-8 sm:w-10 sm:h-10 xl:w-11 xl:h-11 rounded-full flex items-center justify-center shrink-0"
+            className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0"
             style={{
               background: 'radial-gradient(circle at 30% 30%, #ffffff 0%, #d8e2ec 60%, #9fb3c8 100%)',
               boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 1), inset 0 -4px 6px rgba(0, 0, 0, 0.25)',
@@ -263,19 +262,18 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
 
         {/* 2. Despesas */}
         <div 
-          className="relative rounded-3xl p-3.5 sm:p-5 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden"
+          className="relative rounded-3xl p-4 sm:p-5 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden"
           style={{
             background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
             boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
           }}
         >
-          <div className="flex flex-col justify-center min-w-0 pr-1">
-            <span className="text-[9px] sm:text-[10px] xl:text-xs font-bold text-stone-400 uppercase tracking-wider truncate block">Despesas</span>
-            <h3 className="text-sm sm:text-xl xl:text-2xl font-black text-white mt-0.5 whitespace-nowrap">R$ {custosTotais.toFixed(0)}</h3>
-            <p className="text-[9px] sm:text-[10px] text-rose-400 font-medium mt-0.5 truncate">{despesasFiltradas.length} cadastradas</p>
+          <div className="flex flex-col justify-center min-w-0 pr-2">
+            <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider truncate block">Despesas</span>
+            <h3 className="text-lg sm:text-xl font-black text-white mt-0.5 truncate">R$ {custosTotais.toFixed(0)}</h3>
           </div>
           <div 
-            className="w-8 h-8 sm:w-10 sm:h-10 xl:w-11 xl:h-11 rounded-full flex items-center justify-center shrink-0"
+            className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0"
             style={{
               background: 'radial-gradient(circle at 30% 30%, #ffffff 0%, #d8e2ec 60%, #9fb3c8 100%)',
               boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 1), inset 0 -4px 6px rgba(0, 0, 0, 0.25)',
@@ -288,21 +286,20 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
 
         {/* 3. Lucro Líquido */}
         <div 
-          className="relative rounded-3xl p-3.5 sm:p-5 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden"
+          className="relative rounded-3xl p-4 sm:p-5 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden"
           style={{
             background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
             boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
           }}
         >
-          <div className="flex flex-col justify-center min-w-0 pr-1">
-            <span className="text-[9px] sm:text-[10px] xl:text-xs font-bold text-stone-400 uppercase tracking-wider truncate block">Lucro Líquido</span>
-            <h3 className={`text-sm sm:text-xl xl:text-2xl font-black mt-0.5 whitespace-nowrap ${lucroLiquidoReal >= 0 ? 'text-sky-400' : 'text-rose-400'}`}>
+          <div className="flex flex-col justify-center min-w-0 pr-2">
+            <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider truncate block">Lucro Líquido</span>
+            <h3 className={`text-lg sm:text-xl font-black mt-0.5 truncate ${lucroLiquidoReal >= 0 ? 'text-sky-400' : 'text-rose-400'}`}>
               R$ {lucroLiquidoReal.toFixed(0)}
             </h3>
-            <p className="text-[9px] sm:text-[10px] text-stone-400 font-medium mt-0.5 truncate">Entradas - Saídas</p>
           </div>
           <div 
-            className="w-8 h-8 sm:w-10 sm:h-10 xl:w-11 xl:h-11 rounded-full flex items-center justify-center shrink-0"
+            className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0"
             style={{
               background: 'radial-gradient(circle at 30% 30%, #ffffff 0%, #d8e2ec 60%, #9fb3c8 100%)',
               boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 1), inset 0 -4px 6px rgba(0, 0, 0, 0.25)',
@@ -315,19 +312,18 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
 
         {/* 4. Ticket Médio */}
         <div 
-          className="relative rounded-3xl p-3.5 sm:p-5 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden"
+          className="relative rounded-3xl p-4 sm:p-5 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden"
           style={{
             background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
             boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
           }}
         >
-          <div className="flex flex-col justify-center min-w-0 pr-1">
-            <span className="text-[9px] sm:text-[10px] xl:text-xs font-bold text-stone-400 uppercase tracking-wider truncate block">Ticket Médio</span>
-            <h3 className="text-sm sm:text-xl xl:text-2xl font-black text-white mt-0.5 whitespace-nowrap">R$ {ticketMedioCalculado.toFixed(0)}</h3>
-            <p className="text-[9px] sm:text-[10px] text-stone-400 font-medium mt-0.5 truncate">Média / atendimento</p>
+          <div className="flex flex-col justify-center min-w-0 pr-2">
+            <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider truncate block">Ticket Médio</span>
+            <h3 className="text-lg sm:text-xl font-black text-white mt-0.5 truncate">R$ {ticketMedioCalculado.toFixed(0)}</h3>
           </div>
           <div 
-            className="w-8 h-8 sm:w-10 sm:h-10 xl:w-11 xl:h-11 rounded-full flex items-center justify-center shrink-0"
+            className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0"
             style={{
               background: 'radial-gradient(circle at 30% 30%, #ffffff 0%, #d8e2ec 60%, #9fb3c8 100%)',
               boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 1), inset 0 -4px 6px rgba(0, 0, 0, 0.25)',
@@ -342,17 +338,17 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
 
       {/* BLOCO ÚNICO INTEGRADO */}
       <div 
-        className="relative rounded-[2.5rem] p-4 sm:p-8 border border-white/80 overflow-hidden shadow-sm space-y-5"
+        className="relative rounded-3xl p-4 sm:p-6 border border-white/80 overflow-hidden shadow-xs space-y-5"
         style={{
           background: 'linear-gradient(135deg, #f7f9f8 0%, #edf1f0 50%, #e2e8e6 100%)',
-          boxShadow: '0 20px 40px rgba(0, 0, 0, 0.08), inset 0 2px 4px rgba(255, 255, 255, 0.9), inset 0 -3px 6px rgba(0, 0, 0, 0.05)'
+          boxShadow: '0 15px 30px rgba(0, 0, 0, 0.05), inset 0 2px 4px rgba(255, 255, 255, 0.9), inset 0 -3px 6px rgba(0, 0, 0, 0.03)'
         }}
       >
         
         {/* Topo com Título e Filtro de Mês/Ano */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-4 border-b border-stone-300/60 gap-3">
-          <h2 className="text-base sm:text-xl font-extrabold text-stone-900 flex items-center gap-2.5 tracking-tight">
-            <span className="w-2.5 h-2.5 bg-[#111111] rounded-full shadow-[0_0_8px_rgba(17,17,17,0.4)]"></span>
+          <h2 className="text-sm sm:text-base font-extrabold text-stone-900 flex items-center gap-2 tracking-tight">
+            <span className="w-2 h-2 bg-[#111111] rounded-full shadow-[0_0_6px_rgba(17,17,17,0.4)]"></span>
             Relatório Financeiro
           </h2>
           
@@ -367,6 +363,7 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
               />
             </div>
             <button
+              type="button"
               onClick={() => {
                 const hoje = new Date();
                 const ano = hoje.getFullYear();
@@ -380,53 +377,52 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
           </div>
         </div>
 
-      {/* NAVEGAÇÃO DE ABAS MINIMALISTA E SÓBRIA (SEM FUNDO CINZA) */}
-<div className="grid grid-cols-4 gap-2 w-full my-1">
-  {abasNavegacao.map((aba) => {
-    const IconComponent = aba.icon;
-    const isSelected = secaoAtiva === aba.id;
+        {/* NAVEGAÇÃO DE ABAS MINIMALISTA E SÓBRIA */}
+        <div className="grid grid-cols-4 gap-2 w-full my-1">
+          {abasNavegacao.map((aba) => {
+            const IconComponent = aba.icon;
+            const isSelected = secaoAtiva === aba.id;
 
-    return (
-      <button
-        key={aba.id}
-        onClick={() => setSecaoAtiva(aba.id)}
-        className={`py-2.5 px-1 rounded-2xl transition-all duration-200 cursor-pointer flex flex-col items-center justify-center gap-1.5 text-center active:scale-95 ${
-          isSelected
-            ? 'bg-[#111111] text-white shadow-md border border-stone-800 scale-[1.02]'
-            : 'bg-white hover:bg-stone-50 text-stone-600 border border-stone-200/80 shadow-2xs'
-        }`}
-      >
-        {/* ÍCONE MONOCROMÁTICO */}
-        <div
-          className={`w-7 h-7 sm:w-8 sm:h-8 rounded-xl flex items-center justify-center transition-colors ${
-            isSelected
-              ? 'bg-white/10 text-white'
-              : 'bg-stone-100/80 text-stone-600'
-          }`}
-        >
-          <IconComponent className="w-4 h-4 shrink-0" />
+            return (
+              <button
+                key={aba.id}
+                type="button"
+                onClick={() => setSecaoAtiva(aba.id)}
+                className={`py-2.5 px-1 rounded-2xl transition-all duration-200 cursor-pointer flex flex-col items-center justify-center gap-1.5 text-center active:scale-95 ${
+                  isSelected
+                    ? 'bg-[#111111] text-white shadow-md border border-stone-800 scale-[1.02]'
+                    : 'bg-white hover:bg-stone-50 text-stone-600 border border-stone-200/80 shadow-2xs'
+                }`}
+              >
+                <div
+                  className={`w-7 h-7 sm:w-8 sm:h-8 rounded-xl flex items-center justify-center transition-colors ${
+                    isSelected
+                      ? 'bg-white/10 text-white'
+                      : 'bg-stone-100/80 text-stone-600'
+                  }`}
+                >
+                  <IconComponent className="w-4 h-4 shrink-0" />
+                </div>
+
+                <span
+                  className={`text-[10px] sm:text-xs font-extrabold tracking-tight leading-none ${
+                    isSelected ? 'text-white' : 'text-stone-700'
+                  }`}
+                >
+                  {aba.label}
+                </span>
+              </button>
+            );
+          })}
         </div>
-
-        {/* RÓTULO NEUTRO */}
-        <span
-          className={`text-[10px] sm:text-xs font-extrabold tracking-tight leading-none ${
-            isSelected ? 'text-white' : 'text-stone-700'
-          }`}
-        >
-          {aba.label}
-        </span>
-      </button>
-    );
-  })}
-</div>
 
         {/* CONTEÚDO DINÂMICO */}
         <div className="pt-1 animate-fadeIn">
           
           {/* 1. ATENDIMENTOS REALIZADOS */}
           {(secaoAtiva === 'atendimentos') && (
-            <div className="bg-white rounded-[2rem] border border-stone-200/90 p-4 sm:p-6 space-y-4 shadow-xs">
-              <h3 className="font-extrabold text-stone-900 text-xs sm:text-base tracking-tight flex items-center gap-2">
+            <div className="bg-white rounded-3xl border border-stone-200/90 p-4 sm:p-5 space-y-4 shadow-xs">
+              <h3 className="font-extrabold text-stone-900 text-xs sm:text-sm tracking-tight flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
                 Atendimentos Realizados
               </h3>
@@ -483,8 +479,8 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
 
           {/* 2. COMISSÕES */}
           {(secaoAtiva === 'comissoes') && (
-            <div className="bg-white rounded-[2rem] border border-stone-200/90 p-4 sm:p-6 space-y-4 shadow-xs">
-              <h3 className="font-extrabold text-stone-900 text-xs sm:text-base tracking-tight flex items-center gap-2">
+            <div className="bg-white rounded-3xl border border-stone-200/90 p-4 sm:p-5 space-y-4 shadow-xs">
+              <h3 className="font-extrabold text-stone-900 text-xs sm:text-sm tracking-tight flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
                 Resumo de Comissões por Profissional
               </h3>
@@ -517,8 +513,8 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
 
           {/* 3. DESPESAS */}
           {(secaoAtiva === 'despesas') && (
-            <div className="bg-white rounded-[2rem] border border-stone-200/90 p-4 sm:p-6 space-y-4 shadow-xs">
-              <h3 className="font-extrabold text-stone-900 text-xs sm:text-base tracking-tight flex items-center gap-2">
+            <div className="bg-white rounded-3xl border border-stone-200/90 p-4 sm:p-5 space-y-4 shadow-xs">
+              <h3 className="font-extrabold text-stone-900 text-xs sm:text-sm tracking-tight flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-rose-500"></span>
                 Detalhamento de Custos e Despesas
               </h3>
@@ -567,8 +563,8 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
 
           {/* 4. CANCELADOS */}
           {(secaoAtiva === 'cancelados') && (
-            <div className="bg-white rounded-[2rem] border border-stone-200/90 p-4 sm:p-6 space-y-4 shadow-xs">
-              <h3 className="font-extrabold text-stone-900 text-xs sm:text-base tracking-tight flex items-center gap-2">
+            <div className="bg-white rounded-3xl border border-stone-200/90 p-4 sm:p-5 space-y-4 shadow-xs">
+              <h3 className="font-extrabold text-stone-900 text-xs sm:text-sm tracking-tight flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-amber-500"></span>
                 Histórico de Agendamentos Cancelados
               </h3>
