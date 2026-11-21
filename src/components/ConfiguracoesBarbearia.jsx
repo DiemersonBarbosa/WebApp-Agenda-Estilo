@@ -14,6 +14,11 @@ import {
   FONTES_DISPONIVEIS,
   resolverTemaBarbearia,
 } from '@/lib/temaAgendamento';
+import {
+  TEMPLATE_WHATSAPP_PADRAO,
+  VARIAVEIS_WHATSAPP,
+  renderizarMensagemConfirmacao,
+} from '@/lib/mensagemWhatsapp';
 
 const DIAS_SEMANA_NOMES = [
   { key: 'segunda', label: 'Segunda-feira' },
@@ -107,6 +112,10 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
   const [capaUrl, setCapaUrl] = useState(barbearia?.capa_url || '');
   const [antecedenciaMinima, setAntecedenciaMinima] = useState(barbearia?.antecedencia_minima_minutos ?? 30);
   const [timezone, setTimezone] = useState(barbearia?.timezone || 'America/Sao_Paulo');
+  const [mensagemWhatsapp, setMensagemWhatsapp] = useState(
+    barbearia?.mensagem_whatsapp_confirmacao || TEMPLATE_WHATSAPP_PADRAO
+  );
+  const textareaWhatsappRef = useRef(null);
 
   const [email, setEmail] = useState('');
   const [novaSenha, setNovaSenha] = useState('');
@@ -171,6 +180,9 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
 
   useEffect(() => {
     setTemaPersonalizado(resolverTemaBarbearia(barbearia));
+    if (barbearia) {
+      setMensagemWhatsapp(barbearia.mensagem_whatsapp_confirmacao || TEMPLATE_WHATSAPP_PADRAO);
+    }
   }, [barbearia]);
 
   useEffect(() => {
@@ -183,6 +195,27 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
 
   const atualizarCampoTema = (campo, valor) => {
     setTemaPersonalizado((prev) => ({ ...prev, [campo]: valor }));
+  };
+
+  const inserirVariavelWhatsapp = (variavel) => {
+    const el = textareaWhatsappRef.current;
+    if (!el) {
+      setMensagemWhatsapp((prev) => `${prev}${variavel}`);
+      return;
+    }
+
+    const inicio = el.selectionStart ?? mensagemWhatsapp.length;
+    const fim = el.selectionEnd ?? mensagemWhatsapp.length;
+    const novoTexto =
+      mensagemWhatsapp.slice(0, inicio) + variavel + mensagemWhatsapp.slice(fim);
+
+    setMensagemWhatsapp(novoTexto);
+
+    requestAnimationFrame(() => {
+      el.focus();
+      const novaPosicao = inicio + variavel.length;
+      el.setSelectionRange(novaPosicao, novaPosicao);
+    });
   };
 
   useEffect(() => {
@@ -476,6 +509,11 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
     setSucesso(false);
 
     try {
+      const mensagemWhatsappSalvar =
+        mensagemWhatsapp.trim() && mensagemWhatsapp.trim() !== TEMPLATE_WHATSAPP_PADRAO.trim()
+          ? mensagemWhatsapp
+          : null;
+
       const { error: erroBarbearia } = await supabase
         .from('barbearias')
         .update({
@@ -490,7 +528,8 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
           permite_agendamentos: permiteAgendamentos,
           horarios: horariosSemana,
           antecedencia_minima_minutos: Number(antecedenciaMinima),
-          timezone: timezone
+          timezone: timezone,
+          mensagem_whatsapp_confirmacao: mensagemWhatsappSalvar,
         })
         .eq('id', barbearia.id);
 
@@ -1131,7 +1170,7 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
 
         {/* ================= ATENDIMENTO ================= */}
         {secaoAtiva === 'atendimento' && (
-          <div className="space-y-2.5 animate-in fade-in duration-200">
+          <div className="space-y-3 animate-in fade-in duration-200">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
 
               <div className="bg-slate-50/80 p-2.5 rounded-2xl border border-slate-200/60 space-y-2 flex flex-col justify-between">
@@ -1194,6 +1233,71 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                 </div>
               </div>
 
+            </div>
+
+            <div className="bg-slate-50/80 p-3.5 rounded-2xl border border-slate-200/80 space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider block">
+                    Mensagem de Confirmação (WhatsApp)
+                  </span>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    Personalize o texto enviado automaticamente após o agendamento ser confirmado.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setMensagemWhatsapp(TEMPLATE_WHATSAPP_PADRAO)}
+                  style={ESTILO_BOTAO_PRATEADO}
+                  className="px-3 py-1.5 rounded-full border border-white text-[10px] font-bold text-slate-900 cursor-pointer active:scale-95"
+                >
+                  Restaurar padrão
+                </button>
+              </div>
+
+              <div className="space-y-1.5">
+                <span className="text-[10px] font-extrabold text-slate-600 uppercase tracking-wider block">
+                  Inserir variável no texto
+                </span>
+                <div className="flex flex-wrap gap-1.5">
+                  {VARIAVEIS_WHATSAPP.map((v) => (
+                    <button
+                      key={v.chave}
+                      type="button"
+                      onClick={() => inserirVariavelWhatsapp(v.chave)}
+                      style={ESTILO_BOTAO_PRATEADO}
+                      className="px-2.5 py-1 rounded-full border border-white text-[10px] font-bold text-slate-900 cursor-pointer active:scale-95"
+                    >
+                      + {v.label} ({v.chave})
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <textarea
+                ref={textareaWhatsappRef}
+                rows={7}
+                value={mensagemWhatsapp}
+                onChange={(e) => setMensagemWhatsapp(e.target.value)}
+                placeholder={TEMPLATE_WHATSAPP_PADRAO}
+                className="w-full rounded-xl p-3 text-xs leading-relaxed border border-slate-200 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all"
+              />
+
+              <div className="p-3 rounded-xl bg-white border border-slate-200/80 space-y-1">
+                <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 block">
+                  Prévia no WhatsApp
+                </span>
+                <pre className="text-xs whitespace-pre-wrap font-sans text-slate-800 leading-relaxed">
+                  {renderizarMensagemConfirmacao(mensagemWhatsapp, {
+                    cliente: 'Diemerson',
+                    local: nome || 'Seu Estabelecimento',
+                    servico: 'Corte Degradê',
+                    data: '21/11/2026',
+                    hora: '15:00',
+                  })}
+                </pre>
+              </div>
             </div>
           </div>
         )}
@@ -1623,3 +1727,4 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
     </div>
   );
 }
+

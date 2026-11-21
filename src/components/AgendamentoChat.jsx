@@ -5,6 +5,7 @@ import { Bot, Send, CheckCircle2, AlertCircle, ArrowRight, Calendar as CalendarI
 import { supabase } from '@/lib/supabase';
 import { enviarMensagemWhatsApp } from '@/lib/whatsapp';
 import { resolverTemaBarbearia } from '@/lib/temaAgendamento';
+import { renderizarMensagemConfirmacao } from '@/lib/mensagemWhatsapp';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://agendaestilo.com.br';
 
@@ -550,6 +551,18 @@ export default function AgendamentoChat({ barbeariaId }) {
       try {
         const telefoneFormatado = formatarTelefoneWhatsApp(telefone);
         const dataFormatadaBR = dataFmt.split('-').reverse().join('/');
+        const nomeEstabelecimento = barbearia?.nome || 'AgendaEstilo';
+
+        const mensagemPersonalizada = renderizarMensagemConfirmacao(
+          barbearia?.mensagem_whatsapp_confirmacao,
+          {
+            cliente: nome,
+            local: nomeEstabelecimento,
+            servico: servicoEscolhido.nome,
+            data: dataFormatadaBR,
+            hora: horaEscolhida,
+          }
+        );
 
         await enviarMensagemWhatsApp({
           phone: telefoneFormatado,
@@ -557,8 +570,9 @@ export default function AgendamentoChat({ barbeariaId }) {
           servico: servicoEscolhido.nome,
           data: dataFormatadaBR,
           hora: horaEscolhida,
-          nomeBarbearia: barbearia?.nome || 'AgendaEstilo',
+          nomeBarbearia: nomeEstabelecimento,
           slug: barbearia?.slug,
+          mensagem: mensagemPersonalizada,
         });
       } catch (whatsErr) {
         console.error('Erro ao enviar mensagem via WhatsApp:', whatsErr);
