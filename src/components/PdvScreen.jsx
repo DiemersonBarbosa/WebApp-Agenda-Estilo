@@ -25,7 +25,6 @@ export default function PdvScreen({ barbeariaId, supabase, produtos: produtosPro
   const [clienteNome, setClienteNome] = useState('');
   const [formaPagamento, setFormaPagamento] = useState('dinheiro');
   const [abaAtiva, setAbaAtiva] = useState('caixa'); // 'caixa' | 'itens'
-  const [tecladoAberto, setTecladoAberto] = useState(false);
   const [modalFechamentoAberto, setModalFechamentoAberto] = useState(false);
   const [salvando, setSalvando] = useState(false);
   const [vendasPdV, setVendasPdV] = useState([]);
@@ -215,13 +214,6 @@ export default function PdvScreen({ barbeariaId, supabase, produtos: produtosPro
     return nomeProd.includes(termo) || catProd.includes(termo);
   });
 
-  const handleFocusCampo = () => setTecladoAberto(true);
-  const handleBlurCampo = () => {
-    setTimeout(() => {
-      setTecladoAberto(false);
-    }, 120);
-  };
-
   const getBotaoAbaStyle = (ativo) => ({
     background: ativo
       ? 'linear-gradient(145deg, #e2e8f0 0%, #cbd5e1 55%, #b8c4d4 100%)'
@@ -232,8 +224,8 @@ export default function PdvScreen({ barbeariaId, supabase, produtos: produtosPro
   });
 
   return (
-    <div className="max-w-7xl mx-auto px-2 sm:px-0 space-y-2.5 pb-52 font-sans relative">
-      {/* NOTIFICAÇÃO FLUTUANTE */}
+    <div className="max-w-7xl mx-auto px-2 sm:px-0 space-y-3 pb-28 font-sans">
+      {/* NOTIFICAÇÃO FLUTUANTE DE SUCESSO */}
       {notificacaoSucesso && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none animate-in fade-in zoom-in-95 duration-200">
           <div className="bg-stone-900/95 backdrop-blur-md border border-stone-800 text-white px-6 py-4 rounded-3xl shadow-2xl flex items-center gap-3.5 pointer-events-auto">
@@ -250,13 +242,13 @@ export default function PdvScreen({ barbeariaId, supabase, produtos: produtosPro
         </div>
       )}
 
-      {/* 1. 4 BOTÕES NO ESTILO DO APP */}
+      {/* 1. 4 BOTÕES DE AÇÃO */}
       <div className="grid grid-cols-4 gap-2">
         <button
           type="button"
           onClick={() => setAbaAtiva('caixa')}
           style={getBotaoAbaStyle(abaAtiva === 'caixa')}
-          className={`relative rounded-2xl py-2 px-1.5 flex flex-col items-center justify-center gap-1 border transition-all cursor-pointer ${
+          className={`relative rounded-2xl py-2.5 px-1.5 flex flex-col items-center justify-center gap-1 border transition-all cursor-pointer ${
             abaAtiva === 'caixa'
               ? 'text-slate-950 border-slate-400 ring-1 ring-slate-300'
               : 'text-slate-700 border-white/90 hover:border-slate-300'
@@ -284,7 +276,7 @@ export default function PdvScreen({ barbeariaId, supabase, produtos: produtosPro
           type="button"
           onClick={() => setAbaAtiva('itens')}
           style={getBotaoAbaStyle(abaAtiva === 'itens')}
-          className={`relative rounded-2xl py-2 px-1.5 flex flex-col items-center justify-center gap-1 border transition-all cursor-pointer ${
+          className={`relative rounded-2xl py-2.5 px-1.5 flex flex-col items-center justify-center gap-1 border transition-all cursor-pointer ${
             abaAtiva === 'itens'
               ? 'text-slate-950 border-slate-400 ring-1 ring-slate-300'
               : 'text-slate-700 border-white/90 hover:border-slate-300'
@@ -312,7 +304,7 @@ export default function PdvScreen({ barbeariaId, supabase, produtos: produtosPro
           type="button"
           onClick={() => setModalFechamentoAberto(true)}
           style={getBotaoAbaStyle(false)}
-          className="relative rounded-2xl py-2 px-1.5 flex flex-col items-center justify-center gap-1 border text-slate-700 border-white/90 hover:border-slate-300 transition-all cursor-pointer"
+          className="relative rounded-2xl py-2.5 px-1.5 flex flex-col items-center justify-center gap-1 border text-slate-700 border-white/90 hover:border-slate-300 transition-all cursor-pointer"
         >
           <div className="w-7 h-7 rounded-full flex items-center justify-center border bg-white/80 border-slate-200/90 text-slate-800 shadow-2xs">
             <Clock className="w-3.5 h-3.5" />
@@ -326,7 +318,7 @@ export default function PdvScreen({ barbeariaId, supabase, produtos: produtosPro
           type="button"
           onClick={() => setCarrinho([])}
           style={getBotaoAbaStyle(false)}
-          className="relative rounded-2xl py-2 px-1.5 flex flex-col items-center justify-center gap-1 border text-slate-700 border-white/90 hover:border-slate-300 transition-all cursor-pointer"
+          className="relative rounded-2xl py-2.5 px-1.5 flex flex-col items-center justify-center gap-1 border text-slate-700 border-white/90 hover:border-slate-300 transition-all cursor-pointer"
         >
           <div className="w-7 h-7 rounded-full flex items-center justify-center border bg-white/80 border-slate-200/90 text-slate-800 shadow-2xs">
             <Trash className="w-3.5 h-3.5" />
@@ -337,84 +329,89 @@ export default function PdvScreen({ barbeariaId, supabase, produtos: produtosPro
         </button>
       </div>
 
-      {/* 2. BUSCA RÁPIDA DE PRODUTOS */}
-      <div className="bg-white rounded-2xl p-2.5 border border-stone-200/90 shadow-2xs space-y-1.5 relative">
-        <div className="relative">
-          <Search className="w-4 h-4 text-stone-400 absolute left-3 top-2" />
-          <input
-            type="text"
-            placeholder="Buscar produto por nome ou categoria..."
-            value={busca}
-            onFocus={handleFocusCampo}
-            onBlur={handleBlurCampo}
-            onChange={(e) => setBusca(e.target.value)}
-            className="w-full pl-9 pr-3 py-1.5 bg-stone-50 border border-stone-200 rounded-xl text-xs font-bold text-stone-900 focus:outline-none focus:border-stone-900"
-          />
-        </div>
-
-        {busca.trim() && (
-          <div className="bg-white rounded-xl border border-stone-200 shadow-lg max-h-40 overflow-y-auto p-1.5 space-y-1">
-            {produtosFiltrados.length === 0 ? (
-              <div className="p-2 text-center text-stone-400 text-[11px]">
-                Nenhum produto encontrado para "{busca}".
-              </div>
-            ) : (
-              produtosFiltrados.map((prod) => {
-                const estoqueQtd = Number(prod.estoque || 0);
-                const esgotado = estoqueQtd <= 0;
-
-                return (
-                  <div
-                    key={prod.id}
-                    onClick={() => !esgotado && adicionarAoCarrinho(prod)}
-                    className={`p-2 rounded-lg border transition-all flex items-center justify-between gap-2 ${
-                      esgotado
-                        ? 'bg-stone-100/50 border-stone-200 opacity-50 cursor-not-allowed'
-                        : 'bg-stone-50 hover:bg-stone-100 border-stone-200 cursor-pointer'
-                    }`}
-                  >
-                    <div className="min-w-0 pr-1">
-                      <h5 className="font-extrabold text-stone-900 text-xs truncate">{prod.nome}</h5>
-                      <span className="text-[10px] text-stone-600 font-bold">
-                        R$ {Number(prod.preco).toFixed(2)}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <span
-                        className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
-                          esgotado
-                            ? 'bg-rose-100 text-rose-700'
-                            : 'bg-emerald-50 text-emerald-700'
-                        }`}
-                      >
-                        {esgotado ? 'Esgotado' : `${estoqueQtd} un.`}
-                      </span>
-                      {!esgotado && (
-                        <span className="text-[10px] font-bold bg-stone-900 text-white px-2 py-0.5 rounded-md">
-                          + Add
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                );
-              })
+      {/* 2. CONTAINER ÚNICO E ANCORADO DO PDV */}
+      <div className="bg-white rounded-3xl border border-stone-200/90 shadow-xs overflow-hidden divide-y divide-stone-100 flex flex-col">
+        {/* BUSCA DE PRODUTOS */}
+        <div className="p-3.5 sm:p-5 space-y-2">
+          <div className="relative">
+            <Search className="w-4 h-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Buscar produto por nome ou categoria..."
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              className={`w-full pl-10 ${
+                busca ? 'pr-9' : 'pr-4'
+              } py-2.5 bg-stone-50 border border-stone-200 rounded-2xl text-xs font-medium text-stone-900 focus:outline-none focus:border-stone-900`}
+            />
+            {busca && (
+              <button
+                type="button"
+                onClick={() => setBusca('')}
+                className="w-6 h-6 rounded-full hover:bg-stone-200 text-stone-500 flex items-center justify-center absolute right-2.5 top-1/2 -translate-y-1/2 cursor-pointer transition-colors"
+                title="Limpar busca"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
             )}
           </div>
-        )}
-      </div>
 
-      {/* 3. ÁREA PRINCIPAL COMPACTA (CAIXA / ITENS) */}
-      <div
-        className="relative rounded-3xl p-3 border border-white/80 overflow-hidden shadow-2xs"
-        style={{
-          background: 'linear-gradient(135deg, #f7f9f8 0%, #edf1f0 50%, #e2e8e6 100%)',
-          boxShadow: '0 12px 24px rgba(0, 0, 0, 0.05), inset 0 2px 4px rgba(255, 255, 255, 0.9), inset 0 -3px 6px rgba(0, 0, 0, 0.03)'
-        }}
-      >
-        <div className="bg-white rounded-2xl border border-stone-200/90 p-3 space-y-2.5 shadow-2xs">
-          <div className="flex items-center justify-between pb-1.5 border-b border-stone-100">
-            <h4 className="font-black text-stone-900 text-[11px] tracking-wider uppercase flex items-center gap-1.5">
-              <ShoppingCart className="w-3.5 h-3.5 text-emerald-600" />
+          {busca.trim() && (
+            <div className="bg-stone-50 rounded-2xl border border-stone-200/80 max-h-40 overflow-y-auto p-1.5 space-y-1">
+              {produtosFiltrados.length === 0 ? (
+                <div className="py-3 text-center text-stone-400 text-xs">
+                  Nenhum produto encontrado para "{busca}".
+                </div>
+              ) : (
+                produtosFiltrados.map((prod) => {
+                  const estoqueQtd = Number(prod.estoque || 0);
+                  const esgotado = estoqueQtd <= 0;
+
+                  return (
+                    <div
+                      key={prod.id}
+                      onClick={() => !esgotado && adicionarAoCarrinho(prod)}
+                      className={`px-3 py-2 rounded-xl transition-all flex items-center justify-between gap-2 ${
+                        esgotado
+                          ? 'opacity-50 cursor-not-allowed'
+                          : 'hover:bg-white cursor-pointer'
+                      }`}
+                    >
+                      <div className="min-w-0 pr-1">
+                        <h5 className="font-bold text-stone-900 text-xs truncate">{prod.nome}</h5>
+                        <span className="text-[11px] text-stone-600 font-semibold">
+                          R$ {Number(prod.preco).toFixed(2)}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <span
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded-lg ${
+                            esgotado
+                              ? 'bg-rose-100 text-rose-700'
+                              : 'bg-emerald-50 text-emerald-700'
+                          }`}
+                        >
+                          {esgotado ? 'Esgotado' : `${estoqueQtd} un.`}
+                        </span>
+                        {!esgotado && (
+                          <span className="text-[10px] font-bold bg-stone-900 text-white px-2.5 py-1 rounded-lg">
+                            + Add
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* COMANDA / ITENS / PAGAMENTO */}
+        <div className="p-3.5 sm:p-5 space-y-3 flex-1 flex flex-col">
+          <div className="flex items-center justify-between">
+            <h4 className="font-black text-stone-900 text-xs tracking-wider uppercase flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-stone-900" />
               {abaAtiva === 'itens'
                 ? `Itens Selecionados (${totalItensCarrinho})`
                 : `Comanda / Carrinho (${totalItensCarrinho})`}
@@ -423,7 +420,7 @@ export default function PdvScreen({ barbeariaId, supabase, produtos: produtosPro
               <button
                 type="button"
                 onClick={() => setCarrinho([])}
-                className="text-[10px] font-bold text-rose-600 hover:underline cursor-pointer"
+                className="text-[11px] font-bold text-rose-600 hover:underline cursor-pointer"
               >
                 Esvaziar
               </button>
@@ -432,56 +429,62 @@ export default function PdvScreen({ barbeariaId, supabase, produtos: produtosPro
 
           {abaAtiva === 'caixa' && (
             <div>
-              <label className="block text-[9px] font-extrabold uppercase tracking-wider text-stone-500 mb-1">
+              <label className="block text-[10px] font-bold uppercase tracking-wider text-stone-500 mb-1">
                 Cliente (Opcional)
               </label>
               <input
                 type="text"
                 placeholder="Nome do cliente no balcão..."
                 value={clienteNome}
-                onFocus={handleFocusCampo}
-                onBlur={handleBlurCampo}
                 onChange={(e) => setClienteNome(e.target.value)}
-                className="w-full px-3 py-1.5 bg-stone-50 border border-stone-200 rounded-xl text-xs font-bold text-stone-900 focus:outline-none focus:border-stone-900"
+                className="w-full px-3.5 py-2 bg-stone-50 border border-stone-200 rounded-2xl text-xs font-medium text-stone-900 focus:outline-none focus:border-stone-900"
               />
             </div>
           )}
 
-          <div className={`space-y-1.5 ${abaAtiva === 'itens' ? 'max-h-48' : 'max-h-24'} overflow-y-auto pr-0.5`}>
+          {/* ÁREA DOS ITENS ADICIONADOS CALIBRADA PARA FICAR ACIMA DO MENU MOBILE */}
+          <div
+            className={`space-y-2 overflow-y-auto pr-0.5 flex flex-col ${
+              abaAtiva === 'itens'
+                ? 'min-h-[220px] max-h-[280px]'
+                : 'min-h-[155px] sm:min-h-[180px] max-h-[210px]'
+            }`}
+          >
             {carrinho.length === 0 ? (
-              <div className="py-4 text-center text-stone-400 text-[11px] border border-dashed border-stone-200 rounded-xl flex flex-col items-center justify-center gap-0.5">
-                <Package className="w-4 h-4 text-stone-300" />
+              <div className="flex-1 h-full py-6 text-center text-stone-400 text-xs bg-stone-50 border border-dashed border-stone-200 rounded-2xl flex flex-col items-center justify-center gap-1.5">
+                <Package className="w-5 h-5 text-stone-300" />
                 <span>Nenhum item adicionado ainda.</span>
               </div>
             ) : (
               carrinho.map((item) => (
                 <div
                   key={item.id}
-                  className="px-2.5 py-1.5 rounded-xl bg-stone-50 border border-stone-200 flex items-center justify-between gap-2"
+                  className="px-3.5 py-2.5 rounded-2xl bg-stone-50 border border-stone-200/70 flex items-center justify-between gap-2 shrink-0"
                 >
                   <div className="min-w-0 pr-1">
-                    <h6 className="font-extrabold text-stone-900 text-xs truncate leading-tight">
-                      {item.nome}
-                    </h6>
-                    <span className="text-[10px] text-stone-500 font-semibold leading-tight">
-                      R$ {Number(item.preco).toFixed(2)} un.
+                    <h6 className="font-bold text-stone-900 text-xs truncate">{item.nome}</h6>
+                    <span className="text-[10px] text-stone-500 font-medium">
+                      R$ {Number(item.preco).toFixed(2)} un. • Subtotal: R${' '}
+                      {(Number(item.preco) * item.quantidade).toFixed(2)}
                     </span>
                   </div>
 
                   <div className="flex items-center gap-1.5 shrink-0">
-                    <div className="flex items-center bg-white border border-stone-200 rounded-lg overflow-hidden shadow-2xs">
+                    <div className="flex items-center bg-white border border-stone-200 rounded-xl overflow-hidden">
                       <button
                         type="button"
                         onClick={() => alterarQuantidade(item.id, -1)}
-                        className="p-1 hover:bg-stone-100 text-stone-700 cursor-pointer"
+                        className="p-1.5 hover:bg-stone-100 text-stone-700 cursor-pointer"
                       >
                         <Minus className="w-3 h-3" />
                       </button>
-                      <span className="px-2 text-xs font-bold text-stone-900">{item.quantidade}</span>
+                      <span className="px-2 text-xs font-bold text-stone-900">
+                        {item.quantidade}
+                      </span>
                       <button
                         type="button"
                         onClick={() => alterarQuantidade(item.id, 1)}
-                        className="p-1 hover:bg-stone-100 text-stone-700 cursor-pointer"
+                        className="p-1.5 hover:bg-stone-100 text-stone-700 cursor-pointer"
                       >
                         <Plus className="w-3 h-3" />
                       </button>
@@ -489,7 +492,7 @@ export default function PdvScreen({ barbeariaId, supabase, produtos: produtosPro
                     <button
                       type="button"
                       onClick={() => removerDoCarrinho(item.id)}
-                      className="p-1 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg cursor-pointer"
+                      className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl cursor-pointer"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -501,7 +504,7 @@ export default function PdvScreen({ barbeariaId, supabase, produtos: produtosPro
 
           {abaAtiva === 'caixa' && (
             <div>
-              <label className="block text-[9px] font-extrabold uppercase tracking-wider text-stone-500 mb-1">
+              <label className="block text-[10px] font-bold uppercase tracking-wider text-stone-500 mb-1">
                 Forma de Pagamento
               </label>
               <div className="grid grid-cols-3 gap-2">
@@ -517,9 +520,9 @@ export default function PdvScreen({ barbeariaId, supabase, produtos: produtosPro
                       key={metodo.id}
                       type="button"
                       onClick={() => setFormaPagamento(metodo.id)}
-                      className={`py-1.5 px-2 rounded-xl border text-[11px] font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                      className={`py-2 px-2 rounded-2xl border text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                         selecionado
-                          ? 'bg-stone-900 text-white border-stone-900 shadow-2xs'
+                          ? 'bg-stone-900 text-white border-stone-900'
                           : 'bg-stone-50 text-stone-700 border-stone-200 hover:bg-stone-100'
                       }`}
                     >
@@ -532,17 +535,15 @@ export default function PdvScreen({ barbeariaId, supabase, produtos: produtosPro
             </div>
           )}
         </div>
-      </div>
 
-      {/* BARRA INFERIOR FIXA COM MAIOR RESPIRO ACIMA DO MENU MOBILE */}
-      {!tecladoAberto && (
-        <div className="fixed bottom-32 left-3 right-3 bg-white/95 backdrop-blur-md border border-stone-200 px-3.5 py-2.5 z-30 shadow-xl rounded-2xl max-w-md mx-auto sm:max-w-4xl sm:bottom-4">
+        {/* RODAPÉ INTEGRADO ACIMA DO MENU MOBILE */}
+        <div className="p-3.5 sm:p-5 bg-stone-50/70">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <span className="text-[9px] font-extrabold text-stone-400 uppercase block leading-tight">
+              <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider block">
                 Total a Pagar
               </span>
-              <span className="text-base sm:text-lg font-black text-emerald-600 leading-tight">
+              <span className="text-lg sm:text-xl font-black text-emerald-600">
                 R$ {valorTotalCarrinho.toFixed(2)}
               </span>
             </div>
@@ -551,20 +552,18 @@ export default function PdvScreen({ barbeariaId, supabase, produtos: produtosPro
               type="button"
               onClick={finalizarVenda}
               disabled={carrinho.length === 0 || salvando}
-              className={`flex-1 py-2.5 px-3.5 rounded-xl text-xs font-bold shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+              className={`px-5 py-3 rounded-2xl text-xs font-black transition-all flex items-center justify-center gap-2 cursor-pointer ${
                 carrinho.length === 0 || salvando
                   ? 'bg-stone-200 text-stone-400 cursor-not-allowed'
                   : 'bg-emerald-600 hover:bg-emerald-700 text-white active:scale-95'
               }`}
             >
               <CheckCircle className="w-4 h-4 shrink-0" />
-              <span className="truncate">
-                {salvando ? 'Processando...' : 'Finalizar Venda Agora'}
-              </span>
+              <span>{salvando ? 'Processando...' : 'Finalizar Venda Agora'}</span>
             </button>
           </div>
         </div>
-      )}
+      </div>
 
       {/* MODAL DE RESUMO DO CAIXA */}
       {modalFechamentoAberto && (
