@@ -1289,14 +1289,16 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
                   Prévia no WhatsApp
                 </span>
                 <pre className="text-xs whitespace-pre-wrap font-sans text-slate-800 leading-relaxed">
-                  {renderizarMensagemConfirmacao(mensagemWhatsapp, {
-                    cliente: 'Diemerson',
-                    local: nome || 'Seu Estabelecimento',
-                    servico: 'Corte Degradê',
-                    data: '21/11/2026',
-                    hora: '15:00',
-                  })}
-                </pre>
+  {renderizarMensagemConfirmacao(mensagemWhatsapp, {
+    cliente: 'Diemerson',
+    local: nome || 'Seu Estabelecimento',
+    servico: 'Corte Degradê',
+    profissional: 'Vidal',
+    data: '21/11/2026',
+    hora: '15:00',
+    valor: 'R$ 45,00',
+  })}
+</pre>
               </div>
             </div>
           </div>

@@ -548,35 +548,38 @@ export default function AgendamentoChat({ barbeariaId }) {
         lido: false
       }]);
 
-      try {
-        const telefoneFormatado = formatarTelefoneWhatsApp(telefone);
-        const dataFormatadaBR = dataFmt.split('-').reverse().join('/');
-        const nomeEstabelecimento = barbearia?.nome || 'AgendaEstilo';
+     try {
+  const telefoneFormatado = formatarTelefoneWhatsApp(telefone);
+  const dataFormatadaBR = dataFmt.split('-').reverse().join('/');
+  const nomeEstabelecimento = barbearia?.nome || 'AgendaEstilo';
+  const valorFormatadoBR = `R$ ${Number(servicoEscolhido?.preco || 0).toFixed(2).replace('.', ',')}`;
 
-        const mensagemPersonalizada = renderizarMensagemConfirmacao(
-          barbearia?.mensagem_whatsapp_confirmacao,
-          {
-            cliente: nome,
-            local: nomeEstabelecimento,
-            servico: servicoEscolhido.nome,
-            data: dataFormatadaBR,
-            hora: horaEscolhida,
-          }
-        );
+  const mensagemPersonalizada = renderizarMensagemConfirmacao(
+    barbearia?.mensagem_whatsapp_confirmacao,
+    {
+      cliente: nome,
+      local: nomeEstabelecimento,
+      servico: servicoEscolhido.nome,
+      profissional: barbeiroEscolhido?.nome || 'Profissional',
+      data: dataFormatadaBR,
+      hora: horaEscolhida,
+      valor: valorFormatadoBR,
+    }
+  );
 
-        await enviarMensagemWhatsApp({
-          phone: telefoneFormatado,
-          nomeCliente: nome,
-          servico: servicoEscolhido.nome,
-          data: dataFormatadaBR,
-          hora: horaEscolhida,
-          nomeBarbearia: nomeEstabelecimento,
-          slug: barbearia?.slug,
-          mensagem: mensagemPersonalizada,
-        });
-      } catch (whatsErr) {
-        console.error('Erro ao enviar mensagem via WhatsApp:', whatsErr);
-      }
+  await enviarMensagemWhatsApp({
+    phone: telefoneFormatado,
+    nomeCliente: nome,
+    servico: servicoEscolhido.nome,
+    data: dataFormatadaBR,
+    hora: horaEscolhida,
+    nomeBarbearia: nomeEstabelecimento,
+    slug: barbearia?.slug,
+    mensagem: mensagemPersonalizada,
+  });
+} catch (whatsErr) {
+  console.error('Erro ao enviar mensagem via WhatsApp:', whatsErr);
+}
 
       try {
         const { data: barbData } = await supabase
