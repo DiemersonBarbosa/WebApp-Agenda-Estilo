@@ -329,7 +329,7 @@ export default function PdvScreen({ barbeariaId, supabase, produtos: produtosPro
         </button>
       </div>
 
-      {/* 2. CONTAINER UNIFORME INDEPENDENTE DO TAMANHO DA TELA */}
+      {/* 2. CONTAINER UNIFORME */}
       <div className="bg-white rounded-3xl border border-stone-200/90 shadow-xs overflow-hidden divide-y divide-stone-100 flex flex-col">
         {/* BUSCA DE PRODUTOS */}
         <div className="p-3.5 sm:p-5 space-y-2">
@@ -442,12 +442,10 @@ export default function PdvScreen({ barbeariaId, supabase, produtos: produtosPro
             </div>
           )}
 
-          {/* ÁREA DE ITENS PADRONIZADA COM ROLAGEM INTERNA */}
+          {/* ÁREA DE ITENS COM ALTURA FIXA E ROLAGEM INTERNA */}
           <div
             className={`space-y-2 overflow-y-auto pr-0.5 flex flex-col ${
-              abaAtiva === 'itens'
-                ? 'h-[240px] sm:h-[260px]'
-                : 'h-[175px] sm:h-[190px]'
+              abaAtiva === 'itens' ? 'h-[240px]' : 'h-[175px]'
             }`}
           >
             {carrinho.length === 0 ? (
