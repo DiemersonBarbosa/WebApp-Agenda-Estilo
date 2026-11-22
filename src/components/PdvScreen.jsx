@@ -329,7 +329,7 @@ export default function PdvScreen({ barbeariaId, supabase, produtos: produtosPro
         </button>
       </div>
 
-      {/* 2. CONTAINER UNIFORME */}
+      {/* 2. CONTAINER UNIFORME COM RODAPÉ LOGO ACIMA DO MENU MOBILE */}
       <div className="bg-white rounded-3xl border border-stone-200/90 shadow-xs overflow-hidden divide-y divide-stone-100 flex flex-col">
         {/* BUSCA DE PRODUTOS */}
         <div className="p-3.5 sm:p-5 space-y-2">
@@ -442,10 +442,10 @@ export default function PdvScreen({ barbeariaId, supabase, produtos: produtosPro
             </div>
           )}
 
-          {/* ÁREA DE ITENS COM ALTURA FIXA E ROLAGEM INTERNA */}
+          {/* ÁREA DE ITENS COM LIMITE ACIMA DO MENU MOBILE E ROLAGEM INTERNA */}
           <div
             className={`space-y-2 overflow-y-auto pr-0.5 flex flex-col ${
-              abaAtiva === 'itens' ? 'h-[240px]' : 'h-[175px]'
+              abaAtiva === 'itens' ? 'h-[255px]' : 'h-[195px]'
             }`}
           >
             {carrinho.length === 0 ? (
@@ -534,7 +534,7 @@ export default function PdvScreen({ barbeariaId, supabase, produtos: produtosPro
           )}
         </div>
 
-        {/* RODAPÉ INTEGRADO */}
+        {/* RODAPÉ INTEGRADO LOGO ACIMA DO MENU MOBILE */}
         <div className="p-3.5 sm:p-5 bg-stone-50/70">
           <div className="flex items-center justify-between gap-3">
             <div>
