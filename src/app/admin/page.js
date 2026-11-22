@@ -1802,7 +1802,7 @@ const [searchTerm, setSearchTerm] = useState('');
                   >
                     <div className="flex flex-col justify-center min-w-0 pr-2">
                       <span className="text-[9px] font-extrabold text-stone-400 uppercase tracking-wider truncate block">Registros</span>
-                      <span className="text-lg sm:text-xl font-black text-stone-900 mt-0.5 truncate block">Histórico</span>
+                      <span className="text-lg sm:text-xl font-black text-stone-900 mt-0.5 truncate block">Ver Histórico</span>
                     </div>
                     <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#222222] text-white flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
                       <History className="w-4 h-4 sm:w-5 sm:h-5" />
