@@ -224,7 +224,7 @@ export default function PdvScreen({ barbeariaId, supabase, produtos: produtosPro
   });
 
   return (
-    <div className="max-w-7xl mx-auto px-2 sm:px-0 space-y-3 pb-28 font-sans">
+    <div className="max-w-7xl mx-auto px-2 sm:px-0 space-y-3 pb-[calc(env(safe-area-inset-bottom,0px)+12rem)] font-sans flex flex-col">
       {/* NOTIFICAÇÃO FLUTUANTE DE SUCESSO */}
       {notificacaoSucesso && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none animate-in fade-in zoom-in-95 duration-200">
@@ -243,7 +243,7 @@ export default function PdvScreen({ barbeariaId, supabase, produtos: produtosPro
       )}
 
       {/* 1. 4 BOTÕES DE AÇÃO */}
-      <div className="grid grid-cols-4 gap-2">
+      <div className="grid grid-cols-4 gap-2 shrink-0">
         <button
           type="button"
           onClick={() => setAbaAtiva('caixa')}
@@ -329,10 +329,10 @@ export default function PdvScreen({ barbeariaId, supabase, produtos: produtosPro
         </button>
       </div>
 
-      {/* 2. CONTAINER UNIFORME COM RODAPÉ LOGO ACIMA DO MENU MOBILE */}
+      {/* 2. CONTAINER ÚNICO COM ROLAGEM INTERNA NA ÁREA DE ITENS */}
       <div className="bg-white rounded-3xl border border-stone-200/90 shadow-xs overflow-hidden divide-y divide-stone-100 flex flex-col">
         {/* BUSCA DE PRODUTOS */}
-        <div className="p-3.5 sm:p-5 space-y-2">
+        <div className="p-3.5 sm:p-5 space-y-2 shrink-0">
           <div className="relative">
             <Search className="w-4 h-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
@@ -408,8 +408,8 @@ export default function PdvScreen({ barbeariaId, supabase, produtos: produtosPro
         </div>
 
         {/* COMANDA / ITENS / PAGAMENTO */}
-        <div className="p-3.5 sm:p-5 space-y-3">
-          <div className="flex items-center justify-between">
+        <div className="p-3.5 sm:p-5 space-y-3 flex flex-col">
+          <div className="flex items-center justify-between shrink-0">
             <h4 className="font-black text-stone-900 text-xs tracking-wider uppercase flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-stone-900" />
               {abaAtiva === 'itens'
@@ -428,7 +428,7 @@ export default function PdvScreen({ barbeariaId, supabase, produtos: produtosPro
           </div>
 
           {abaAtiva === 'caixa' && (
-            <div>
+            <div className="shrink-0">
               <label className="block text-[10px] font-bold uppercase tracking-wider text-stone-500 mb-1">
                 Cliente (Opcional)
               </label>
@@ -442,14 +442,14 @@ export default function PdvScreen({ barbeariaId, supabase, produtos: produtosPro
             </div>
           )}
 
-          {/* ÁREA DE ITENS COM LIMITE ACIMA DO MENU MOBILE E ROLAGEM INTERNA */}
+          {/* ÁREA DE ITENS COM DESLIZE INTERNO AO EXCEDER */}
           <div
             className={`space-y-2 overflow-y-auto pr-0.5 flex flex-col ${
-              abaAtiva === 'itens' ? 'h-[255px]' : 'h-[195px]'
+              abaAtiva === 'itens' ? 'h-[205px]' : 'h-[150px]'
             }`}
           >
             {carrinho.length === 0 ? (
-              <div className="h-full py-6 text-center text-stone-400 text-xs bg-stone-50 border border-dashed border-stone-200 rounded-2xl flex flex-col items-center justify-center gap-1.5">
+              <div className="h-full py-5 text-center text-stone-400 text-xs bg-stone-50 border border-dashed border-stone-200 rounded-2xl flex flex-col items-center justify-center gap-1.5">
                 <Package className="w-5 h-5 text-stone-300" />
                 <span>Nenhum item adicionado ainda.</span>
               </div>
@@ -501,7 +501,7 @@ export default function PdvScreen({ barbeariaId, supabase, produtos: produtosPro
           </div>
 
           {abaAtiva === 'caixa' && (
-            <div>
+            <div className="shrink-0">
               <label className="block text-[10px] font-bold uppercase tracking-wider text-stone-500 mb-1">
                 Forma de Pagamento
               </label>
@@ -533,10 +533,12 @@ export default function PdvScreen({ barbeariaId, supabase, produtos: produtosPro
             </div>
           )}
         </div>
+      </div>
 
-        {/* RODAPÉ INTEGRADO LOGO ACIMA DO MENU MOBILE */}
-        <div className="p-3.5 sm:p-5 bg-stone-50/70">
-          <div className="flex items-center justify-between gap-3">
+      {/* BARRA DE FINALIZAR COM FOLGA ACIMA DO MENU MOBILE */}
+      <div className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+104px)] left-0 right-0 z-30 px-2 sm:px-0 pointer-events-none">
+        <div className="max-w-7xl mx-auto pointer-events-auto">
+          <div className="bg-white/95 backdrop-blur-md rounded-2xl px-4 py-3 border border-stone-200/90 shadow-md flex items-center justify-between gap-3">
             <div>
               <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider block">
                 Total a Pagar
