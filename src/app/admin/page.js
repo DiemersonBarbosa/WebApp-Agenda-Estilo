@@ -378,16 +378,22 @@ export default function AdminDashboard() {
   const [inputMenuFocado, setInputMenuFocado] = useState(false);
   const menuBlurTimeoutRef = React.useRef(null);
   const menuAlturaBaseRef = React.useRef(0);
+  const menuAlturaComTecladoRef = React.useRef(0);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
     const vp = window.visualViewport;
-    const obterAlturaAtual = () => (vp ? vp.height : window.innerHeight);
+    const obterAlturaAtual = () => {
+      if (vp && typeof vp.height === 'number' && vp.height > 0) {
+        return Math.min(vp.height, window.innerHeight || vp.height);
+      }
+      return window.innerHeight || document.documentElement.clientHeight || 0;
+    };
 
     const sincronizarAlturaBase = () => {
       const atual = obterAlturaAtual();
-      if (!menuAlturaBaseRef.current || atual > menuAlturaBaseRef.current) {
+      if (atual > 0 && (!menuAlturaBaseRef.current || atual > menuAlturaBaseRef.current)) {
         menuAlturaBaseRef.current = atual;
       }
     };
@@ -396,82 +402,161 @@ export default function AdminDashboard() {
 
     const avaliarViewportTeclado = () => {
       const alturaAtual = obterAlturaAtual();
-      const base = menuAlturaBaseRef.current || alturaAtual;
+      if (!alturaAtual) return;
 
-      if (alturaAtual >= base - 40) {
-        if (alturaAtual > base) {
-          menuAlturaBaseRef.current = alturaAtual;
+      const base = menuAlturaBaseRef.current || alturaAtual;
+      if (alturaAtual > base) {
+        menuAlturaBaseRef.current = alturaAtual;
+      }
+
+      const elementoAtivo = document.activeElement;
+      const tagAtiva = elementoAtivo?.tagName;
+      const temCampoAtivo =
+        tagAtiva === 'INPUT' ||
+        tagAtiva === 'TEXTAREA' ||
+        tagAtiva === 'SELECT' ||
+        Boolean(elementoAtivo?.isContentEditable);
+
+      const reducao = menuAlturaBaseRef.current - alturaAtual;
+      const limiteTeclado = Math.max(110, Math.round(menuAlturaBaseRef.current * 0.14));
+      const tecladoAbertoPorAltura = reducao > limiteTeclado;
+
+      if (tecladoAbertoPorAltura) {
+        if (
+          !menuAlturaComTecladoRef.current ||
+          alturaAtual < menuAlturaComTecladoRef.current
+        ) {
+          menuAlturaComTecladoRef.current = alturaAtual;
         }
-        setTecladoMenuVisivel(false);
-        setInputMenuFocado(false);
-        if (menuBlurTimeoutRef.current) {
-          clearTimeout(menuBlurTimeoutRef.current);
-        }
+        setTecladoMenuVisivel(true);
         return;
       }
 
-      const reducao = base - alturaAtual;
-      const limiteTeclado = Math.max(120, Math.round(base * 0.16));
-      const aberto = reducao > limiteTeclado;
-
-      setTecladoMenuVisivel(aberto);
-
-      if (!aberto) {
+      // Se a altura voltou a subir em relação ao estado com teclado (fechou pela setinha)
+      if (
+        menuAlturaComTecladoRef.current > 0 &&
+        alturaAtual >= menuAlturaComTecladoRef.current + 60
+      ) {
+        menuAlturaComTecladoRef.current = 0;
+        setTecladoMenuVisivel(false);
         setInputMenuFocado(false);
-        if (menuBlurTimeoutRef.current) {
-          clearTimeout(menuBlurTimeoutRef.current);
+        return;
+      }
+
+      // Se a altura já está praticamente igual à base original
+      if (alturaAtual >= menuAlturaBaseRef.current - 45) {
+        menuAlturaComTecladoRef.current = 0;
+        setTecladoMenuVisivel(false);
+        if (!temCampoAtivo) {
+          setInputMenuFocado(false);
+        } else if (menuAlturaComTecladoRef.current === 0 && tecladoMenuVisivel) {
+          setTecladoMenuVisivel(false);
+          setInputMenuFocado(false);
         }
       }
     };
 
     const handleOrientacao = () => {
       menuAlturaBaseRef.current = 0;
+      menuAlturaComTecladoRef.current = 0;
       setTecladoMenuVisivel(false);
       setInputMenuFocado(false);
       setTimeout(() => {
         sincronizarAlturaBase();
         avaliarViewportTeclado();
-      }, 150);
+      }, 180);
     };
 
     const handleFocusIn = (e) => {
       const tag = e.target?.tagName;
-      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || e.target?.isContentEditable) {
+      if (
+        tag === 'INPUT' ||
+        tag === 'TEXTAREA' ||
+        tag === 'SELECT' ||
+        e.target?.isContentEditable
+      ) {
         if (menuBlurTimeoutRef.current) clearTimeout(menuBlurTimeoutRef.current);
+        sincronizarAlturaBase();
         setInputMenuFocado(true);
+        setTimeout(avaliarViewportTeclado, 120);
+        setTimeout(avaliarViewportTeclado, 320);
       }
     };
 
     const handleFocusOut = (e) => {
       const tag = e.target?.tagName;
-      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || e.target?.isContentEditable) {
+      if (
+        tag === 'INPUT' ||
+        tag === 'TEXTAREA' ||
+        tag === 'SELECT' ||
+        e.target?.isContentEditable
+      ) {
         if (menuBlurTimeoutRef.current) clearTimeout(menuBlurTimeoutRef.current);
         menuBlurTimeoutRef.current = setTimeout(() => {
-          setInputMenuFocado(false);
-        }, 150);
+          const ativo = document.activeElement;
+          const aindaEmCampo =
+            ativo?.tagName === 'INPUT' ||
+            ativo?.tagName === 'TEXTAREA' ||
+            ativo?.tagName === 'SELECT' ||
+            Boolean(ativo?.isContentEditable);
+
+          if (!aindaEmCampo) {
+            menuAlturaComTecladoRef.current = 0;
+            setInputMenuFocado(false);
+            setTecladoMenuVisivel(false);
+          } else {
+            avaliarViewportTeclado();
+          }
+        }, 120);
       }
     };
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        menuAlturaComTecladoRef.current = 0;
+        setTecladoMenuVisivel(false);
+        setInputMenuFocado(false);
+      }
+    };
+
+    // Polling leve apenas enquanto um input estiver focado no mobile (captura fechamento pela setinha sem evento de resize)
+    const intervaloPolling = setInterval(() => {
+      const ativo = document.activeElement;
+      const emCampo =
+        ativo?.tagName === 'INPUT' ||
+        ativo?.tagName === 'TEXTAREA' ||
+        ativo?.tagName === 'SELECT' ||
+        Boolean(ativo?.isContentEditable);
+
+      if (emCampo || tecladoMenuVisivel || inputMenuFocado) {
+        avaliarViewportTeclado();
+      }
+    }, 250);
 
     vp?.addEventListener('resize', avaliarViewportTeclado);
     vp?.addEventListener('scroll', avaliarViewportTeclado);
     window.addEventListener('resize', avaliarViewportTeclado);
     window.addEventListener('orientationchange', handleOrientacao);
+    window.addEventListener('popstate', handleOrientacao);
+    window.addEventListener('keydown', handleKeyDown);
     document.addEventListener('focusin', handleFocusIn);
     document.addEventListener('focusout', handleFocusOut);
 
     return () => {
+      clearInterval(intervaloPolling);
       vp?.removeEventListener('resize', avaliarViewportTeclado);
       vp?.removeEventListener('scroll', avaliarViewportTeclado);
       window.removeEventListener('resize', avaliarViewportTeclado);
       window.removeEventListener('orientationchange', handleOrientacao);
+      window.removeEventListener('popstate', handleOrientacao);
+      window.removeEventListener('keydown', handleKeyDown);
       document.removeEventListener('focusin', handleFocusIn);
       document.removeEventListener('focusout', handleFocusOut);
       if (menuBlurTimeoutRef.current) clearTimeout(menuBlurTimeoutRef.current);
     };
-  }, []);
+  }, [tecladoMenuVisivel, inputMenuFocado]);
 
   const esconderMenuMobilePorTeclado = tecladoMenuVisivel || inputMenuFocado;
-
   useEffect(() => {
     if (esconderMenuMobilePorTeclado) {
       setMobileMenuOpen(false);
