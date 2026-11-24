@@ -30,7 +30,7 @@ export async function POST(request) {
         'X-Idempotency-Key': `${Date.now()}`
       },
       body: JSON.stringify({
-        transaction_amount: Number(body.transaction_amount) || 9.90,
+        transaction_amount: Number(body.transaction_amount) || 0.01,
         description: body.description || 'Assinatura Mensal Gestor',
         payment_method_id: 'pix',
         external_reference: body.barbeariaId || null,

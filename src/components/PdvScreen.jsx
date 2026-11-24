@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   ShoppingCart,
   Plus,
@@ -29,6 +29,53 @@ export default function PdvScreen({ barbeariaId, supabase, produtos: produtosPro
   const [salvando, setSalvando] = useState(false);
   const [vendasPdV, setVendasPdV] = useState([]);
   const [notificacaoSucesso, setNotificacaoSucesso] = useState(false);
+  const [tecladoVisivel, setTecladoVisivel] = useState(false);
+  const [inputFocado, setInputFocado] = useState(false);
+
+  const blurTimeoutRef = useRef(null);
+  const alturaInicialRef = useRef(
+    typeof window !== 'undefined'
+      ? window.visualViewport?.height || window.innerHeight
+      : 0
+  );
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const avaliarViewport = () => {
+      const vp = window.visualViewport;
+      const alturaAtual = vp ? vp.height : window.innerHeight;
+      if (!alturaInicialRef.current || alturaAtual > alturaInicialRef.current) {
+        alturaInicialRef.current = alturaAtual;
+      }
+      const reducao = alturaInicialRef.current - alturaAtual;
+      setTecladoVisivel(reducao > 80);
+    };
+
+    avaliarViewport();
+    window.visualViewport?.addEventListener('resize', avaliarViewport);
+    window.addEventListener('resize', avaliarViewport);
+
+    return () => {
+      window.visualViewport?.removeEventListener('resize', avaliarViewport);
+      window.removeEventListener('resize', avaliarViewport);
+      if (blurTimeoutRef.current) clearTimeout(blurTimeoutRef.current);
+    };
+  }, []);
+
+  const handleFocusInput = () => {
+    if (blurTimeoutRef.current) clearTimeout(blurTimeoutRef.current);
+    setInputFocado(true);
+  };
+
+  const handleBlurInput = () => {
+    if (blurTimeoutRef.current) clearTimeout(blurTimeoutRef.current);
+    blurTimeoutRef.current = setTimeout(() => {
+      setInputFocado(false);
+    }, 150);
+  };
+
+  const esconderBarraFinalizar = inputFocado || tecladoVisivel;
 
   useEffect(() => {
     if (produtosProp && produtosProp.length > 0) {
@@ -123,6 +170,7 @@ export default function PdvScreen({ barbeariaId, supabase, produtos: produtosPro
     });
 
     setBusca('');
+    setInputFocado(false);
   };
 
   const alterarQuantidade = (id, delta) => {
@@ -339,6 +387,14 @@ export default function PdvScreen({ barbeariaId, supabase, produtos: produtosPro
               type="text"
               placeholder="Buscar produto por nome ou categoria..."
               value={busca}
+              onFocus={handleFocusInput}
+              onBlur={handleBlurInput}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.currentTarget.blur();
+                  setInputFocado(false);
+                }
+              }}
               onChange={(e) => setBusca(e.target.value)}
               className={`w-full pl-10 ${
                 busca ? 'pr-9' : 'pr-4'
@@ -436,6 +492,14 @@ export default function PdvScreen({ barbeariaId, supabase, produtos: produtosPro
                 type="text"
                 placeholder="Nome do cliente no balcão..."
                 value={clienteNome}
+                onFocus={handleFocusInput}
+                onBlur={handleBlurInput}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.currentTarget.blur();
+                    setInputFocado(false);
+                  }
+                }}
                 onChange={(e) => setClienteNome(e.target.value)}
                 className="w-full px-3.5 py-2 bg-stone-50 border border-stone-200 rounded-2xl text-xs font-medium text-stone-900 focus:outline-none focus:border-stone-900"
               />
@@ -535,35 +599,37 @@ export default function PdvScreen({ barbeariaId, supabase, produtos: produtosPro
         </div>
       </div>
 
-      {/* BARRA DE FINALIZAR COM FOLGA ACIMA DO MENU MOBILE */}
-      <div className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+104px)] left-0 right-0 z-30 px-2 sm:px-0 pointer-events-none">
-        <div className="max-w-7xl mx-auto pointer-events-auto">
-          <div className="bg-white/95 backdrop-blur-md rounded-2xl px-4 py-3 border border-stone-200/90 shadow-md flex items-center justify-between gap-3">
-            <div>
-              <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider block">
-                Total a Pagar
-              </span>
-              <span className="text-lg sm:text-xl font-black text-emerald-600">
-                R$ {valorTotalCarrinho.toFixed(2)}
-              </span>
-            </div>
+      {/* BARRA DE FINALIZAR: OCULTA AO ABRIR TECLADO E REAPARECE AO FECHAR */}
+      {!esconderBarraFinalizar && (
+        <div className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+104px)] left-0 right-0 z-30 px-2 sm:px-0 pointer-events-none transition-opacity duration-150">
+          <div className="max-w-7xl mx-auto pointer-events-auto">
+            <div className="bg-white/95 backdrop-blur-md rounded-2xl px-4 py-3 border border-stone-200/90 shadow-md flex items-center justify-between gap-3">
+              <div>
+                <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider block">
+                  Total a Pagar
+                </span>
+                <span className="text-lg sm:text-xl font-black text-emerald-600">
+                  R$ {valorTotalCarrinho.toFixed(2)}
+                </span>
+              </div>
 
-            <button
-              type="button"
-              onClick={finalizarVenda}
-              disabled={carrinho.length === 0 || salvando}
-              className={`px-5 py-3 rounded-2xl text-xs font-black transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                carrinho.length === 0 || salvando
-                  ? 'bg-stone-200 text-stone-400 cursor-not-allowed'
-                  : 'bg-emerald-600 hover:bg-emerald-700 text-white active:scale-95'
-              }`}
-            >
-              <CheckCircle className="w-4 h-4 shrink-0" />
-              <span>{salvando ? 'Processando...' : 'Finalizar Venda Agora'}</span>
-            </button>
+              <button
+                type="button"
+                onClick={finalizarVenda}
+                disabled={carrinho.length === 0 || salvando}
+                className={`px-5 py-3 rounded-2xl text-xs font-black transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                  carrinho.length === 0 || salvando
+                    ? 'bg-stone-200 text-stone-400 cursor-not-allowed'
+                    : 'bg-emerald-600 hover:bg-emerald-700 text-white active:scale-95'
+                }`}
+              >
+                <CheckCircle className="w-4 h-4 shrink-0" />
+                <span>{salvando ? 'Processando...' : 'Finalizar Venda Agora'}</span>
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* MODAL DE RESUMO DO CAIXA */}
       {modalFechamentoAberto && (

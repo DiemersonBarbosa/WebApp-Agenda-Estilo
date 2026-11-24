@@ -403,7 +403,10 @@ export default function AdminDashboard() {
   const [assinaturaExpirada, setAssinaturaExpirada] = useState(false);
   const [modalAssinaturaOpen, setModalAssinaturaOpen] = useState(false);
   const [processandoPagamento, setProcessandoPagamento] = useState(false);
+  const [gerandoPix, setGerandoPix] = useState(false);
   const [copiado, setCopiado] = useState(false);
+  const [pagamentoAprovadoBanner, setPagamentoAprovadoBanner] = useState(false);
+  const pagamentoConfirmadoRef = React.useRef(false);
 
   const [barbeiroParaEditar, setBarbeiroParaEditar] = useState(null);
   const [metodoPagamento, setMetodoPagamento] = useState('pix');
@@ -426,7 +429,8 @@ export default function AdminDashboard() {
     parcelas: '1'
   });
 
-  const valorAssinatura = 9.90;
+  // VALOR DE TESTE: R$ 0,01 (Voltar para 9.90 após finalizar os testes)
+  const valorAssinatura = 0.01;
 
   const [agendamentos, setAgendamentos] = useState([]);
   const [clientes, setClientes] = useState([]);
@@ -434,7 +438,7 @@ export default function AdminDashboard() {
   const [servicos, setServicos] = useState([]);
   const [despesas, setDespesas] = useState([]);
 
-const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
 
   const [filtroMesDespesas, setFiltroMesDespesas] = useState(() => {
     return new Date().toISOString().split('T')[0].substring(0, 7);
@@ -479,15 +483,283 @@ const [searchTerm, setSearchTerm] = useState('');
 
   const [aberturaManual, setAberturaManual] = useState(false);
 
-  const abrirModalAssinaturaManual = () => {
-    setAberturaManual(true);
-    setModalAssinaturaOpen(true);
-    if (!pixDataMP?.paymentId) {
+  // Só ativa se houver comprovação real de status_assinatura === 'ativo' (vindo do webhook/backend)
+  const concluirAtivacaoAssinatura = useCallback((dadosConfirmados) => {
+    if (!dadosConfirmados || dadosConfirmados?.status_assinatura?.trim().toLowerCase() !== 'ativo') {
+      return;
+    }
+
+    // Trava absoluta: impede múltiplas mensagens ou execuções duplicadas
+    if (pagamentoConfirmadoRef.current) return;
+    pagamentoConfirmadoRef.current = true;
+
+    setBarbearia((prev) => ({ ...prev, ...dadosConfirmados }));
+    setAssinaturaExpirada(false);
+    setProcessandoPagamento(false);
+    setPagamentoAprovadoBanner(true);
+
+    setTimeout(() => {
+      setModalAssinaturaOpen(false);
+      setPagamentoAprovadoBanner(false);
+      setPixDataMP({ qrCodeBase64: '', copiaECola: '', paymentId: null });
+    }, 1800);
+  }, []);
+
+  // Consulta status real do pagamento antes de liberar o sistema
+  const verificarPagamentoRealAprovado = useCallback(async () => {
+    if (!barbearia?.id) return null;
+
+    try {
+      // 1. Checa se o webhook do Mercado Pago já marcou a barbearia como 'ativo' e vigente no banco
+      const { data: barbData } = await supabase
+        .from('barbearias')
+        .select('status_assinatura, data_inicio_assinatura, data_vencimento')
+        .eq('id', barbearia.id)
+        .single();
+
+      if (barbData?.status_assinatura?.trim().toLowerCase() === 'ativo') {
+        const hoje = new Date();
+        hoje.setHours(0, 0, 0, 0);
+
+        if (barbData.data_vencimento) {
+          const partes = barbData.data_vencimento.split('T')[0].split('-');
+          const dataVenc = new Date(partes[0], partes[1] - 1, partes[2]);
+          dataVenc.setHours(0, 0, 0, 0);
+
+          if (dataVenc >= hoje) {
+            return barbData;
+          }
+        } else {
+          return barbData;
+        }
+      }
+
+      // 2. Se houver um paymentId gerado nesta sessão, consulta diretamente o backend
+      if (pixDataMP?.paymentId) {
+        const baseUrl =
+          typeof window !== 'undefined' &&
+          (window.location.origin.includes('localhost') || window.location.origin.includes('127.0.0.1'))
+            ? window.location.origin
+            : API_BASE_URL;
+
+        const resp = await fetch(
+          `${baseUrl}/api/verificar-pagamento?paymentId=${encodeURIComponent(pixDataMP.paymentId)}&barbeariaId=${encodeURIComponent(barbearia.id)}`,
+          { cache: 'no-store' }
+        );
+
+        if (resp.ok) {
+          const json = await resp.json();
+          const statusMP = (json?.status || json?.payment_status || '').trim().toLowerCase();
+
+          if (statusMP === 'approved') {
+            if (json?.barbearia?.status_assinatura?.trim().toLowerCase() === 'ativo') {
+              return json.barbearia;
+            }
+
+            const { data: barbAtualizada } = await supabase
+              .from('barbearias')
+              .select('status_assinatura, data_inicio_assinatura, data_vencimento')
+              .eq('id', barbearia.id)
+              .single();
+
+            if (barbAtualizada?.status_assinatura?.trim().toLowerCase() === 'ativo') {
+              return barbAtualizada;
+            }
+          }
+        }
+      }
+
+      return null;
+    } catch (err) {
+      console.error('Erro ao verificar status real do pagamento:', err);
+      return null;
+    }
+  }, [barbearia?.id, pixDataMP?.paymentId]);
+
+  const gerarPixMercadoPago = useCallback(async (paymentData) => {
+    if (gerandoPix) return;
+    setGerandoPix(true);
+
+    try {
+      const valorInformado = Number(paymentData?.transaction_amount);
+      const valorFinal = !Number.isNaN(valorInformado) && valorInformado > 0 ? valorInformado : valorAssinatura;
+
+      const payload = {
+        transaction_amount: valorFinal,
+        description: paymentData?.description || 'Assinatura Mensal Gestor',
+        payer_email: paymentData?.payer_email || user?.email || 'diemersonlimabarbosa@gmail.com',
+        payer_name: paymentData?.payer_name || barbearia?.nome || 'Gestor',
+        barbeariaId: paymentData?.barbeariaId || barbearia?.id
+      };
+
+      const baseUrl =
+        typeof window !== 'undefined' &&
+        (window.location.origin.includes('localhost') || window.location.origin.includes('127.0.0.1'))
+          ? window.location.origin
+          : API_BASE_URL;
+
+      const endpoint = `${baseUrl}/api/gerar-pix`;
+      let data;
+
+      if (typeof window !== 'undefined') {
+        const { Capacitor, CapacitorHttp } = await import('@capacitor/core');
+
+        if (Capacitor.isNativePlatform()) {
+          const response = await CapacitorHttp.post({
+            url: endpoint,
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+            },
+            data: payload,
+          });
+
+          let responseData = response.data;
+          if (typeof responseData === 'string') {
+            responseData = JSON.parse(responseData);
+          }
+
+          if (response.status !== 200 && response.status !== 201) {
+            throw new Error(responseData?.error?.message || responseData?.message || `Erro no servidor (${response.status})`);
+          }
+
+          data = responseData;
+        } else {
+          const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+            },
+            body: JSON.stringify(payload),
+          });
+          const textResponse = await response.text();
+          try {
+            data = JSON.parse(textResponse);
+          } catch (e) {
+            throw new Error(`O servidor retornou HTML em vez de JSON: ${textResponse.substring(0, 100)}`);
+          }
+
+          if (!response.ok) {
+            throw new Error(data.error?.message || data.message || 'Falha ao processar no servidor.');
+          }
+        }
+      }
+
+      const qrBase64 = data?.qrCodeBase64 || data?.qr_code_base64 || '';
+      const copiaCola = data?.copiaECola || data?.qr_code || '';
+      const idPagamento = data?.paymentId || data?.id || null;
+
+      if (!qrBase64 && !copiaCola) {
+        throw new Error('QR Code não retornado pela API.');
+      }
+
+      setPixDataMP({
+        qrCodeBase64: qrBase64,
+        copiaECola: copiaCola,
+        paymentId: idPagamento
+      });
+
+      return data;
+    } catch (error) {
+      console.error('Falha ao gerar PIX:', error);
+    } finally {
+      setGerandoPix(false);
+    }
+  }, [barbearia?.id, barbearia?.nome, gerandoPix, user?.email, valorAssinatura]);
+
+  useEffect(() => {
+    const modalVisivel =
+      !loading &&
+      modalAssinaturaOpen &&
+      metodoPagamento === 'pix' &&
+      !pagamentoAprovadoBanner;
+
+    if (modalVisivel && !pixDataMP?.qrCodeBase64 && !pixDataMP?.copiaECola && !gerandoPix) {
       gerarPixMercadoPago({
-        transaction_amount: 9.90,
+        transaction_amount: valorAssinatura,
         description: 'Plano Mensal Gestor - Acesso Completo',
         payer_email: user?.email || 'diemersonlimabarbosa@gmail.com',
-        payer_name: barbearia?.nome || 'Gestor'
+        payer_name: barbearia?.nome || 'Gestor',
+        barbeariaId: barbearia?.id
+      });
+    }
+  }, [
+    loading,
+    modalAssinaturaOpen,
+    metodoPagamento,
+    pagamentoAprovadoBanner,
+    pixDataMP?.qrCodeBase64,
+    pixDataMP?.copiaECola,
+    gerandoPix,
+    gerarPixMercadoPago,
+    valorAssinatura,
+    user?.email,
+    barbearia?.nome,
+    barbearia?.id
+  ]);
+
+  // Escuta automática em tempo real + polling seguro enquanto o modal estiver aberto
+  useEffect(() => {
+    if (!barbearia?.id || !modalAssinaturaOpen || pagamentoConfirmadoRef.current) return;
+
+    const channelAssinatura = supabase
+      .channel(`assinatura-barbearia-${barbearia.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'barbearias',
+          filter: `id=eq.${barbearia.id}`,
+        },
+        (payload) => {
+          const registro = payload.new;
+          if (registro?.status_assinatura?.trim().toLowerCase() === 'ativo') {
+            const hoje = new Date();
+            hoje.setHours(0, 0, 0, 0);
+
+            if (registro.data_vencimento) {
+              const partes = registro.data_vencimento.split('T')[0].split('-');
+              const dataVenc = new Date(partes[0], partes[1] - 1, partes[2]);
+              dataVenc.setHours(0, 0, 0, 0);
+              if (dataVenc >= hoje) {
+                concluirAtivacaoAssinatura(registro);
+              }
+            } else {
+              concluirAtivacaoAssinatura(registro);
+            }
+          }
+        }
+      )
+      .subscribe();
+
+    const intervaloVerificacao = setInterval(async () => {
+      if (pagamentoConfirmadoRef.current) return;
+      const dadosAprovados = await verificarPagamentoRealAprovado();
+      if (dadosAprovados) {
+        concluirAtivacaoAssinatura(dadosAprovados);
+      }
+    }, 5000);
+
+    return () => {
+      supabase.removeChannel(channelAssinatura);
+      clearInterval(intervaloVerificacao);
+    };
+  }, [barbearia?.id, modalAssinaturaOpen, concluirAtivacaoAssinatura, verificarPagamentoRealAprovado]);
+
+  const abrirModalAssinaturaManual = () => {
+    pagamentoConfirmadoRef.current = false;
+    setPagamentoAprovadoBanner(false);
+    setAberturaManual(true);
+    setModalAssinaturaOpen(true);
+    if (!pixDataMP?.paymentId && !pixDataMP?.qrCodeBase64) {
+      gerarPixMercadoPago({
+        transaction_amount: valorAssinatura,
+        description: 'Plano Mensal Gestor - Acesso Completo',
+        payer_email: user?.email || 'diemersonlimabarbosa@gmail.com',
+        payer_name: barbearia?.nome || 'Gestor',
+        barbeariaId: barbearia?.id
       });
     }
   };
@@ -508,13 +780,16 @@ const [searchTerm, setSearchTerm] = useState('');
         dataVencimento.setHours(0, 0, 0, 0);
 
         if (dataVencimento < hoje) {
+          pagamentoConfirmadoRef.current = false;
           setModalAssinaturaOpen(true);
           setAssinaturaExpirada(true);
           return;
         }
       }
 
-      setModalAssinaturaOpen(false);
+      if (!pagamentoConfirmadoRef.current) {
+        setModalAssinaturaOpen(false);
+      }
       setAssinaturaExpirada(false);
       return;
     }
@@ -533,6 +808,7 @@ const [searchTerm, setSearchTerm] = useState('');
       }
 
       if (restante <= 0) {
+        pagamentoConfirmadoRef.current = false;
         setModalAssinaturaOpen(true);
         setAssinaturaExpirada(true);
       } else {
@@ -540,6 +816,7 @@ const [searchTerm, setSearchTerm] = useState('');
         setAssinaturaExpirada(false);
       }
     } else {
+      pagamentoConfirmadoRef.current = false;
       setModalAssinaturaOpen(true);
       setAssinaturaExpirada(true);
     }
@@ -589,78 +866,6 @@ const [searchTerm, setSearchTerm] = useState('');
       setLoading(false);
     }
   }, []);
-
-  const gerarPixMercadoPago = useCallback(async (paymentData) => {
-    try {
-      const payload = {
-        transaction_amount: Number(paymentData.transaction_amount) || 9.90,
-        description: paymentData.description || 'Assinatura Mensal Gestor',
-        payer_email: paymentData.payer_email || 'diemersonlimabarbosa@gmail.com',
-        payer_name: paymentData.payer_name || 'Gestor',
-        barbeariaId: barbearia?.id
-      };
-
-      const url = '/api/gerar-pix';
-      let data;
-
-      if (typeof window !== 'undefined') {
-        const { Capacitor, CapacitorHttp } = await import('@capacitor/core');
-
-        if (Capacitor.isNativePlatform()) {
-          const response = await CapacitorHttp.post({
-            url: `${window.location.origin}/api/gerar-pix`,
-            headers: { 
-              'Content-Type': 'application/json',
-              'Accept': 'application/json'
-            },
-            data: payload,
-          });
-
-          let responseData = response.data;
-          if (typeof responseData === 'string') {
-            responseData = JSON.parse(responseData);
-          }
-
-          if (response.status !== 200 && response.status !== 201) {
-            throw new Error(responseData?.error?.message || responseData?.message || `Erro no servidor (${response.status})`);
-          }
-
-          data = responseData;
-        } else {
-          const fullUrl = url.startsWith('http') ? url : `${window.location.origin}${url}`;
-          const response = await fetch(fullUrl, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json'
-            },
-            body: JSON.stringify(payload),
-          });
-          const textResponse = await response.text();
-          try {
-            data = JSON.parse(textResponse);
-          } catch (e) {
-            throw new Error(`O servidor retornou HTML em vez de JSON: ${textResponse.substring(0, 100)}`);
-          }
-
-          if (!response.ok) {
-            throw new Error(data.error?.message || data.message || 'Falha ao processar no servidor.');
-          }
-        }
-      }
-
-      setPixDataMP({
-        qrCodeBase64: data.qrCodeBase64 || '',
-        copiaECola: data.copiaECola || '',
-        paymentId: data.paymentId || null
-      });
-
-      return data;
-    } catch (error) {
-      console.error('Falha ao gerar PIX:', error);
-      alert(`Erro ao gerar Pix: ${error.message}`);
-    }
-  }, [barbearia?.id]);
 
   const criarAcessoBarbeiro = async (barbeiroId, emailBarbeiro, senhaTemporaria) => {
     try {
@@ -779,54 +984,29 @@ const [searchTerm, setSearchTerm] = useState('');
     router.push('/admin');
   };
 
+  // Processa pagamento apenas mediante comprovação real da API/Webhook (nunca libera sem status aprovado)
   const handleProcessarPagamentoMercadoPago = async (e) => {
     if (e) e.preventDefault();
-    if (processandoPagamento) return;
+    if (processandoPagamento || pagamentoConfirmadoRef.current) return;
     
     setProcessandoPagamento(true);
 
     try {
-      if (metodoPagamento === 'pix') {
-        if (!pixDataMP.paymentId) {
-          alert('Nenhum pagamento Pix gerado no momento. Aguarde o QR Code carregar.');
-          setProcessandoPagamento(false);
-          return;
-        }
+      const dadosAprovados = await verificarPagamentoRealAprovado();
 
-        if (barbearia?.id) {
-          const dataInicio = new Date();
-          const dataExpiracao = new Date();
-          dataExpiracao.setMonth(dataExpiracao.getMonth() + 1);
-
-          const novosDadosAssinatura = {
-            status_assinatura: 'ativo',
-            data_inicio_assinatura: dataInicio.toISOString().split('T')[0],
-            data_vencimento: dataExpiracao.toISOString().split('T')[0]
-          };
-
-          const { error: updateError } = await supabase
-            .from('barbearias')
-            .update(novosDadosAssinatura)
-            .eq('id', barbearia.id)
-            .select();
-
-          if (updateError) {
-            throw new Error('Erro ao atualizar assinatura: ' + updateError.message);
-          }
-
-          setBarbearia(prev => ({ ...prev, ...novosDadosAssinatura }));
-        }
-
-        alert('Pagamento aprovado com sucesso! Acesso liberado.');
-        setModalAssinaturaOpen(false);
-        setAssinaturaExpirada(false);
+      if (dadosAprovados) {
+        concluirAtivacaoAssinatura(dadosAprovados);
+      } else {
         setProcessandoPagamento(false);
-        
-        loadDashboardData(barbearia.id);
+        setModalFeedback({
+          isOpen: true,
+          tipo: 'erro',
+          titulo: 'Pagamento Pendente',
+          mensagem: 'Ainda não identificamos a aprovação do pagamento. Assim que o pagamento for compensado, o acesso será liberado automaticamente.'
+        });
       }
     } catch (err) {
-      console.error('Erro ao processar pagamento:', err);
-      alert(err.message);
+      console.error('Erro ao verificar pagamento:', err);
       setProcessandoPagamento(false);
     }
   };
@@ -1008,21 +1188,21 @@ const [searchTerm, setSearchTerm] = useState('');
   };
 
   const handleOpenBarbeiroModal = (barbeiro = null) => {
-  if (barbeiro) {
-    setBarbeiroParaEditar(barbeiro);
-    setNome(barbeiro.nome || '');
-    setEspecialidade(barbeiro.especialidade || '');
-    setTaxaComissao(barbeiro.taxa_comissao || '');
-    setFotoUrl(barbeiro.foto || '');
-  } else {
-    setBarbeiroParaEditar(null);
-    setNome('');
-    setEspecialidade('');
-    setTaxaComissao('');
-    setFotoUrl('');
-  }
-  setModalBarbeiroOpen(true);
-};
+    if (barbeiro) {
+      setBarbeiroParaEditar(barbeiro);
+      setNome(barbeiro.nome || '');
+      setEspecialidade(barbeiro.especialidade || '');
+      setTaxaComissao(barbeiro.taxa_comissao || '');
+      setFotoUrl(barbeiro.foto || '');
+    } else {
+      setBarbeiroParaEditar(null);
+      setNome('');
+      setEspecialidade('');
+      setTaxaComissao('');
+      setFotoUrl('');
+    }
+    setModalBarbeiroOpen(true);
+  };
 
   const handleSaveBarbeiro = async (e) => {
     e.preventDefault();
@@ -1281,19 +1461,16 @@ const [searchTerm, setSearchTerm] = useState('');
                 if (item.isLogout) {
                   buttonStyle = {
                     background: 'linear-gradient(135deg, #9b1c2e 0%, #70121f 100%)',
-                    
                     border: '1px solid rgba(255, 255, 255, 0.15)'
                   };
                 } else if (isCurrentActive) {
                   buttonStyle = {
                     background: 'linear-gradient(135deg, #18181b 0%, #09090b 100%)',
-                    
                     border: '1px solid rgba(255, 255, 255, 0.2)'
                   };
                 } else {
                   buttonStyle = {
                     background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
-                    
                     border: '1px solid rgba(255, 255, 255, 0.15)'
                   };
                 }
@@ -1352,103 +1529,118 @@ const [searchTerm, setSearchTerm] = useState('');
               onClick={(e) => e.stopPropagation()}
               className="bg-white rounded-3xl p-5 sm:p-6 w-full max-w-md shadow-2xl border border-stone-200 flex flex-col items-center text-center space-y-3 my-auto relative z-10"
             >
-              <div className="w-full flex flex-col items-center text-center space-y-2 pb-3 border-b border-stone-100">
-                <div className="w-10 h-10 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center shadow-inner mx-auto">
-                  <Lock className="w-5 h-5" />
-                </div>
-                <div className="w-full space-y-0.5 text-center">
-                  <h2 className="text-lg font-extrabold text-stone-900 w-full text-center">Período de Teste Finalizado</h2>
-                  <p className="text-[11px] sm:text-xs text-stone-500 leading-relaxed w-full text-center px-2">
-                    Os seus 7 dias gratuitos expiraram. Para liberar o acesso completo ao painel, efetue o pagamento abaixo.
+              {pagamentoAprovadoBanner ? (
+                <div className="py-8 flex flex-col items-center justify-center text-center space-y-3 animate-in fade-in zoom-in-95 duration-200">
+                  <div className="w-14 h-14 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center">
+                    <CheckCircle className="w-8 h-8" />
+                  </div>
+                  <h3 className="text-base font-black text-stone-900">Pagamento Confirmado!</h3>
+                  <p className="text-xs text-stone-500 max-w-xs">
+                    Sua assinatura foi renovada com sucesso. Liberando acesso ao painel...
                   </p>
                 </div>
-              </div>
-
-              <div className="bg-stone-50 p-3 rounded-2xl border border-stone-200 w-full text-center space-y-1">
-                <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider block">Plano Mensal Gestor</span>
-                <div className="flex justify-between items-center px-1">
-                  <span className="text-stone-700 text-xs font-medium">Acesso Completo</span>
-                  <span className="text-sm sm:text-base font-extrabold text-stone-900">R$ {valorAssinatura?.toFixed(2)} / mês</span>
-                </div>
-              </div>
-
-              <div className="w-full flex flex-col items-center space-y-3" onClick={(e) => e.stopPropagation()}>
-                {pixDataMP ? (
-                  <div className="flex flex-col items-center justify-center space-y-3 w-full max-w-sm mx-auto" onClick={(e) => e.stopPropagation()}>
-                    <div className="bg-white p-2 rounded-2xl border border-stone-200 shadow-inner inline-block" onClick={(e) => e.stopPropagation()}>
-                      <img 
-                        src={`data:image/png;base64,${pixDataMP.qrCodeBase64}`} 
-                        alt="QR Code Pix" 
-                        className="w-36 h-36 sm:w-40 sm:h-40 object-contain mx-auto block pointer-events-none" 
-                      />
+              ) : (
+                <>
+                  <div className="w-full flex flex-col items-center text-center space-y-2 pb-3 border-b border-stone-100">
+                    <div className="w-10 h-10 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center shadow-inner mx-auto">
+                      <Lock className="w-5 h-5" />
                     </div>
-
-                    <div className="w-full pointer-events-none select-none">
-                      <p className="text-[10px] sm:text-[11px] text-stone-500 text-center px-4">
-                        Escaneie o QR Code acima ou copie o código Pix abaixo:
+                    <div className="w-full space-y-0.5 text-center">
+                      <h2 className="text-lg font-extrabold text-stone-900 w-full text-center">Período de Teste Finalizado</h2>
+                      <p className="text-[11px] sm:text-xs text-stone-500 leading-relaxed w-full text-center px-2">
+                        Os seus 7 dias gratuitos expiraram. Para liberar o acesso completo ao painel, efetue o pagamento abaixo.
                       </p>
                     </div>
-
-                    <div className="w-full">
-                      <input
-                        id="input-copia-cola"
-                        type="text"
-                        readOnly
-                        value={pixDataMP?.copiaECola || ''}
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          e.currentTarget.select();
-                        }}
-                        className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-xs text-stone-600 focus:outline-none cursor-text"
-                      />
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        copiarChavePix();
-                      }}
-                      className="w-full bg-stone-900 hover:bg-stone-800 text-white py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-xs mt-1"
-                    >
-                      {copiado ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
-                      {copiado ? 'Código Pix Copiado com Sucesso!' : 'Copiar Código Pix'}
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        handleProcessarPagamentoMercadoPago(e);
-                      }}
-                      disabled={processandoPagamento}
-                      className="w-full bg-sky-600 hover:bg-sky-700 text-white font-bold py-3 rounded-xl transition duration-200 text-xs shadow-md cursor-pointer disabled:opacity-50 mt-2 z-20 relative"
-                    >
-                      {processandoPagamento ? 'A verificar Pagamento...' : 'Já fiz o pagamento / Ativar Assinatura'}
-                    </button>
                   </div>
-                ) : (
-                  <button 
-                    type="button"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      gerarPixMercadoPago({
-                        transaction_amount: 9.90,
-                        description: 'Plano Mensal Gestor - Acesso Completo',
-                        payer_email: user?.email || 'diemersonlimabarbosa@gmail.com',
-                        payer_name: barbearia?.nome || 'Gestor'
-                      });
-                    }}
-                    className="w-full py-2.5 bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold rounded-xl shadow-md transition-all cursor-pointer"
-                  >
-                    Gerar Pix de Pagamento
-                  </button>
-                )}
-              </div>
+
+                  <div className="bg-stone-50 p-3 rounded-2xl border border-stone-200 w-full text-center space-y-1">
+                    <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider block">Plano Mensal Gestor</span>
+                    <div className="flex justify-between items-center px-1">
+                      <span className="text-stone-700 text-xs font-medium">Acesso Completo</span>
+                      <span className="text-sm sm:text-base font-extrabold text-stone-900">R$ {valorAssinatura?.toFixed(2).replace('.', ',')} / mês</span>
+                    </div>
+                  </div>
+
+                  <div className="w-full flex flex-col items-center space-y-3" onClick={(e) => e.stopPropagation()}>
+                    {pixDataMP?.qrCodeBase64 ? (
+                      <div className="flex flex-col items-center justify-center space-y-3 w-full max-w-sm mx-auto" onClick={(e) => e.stopPropagation()}>
+                        <div className="bg-white p-2 rounded-2xl border border-stone-200 shadow-inner inline-block" onClick={(e) => e.stopPropagation()}>
+                          <img 
+                            src={`data:image/png;base64,${pixDataMP.qrCodeBase64}`} 
+                            alt="QR Code Pix" 
+                            className="w-36 h-36 sm:w-40 sm:h-40 object-contain mx-auto block pointer-events-none" 
+                          />
+                        </div>
+
+                        <div className="w-full pointer-events-none select-none">
+                          <p className="text-[10px] sm:text-[11px] text-stone-500 text-center px-4">
+                            Escaneie o QR Code acima ou copie o código Pix abaixo:
+                          </p>
+                        </div>
+
+                        <div className="w-full">
+                          <input
+                            id="input-copia-cola"
+                            type="text"
+                            readOnly
+                            value={pixDataMP?.copiaECola || ''}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              e.currentTarget.select();
+                            }}
+                            className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-xs text-stone-600 focus:outline-none cursor-text"
+                          />
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            copiarChavePix();
+                          }}
+                          className="w-full bg-stone-900 hover:bg-stone-800 text-white py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-xs mt-1"
+                        >
+                          {copiado ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                          {copiado ? 'Código Pix Copiado com Sucesso!' : 'Copiar Código Pix'}
+                        </button>
+
+                        <div className="w-full py-2.5 px-3 rounded-xl bg-sky-50 border border-sky-200/80 flex items-center justify-center gap-2 text-sky-800 text-[11px] font-semibold mt-1">
+                          <div className="w-3.5 h-3.5 border-2 border-sky-600 border-t-transparent rounded-full animate-spin shrink-0" />
+                          <span>Aguardando confirmação automática do pagamento...</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="py-6 flex flex-col items-center justify-center gap-2 text-stone-400">
+                        <div className="w-6 h-6 border-2 border-sky-500 border-t-transparent rounded-full animate-spin" />
+                        <span className="text-xs">
+                          {gerandoPix ? 'A gerar Pix seguro via Mercado Pago...' : 'Preparando QR Code Pix...'}
+                        </span>
+                        {!gerandoPix && (
+                          <button 
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              gerarPixMercadoPago({
+                                transaction_amount: valorAssinatura,
+                                description: 'Plano Mensal Gestor - Acesso Completo',
+                                payer_email: user?.email || 'diemersonlimabarbosa@gmail.com',
+                                payer_name: barbearia?.nome || 'Gestor',
+                                barbeariaId: barbearia?.id
+                              });
+                            }}
+                            className="mt-2 px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold rounded-xl shadow-md transition-all cursor-pointer"
+                          >
+                            Gerar Pix de Pagamento
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -1796,7 +1988,7 @@ const [searchTerm, setSearchTerm] = useState('');
                   </div>
 
                   <button
-                  type='button'
+                    type='button'
                     onClick={() => setModalHistoricoFechamentos(true)}
                     className="relative rounded-3xl p-4 sm:p-5 flex items-center justify-between border border-stone-200/80 bg-white transition-all cursor-pointer group min-w-0 overflow-hidden shadow-xs hover:shadow-sm text-left"
                   >
@@ -2163,9 +2355,8 @@ const [searchTerm, setSearchTerm] = useState('');
             );
           })()}
 
-        {activeTab === 'servicos' && (
+          {activeTab === 'servicos' && (
             <div className="max-w-7xl mx-auto px-2 sm:px-0 space-y-4 animate-in fade-in duration-200">
-              {/* DOIS CARDS DE MÉTRICAS NO TOPO (PADRÃO DAS DEMAIS ABAS) */}
               <div className="grid grid-cols-2 gap-3 md:gap-4">
                 <div 
                   className="relative rounded-3xl p-4 sm:p-5 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden"
@@ -2214,7 +2405,6 @@ const [searchTerm, setSearchTerm] = useState('');
                 </div>
               </div>
 
-              {/* BOTÕES SELETORES DAS SUBABAS (EQUIPE E SERVIÇOS) */}
               <div className="bg-white rounded-3xl p-2 border border-stone-200/90 shadow-xs flex items-center gap-2">
                 <button
                   type="button"
@@ -2243,7 +2433,6 @@ const [searchTerm, setSearchTerm] = useState('');
                 </button>
               </div>
 
-              {/* BARRA DE PESQUISA E BOTÃO DE NOVO ITEM LADO A LADO */}
               <div className="flex items-center gap-2">
                 <div className="relative flex-1">
                   <Search className="w-4 h-4 text-stone-400 absolute left-4 top-1/2 -translate-y-1/2" />
@@ -2257,22 +2446,21 @@ const [searchTerm, setSearchTerm] = useState('');
                 </div>
 
                 <button
-  type="button"
-  onClick={() => {
-    if (subTabEquipe === 'servicos') {
-      handleOpenServicoModal();
-    } else {
-      handleOpenBarbeiroModal();
-    }
-  }}
-  className="px-5 py-3 bg-stone-900 hover:bg-black text-white font-black text-xs rounded-2xl shadow-md transition-all cursor-pointer flex items-center justify-center gap-2 active:scale-98 border border-stone-800 shrink-0"
->
-  <Plus className="w-4 h-4 text-stone-300" />
-  <span>{subTabEquipe === 'servicos' ? 'Adicionar' : 'Adicionar'}</span>
-</button>
+                  type="button"
+                  onClick={() => {
+                    if (subTabEquipe === 'servicos') {
+                      handleOpenServicoModal();
+                    } else {
+                      handleOpenBarbeiroModal();
+                    }
+                  }}
+                  className="px-5 py-3 bg-stone-900 hover:bg-black text-white font-black text-xs rounded-2xl shadow-md transition-all cursor-pointer flex items-center justify-center gap-2 active:scale-98 border border-stone-800 shrink-0"
+                >
+                  <Plus className="w-4 h-4 text-stone-300" />
+                  <span>{subTabEquipe === 'servicos' ? 'Adicionar' : 'Adicionar'}</span>
+                </button>
               </div>
 
-              {/* ABA DE SERVIÇOS - CARDS REFINADOS */}
               {subTabEquipe === 'servicos' && (
                 <div className="space-y-3">
                   {servicos.length === 0 ? (
@@ -2331,7 +2519,6 @@ const [searchTerm, setSearchTerm] = useState('');
                 </div>
               )}
 
-              {/* ABA DE EQUIPE / PROFISSIONAIS */}
               {subTabEquipe === 'barbeiros' && (
                 <div className="space-y-3">
                   {barbeiros.length === 0 ? (
@@ -2461,95 +2648,96 @@ const [searchTerm, setSearchTerm] = useState('');
             </div>
           )}
           
-          </main></div>
+        </main>
+      </div>
 
       {modalHistoricoFechamentos && (
-  <div className="fixed inset-0 bg-stone-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
-    <div className="bg-white rounded-3xl p-5 sm:p-6 max-w-lg w-full border border-stone-200 space-y-4 max-h-[85vh] flex flex-col">
-      <div className="flex items-center justify-between pb-3 border-b border-stone-100 shrink-0">
-        <div>
-          <h3 className="text-sm font-black text-stone-900">Histórico de Comissões Pagas</h3>
-          <p className="text-[11px] text-stone-500">Registros de fechamentos realizados</p>
-        </div>
-        <button
-          type="button"
-          onClick={() => setModalHistoricoFechamentos(false)}
-          className="w-8 h-8 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-800 flex items-center justify-center cursor-pointer"
-        >
-          <X className="w-4 h-4" />
-        </button>
-      </div>
-
-      <div className="space-y-2.5 overflow-y-auto pr-1 flex-1">
-        {(!Array.isArray(fechamentosComissoes) || fechamentosComissoes.length === 0) ? (
-          <div className="text-center py-10 text-stone-400 text-xs font-bold">
-            Nenhum pagamento de comissão registrado ainda.
-          </div>
-        ) : (
-          fechamentosComissoes.map((item, idx) => {
-            const barbRel = Array.isArray(item.barbeiros) ? item.barbeiros[0] : item.barbeiros;
-            const barbLista = Array.isArray(barbeiros)
-              ? barbeiros.find((b) => String(b.id) === String(item.barbeiro_id))
-              : null;
-
-            const nomeProf = barbRel?.nome || barbLista?.nome || item.barbeiro_nome || 'Profissional';
-            const fotoProf = barbRel?.foto || barbLista?.foto || null;
-            const valorPago = Number(item.valor_comissao || 0).toFixed(2);
-            const valorBruto = Number(item.valor_bruto || 0).toFixed(2);
-            const qtd = Number(item.qtd_atendimentos || 0);
-            const pct = Number(item.porcentagem_aplicada || 0);
-
-            let dataFormatada = item.periodo_referencia || '';
-            const rawDate = item.created_at || item.data;
-            if (rawDate) {
-              const d = new Date(rawDate);
-              if (!Number.isNaN(d.getTime())) {
-                dataFormatada = d.toLocaleDateString('pt-BR');
-              }
-            }
-
-            return (
-              <div
-                key={item.id || idx}
-                className="p-3.5 rounded-2xl bg-stone-50 border border-stone-200/80 flex items-center justify-between gap-3"
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  {fotoProf ? (
-                    <img src={fotoProf} alt={nomeProf} className="w-9 h-9 rounded-xl object-cover border shrink-0" />
-                  ) : (
-                    <div className="w-9 h-9 rounded-xl bg-stone-900 text-white font-black flex items-center justify-center text-xs shrink-0">
-                      {nomeProf.charAt(0)}
-                    </div>
-                  )}
-                  <div className="min-w-0">
-                    <p className="text-xs font-black text-stone-900 truncate">{nomeProf}</p>
-                    <p className="text-[10px] text-stone-500">
-                      {dataFormatada ? `${dataFormatada} • ` : ''}
-                      {qtd} atendimento(s) ({pct}%)
-                    </p>
-                  </div>
-                </div>
-
-                <div className="text-right shrink-0">
-                  <span className="text-xs font-black text-emerald-600 block">R$ {valorPago}</span>
-                  <span className="text-[9px] text-stone-400">Bruto: R$ {valorBruto}</span>
-                </div>
+        <div className="fixed inset-0 bg-stone-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-5 sm:p-6 max-w-lg w-full border border-stone-200 space-y-4 max-h-[85vh] flex flex-col">
+            <div className="flex items-center justify-between pb-3 border-b border-stone-100 shrink-0">
+              <div>
+                <h3 className="text-sm font-black text-stone-900">Histórico de Comissões Pagas</h3>
+                <p className="text-[11px] text-stone-500">Registros de fechamentos realizados</p>
               </div>
-            );
-          })
-        )}
-      </div>
+              <button
+                type="button"
+                onClick={() => setModalHistoricoFechamentos(false)}
+                className="w-8 h-8 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-800 flex items-center justify-center cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
 
-      <button
-        type="button"
-        onClick={() => setModalHistoricoFechamentos(false)}
-        className="w-full py-2.5 rounded-2xl bg-stone-900 text-white text-xs font-black cursor-pointer shrink-0"
-      >
-        Fechar
-      </button>
-    </div>
-  </div>
-)}
+            <div className="space-y-2.5 overflow-y-auto pr-1 flex-1">
+              {(!Array.isArray(fechamentosComissoes) || fechamentosComissoes.length === 0) ? (
+                <div className="text-center py-10 text-stone-400 text-xs font-bold">
+                  Nenhum pagamento de comissão registrado ainda.
+                </div>
+              ) : (
+                fechamentosComissoes.map((item, idx) => {
+                  const barbRel = Array.isArray(item.barbeiros) ? item.barbeiros[0] : item.barbeiros;
+                  const barbLista = Array.isArray(barbeiros)
+                    ? barbeiros.find((b) => String(b.id) === String(item.barbeiro_id))
+                    : null;
+
+                  const nomeProf = barbRel?.nome || barbLista?.nome || item.barbeiro_nome || 'Profissional';
+                  const fotoProf = barbRel?.foto || barbLista?.foto || null;
+                  const valorPago = Number(item.valor_comissao || 0).toFixed(2);
+                  const valorBruto = Number(item.valor_bruto || 0).toFixed(2);
+                  const qtd = Number(item.qtd_atendimentos || 0);
+                  const pct = Number(item.porcentagem_aplicada || 0);
+
+                  let dataFormatada = item.periodo_referencia || '';
+                  const rawDate = item.created_at || item.data;
+                  if (rawDate) {
+                    const d = new Date(rawDate);
+                    if (!Number.isNaN(d.getTime())) {
+                      dataFormatada = d.toLocaleDateString('pt-BR');
+                    }
+                  }
+
+                  return (
+                    <div
+                      key={item.id || idx}
+                      className="p-3.5 rounded-2xl bg-stone-50 border border-stone-200/80 flex items-center justify-between gap-3"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        {fotoProf ? (
+                          <img src={fotoProf} alt={nomeProf} className="w-9 h-9 rounded-xl object-cover border shrink-0" />
+                        ) : (
+                          <div className="w-9 h-9 rounded-xl bg-stone-900 text-white font-black flex items-center justify-center text-xs shrink-0">
+                            {nomeProf.charAt(0)}
+                          </div>
+                        )}
+                        <div className="min-w-0">
+                          <p className="text-xs font-black text-stone-900 truncate">{nomeProf}</p>
+                          <p className="text-[10px] text-stone-500">
+                            {dataFormatada ? `${dataFormatada} • ` : ''}
+                            {qtd} atendimento(s) ({pct}%)
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="text-right shrink-0">
+                        <span className="text-xs font-black text-emerald-600 block">R$ {valorPago}</span>
+                        <span className="text-[9px] text-stone-400">Bruto: R$ {valorBruto}</span>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setModalHistoricoFechamentos(false)}
+              className="w-full py-2.5 rounded-2xl bg-stone-900 text-white text-xs font-black cursor-pointer shrink-0"
+            >
+              Fechar
+            </button>
+          </div>
+        </div>
+      )}
 
       {modalConfirmacao.isOpen && (
         <div className="fixed inset-0 bg-stone-950/70 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-in fade-in duration-200 select-none">
@@ -2730,7 +2918,9 @@ const [searchTerm, setSearchTerm] = useState('');
 
               <div className="flex justify-between items-center pb-2 border-b border-slate-200/60 dark:border-slate-700/60">
                 <span className="text-slate-500 dark:text-slate-400">Valor:</span>
-                <span className="font-semibold text-slate-700 dark:text-slate-200">R$ 9,90 / mês</span>
+                <span className="font-semibold text-slate-700 dark:text-slate-200">
+                  R$ {valorAssinatura.toFixed(2).replace('.', ',')} / mês
+                </span>
               </div>
 
               <div className="flex justify-between items-center pb-2 border-b border-slate-200/60 dark:border-slate-700/60">
@@ -2767,226 +2957,246 @@ const [searchTerm, setSearchTerm] = useState('');
       {modalAssinaturaOpen && !loading && (
         <div className="fixed inset-0 bg-white/95 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl border border-stone-200 space-y-6">
-            <div className="flex justify-between items-center">
-              <div className="text-center space-y-2 border-b border-stone-100 pb-4">
-                <div className="w-12 h-12 bg-rose-100 text-rose-600 rounded-2xl flex items-center justify-center mx-auto shadow-inner mb-2">
-                  <Lock className="w-6 h-6" />
+            {pagamentoAprovadoBanner ? (
+              <div className="py-10 flex flex-col items-center justify-center text-center space-y-3 animate-in fade-in zoom-in-95 duration-200">
+                <div className="w-16 h-16 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center shadow-inner">
+                  <CheckCircle className="w-9 h-9" />
                 </div>
-                <h2 className="text-xl font-extrabold text-stone-900">Período de Teste Finalizado</h2>
-                <p className="text-xs text-stone-500 leading-relaxed max-w-sm mx-auto">
-                  Os seus 7 dias gratuitos expiraram. Para liberar o acesso completo ao painel e continuar utilizando os serviços, efetue o pagamento abaixo.
+                <h3 className="text-lg font-black text-stone-900">Pagamento Confirmado!</h3>
+                <p className="text-xs text-stone-500 max-w-xs leading-relaxed">
+                  Sua assinatura foi ativada com sucesso. Liberando acesso ao painel...
                 </p>
               </div>
-            </div>
-            
-            <div className="bg-stone-50 p-4 rounded-2xl border border-stone-200 flex justify-between items-center">
-              <div>
-                <span className="text-[11px] font-semibold text-stone-400 uppercase block">Plano Mensal Gestor</span>
-                <span className="text-base font-bold text-stone-900">Acesso Completo</span>
-              </div>
-              <span className="text-xl font-extrabold text-stone-900">R$ {valorAssinatura?.toFixed(2)}</span>
-            </div>
+            ) : (
+              <>
+                <div className="flex justify-between items-center">
+                  <div className="text-center space-y-2 border-b border-stone-100 pb-4 w-full relative">
+                    {!assinaturaExpirada && (
+                      <button
+                        type="button"
+                        onClick={() => setModalAssinaturaOpen(false)}
+                        className="absolute right-0 top-0 p-1.5 text-stone-400 hover:text-stone-700 rounded-lg cursor-pointer"
+                        title="Fechar"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
+                    <div className="w-12 h-12 bg-rose-100 text-rose-600 rounded-2xl flex items-center justify-center mx-auto shadow-inner mb-2">
+                      <Lock className="w-6 h-6" />
+                    </div>
+                    <h2 className="text-xl font-extrabold text-stone-900">
+                      {assinaturaExpirada ? 'Período de Teste Finalizado' : 'Assinar Plano Mensal'}
+                    </h2>
+                    <p className="text-xs text-stone-500 leading-relaxed max-w-sm mx-auto">
+                      {assinaturaExpirada
+                        ? 'Os seus 7 dias gratuitos expiraram. Para liberar o acesso completo ao painel e continuar utilizando os serviços, efetue o pagamento abaixo.'
+                        : 'Garanta acesso ilimitado ao painel do gestor e todos os recursos do sistema.'}
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="bg-stone-50 p-4 rounded-2xl border border-stone-200 flex justify-between items-center">
+                  <div>
+                    <span className="text-[11px] font-semibold text-stone-400 uppercase block">Plano Mensal Gestor</span>
+                    <span className="text-base font-bold text-stone-900">Acesso Completo</span>
+                  </div>
+                  <span className="text-xl font-extrabold text-stone-900">R$ {valorAssinatura?.toFixed(2).replace('.', ',')}</span>
+                </div>
 
-            <div className="grid grid-cols-3 gap-2 bg-stone-100 p-1.5 rounded-2xl">
-              <button
-                type="button"
-                onClick={() => setMetodoPagamento('pix')}
-                className={`py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${metodoPagamento === 'pix' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-500 hover:text-stone-800'}`}
-              >
-                Pix Instantâneo
-              </button>
-              <button
-                type="button"
-                onClick={() => setMetodoPagamento('credito')}
-                className={`py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${metodoPagamento === 'credito' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-500 hover:text-stone-800'}`}
-              >
-                Cartão Crédito
-              </button>
-              <button
-                type="button"
-                onClick={() => setMetodoPagamento('debito')}
-                className={`py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${metodoPagamento === 'debito' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-500 hover:text-stone-800'}`}
-              >
-                Cartão Débito
-              </button>
-            </div>
+                <div className="grid grid-cols-3 gap-2 bg-stone-100 p-1.5 rounded-2xl">
+                  <button
+                    type="button"
+                    onClick={() => setMetodoPagamento('pix')}
+                    className={`py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${metodoPagamento === 'pix' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-500 hover:text-stone-800'}`}
+                  >
+                    Pix Instantâneo
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMetodoPagamento('credito')}
+                    className={`py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${metodoPagamento === 'credito' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-500 hover:text-stone-800'}`}
+                  >
+                    Cartão Crédito
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMetodoPagamento('debito')}
+                    className={`py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${metodoPagamento === 'debito' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-500 hover:text-stone-800'}`}
+                  >
+                    Cartão Débito
+                  </button>
+                </div>
 
-            {metodoPagamento === 'pix' && (
-              <div className="space-y-4 text-center py-2">
-                {pixDataMP.qrCodeBase64 ? (
-                  <div className="space-y-3">
-                    <div className="bg-white p-3 inline-block rounded-2xl border border-stone-200 shadow-inner">
-                      <img
-                        src={`data:image/png;base64,${pixDataMP.qrCodeBase64}`}
-                        alt="QR Code Pix Mercado Pago"
-                        className="w-48 h-48 mx-auto object-contain"
+                {metodoPagamento === 'pix' && (
+                  <div className="space-y-4 text-center py-2">
+                    {pixDataMP.qrCodeBase64 ? (
+                      <div className="space-y-3">
+                        <div className="bg-white p-3 inline-block rounded-2xl border border-stone-200 shadow-inner">
+                          <img
+                            src={`data:image/png;base64,${pixDataMP.qrCodeBase64}`}
+                            alt="QR Code Pix Mercado Pago"
+                            className="w-48 h-48 mx-auto object-contain"
+                          />
+                        </div>
+                        <p className="text-xs text-stone-500">Escaneie o QR Code acima com o aplicativo do seu banco</p>
+                      </div>
+                    ) : (
+                      <div className="py-8 flex flex-col items-center justify-center gap-2 text-stone-400">
+                        <div className="w-6 h-6 border-2 border-sky-500 border-t-transparent rounded-full animate-spin" />
+                        <span className="text-xs">
+                          {gerandoPix ? 'A gerar Pix seguro via Mercado Pago...' : 'Preparando QR Code Pix...'}
+                        </span>
+                      </div>
+                    )}
+
+                    {pixDataMP.copiaECola && (
+                      <div className="space-y-3 w-full" onClick={(e) => e.stopPropagation()}>
+                        <div 
+                          onClick={async (e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            try {
+                              if (navigator.clipboard && navigator.clipboard.writeText) {
+                                await navigator.clipboard.writeText(pixDataMP.copiaECola);
+                              } else {
+                                const textarea = document.createElement('textarea');
+                                textarea.value = pixDataMP.copiaECola;
+                                document.body.appendChild(textarea);
+                                textarea.select();
+                                document.execCommand('copy');
+                                document.body.removeChild(textarea);
+                              }
+                              setCopiado(true);
+                              setTimeout(() => setCopiado(false), 3000);
+                            } catch (err) {
+                              alert('Erro ao copiar.');
+                            }
+                          }}
+                          className="p-3 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-600 break-all text-center select-all font-mono cursor-pointer hover:bg-stone-100 transition-colors shadow-inner"
+                          title="Clique para copiar"
+                        >
+                          {pixDataMP.copiaECola}
+                        </div>
+
+                        <div className="w-full space-y-3 mt-4 relative z-50">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              
+                              const texto = pixDataMP?.copiaECola;
+                              if (!texto) return;
+
+                              try {
+                                if (navigator.clipboard && navigator.clipboard.writeText) {
+                                  navigator.clipboard.writeText(texto);
+                                } else {
+                                  const textarea = document.createElement('textarea');
+                                  textarea.value = texto;
+                                  document.body.appendChild(textarea);
+                                  textarea.select();
+                                  document.execCommand('copy');
+                                  document.body.removeChild(textarea);
+                                }
+                                setCopiado(true);
+                                setTimeout(() => setCopiado(false), 3000);
+                              } catch (err) {
+                                alert('Copie manualmente o código selecionado.');
+                              }
+                            }}
+                            className="w-full bg-stone-900 hover:bg-stone-800 text-white py-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-lg relative z-50"
+                          >
+                            {copiado ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                            {copiado ? 'Código Pix Copiado com Sucesso!' : 'Copiar Código Pix'}
+                          </button>
+
+                          <div className="w-full py-3 px-4 rounded-xl bg-sky-50 border border-sky-200 flex items-center justify-center gap-2 text-sky-800 text-xs font-semibold">
+                            <div className="w-4 h-4 border-2 border-sky-600 border-t-transparent rounded-full animate-spin shrink-0" />
+                            <span>Aguardando confirmação automática do pagamento...</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {(metodoPagamento === 'credito' || metodoPagamento === 'debito') && (
+                  <form 
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      if (metodoPagamento === 'credito' || metodoPagamento === 'debito') {
+                        handleProcessarPagamentoMercadoPago(e);
+                      }
+                    }} 
+                    className="space-y-4"
+                  >
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-stone-600">Número do Cartão</label>
+                      <input
+                        type="text"
+                        placeholder="0000 0000 0000 0000"
+                        value={dadosCartao.numero}
+                        onChange={(e) => setDadosCartao({ ...dadosCartao, numero: e.target.value })}
+                        className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2.5 text-xs text-stone-800 focus:outline-none focus:ring-2 focus:ring-stone-900"
+                        required
                       />
                     </div>
-                    <p className="text-xs text-stone-500">Escaneie o QR Code acima com o aplicativo do seu banco</p>
-                  </div>
-                ) : (
-                  <div className="py-8 flex flex-col items-center justify-center gap-2 text-stone-400">
-                    <div className="w-6 h-6 border-2 border-sky-500 border-t-transparent rounded-full animate-spin" />
-                    <span className="text-xs">A gerar Pix seguro via Mercado Pago...</span>
-                  </div>
-                )}
 
-                {pixDataMP.copiaECola && (
-                  <div className="space-y-3 w-full" onClick={(e) => e.stopPropagation()}>
-                    <div 
-                      onClick={async (e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        try {
-                          if (navigator.clipboard && navigator.clipboard.writeText) {
-                            await navigator.clipboard.writeText(pixDataMP.copiaECola);
-                          } else {
-                            const textarea = document.createElement('textarea');
-                            textarea.value = pixDataMP.copiaECola;
-                            document.body.appendChild(textarea);
-                            textarea.select();
-                            document.execCommand('copy');
-                            document.body.removeChild(textarea);
-                          }
-                          setCopiado(true);
-                          setTimeout(() => setCopiado(false), 3000);
-                        } catch (err) {
-                          alert('Erro ao copiar.');
-                        }
-                      }}
-                      className="p-3 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-600 break-all text-center select-all font-mono cursor-pointer hover:bg-stone-100 transition-colors shadow-inner"
-                      title="Clique para copiar"
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-stone-600">Nome impresso no Cartão</label>
+                      <input
+                        type="text"
+                        placeholder="NOME COMO NO CARTÃO"
+                        value={dadosCartao.nome}
+                        onChange={(e) => setDadosCartao({ ...dadosCartao, nome: e.target.value })}
+                        className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2.5 text-xs text-stone-800 focus:outline-none focus:ring-2 focus:ring-stone-900"
+                        required
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <label className="text-xs font-semibold text-stone-600">Validade</label>
+                        <input
+                          type="text"
+                          placeholder="MM/AA"
+                          value={dadosCartao.validade}
+                          onChange={(e) => setDadosCartao({ ...dadosCartao, validade: e.target.value })}
+                          className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2.5 text-xs text-stone-800 focus:outline-none focus:ring-2 focus:ring-stone-900"
+                          required
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-xs font-semibold text-stone-600">CVV</label>
+                        <input
+                          type="password"
+                          placeholder="123"
+                          maxLength={4}
+                          value={dadosCartao.cvv}
+                          onChange={(e) => setDadosCartao({ ...dadosCartao, cvv: e.target.value })}
+                          className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2.5 text-xs text-stone-800 focus:outline-none focus:ring-2 focus:ring-stone-900"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={processandoPagamento}
+                      className="w-full bg-stone-900 hover:bg-stone-800 text-white font-bold py-3 rounded-xl transition duration-200 text-xs shadow-md cursor-pointer disabled:opacity-50 mt-2"
                     >
-                      {pixDataMP.copiaECola}
-                    </div>
-
-                    <div className="w-full space-y-3 mt-4 relative z-50">
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          
-                          const texto = pixDataMP?.copiaECola;
-                          if (!texto) return;
-
-                          try {
-                            if (navigator.clipboard && navigator.clipboard.writeText) {
-                              navigator.clipboard.writeText(texto);
-                            } else {
-                              const textarea = document.createElement('textarea');
-                              textarea.value = texto;
-                              document.body.appendChild(textarea);
-                              textarea.select();
-                              document.execCommand('copy');
-                              document.body.removeChild(textarea);
-                            }
-                            setCopiado(true);
-                            setTimeout(() => setCopiado(false), 3000);
-                          } catch (err) {
-                            alert('Copie manualmente o código selecionado.');
-                          }
-                        }}
-                        className="w-full bg-stone-900 hover:bg-stone-800 text-white py-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-lg relative z-50"
-                      >
-                        {copiado ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
-                        {copiado ? 'Código Pix Copiado com Sucesso!' : 'Copiar Código Pix'}
-                      </button>
-
-                      <div className="w-full h-2" />
-
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          handleProcessarPagamentoMercadoPago(e);
-                        }}
-                        disabled={processandoPagamento}
-                        className="w-full bg-sky-600 hover:bg-sky-700 text-white font-bold py-3 rounded-xl transition duration-200 text-xs shadow-md cursor-pointer disabled:opacity-50 relative z-10"
-                      >
-                        {processandoPagamento ? 'A verificar Pagamento...' : 'Já fiz o pagamento / Ativar Assinatura'}
-                      </button>
-                    </div>
-                  </div>
+                      {processandoPagamento ? 'A processar Pagamento...' : `Pagar R$ ${valorAssinatura.toFixed(2).replace('.', ',')}`}
+                    </button>
+                  </form>
                 )}
-              </div>
-            )}
-
-            {(metodoPagamento === 'credito' || metodoPagamento === 'debito') && (
-              <form 
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  if (metodoPagamento === 'credito' || metodoPagamento === 'debito') {
-                    handleProcessarPagamentoMercadoPago(e);
-                  }
-                }} 
-                className="space-y-4"
-              >
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-stone-600">Número do Cartão</label>
-                  <input
-                    type="text"
-                    placeholder="0000 0000 0000 0000"
-                    value={dadosCartao.numero}
-                    onChange={(e) => setDadosCartao({ ...dadosCartao, numero: e.target.value })}
-                    className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2.5 text-xs text-stone-800 focus:outline-none focus:ring-2 focus:ring-stone-900"
-                    required
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-stone-600">Nome impresso no Cartão</label>
-                  <input
-                    type="text"
-                    placeholder="NOME COMO NO CARTÃO"
-                    value={dadosCartao.nome}
-                    onChange={(e) => setDadosCartao({ ...dadosCartao, nome: e.target.value })}
-                    className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2.5 text-xs text-stone-800 focus:outline-none focus:ring-2 focus:ring-stone-900"
-                    required
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-stone-600">Validade</label>
-                    <input
-                      type="text"
-                      placeholder="MM/AA"
-                      value={dadosCartao.validade}
-                      onChange={(e) => setDadosCartao({ ...dadosCartao, validade: e.target.value })}
-                      className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2.5 text-xs text-stone-800 focus:outline-none focus:ring-2 focus:ring-stone-900"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-stone-600">CVV</label>
-                    <input
-                      type="password"
-                      placeholder="123"
-                      maxLength={4}
-                      value={dadosCartao.cvv}
-                      onChange={(e) => setDadosCartao({ ...dadosCartao, cvv: e.target.value })}
-                      className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2.5 text-xs text-stone-800 focus:outline-none focus:ring-2 focus:ring-stone-900"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={processandoPagamento}
-                  className="w-full bg-stone-900 hover:bg-stone-800 text-white font-bold py-3 rounded-xl transition duration-200 text-xs shadow-md cursor-pointer disabled:opacity-50 mt-2"
-                >
-                  {processandoPagamento ? 'A processar Pagamento...' : `Pagar R$ ${valorAssinatura.toFixed(2)}`}
-                </button>
-              </form>
+              </>
             )}
           </div>
         </div>
       )}
 
-{modalBarbeiroOpen && (
+      {modalBarbeiroOpen && (
         <div className="fixed inset-0 bg-stone-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-stone-200 space-y-6">
             <div className="flex justify-between items-center">
