@@ -373,6 +373,111 @@ export default function AdminDashboard() {
   const [produtos, setProdutos] = useState([]);
   const scrollRef = React.useRef(null);
 
+  // Controle automático do menu mobile ao abrir/fechar teclado (inclusive pela setinha)
+  const [tecladoMenuVisivel, setTecladoMenuVisivel] = useState(false);
+  const [inputMenuFocado, setInputMenuFocado] = useState(false);
+  const menuBlurTimeoutRef = React.useRef(null);
+  const menuAlturaBaseRef = React.useRef(0);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const vp = window.visualViewport;
+    const obterAlturaAtual = () => (vp ? vp.height : window.innerHeight);
+
+    const sincronizarAlturaBase = () => {
+      const atual = obterAlturaAtual();
+      if (!menuAlturaBaseRef.current || atual > menuAlturaBaseRef.current) {
+        menuAlturaBaseRef.current = atual;
+      }
+    };
+
+    sincronizarAlturaBase();
+
+    const avaliarViewportTeclado = () => {
+      const alturaAtual = obterAlturaAtual();
+      const base = menuAlturaBaseRef.current || alturaAtual;
+
+      if (alturaAtual >= base - 40) {
+        if (alturaAtual > base) {
+          menuAlturaBaseRef.current = alturaAtual;
+        }
+        setTecladoMenuVisivel(false);
+        setInputMenuFocado(false);
+        if (menuBlurTimeoutRef.current) {
+          clearTimeout(menuBlurTimeoutRef.current);
+        }
+        return;
+      }
+
+      const reducao = base - alturaAtual;
+      const limiteTeclado = Math.max(120, Math.round(base * 0.16));
+      const aberto = reducao > limiteTeclado;
+
+      setTecladoMenuVisivel(aberto);
+
+      if (!aberto) {
+        setInputMenuFocado(false);
+        if (menuBlurTimeoutRef.current) {
+          clearTimeout(menuBlurTimeoutRef.current);
+        }
+      }
+    };
+
+    const handleOrientacao = () => {
+      menuAlturaBaseRef.current = 0;
+      setTecladoMenuVisivel(false);
+      setInputMenuFocado(false);
+      setTimeout(() => {
+        sincronizarAlturaBase();
+        avaliarViewportTeclado();
+      }, 150);
+    };
+
+    const handleFocusIn = (e) => {
+      const tag = e.target?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || e.target?.isContentEditable) {
+        if (menuBlurTimeoutRef.current) clearTimeout(menuBlurTimeoutRef.current);
+        setInputMenuFocado(true);
+      }
+    };
+
+    const handleFocusOut = (e) => {
+      const tag = e.target?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || e.target?.isContentEditable) {
+        if (menuBlurTimeoutRef.current) clearTimeout(menuBlurTimeoutRef.current);
+        menuBlurTimeoutRef.current = setTimeout(() => {
+          setInputMenuFocado(false);
+        }, 150);
+      }
+    };
+
+    vp?.addEventListener('resize', avaliarViewportTeclado);
+    vp?.addEventListener('scroll', avaliarViewportTeclado);
+    window.addEventListener('resize', avaliarViewportTeclado);
+    window.addEventListener('orientationchange', handleOrientacao);
+    document.addEventListener('focusin', handleFocusIn);
+    document.addEventListener('focusout', handleFocusOut);
+
+    return () => {
+      vp?.removeEventListener('resize', avaliarViewportTeclado);
+      vp?.removeEventListener('scroll', avaliarViewportTeclado);
+      window.removeEventListener('resize', avaliarViewportTeclado);
+      window.removeEventListener('orientationchange', handleOrientacao);
+      document.removeEventListener('focusin', handleFocusIn);
+      document.removeEventListener('focusout', handleFocusOut);
+      if (menuBlurTimeoutRef.current) clearTimeout(menuBlurTimeoutRef.current);
+    };
+  }, []);
+
+  const esconderMenuMobilePorTeclado = tecladoMenuVisivel || inputMenuFocado;
+
+  useEffect(() => {
+    if (esconderMenuMobilePorTeclado) {
+      setMobileMenuOpen(false);
+    }
+  }, [esconderMenuMobilePorTeclado]);
+
   useEffect(() => {
     if (activeTab === 'despesas' && scrollRef.current) {
       const elementoAtivo = scrollRef.current.querySelector('[data-selecionado="true"]');
@@ -1359,77 +1464,77 @@ export default function AdminDashboard() {
         </header>
       </div>
 
-      
-      <nav id="menu-mobile-bottom" className="fixed bottom-0 left-0 right-0 z-40 md:hidden pb-safe">
-        <div className="bg-white border-t border-slate-200/80 shadow-[0_-8px_25px_rgba(0,0,0,0.08)] rounded-t-[1.75rem] px-3 pt-2 pb-3 relative">
-          <div className="grid grid-cols-5 items-center justify-items-center max-w-md mx-auto">
+      {!esconderMenuMobilePorTeclado && (
+        <nav id="menu-mobile-bottom" className="fixed bottom-0 left-0 right-0 z-40 md:hidden pb-safe transition-opacity duration-150">
+          <div className="bg-white border-t border-slate-200/80 shadow-[0_-8px_25px_rgba(0,0,0,0.08)] rounded-t-[1.75rem] px-3 pt-2 pb-3 relative">
+            <div className="grid grid-cols-5 items-center justify-items-center max-w-md mx-auto">
 
-            <button
-              type="button"
-              onClick={() => setActiveTab('financeiro')}
-              className={`flex flex-col items-center justify-center gap-1 transition-all cursor-pointer ${
-                activeTab === 'financeiro' ? 'text-slate-900 font-extrabold' : 'text-slate-500 font-medium hover:text-slate-800'
-              }`}
-            >
-              <TrendingUp className={`w-5 h-5 ${activeTab === 'financeiro' ? 'text-slate-900 stroke-[2.5]' : 'text-slate-500'}`} />
-              <span className="text-[10px] tracking-tight">Financeiro</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveTab('agendamentos')}
-              className={`flex flex-col items-center justify-center gap-1 transition-all cursor-pointer ${
-                activeTab === 'agendamentos' ? 'text-slate-900 font-extrabold' : 'text-slate-500 font-medium hover:text-slate-800'
-              }`}
-            >
-              <Calendar className={`w-5 h-5 ${activeTab === 'agendamentos' ? 'text-slate-900 stroke-[2.5]' : 'text-slate-500'}`} />
-              <span className="text-[10px] tracking-tight">Agenda</span>
-            </button>
-
-            <div className="relative -top-5 flex flex-col items-center justify-center">
               <button
                 type="button"
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className={`w-14 h-14 rounded-full bg-slate-900 text-white flex items-center justify-center shadow-lg transition-all active:scale-90 cursor-pointer border-[3.5px] border-white ring-2 ${
-                  mobileMenuOpen ? 'ring-slate-900 bg-black scale-105' : 'ring-slate-200 hover:bg-black'
+                onClick={() => setActiveTab('financeiro')}
+                className={`flex flex-col items-center justify-center gap-1 transition-all cursor-pointer ${
+                  activeTab === 'financeiro' ? 'text-slate-900 font-extrabold' : 'text-slate-500 font-medium hover:text-slate-800'
                 }`}
-                aria-label="Abrir Menu de Apps"
               >
-                <Menu className={`w-6 h-6 text-white transition-transform duration-200 ${mobileMenuOpen ? 'rotate-90' : ''}`} />
+                <TrendingUp className={`w-5 h-5 ${activeTab === 'financeiro' ? 'text-slate-900 stroke-[2.5]' : 'text-slate-500'}`} />
+                <span className="text-[10px] tracking-tight">Financeiro</span>
               </button>
-              <span className="text-[10px] pt-2 font-extrabold text-slate-800 tracking-tight">
-                Menu
-              </span>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('agendamentos')}
+                className={`flex flex-col items-center justify-center gap-1 transition-all cursor-pointer ${
+                  activeTab === 'agendamentos' ? 'text-slate-900 font-extrabold' : 'text-slate-500 font-medium hover:text-slate-800'
+                }`}
+              >
+                <Calendar className={`w-5 h-5 ${activeTab === 'agendamentos' ? 'text-slate-900 stroke-[2.5]' : 'text-slate-500'}`} />
+                <span className="text-[10px] tracking-tight">Agenda</span>
+              </button>
+
+              <div className="relative -top-5 flex flex-col items-center justify-center">
+                <button
+                  type="button"
+                  onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                  className={`w-14 h-14 rounded-full bg-slate-900 text-white flex items-center justify-center shadow-lg transition-all active:scale-90 cursor-pointer border-[3.5px] border-white ring-2 ${
+                    mobileMenuOpen ? 'ring-slate-900 bg-black scale-105' : 'ring-slate-200 hover:bg-black'
+                  }`}
+                  aria-label="Abrir Menu de Apps"
+                >
+                  <Menu className={`w-6 h-6 text-white transition-transform duration-200 ${mobileMenuOpen ? 'rotate-90' : ''}`} />
+                </button>
+                <span className="text-[10px] pt-2 font-extrabold text-slate-800 tracking-tight">
+                  Menu
+                </span>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('fidelidade')}
+                className={`flex flex-col items-center justify-center gap-1 transition-all cursor-pointer ${
+                  activeTab === 'fidelidade' ? 'text-slate-900 font-extrabold' : 'text-slate-500 font-medium hover:text-slate-800'
+                }`}
+              >
+                <Users className={`w-5 h-5 ${activeTab === 'fidelidade' ? 'text-slate-900 stroke-[2.5]' : 'text-slate-500'}`} />
+                <span className="text-[10px] tracking-tight">Clientes</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('configuracoes')}
+                className={`flex flex-col items-center justify-center gap-1 transition-all cursor-pointer ${
+                  activeTab === 'configuracoes' ? 'text-slate-900 font-extrabold' : 'text-slate-500 font-medium hover:text-slate-800'
+                }`}
+              >
+                <Settings className={`w-5 h-5 ${activeTab === 'configuracoes' ? 'text-slate-900 stroke-[2.5]' : 'text-slate-500'}`} />
+                <span className="text-[10px] tracking-tight">Ajustes</span>
+              </button>
+
             </div>
-
-            <button
-              type="button"
-              onClick={() => setActiveTab('fidelidade')}
-              className={`flex flex-col items-center justify-center gap-1 transition-all cursor-pointer ${
-                activeTab === 'fidelidade' ? 'text-slate-900 font-extrabold' : 'text-slate-500 font-medium hover:text-slate-800'
-              }`}
-            >
-              <Users className={`w-5 h-5 ${activeTab === 'fidelidade' ? 'text-slate-900 stroke-[2.5]' : 'text-slate-500'}`} />
-              <span className="text-[10px] tracking-tight">Clientes</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveTab('configuracoes')}
-              className={`flex flex-col items-center justify-center gap-1 transition-all cursor-pointer ${
-                activeTab === 'configuracoes' ? 'text-slate-900 font-extrabold' : 'text-slate-500 font-medium hover:text-slate-800'
-              }`}
-            >
-              <Settings className={`w-5 h-5 ${activeTab === 'configuracoes' ? 'text-slate-900 stroke-[2.5]' : 'text-slate-500'}`} />
-              <span className="text-[10px] tracking-tight">Ajustes</span>
-            </button>
-
           </div>
-        </div>
-      </nav>
-      
+        </nav>
+      )}
 
-      {mobileMenuOpen && (
+      {mobileMenuOpen && !esconderMenuMobilePorTeclado && (
         <div className="fixed inset-0 z-[60] flex md:hidden items-end justify-center">
           <div 
             onClick={fecharMenuMobile} 
