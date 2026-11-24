@@ -53,6 +53,7 @@ import {
 import { supabase } from '@/lib/supabase';
 import { Capacitor } from '@capacitor/core';
 import { PushNotifications } from '@capacitor/push-notifications';
+import { Keyboard } from '@capacitor/keyboard';
 
 import ConfiguracoesBarbearia from '@/components/ConfiguracoesBarbearia';
 import PainelAgendaDia from '@/components/PainelAgendaDia';
@@ -373,190 +374,71 @@ export default function AdminDashboard() {
   const [produtos, setProdutos] = useState([]);
   const scrollRef = React.useRef(null);
 
-  // Controle automático do menu mobile ao abrir/fechar teclado (inclusive pela setinha)
+  // Controlo automático do menu mobile no Capacitor (e fallback web) ao abrir/fechar teclado
   const [tecladoMenuVisivel, setTecladoMenuVisivel] = useState(false);
-  const [inputMenuFocado, setInputMenuFocado] = useState(false);
-  const menuBlurTimeoutRef = React.useRef(null);
   const menuAlturaBaseRef = React.useRef(0);
-  const menuAlturaComTecladoRef = React.useRef(0);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    const vp = window.visualViewport;
-    const obterAlturaAtual = () => {
-      if (vp && typeof vp.height === 'number' && vp.height > 0) {
-        return Math.min(vp.height, window.innerHeight || vp.height);
+    let showListener;
+    let hideListener;
+    let ativo = true;
+
+    const registrarEventosCapacitor = async () => {
+      try {
+        if (Capacitor.isNativePlatform()) {
+          showListener = await Keyboard.addListener('keyboardWillShow', () => {
+            if (ativo) setTecladoMenuVisivel(true);
+          });
+
+          hideListener = await Keyboard.addListener('keyboardWillHide', () => {
+            if (ativo) setTecladoMenuVisivel(false);
+          });
+        }
+      } catch (err) {
+        console.error('Erro ao registar eventos do teclado Capacitor:', err);
       }
-      return window.innerHeight || document.documentElement.clientHeight || 0;
     };
 
-    const sincronizarAlturaBase = () => {
-      const atual = obterAlturaAtual();
-      if (atual > 0 && (!menuAlturaBaseRef.current || atual > menuAlturaBaseRef.current)) {
+    registrarEventosCapacitor();
+
+    const vp = window.visualViewport;
+    const obterAltura = () => (vp ? vp.height : window.innerHeight);
+
+    const atualizarBase = () => {
+      const atual = obterAltura();
+      if (!menuAlturaBaseRef.current || atual > menuAlturaBaseRef.current) {
         menuAlturaBaseRef.current = atual;
       }
     };
 
-    sincronizarAlturaBase();
+    atualizarBase();
 
-    const avaliarViewportTeclado = () => {
-      const alturaAtual = obterAlturaAtual();
-      if (!alturaAtual) return;
+    const avaliarViewport = () => {
+      if (Capacitor.isNativePlatform()) return;
+      const atual = obterAltura();
+      const base = menuAlturaBaseRef.current || atual;
+      if (atual > base) menuAlturaBaseRef.current = atual;
 
-      const base = menuAlturaBaseRef.current || alturaAtual;
-      if (alturaAtual > base) {
-        menuAlturaBaseRef.current = alturaAtual;
-      }
-
-      const elementoAtivo = document.activeElement;
-      const tagAtiva = elementoAtivo?.tagName;
-      const temCampoAtivo =
-        tagAtiva === 'INPUT' ||
-        tagAtiva === 'TEXTAREA' ||
-        tagAtiva === 'SELECT' ||
-        Boolean(elementoAtivo?.isContentEditable);
-
-      const reducao = menuAlturaBaseRef.current - alturaAtual;
-      const limiteTeclado = Math.max(110, Math.round(menuAlturaBaseRef.current * 0.14));
-      const tecladoAbertoPorAltura = reducao > limiteTeclado;
-
-      if (tecladoAbertoPorAltura) {
-        if (
-          !menuAlturaComTecladoRef.current ||
-          alturaAtual < menuAlturaComTecladoRef.current
-        ) {
-          menuAlturaComTecladoRef.current = alturaAtual;
-        }
-        setTecladoMenuVisivel(true);
-        return;
-      }
-
-      // Se a altura voltou a subir em relação ao estado com teclado (fechou pela setinha)
-      if (
-        menuAlturaComTecladoRef.current > 0 &&
-        alturaAtual >= menuAlturaComTecladoRef.current + 60
-      ) {
-        menuAlturaComTecladoRef.current = 0;
-        setTecladoMenuVisivel(false);
-        setInputMenuFocado(false);
-        return;
-      }
-
-      // Se a altura já está praticamente igual à base original
-      if (alturaAtual >= menuAlturaBaseRef.current - 45) {
-        menuAlturaComTecladoRef.current = 0;
-        setTecladoMenuVisivel(false);
-        if (!temCampoAtivo) {
-          setInputMenuFocado(false);
-        } else if (menuAlturaComTecladoRef.current === 0 && tecladoMenuVisivel) {
-          setTecladoMenuVisivel(false);
-          setInputMenuFocado(false);
-        }
-      }
+      const reducao = menuAlturaBaseRef.current - atual;
+      setTecladoMenuVisivel(reducao > 120);
     };
 
-    const handleOrientacao = () => {
-      menuAlturaBaseRef.current = 0;
-      menuAlturaComTecladoRef.current = 0;
-      setTecladoMenuVisivel(false);
-      setInputMenuFocado(false);
-      setTimeout(() => {
-        sincronizarAlturaBase();
-        avaliarViewportTeclado();
-      }, 180);
-    };
-
-    const handleFocusIn = (e) => {
-      const tag = e.target?.tagName;
-      if (
-        tag === 'INPUT' ||
-        tag === 'TEXTAREA' ||
-        tag === 'SELECT' ||
-        e.target?.isContentEditable
-      ) {
-        if (menuBlurTimeoutRef.current) clearTimeout(menuBlurTimeoutRef.current);
-        sincronizarAlturaBase();
-        setInputMenuFocado(true);
-        setTimeout(avaliarViewportTeclado, 120);
-        setTimeout(avaliarViewportTeclado, 320);
-      }
-    };
-
-    const handleFocusOut = (e) => {
-      const tag = e.target?.tagName;
-      if (
-        tag === 'INPUT' ||
-        tag === 'TEXTAREA' ||
-        tag === 'SELECT' ||
-        e.target?.isContentEditable
-      ) {
-        if (menuBlurTimeoutRef.current) clearTimeout(menuBlurTimeoutRef.current);
-        menuBlurTimeoutRef.current = setTimeout(() => {
-          const ativo = document.activeElement;
-          const aindaEmCampo =
-            ativo?.tagName === 'INPUT' ||
-            ativo?.tagName === 'TEXTAREA' ||
-            ativo?.tagName === 'SELECT' ||
-            Boolean(ativo?.isContentEditable);
-
-          if (!aindaEmCampo) {
-            menuAlturaComTecladoRef.current = 0;
-            setInputMenuFocado(false);
-            setTecladoMenuVisivel(false);
-          } else {
-            avaliarViewportTeclado();
-          }
-        }, 120);
-      }
-    };
-
-    const handleKeyDown = (e) => {
-      if (e.key === 'Escape') {
-        menuAlturaComTecladoRef.current = 0;
-        setTecladoMenuVisivel(false);
-        setInputMenuFocado(false);
-      }
-    };
-
-    // Polling leve apenas enquanto um input estiver focado no mobile (captura fechamento pela setinha sem evento de resize)
-    const intervaloPolling = setInterval(() => {
-      const ativo = document.activeElement;
-      const emCampo =
-        ativo?.tagName === 'INPUT' ||
-        ativo?.tagName === 'TEXTAREA' ||
-        ativo?.tagName === 'SELECT' ||
-        Boolean(ativo?.isContentEditable);
-
-      if (emCampo || tecladoMenuVisivel || inputMenuFocado) {
-        avaliarViewportTeclado();
-      }
-    }, 250);
-
-    vp?.addEventListener('resize', avaliarViewportTeclado);
-    vp?.addEventListener('scroll', avaliarViewportTeclado);
-    window.addEventListener('resize', avaliarViewportTeclado);
-    window.addEventListener('orientationchange', handleOrientacao);
-    window.addEventListener('popstate', handleOrientacao);
-    window.addEventListener('keydown', handleKeyDown);
-    document.addEventListener('focusin', handleFocusIn);
-    document.addEventListener('focusout', handleFocusOut);
+    vp?.addEventListener('resize', avaliarViewport);
+    window.addEventListener('resize', avaliarViewport);
 
     return () => {
-      clearInterval(intervaloPolling);
-      vp?.removeEventListener('resize', avaliarViewportTeclado);
-      vp?.removeEventListener('scroll', avaliarViewportTeclado);
-      window.removeEventListener('resize', avaliarViewportTeclado);
-      window.removeEventListener('orientationchange', handleOrientacao);
-      window.removeEventListener('popstate', handleOrientacao);
-      window.removeEventListener('keydown', handleKeyDown);
-      document.removeEventListener('focusin', handleFocusIn);
-      document.removeEventListener('focusout', handleFocusOut);
-      if (menuBlurTimeoutRef.current) clearTimeout(menuBlurTimeoutRef.current);
+      ativo = false;
+      showListener?.remove();
+      hideListener?.remove();
+      vp?.removeEventListener('resize', avaliarViewport);
+      window.removeEventListener('resize', avaliarViewport);
     };
-  }, [tecladoMenuVisivel, inputMenuFocado]);
+  }, []);
 
-  const esconderMenuMobilePorTeclado = tecladoMenuVisivel || inputMenuFocado;
+  const esconderMenuMobilePorTeclado = tecladoMenuVisivel;
+
   useEffect(() => {
     if (esconderMenuMobilePorTeclado) {
       setMobileMenuOpen(false);
