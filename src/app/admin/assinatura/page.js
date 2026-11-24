@@ -51,7 +51,7 @@ export default function GerenciarAssinaturaPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          transaction_amount: 9.90,
+          transaction_amount: 0.01,
           description: 'Renovação de Assinatura Mensal - Gestor',
           payer_email: 'exemplo@email.com',
           payer_name: 'Gestor'

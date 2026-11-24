@@ -9,6 +9,15 @@ import { renderizarMensagemConfirmacao } from '@/lib/mensagemWhatsapp';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://agendaestilo.com.br';
 
+function barbeiroExecutaServico(barbeiro, servicoId) {
+  if (!servicoId || !barbeiro) return true;
+  if (barbeiro.faz_todos_servicos !== false) return true;
+  if (!Array.isArray(barbeiro.servicos_ids) || barbeiro.servicos_ids.length === 0) {
+    return true;
+  }
+  return barbeiro.servicos_ids.map(String).includes(String(servicoId));
+}
+
 export default function AgendamentoChat({ barbeariaId }) {
   const [barbearia, setBarbearia] = useState(null);
   const [servicos, setServicos] = useState([]);
@@ -50,6 +59,10 @@ export default function AgendamentoChat({ barbeariaId }) {
   const tema = resolverTemaBarbearia(barbearia);
   const corTema = tema.cor_primaria || '#10b981';
   const corSecundaria = tema.cor_texto_secundario || '#94a3b8';
+
+  const barbeirosDisponiveis = servicoEscolhido
+    ? barbeiros.filter((b) => barbeiroExecutaServico(b, servicoEscolhido.id))
+    : barbeiros;
 
   const getEstiloBotao3D = (ativo = false) => ({
     background: ativo ? tema.botao_ativo_estilo : tema.botao_estilo,
@@ -510,8 +523,11 @@ export default function AgendamentoChat({ barbeariaId }) {
 
   const selecionarServico = (servico) => {
     setServicoEscolhido(servico);
+    setBarbeiroEscolhido(null);
+    setDataEscolhida('');
+    setHoraEscolhida('');
     setMensagens((prev) => [...prev, { remetente: 'usuario', texto: `${servico.nome} - R$ ${Number(servico.preco).toFixed(2)}` }]);
-    adicionarMensagemBotComDelay(`Perfeito! Escolheu ${servico.nome}. Agora, selecione o profissional de sua preferência:`, 'barbeiro');
+    adicionarMensagemBotComDelay(`Perfeito! Escolheu ${servico.nome}. Agora, selecione o profissional habilitado para este serviço:`, 'barbeiro');
   };
 
   const selecionarBarbeiro = (barbeiro) => {
@@ -548,38 +564,38 @@ export default function AgendamentoChat({ barbeariaId }) {
         lido: false
       }]);
 
-     try {
-  const telefoneFormatado = formatarTelefoneWhatsApp(telefone);
-  const dataFormatadaBR = dataFmt.split('-').reverse().join('/');
-  const nomeEstabelecimento = barbearia?.nome || 'AgendaEstilo';
-  const valorFormatadoBR = `R$ ${Number(servicoEscolhido?.preco || 0).toFixed(2).replace('.', ',')}`;
+      try {
+        const telefoneFormatado = formatarTelefoneWhatsApp(telefone);
+        const dataFormatadaBR = dataFmt.split('-').reverse().join('/');
+        const nomeEstabelecimento = barbearia?.nome || 'AgendaEstilo';
+        const valorFormatadoBR = `R$ ${Number(servicoEscolhido?.preco || 0).toFixed(2).replace('.', ',')}`;
 
-  const mensagemPersonalizada = renderizarMensagemConfirmacao(
-    barbearia?.mensagem_whatsapp_confirmacao,
-    {
-      cliente: nome,
-      local: nomeEstabelecimento,
-      servico: servicoEscolhido.nome,
-      profissional: barbeiroEscolhido?.nome || 'Profissional',
-      data: dataFormatadaBR,
-      hora: horaEscolhida,
-      valor: valorFormatadoBR,
-    }
-  );
+        const mensagemPersonalizada = renderizarMensagemConfirmacao(
+          barbearia?.mensagem_whatsapp_confirmacao,
+          {
+            cliente: nome,
+            local: nomeEstabelecimento,
+            servico: servicoEscolhido.nome,
+            profissional: barbeiroEscolhido?.nome || 'Profissional',
+            data: dataFormatadaBR,
+            hora: horaEscolhida,
+            valor: valorFormatadoBR,
+          }
+        );
 
-  await enviarMensagemWhatsApp({
-    phone: telefoneFormatado,
-    nomeCliente: nome,
-    servico: servicoEscolhido.nome,
-    data: dataFormatadaBR,
-    hora: horaEscolhida,
-    nomeBarbearia: nomeEstabelecimento,
-    slug: barbearia?.slug,
-    mensagem: mensagemPersonalizada,
-  });
-} catch (whatsErr) {
-  console.error('Erro ao enviar mensagem via WhatsApp:', whatsErr);
-}
+        await enviarMensagemWhatsApp({
+          phone: telefoneFormatado,
+          nomeCliente: nome,
+          servico: servicoEscolhido.nome,
+          data: dataFormatadaBR,
+          hora: horaEscolhida,
+          nomeBarbearia: nomeEstabelecimento,
+          slug: barbearia?.slug,
+          mensagem: mensagemPersonalizada,
+        });
+      } catch (whatsErr) {
+        console.error('Erro ao enviar mensagem via WhatsApp:', whatsErr);
+      }
 
       try {
         const { data: barbData } = await supabase
@@ -1054,33 +1070,54 @@ export default function AgendamentoChat({ barbeariaId }) {
           )}
 
           {etapa === 'barbeiro' && !estaDigitando && (
-            <div className="grid grid-cols-2 gap-3 pt-2">
-              {barbeiros.map((b) => {
-                const isSelected = barbeiroEscolhido?.id === b.id;
-                const foto = b.foto || b.avatar || b.imagem;
-                return (
+            <div className="space-y-2.5 pt-2">
+              {barbeirosDisponiveis.length === 0 ? (
+                <div
+                  className="p-4 rounded-2xl border text-center space-y-2"
+                  style={{ backgroundColor: tema.cor_card, borderColor: tema.cor_borda }}
+                >
+                  <p className="text-xs font-bold">Nenhum profissional disponível para este serviço no momento.</p>
                   <button
-                    key={b.id}
-                    onClick={() => selecionarBarbeiro(b)}
-                    style={getEstiloBotao3D(isSelected)}
-                    className="p-3.5 rounded-3xl border text-left flex flex-col items-center text-center transition-all cursor-pointer group hover:scale-[1.02] active:scale-98"
+                    onClick={() => {
+                      setServicoEscolhido(null);
+                      setEtapa('servico');
+                    }}
+                    style={getEstiloBotao3D(false)}
+                    className="px-4 py-2 rounded-full border text-xs font-black cursor-pointer"
                   >
-                    <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden border-2 border-white/60 mb-3 shadow-lg relative">
-                      {foto ? (
-                        <img src={foto} alt={b.nome} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center font-black text-lg bg-black/20">
-                          {b.nome?.charAt(0)}
-                        </div>
-                      )}
-                    </div>
-                    <p className="text-xs font-black tracking-tight line-clamp-1">{b.nome}</p>
-                    <span className="text-[9px] font-bold mt-0.5 px-2.5 py-0.5 rounded-full bg-black/15">
-                      Profissional
-                    </span>
+                    Escolher outro serviço
                   </button>
-                );
-              })}
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  {barbeirosDisponiveis.map((b) => {
+                    const isSelected = barbeiroEscolhido?.id === b.id;
+                    const foto = b.foto || b.avatar || b.imagem;
+                    return (
+                      <button
+                        key={b.id}
+                        onClick={() => selecionarBarbeiro(b)}
+                        style={getEstiloBotao3D(isSelected)}
+                        className="p-3.5 rounded-3xl border text-left flex flex-col items-center text-center transition-all cursor-pointer group hover:scale-[1.02] active:scale-98"
+                      >
+                        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden border-2 border-white/60 mb-3 shadow-lg relative">
+                          {foto ? (
+                            <img src={foto} alt={b.nome} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center font-black text-lg bg-black/20">
+                              {b.nome?.charAt(0)}
+                            </div>
+                          )}
+                        </div>
+                        <p className="text-xs font-black tracking-tight line-clamp-1">{b.nome}</p>
+                        <span className="text-[9px] font-bold mt-0.5 px-2.5 py-0.5 rounded-full bg-black/15">
+                          Profissional
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
 

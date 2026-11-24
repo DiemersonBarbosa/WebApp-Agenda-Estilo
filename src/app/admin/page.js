@@ -561,7 +561,6 @@ export default function AdminDashboard() {
       return;
     }
 
-    // Trava absoluta: impede múltiplas mensagens ou execuções duplicadas
     if (pagamentoConfirmadoRef.current) return;
     pagamentoConfirmadoRef.current = true;
 
@@ -582,7 +581,6 @@ export default function AdminDashboard() {
     if (!barbearia?.id) return null;
 
     try {
-      // 1. Checa se o webhook do Mercado Pago já marcou a barbearia como 'ativo' e vigente no banco
       const { data: barbData } = await supabase
         .from('barbearias')
         .select('status_assinatura, data_inicio_assinatura, data_vencimento')
@@ -606,7 +604,6 @@ export default function AdminDashboard() {
         }
       }
 
-      // 2. Se houver um paymentId gerado nesta sessão, consulta diretamente o backend
       if (pixDataMP?.paymentId) {
         const baseUrl =
           typeof window !== 'undefined' &&
@@ -771,7 +768,6 @@ export default function AdminDashboard() {
     barbearia?.id
   ]);
 
-  // Escuta automática em tempo real + polling seguro enquanto o modal estiver aberto
   useEffect(() => {
     if (!barbearia?.id || !modalAssinaturaOpen || pagamentoConfirmadoRef.current) return;
 
@@ -1056,7 +1052,6 @@ export default function AdminDashboard() {
     router.push('/admin');
   };
 
-  // Processa pagamento apenas mediante comprovação real da API/Webhook (nunca libera sem status aprovado)
   const handleProcessarPagamentoMercadoPago = async (e) => {
     if (e) e.preventDefault();
     if (processandoPagamento || pagamentoConfirmadoRef.current) return;
@@ -1148,6 +1143,19 @@ export default function AdminDashboard() {
   const [nome, setNome] = useState('');
   const [especialidade, setEspecialidade] = useState('');
   const [taxaComissao, setTaxaComissao] = useState('');
+  const [fazTodosServicos, setFazTodosServicos] = useState(true);
+  const [servicosIds, setServicosIds] = useState([]);
+
+  const toggleServicoBarbeiro = (servicoId) => {
+    const idStr = String(servicoId);
+    setServicosIds((prev) => {
+      const exists = prev.map(String).includes(idStr);
+      if (exists) {
+        return prev.filter((item) => String(item) !== idStr);
+      }
+      return [...prev, servicoId];
+    });
+  };
 
   const handleUploadFoto = async (e) => {
     const arquivo = e.target.files[0];
@@ -1266,12 +1274,16 @@ export default function AdminDashboard() {
       setEspecialidade(barbeiro.especialidade || '');
       setTaxaComissao(barbeiro.taxa_comissao || '');
       setFotoUrl(barbeiro.foto || '');
+      setFazTodosServicos(barbeiro.faz_todos_servicos !== false);
+      setServicosIds(Array.isArray(barbeiro.servicos_ids) ? barbeiro.servicos_ids : []);
     } else {
       setBarbeiroParaEditar(null);
       setNome('');
       setEspecialidade('');
       setTaxaComissao('');
       setFotoUrl('');
+      setFazTodosServicos(true);
+      setServicosIds([]);
     }
     setModalBarbeiroOpen(true);
   };
@@ -1279,16 +1291,30 @@ export default function AdminDashboard() {
   const handleSaveBarbeiro = async (e) => {
     e.preventDefault();
 
+    if (!fazTodosServicos && servicosIds.length === 0) {
+      setModalFeedback({
+        isOpen: true,
+        tipo: 'erro',
+        titulo: 'Seleção Obrigatória',
+        mensagem: 'Selecione pelo menos um serviço para este profissional ou marque "Executa todos os serviços da barbearia".'
+      });
+      return;
+    }
+
     try {
       const dadosBarbeiro = {
         barbearia_id: barbearia?.id,
         nome,
         especialidade,
         taxa_comissao: Number(taxaComissao) || 0,
-        foto: fotoUrl
+        foto: fotoUrl,
+        faz_todos_servicos: fazTodosServicos,
+        servicos_ids: fazTodosServicos ? [] : servicosIds.map((id) => String(id)),
       };
 
-      if (barbeiroParaEditar?.id) {
+      const estaEditando = Boolean(barbeiroParaEditar?.id);
+
+      if (estaEditando) {
         const { error } = await supabase
           .from('barbeiros')
           .update(dadosBarbeiro)
@@ -1302,11 +1328,24 @@ export default function AdminDashboard() {
       }
 
       setModalBarbeiroOpen(false);
-      loadDashboardData(barbearia.id);
-      alert('Profissional salvo com sucesso!');
+      await loadDashboardData(barbearia.id);
+
+      setModalFeedback({
+        isOpen: true,
+        tipo: 'sucesso',
+        titulo: estaEditando ? 'Profissional Atualizado' : 'Profissional Cadastrado',
+        mensagem: estaEditando
+          ? `Os dados e os serviços de ${nome} foram atualizados com sucesso.`
+          : `${nome} foi adicionado à equipe com sucesso.`
+      });
     } catch (err) {
       console.error('ERRO DETALHADO SUPABASE:', JSON.stringify(err, null, 2));
-      alert('Erro ao salvar: ' + (err.message || JSON.stringify(err)));
+      setModalFeedback({
+        isOpen: true,
+        tipo: 'erro',
+        titulo: 'Não Foi Possível Salvar',
+        mensagem: err?.message || 'Ocorreu um erro inesperado ao salvar os dados do profissional. Tente novamente.'
+      });
     }
   };
 
@@ -2600,6 +2639,12 @@ export default function AdminDashboard() {
                   ) : (
                     barbeiros.map((b) => {
                       const isMenuAcessoAberto = openAcessoId === b.id;
+                      const fazTodos = b.faz_todos_servicos !== false || !Array.isArray(b.servicos_ids) || b.servicos_ids.length === 0;
+                      const nomesServicosVinculados = fazTodos
+                        ? ['Todos os serviços']
+                        : servicos
+                            .filter((srv) => b.servicos_ids.map(String).includes(String(srv.id)))
+                            .map((srv) => srv.nome);
 
                       return (
                         <div 
@@ -2654,6 +2699,20 @@ export default function AdminDashboard() {
                             <span className="text-xs sm:text-sm font-black text-stone-900">
                               {b.taxa_comissao || 50}%
                             </span>
+                          </div>
+
+                          <div className="pt-2 border-t border-stone-100 space-y-1.5">
+                            <span className="text-[10px] font-black text-stone-400 uppercase tracking-wider block">Serviços Habilitados</span>
+                            <div className="flex flex-wrap gap-1.5">
+                              {nomesServicosVinculados.map((nomeSrv, idx) => (
+                                <span
+                                  key={idx}
+                                  className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-stone-100 text-stone-700 border border-stone-200/80"
+                                >
+                                  {nomeSrv}
+                                </span>
+                              ))}
+                            </div>
                           </div>
 
                           <div className="pt-2">
@@ -3270,7 +3329,7 @@ export default function AdminDashboard() {
 
       {modalBarbeiroOpen && (
         <div className="fixed inset-0 bg-stone-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-stone-200 space-y-6">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-stone-200 space-y-6 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center">
               <h3 className="font-bold text-stone-900 text-lg">{barbeiroParaEditar ? 'Editar Profissional' : 'Novo Barbeiro'}</h3>
               <button onClick={() => setModalBarbeiroOpen(false)} className="p-1 text-stone-400 hover:text-stone-600 rounded-lg cursor-pointer">
@@ -3323,6 +3382,64 @@ export default function AdminDashboard() {
                     className="w-full text-xs text-stone-500 file:mr-2 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-stone-100 file:text-stone-700 hover:file:bg-stone-200 cursor-pointer"
                   />
                 </div>
+              </div>
+
+              <div className="space-y-2.5 p-3.5 rounded-2xl bg-stone-50 border border-stone-200/90">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-stone-800">Serviços que este profissional realiza</label>
+                </div>
+
+                <label className="flex items-center gap-2.5 text-xs font-semibold text-stone-800 cursor-pointer select-none pt-1">
+                  <input
+                    type="checkbox"
+                    checked={fazTodosServicos}
+                    onChange={(e) => {
+                      const marcado = e.target.checked;
+                      setFazTodosServicos(marcado);
+                      if (marcado) {
+                        setServicosIds([]);
+                      }
+                    }}
+                    className="w-4 h-4 rounded accent-stone-900 cursor-pointer"
+                  />
+                  <span>Executa todos os serviços da barbearia</span>
+                </label>
+
+                {!fazTodosServicos && (
+                  <div className="pt-2 border-t border-stone-200/70 space-y-2">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-stone-500 block">
+                      Marque os serviços permitidos:
+                    </span>
+                    {servicos.length === 0 ? (
+                      <p className="text-[11px] text-stone-400 italic">Nenhum serviço cadastrado ainda.</p>
+                    ) : (
+                      <div className="max-h-40 overflow-y-auto space-y-1.5 pr-1">
+                        {servicos.map((srv) => {
+                          const selecionado = servicosIds.map(String).includes(String(srv.id));
+                          return (
+                            <label
+                              key={srv.id}
+                              className="flex items-center justify-between p-2 rounded-xl bg-white border border-stone-200/80 text-xs cursor-pointer hover:bg-stone-100/60"
+                            >
+                              <div className="flex items-center gap-2 min-w-0">
+                                <input
+                                  type="checkbox"
+                                  checked={selecionado}
+                                  onChange={() => toggleServicoBarbeiro(srv.id)}
+                                  className="w-4 h-4 rounded accent-stone-900 cursor-pointer"
+                                />
+                                <span className="font-bold text-stone-800 truncate">{srv.nome}</span>
+                              </div>
+                              <span className="text-[10px] font-bold text-stone-500 shrink-0 ml-2">
+                                R$ {Number(srv.preco).toFixed(2)}
+                              </span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {uploading && (

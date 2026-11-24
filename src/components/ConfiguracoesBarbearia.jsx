@@ -6,7 +6,7 @@ import {
   Send, X, MessageSquare, Bot, Grid, Palette,
   Clock, Trash2, Upload, Image as ImageIcon,
   Link as LinkIcon, Timer, Mail, Lock, CalendarOff, Globe,
-  ZoomIn, ZoomOut, RotateCcw, Copy, Eye, EyeOff, ShieldCheck, Building2
+  ZoomIn, ZoomOut, RotateCcw, Copy, Eye, EyeOff, ShieldCheck, Building2, Scissors
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import {
@@ -159,9 +159,11 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
     domingo: { ativo: false },
   });
 
+  const [servicosBarbearia, setServicosBarbearia] = useState([]);
   const [barbeiros, setBarbeiros] = useState([]);
   const [barbeiroSelecionado, setBarbeiroSelecionado] = useState(null);
   const [horariosBarbeiro, setHorariosBarbeiro] = useState({});
+  const [servicosBarbeiro, setServicosBarbeiro] = useState([]);
 
   const [listaBloqueios, setListaBloqueios] = useState([]);
   const [novaDataBloqueio, setNovaDataBloqueio] = useState('');
@@ -241,24 +243,56 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
   }, []);
 
   useEffect(() => {
-    async function carregarBarbeiros() {
+    async function carregarEquipeEServicos() {
       if (!barbearia?.id) return;
-      const { data } = await supabase
-        .from('barbeiros')
-        .select('*')
-        .eq('barbearia_id', barbearia.id);
+      const [resBarbeiros, resServicos] = await Promise.all([
+        supabase.from('barbeiros').select('*').eq('barbearia_id', barbearia.id),
+        supabase.from('servicos').select('*').eq('barbearia_id', barbearia.id).order('nome', { ascending: true }),
+      ]);
 
-      if (data && data.length > 0) {
-        setBarbeiros(data);
-        selecionarBarbeiroParaEditar(data[0]);
+      const listaServicos = resServicos.data || [];
+      setServicosBarbearia(listaServicos);
+
+      if (resBarbeiros.data && resBarbeiros.data.length > 0) {
+        setBarbeiros(resBarbeiros.data);
+        selecionarBarbeiroParaEditar(resBarbeiros.data[0]);
       }
     }
-    carregarBarbeiros();
+    carregarEquipeEServicos();
   }, [barbearia?.id]);
 
   const selecionarBarbeiroParaEditar = (barbeiro) => {
     setBarbeiroSelecionado(barbeiro);
     setHorariosBarbeiro(barbeiro.horarios_trabalho || {});
+    setServicosBarbeiro(Array.isArray(barbeiro.servicos_ids) ? barbeiro.servicos_ids : []);
+  };
+
+  const atualizarServicosDoBarbeiro = (novaListaIds) => {
+    const unicos = Array.from(new Set(novaListaIds));
+    setServicosBarbeiro(unicos);
+
+    if (barbeiroSelecionado) {
+      setBarbeiroSelecionado((prev) => ({ ...prev, servicos_ids: unicos }));
+      setBarbeiros((prev) =>
+        prev.map((b) => (b.id === barbeiroSelecionado.id ? { ...b, servicos_ids: unicos } : b))
+      );
+    }
+  };
+
+  const handleToggleServicoBarbeiro = (servicoId) => {
+    const existe = servicosBarbeiro.includes(servicoId);
+    const atualizada = existe
+      ? servicosBarbeiro.filter((id) => id !== servicoId)
+      : [...servicosBarbeiro, servicoId];
+    atualizarServicosDoBarbeiro(atualizada);
+  };
+
+  const handleMarcarTodosServicosBarbeiro = () => {
+    atualizarServicosDoBarbeiro(servicosBarbearia.map((s) => s.id));
+  };
+
+  const handleLimparServicosBarbeiro = () => {
+    atualizarServicosDoBarbeiro([]);
   };
 
   const handleToggleDiaBarbeiro = (diaKey) => {
@@ -536,10 +570,15 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
       if (erroBarbearia) throw erroBarbearia;
 
       for (const b of barbeiros) {
-        await supabase
+        const { error: erroBarb } = await supabase
           .from('barbeiros')
-          .update({ horarios_trabalho: b.horarios_trabalho })
+          .update({
+            horarios_trabalho: b.horarios_trabalho,
+            servicos_ids: Array.isArray(b.servicos_ids) ? b.servicos_ids : [],
+          })
           .eq('id', b.id);
+
+        if (erroBarb) throw erroBarb;
       }
 
       const authUpdates = {};
@@ -1304,10 +1343,10 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
           </div>
         )}
 
-        {/* ================= EQUIPE & ESCALA ================= */}
+        {/* ================= EQUIPE, SERVIÇOS & ESCALA ================= */}
         {secaoAtiva === 'barbeiros_horarios' && (
-          <div className="space-y-2 animate-in fade-in duration-200">
-            <div className="space-y-1.5">
+          <div className="space-y-3 animate-in fade-in duration-200">
+            <div className="space-y-2.5">
               <div className="flex flex-wrap gap-1.5 pb-0.5">
                 {barbeiros.map((b) => {
                   const selecionado = barbeiroSelecionado?.id === b.id;
@@ -1326,101 +1365,177 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
               </div>
 
               {barbeiroSelecionado && (
-                <div className="bg-slate-50/80 rounded-2xl border border-slate-200/80 p-2 space-y-1.5">
-                  <div className="flex items-center justify-between pb-1 border-b border-slate-200/60">
-                    <span className="text-[10px] font-bold text-slate-900">Escala de Horários: {barbeiroSelecionado.nome}</span>
+                <>
+                  {/* VÍNCULO DE SERVIÇOS POR PROFISSIONAL */}
+                  <div className="bg-slate-50/80 rounded-2xl border border-slate-200/80 p-3 space-y-2.5">
+                    <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-slate-200/70">
+                      <div className="flex items-center gap-2">
+                        <Scissors className="w-3.5 h-3.5 text-slate-700" />
+                        <div>
+                          <span className="text-[11px] font-black text-slate-900 block">
+                            Serviços executados por {barbeiroSelecionado.nome}
+                          </span>
+                          <span className="text-[10px] text-slate-500">
+                            {servicosBarbeiro.length === 0
+                              ? 'Nenhum marcado = disponível para todos os serviços'
+                              : `${servicosBarbeiro.length} serviço(s) vinculado(s)`}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={handleMarcarTodosServicosBarbeiro}
+                          style={ESTILO_BOTAO_PRATEADO}
+                          className="px-2.5 py-1 rounded-full border border-white text-[10px] font-bold text-slate-900 cursor-pointer active:scale-95"
+                        >
+                          Marcar todos
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleLimparServicosBarbeiro}
+                          style={ESTILO_BOTAO_PRATEADO}
+                          className="px-2.5 py-1 rounded-full border border-white text-[10px] font-bold text-slate-900 cursor-pointer active:scale-95"
+                        >
+                          Todos (padrão)
+                        </button>
+                      </div>
+                    </div>
+
+                    {servicosBarbearia.length === 0 ? (
+                      <p className="text-[11px] text-slate-500 py-1">
+                        Nenhum serviço cadastrado nesta barbearia ainda.
+                      </p>
+                    ) : (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                        {servicosBarbearia.map((srv) => {
+                          const marcado = servicosBarbeiro.includes(srv.id);
+                          return (
+                            <label
+                              key={srv.id}
+                              className={`flex items-center justify-between gap-2 px-3 py-2 rounded-xl border text-xs cursor-pointer transition-all ${
+                                marcado
+                                  ? 'bg-slate-900 text-white border-slate-900 font-bold'
+                                  : 'bg-white text-slate-800 border-slate-200 hover:border-slate-300 font-semibold'
+                              }`}
+                            >
+                              <span className="flex items-center gap-2 min-w-0">
+                                <input
+                                  type="checkbox"
+                                  checked={marcado}
+                                  onChange={() => handleToggleServicoBarbeiro(srv.id)}
+                                  className="w-3.5 h-3.5 accent-emerald-500 rounded shrink-0"
+                                />
+                                <span className="truncate">{srv.nome}</span>
+                              </span>
+                              <span className={`text-[10px] shrink-0 ${marcado ? 'text-slate-300' : 'text-slate-500'}`}>
+                                R$ {Number(srv.preco || 0).toFixed(2)}
+                              </span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
 
-                  <div className="relative">
-                    <div className="flex items-stretch gap-2 overflow-x-auto pb-1.5 pt-0.5 px-0.5 snap-x snap-mandatory [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar-thumb]:bg-slate-300 [&::-webkit-scrollbar-thumb]:rounded-full">
-                      {DIAS_SEMANA_NOMES.map(({ key, label }) => {
-                        const configDia = horariosBarbeiro[key] || {};
-                        const ativo = configDia.ativo !== false;
+                  {/* ESCALA DE HORÁRIOS */}
+                  <div className="bg-slate-50/80 rounded-2xl border border-slate-200/80 p-2 space-y-1.5">
+                    <div className="flex items-center justify-between pb-1 border-b border-slate-200/60">
+                      <span className="text-[10px] font-bold text-slate-900">Escala de Horários: {barbeiroSelecionado.nome}</span>
+                    </div>
 
-                        return (
-                          <div
-                            key={key}
-                            className="w-[240px] sm:w-[250px] snap-center p-2.5 rounded-xl border bg-white border-slate-200 shrink-0 flex flex-col justify-between"
-                          >
-                            <div>
-                              <div className="flex items-center justify-between pb-1.5 border-b border-slate-100">
-                                <label className="flex items-center gap-1.5 cursor-pointer">
-                                  <input
-                                    type="checkbox"
-                                    checked={ativo}
-                                    onChange={() => handleToggleDiaBarbeiro(key)}
-                                    className="w-3.5 h-3.5 accent-slate-900 rounded"
-                                  />
-                                  <span className="text-[11px] font-black text-slate-800">{label}</span>
-                                </label>
-                                <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded-md ${ativo ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-200 text-slate-600'}`}>
-                                  {ativo ? 'Trabalha' : 'Folga'}
-                                </span>
+                    <div className="relative">
+                      <div className="flex items-stretch gap-2 overflow-x-auto pb-1.5 pt-0.5 px-0.5 snap-x snap-mandatory [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar-thumb]:bg-slate-300 [&::-webkit-scrollbar-thumb]:rounded-full">
+                        {DIAS_SEMANA_NOMES.map(({ key, label }) => {
+                          const configDia = horariosBarbeiro[key] || {};
+                          const ativo = configDia.ativo !== false;
+
+                          return (
+                            <div
+                              key={key}
+                              className="w-[240px] sm:w-[250px] snap-center p-2.5 rounded-xl border bg-white border-slate-200 shrink-0 flex flex-col justify-between"
+                            >
+                              <div>
+                                <div className="flex items-center justify-between pb-1.5 border-b border-slate-100">
+                                  <label className="flex items-center gap-1.5 cursor-pointer">
+                                    <input
+                                      type="checkbox"
+                                      checked={ativo}
+                                      onChange={() => handleToggleDiaBarbeiro(key)}
+                                      className="w-3.5 h-3.5 accent-slate-900 rounded"
+                                    />
+                                    <span className="text-[11px] font-black text-slate-800">{label}</span>
+                                  </label>
+                                  <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded-md ${ativo ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-200 text-slate-600'}`}>
+                                    {ativo ? 'Trabalha' : 'Folga'}
+                                  </span>
+                                </div>
+
+                                {ativo ? (
+                                  <div className="space-y-1.5 pt-1.5 text-[10px]">
+                                    <div className="bg-slate-50 p-1.5 rounded-lg border border-slate-200/60 space-y-0.5">
+                                      <span className="block text-[8px] font-bold text-slate-500 uppercase">Expediente</span>
+                                      <div className="grid grid-cols-2 gap-1">
+                                        <div className="flex items-center gap-1 bg-white border border-slate-200 rounded px-1.5 py-0.5">
+                                          <span className="text-[8px] text-slate-400">Das</span>
+                                          <input
+                                            type="time"
+                                            value={configDia.abertura || '08:00'}
+                                            onChange={(e) => handleCampoChangeBarbeiro(key, 'abertura', e.target.value)}
+                                            className="w-full bg-transparent text-[10px] font-bold text-slate-900 focus:outline-none"
+                                          />
+                                        </div>
+                                        <div className="flex items-center gap-1 bg-white border border-slate-200 rounded px-1.5 py-0.5">
+                                          <span className="text-[8px] text-slate-400">Até</span>
+                                          <input
+                                            type="time"
+                                            value={configDia.fechamento || '18:00'}
+                                            onChange={(e) => handleCampoChangeBarbeiro(key, 'fechamento', e.target.value)}
+                                            className="w-full bg-transparent text-[10px] font-bold text-slate-900 focus:outline-none"
+                                          />
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    <div className="bg-amber-50/40 p-1.5 rounded-lg border border-amber-200/60 space-y-0.5">
+                                      <span className="block text-[8px] font-bold text-amber-900 uppercase">Almoço</span>
+                                      <div className="grid grid-cols-2 gap-1">
+                                        <div className="flex items-center gap-1 bg-white border border-amber-200 rounded px-1.5 py-0.5">
+                                          <span className="text-[8px] text-amber-700/60">Das</span>
+                                          <input
+                                            type="time"
+                                            value={configDia.pausaInicio || '12:00'}
+                                            onChange={(e) => handleCampoChangeBarbeiro(key, 'pausaInicio', e.target.value)}
+                                            className="w-full bg-transparent text-[10px] font-bold text-amber-900 focus:outline-none"
+                                          />
+                                        </div>
+                                        <div className="flex items-center gap-1 bg-white border border-amber-200 rounded px-1.5 py-0.5">
+                                          <span className="text-[8px] text-amber-700/60">Até</span>
+                                          <input
+                                            type="time"
+                                            value={configDia.pausaFim || '13:00'}
+                                            onChange={(e) => handleCampoChangeBarbeiro(key, 'pausaFim', e.target.value)}
+                                            className="w-full bg-transparent text-[10px] font-bold text-amber-900 focus:outline-none"
+                                          />
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="py-8 text-center text-slate-400 font-semibold text-[11px] flex flex-col items-center justify-center gap-0.5">
+                                    <span>Dia de Folga</span>
+                                    <span className="text-[8px] text-slate-400 font-normal">Nenhum atendimento</span>
+                                  </div>
+                                )}
                               </div>
-
-                              {ativo ? (
-                                <div className="space-y-1.5 pt-1.5 text-[10px]">
-                                  <div className="bg-slate-50 p-1.5 rounded-lg border border-slate-200/60 space-y-0.5">
-                                    <span className="block text-[8px] font-bold text-slate-500 uppercase">Expediente</span>
-                                    <div className="grid grid-cols-2 gap-1">
-                                      <div className="flex items-center gap-1 bg-white border border-slate-200 rounded px-1.5 py-0.5">
-                                        <span className="text-[8px] text-slate-400">Das</span>
-                                        <input
-                                          type="time"
-                                          value={configDia.abertura || '08:00'}
-                                          onChange={(e) => handleCampoChangeBarbeiro(key, 'abertura', e.target.value)}
-                                          className="w-full bg-transparent text-[10px] font-bold text-slate-900 focus:outline-none"
-                                        />
-                                      </div>
-                                      <div className="flex items-center gap-1 bg-white border border-slate-200 rounded px-1.5 py-0.5">
-                                        <span className="text-[8px] text-slate-400">Até</span>
-                                        <input
-                                          type="time"
-                                          value={configDia.fechamento || '18:00'}
-                                          onChange={(e) => handleCampoChangeBarbeiro(key, 'fechamento', e.target.value)}
-                                          className="w-full bg-transparent text-[10px] font-bold text-slate-900 focus:outline-none"
-                                        />
-                                      </div>
-                                    </div>
-                                  </div>
-
-                                  <div className="bg-amber-50/40 p-1.5 rounded-lg border border-amber-200/60 space-y-0.5">
-                                    <span className="block text-[8px] font-bold text-amber-900 uppercase">Almoço</span>
-                                    <div className="grid grid-cols-2 gap-1">
-                                      <div className="flex items-center gap-1 bg-white border border-amber-200 rounded px-1.5 py-0.5">
-                                        <span className="text-[8px] text-amber-700/60">Das</span>
-                                        <input
-                                          type="time"
-                                          value={configDia.pausaInicio || '12:00'}
-                                          onChange={(e) => handleCampoChangeBarbeiro(key, 'pausaInicio', e.target.value)}
-                                          className="w-full bg-transparent text-[10px] font-bold text-amber-900 focus:outline-none"
-                                        />
-                                      </div>
-                                      <div className="flex items-center gap-1 bg-white border border-amber-200 rounded px-1.5 py-0.5">
-                                        <span className="text-[8px] text-amber-700/60">Até</span>
-                                        <input
-                                          type="time"
-                                          value={configDia.pausaFim || '13:00'}
-                                          onChange={(e) => handleCampoChangeBarbeiro(key, 'pausaFim', e.target.value)}
-                                          className="w-full bg-transparent text-[10px] font-bold text-amber-900 focus:outline-none"
-                                        />
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-                              ) : (
-                                <div className="py-8 text-center text-slate-400 font-semibold text-[11px] flex flex-col items-center justify-center gap-0.5">
-                                  <span>Dia de Folga</span>
-                                  <span className="text-[8px] text-slate-400 font-normal">Nenhum atendimento</span>
-                                </div>
-                              )}
                             </div>
-                          </div>
-                        );
-                      })}
+                          );
+                        })}
+                      </div>
                     </div>
                   </div>
-                </div>
+                </>
               )}
             </div>
           </div>
@@ -1729,4 +1844,3 @@ export default function ConfiguracoesBarbearia({ barbearia, onUpdate }) {
     </div>
   );
 }
-

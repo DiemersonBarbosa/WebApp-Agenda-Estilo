@@ -5,6 +5,15 @@ import { Calendar as CalendarIcon, Clock, Scissors, User, Check, CheckCircle2, A
 import { supabase } from '@/lib/supabase';
 import { resolverTemaBarbearia } from '@/lib/temaAgendamento';
 
+function barbeiroExecutaServico(barbeiro, servicoId) {
+  if (!servicoId || !barbeiro) return true;
+  if (barbeiro.faz_todos_servicos !== false) return true;
+  if (!Array.isArray(barbeiro.servicos_ids) || barbeiro.servicos_ids.length === 0) {
+    return true;
+  }
+  return barbeiro.servicos_ids.map(String).includes(String(servicoId));
+}
+
 export default function AgendamentoClassico({ barbeariaId }) {
   const [barbearia, setBarbearia] = useState(null);
   const [servicos, setServicos] = useState([]);
@@ -43,6 +52,10 @@ export default function AgendamentoClassico({ barbeariaId }) {
   const tema = resolverTemaBarbearia(barbearia);
   const corTema = tema.cor_primaria || '#10b981';
   const corSecundaria = tema.cor_texto_secundario || '#94a3b8';
+
+  const barbeirosDisponiveis = servicoEscolhido
+    ? barbeiros.filter((b) => barbeiroExecutaServico(b, servicoEscolhido.id))
+    : barbeiros;
 
   const getEstiloBotao3D = (ativo = false) => ({
     background: ativo ? tema.botao_ativo_estilo : tema.botao_estilo,
@@ -595,34 +608,34 @@ export default function AgendamentoClassico({ barbeariaId }) {
               style={{ backgroundColor: tema.cor_card, borderColor: tema.cor_borda }}
             >
               <button
-          onClick={() => setModoVisualizacao('agendar')}
-          style={
-            modoVisualizacao === 'agendar'
-              ? getEstiloBotao3D(true)
-              : { color: corSecundaria }
-          }
-          className={`flex-1 py-2.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
-            modoVisualizacao === 'agendar' ? 'border translate-y-[1px]' : ''
-          }`}
-        >
-          Novo Agendamento
-        </button>
+                onClick={() => setModoVisualizacao('agendar')}
+                style={
+                  modoVisualizacao === 'agendar'
+                    ? getEstiloBotao3D(true)
+                    : { color: corSecundaria }
+                }
+                className={`flex-1 py-2.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
+                  modoVisualizacao === 'agendar' ? 'border translate-y-[1px]' : ''
+                }`}
+              >
+                Novo Agendamento
+              </button>
 
-        {agendamentosAtivos.length > 0 && (
-          <button
-            onClick={() => setModoVisualizacao('gerenciar')}
-            style={
-              modoVisualizacao === 'gerenciar'
-                ? getEstiloBotao3D(true)
-                : { color: corSecundaria }
-            }
-            className={`flex-1 py-2.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
-              modoVisualizacao === 'gerenciar' ? 'border translate-y-[1px]' : ''
-            }`}
-          >
-            Meus Agendamentos ({agendamentosAtivos.length})
-          </button>
-        )}
+              {agendamentosAtivos.length > 0 && (
+                <button
+                  onClick={() => setModoVisualizacao('gerenciar')}
+                  style={
+                    modoVisualizacao === 'gerenciar'
+                      ? getEstiloBotao3D(true)
+                      : { color: corSecundaria }
+                  }
+                  className={`flex-1 py-2.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
+                    modoVisualizacao === 'gerenciar' ? 'border translate-y-[1px]' : ''
+                  }`}
+                >
+                  Meus Agendamentos ({agendamentosAtivos.length})
+                </button>
+              )}
             </div>
 
             {modoVisualizacao === 'gerenciar' ? (
@@ -752,42 +765,48 @@ export default function AgendamentoClassico({ barbeariaId }) {
                       2. Escolha o Profissional
                     </label>
 
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-                      {barbeiros.map((b) => {
-                        const isSelected = barbeiroEscolhido?.id === b.id;
-                        const foto = b.foto || b.avatar || b.imagem;
-                        return (
-                          <button
-                            key={b.id}
-                            onClick={() => {
-                              setBarbeiroEscolhido(b);
-                              setDataEscolhida('');
-                              setHoraEscolhida('');
-                              setTimeout(() => dataRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150);
-                            }}
-                            style={
-                              isSelected
-                                ? getEstiloBotao3D(true)
-                                : { backgroundColor: tema.cor_card, borderColor: tema.cor_borda, color: tema.cor_texto_geral }
-                            }
-                            className={`p-3 rounded-2xl border text-center flex flex-col items-center transition-all cursor-pointer active:scale-98 ${
-                              isSelected ? 'scale-[1.02] translate-y-[1px] font-black' : 'hover:brightness-105'
-                            }`}
-                          >
-                            <div className="w-12 h-12 rounded-full overflow-hidden border-2 mb-1.5 shrink-0" style={{ borderColor: tema.cor_borda }}>
-                              {foto ? (
-                                <img src={foto} alt={b.nome} className="w-full h-full object-cover" />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center font-black text-sm border" style={getEstiloBotao3D(false)}>
-                                  {b.nome?.charAt(0)}
-                                </div>
-                              )}
-                            </div>
-                            <p className="text-xs font-bold line-clamp-1">{b.nome}</p>
-                          </button>
-                        );
-                      })}
-                    </div>
+                    {barbeirosDisponiveis.length === 0 ? (
+                      <p className="text-xs italic py-2" style={{ color: corSecundaria }}>
+                        Nenhum profissional habilitado para este serviço no momento.
+                      </p>
+                    ) : (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                        {barbeirosDisponiveis.map((b) => {
+                          const isSelected = barbeiroEscolhido?.id === b.id;
+                          const foto = b.foto || b.avatar || b.imagem;
+                          return (
+                            <button
+                              key={b.id}
+                              onClick={() => {
+                                setBarbeiroEscolhido(b);
+                                setDataEscolhida('');
+                                setHoraEscolhida('');
+                                setTimeout(() => dataRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150);
+                              }}
+                              style={
+                                isSelected
+                                  ? getEstiloBotao3D(true)
+                                  : { backgroundColor: tema.cor_card, borderColor: tema.cor_borda, color: tema.cor_texto_geral }
+                              }
+                              className={`p-3 rounded-2xl border text-center flex flex-col items-center transition-all cursor-pointer active:scale-98 ${
+                                isSelected ? 'scale-[1.02] translate-y-[1px] font-black' : 'hover:brightness-105'
+                              }`}
+                            >
+                              <div className="w-12 h-12 rounded-full overflow-hidden border-2 mb-1.5 shrink-0" style={{ borderColor: tema.cor_borda }}>
+                                {foto ? (
+                                  <img src={foto} alt={b.nome} className="w-full h-full object-cover" />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center font-black text-sm border" style={getEstiloBotao3D(false)}>
+                                    {b.nome?.charAt(0)}
+                                  </div>
+                                )}
+                              </div>
+                              <p className="text-xs font-bold line-clamp-1">{b.nome}</p>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 )}
 
