@@ -33,32 +33,74 @@ export default function PdvScreen({ barbeariaId, supabase, produtos: produtosPro
   const [inputFocado, setInputFocado] = useState(false);
 
   const blurTimeoutRef = useRef(null);
-  const alturaInicialRef = useRef(
-    typeof window !== 'undefined'
-      ? window.visualViewport?.height || window.innerHeight
-      : 0
-  );
+  const alturaBaseRef = useRef(0);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    const avaliarViewport = () => {
-      const vp = window.visualViewport;
-      const alturaAtual = vp ? vp.height : window.innerHeight;
-      if (!alturaInicialRef.current || alturaAtual > alturaInicialRef.current) {
-        alturaInicialRef.current = alturaAtual;
+    const vp = window.visualViewport;
+
+    const obterAlturaAtual = () => (vp ? vp.height : window.innerHeight);
+
+    const sincronizarAlturaBase = () => {
+      const atual = obterAlturaAtual();
+      if (!alturaBaseRef.current || atual > alturaBaseRef.current) {
+        alturaBaseRef.current = atual;
       }
-      const reducao = alturaInicialRef.current - alturaAtual;
-      setTecladoVisivel(reducao > 80);
     };
 
-    avaliarViewport();
-    window.visualViewport?.addEventListener('resize', avaliarViewport);
+    sincronizarAlturaBase();
+
+    const avaliarViewport = () => {
+      const alturaAtual = obterAlturaAtual();
+      const base = alturaBaseRef.current || alturaAtual;
+
+      if (alturaAtual >= base - 40) {
+        if (alturaAtual > base) {
+          alturaBaseRef.current = alturaAtual;
+        }
+        setTecladoVisivel(false);
+        setInputFocado(false);
+        if (blurTimeoutRef.current) {
+          clearTimeout(blurTimeoutRef.current);
+        }
+        return;
+      }
+
+      const reducao = base - alturaAtual;
+      const limiteTeclado = Math.max(120, Math.round(base * 0.16));
+      const aberto = reducao > limiteTeclado;
+
+      setTecladoVisivel(aberto);
+
+      if (!aberto) {
+        setInputFocado(false);
+        if (blurTimeoutRef.current) {
+          clearTimeout(blurTimeoutRef.current);
+        }
+      }
+    };
+
+    const handleOrientacao = () => {
+      alturaBaseRef.current = 0;
+      setTecladoVisivel(false);
+      setInputFocado(false);
+      setTimeout(() => {
+        sincronizarAlturaBase();
+        avaliarViewport();
+      }, 150);
+    };
+
+    vp?.addEventListener('resize', avaliarViewport);
+    vp?.addEventListener('scroll', avaliarViewport);
     window.addEventListener('resize', avaliarViewport);
+    window.addEventListener('orientationchange', handleOrientacao);
 
     return () => {
-      window.visualViewport?.removeEventListener('resize', avaliarViewport);
+      vp?.removeEventListener('resize', avaliarViewport);
+      vp?.removeEventListener('scroll', avaliarViewport);
       window.removeEventListener('resize', avaliarViewport);
+      window.removeEventListener('orientationchange', handleOrientacao);
       if (blurTimeoutRef.current) clearTimeout(blurTimeoutRef.current);
     };
   }, []);
@@ -75,7 +117,9 @@ export default function PdvScreen({ barbeariaId, supabase, produtos: produtosPro
     }, 150);
   };
 
-  const esconderBarraFinalizar = inputFocado || tecladoVisivel;
+  // Esconde enquanto o teclado estiver visível ou o campo ainda estiver a perder foco;
+  // ao tocar na setinha do teclado, o viewport cresce e limpa ambos os estados.
+  const esconderBarraFinalizar = tecladoVisivel || inputFocado;
 
   useEffect(() => {
     if (produtosProp && produtosProp.length > 0) {
@@ -171,6 +215,7 @@ export default function PdvScreen({ barbeariaId, supabase, produtos: produtosPro
 
     setBusca('');
     setInputFocado(false);
+    setTecladoVisivel(false);
   };
 
   const alterarQuantidade = (id, delta) => {
