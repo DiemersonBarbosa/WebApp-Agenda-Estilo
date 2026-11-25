@@ -1,12 +1,53 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { createClient } from '@supabase/supabase-js';
-import { TrendingUp, TrendingDown, DollarSign, PieChart, Calendar, CheckCircle2, Percent, Receipt, XCircle } from 'lucide-react';
+import { TrendingUp, TrendingDown, DollarSign, PieChart, CheckCircle2, Percent, Receipt, XCircle } from 'lucide-react';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+const MESES_PILLS = [
+  { num: '01', label: 'Jan' },
+  { num: '02', label: 'Fev' },
+  { num: '03', label: 'Mar' },
+  { num: '04', label: 'Abr' },
+  { num: '05', label: 'Mai' },
+  { num: '06', label: 'Jun' },
+  { num: '07', label: 'Jul' },
+  { num: '08', label: 'Ago' },
+  { num: '09', label: 'Set' },
+  { num: '10', label: 'Out' },
+  { num: '11', label: 'Nov' },
+  { num: '12', label: 'Dez' },
+];
+
+function parseNumeroBR(value) {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : 0;
+  }
+  if (typeof value === 'string') {
+    const trimmed = value.trim().replace(/\s+/g, '').replace('R$', '');
+    const normalizado = trimmed.includes(',')
+      ? trimmed.replace(/\./g, '').replace(',', '.')
+      : trimmed;
+    const num = Number(normalizado);
+    return Number.isFinite(num) ? num : 0;
+  }
+  const num = Number(value);
+  return Number.isFinite(num) ? num : 0;
+}
+
+function formatBRL(value) {
+  const num = parseNumeroBR(value);
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(num);
+}
 
 export default function RelatoriosPage({ agendamentos = [], despesas = [], barbeiros = [], servicos = [], barbearia = {} }) {
   const [listaAgendamentos, setListaAgendamentos] = useState(agendamentos);
@@ -18,14 +59,26 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
   useEffect(() => { if (despesas?.length > 0) setListaDespesas(despesas); }, [despesas]);
   useEffect(() => { if (barbeiros?.length > 0) setListaBarbeiros(barbeiros); }, [barbeiros]);
 
-  const [filtroMes, setFiltroMes] = useState(() => {
+  const obterMesAtualIso = () => {
     const hoje = new Date();
     const ano = hoje.getFullYear();
     const mes = String(hoje.getMonth() + 1).padStart(2, '0');
     return `${ano}-${mes}`;
-  });
+  };
 
+  const [filtroMes, setFiltroMes] = useState(obterMesAtualIso);
   const [secaoAtiva, setSecaoAtiva] = useState('atendimentos');
+  const pillRefs = useRef({});
+
+  const anoSelecionado = filtroMes.split('-')[0] || String(new Date().getFullYear());
+  const mesSelecionadoNum = filtroMes.split('-')[1] || String(new Date().getMonth() + 1).padStart(2, '0');
+
+  useEffect(() => {
+    const elAtivo = pillRefs.current[mesSelecionadoNum];
+    if (elAtivo) {
+      elAtivo.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+    }
+  }, [mesSelecionadoNum]);
 
   const carregarDadosDoBanco = async () => {
     try {
@@ -126,14 +179,14 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
   };
 
   const getValorServico = (item) => {
-    const val = item.valor_total || item.servicos?.preco || item.valor || item.preco || item.total || item.valor_servico || 0;
-    return Number(val) || 0;
+    const val = item.valor_total ?? item.servicos?.preco ?? item.valor ?? item.preco ?? item.total ?? item.valor_servico ?? 0;
+    return parseNumeroBR(val);
   };
 
   const getComissaoTaxa = (item, nomeBarbeiro) => {
     const taxaDireta = item.barbeiros?.taxa_comissao ?? item.barbeiros?.comissao_padrao ?? item.barbeiros?.comissao ?? item.barbeiros?.porcentagem;
     if (taxaDireta !== undefined && taxaDireta !== null && taxaDireta !== '') {
-      const num = Number(taxaDireta);
+      const num = parseNumeroBR(taxaDireta);
       return num > 1 ? num / 100 : num; 
     }
 
@@ -150,7 +203,7 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
       if (found) {
         const taxaProp = found.taxa_comissao ?? found.comissao_padrao ?? found.comissao ?? found.porcentagem ?? found.taxa;
         if (taxaProp !== undefined && taxaProp !== null && taxaProp !== '') {
-          const num = Number(taxaProp);
+          const num = parseNumeroBR(taxaProp);
           return num > 1 ? num / 100 : num;
         }
       }
@@ -189,7 +242,7 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
   });
   
   const faturamentoTotal = atendimentosConcluidos.reduce((acc, item) => acc + getValorServico(item), 0);
-  const custosTotais = despesasFiltradas.reduce((acc, item) => acc + Number(item.valor || item.preco || item.custo || 0), 0);
+  const custosTotais = despesasFiltradas.reduce((acc, item) => acc + parseNumeroBR(item.valor ?? item.preco ?? item.custo ?? 0), 0);
   const lucroLiquidoReal = faturamentoTotal - custosTotais;
   const ticketMedioCalculado = atendimentosConcluidos.length > 0 ? faturamentoTotal / atendimentosConcluidos.length : 0;
 
@@ -218,10 +271,10 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
   })();
 
   const abasNavegacao = [
-    { id: 'atendimentos', label: 'Atendimentos', icon: CheckCircle2, activeColor: 'text-emerald-400' },
-    { id: 'comissoes', label: 'Comissões', icon: Percent, activeColor: 'text-emerald-400' },
-    { id: 'despesas', label: 'Despesas', icon: Receipt, activeColor: 'text-rose-400' },
-    { id: 'cancelados', label: 'Cancelados', icon: XCircle, activeColor: 'text-amber-400' }
+    { id: 'atendimentos', label: 'Atendimentos', icon: CheckCircle2 },
+    { id: 'comissoes', label: 'Comissões', icon: Percent },
+    { id: 'despesas', label: 'Despesas', icon: Receipt },
+    { id: 'cancelados', label: 'Cancelados', icon: XCircle }
   ];
 
   return (
@@ -246,7 +299,7 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
         >
           <div className="flex flex-col justify-center min-w-0 pr-2">
             <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider truncate block">Faturamento</span>
-            <h3 className="text-lg sm:text-xl font-black text-white mt-0.5 truncate">R$ {faturamentoTotal.toFixed(0)}</h3>
+            <h3 className="text-base sm:text-xl font-black text-white mt-0.5 truncate">{formatBRL(faturamentoTotal)}</h3>
           </div>
           <div 
             className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0"
@@ -270,7 +323,7 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
         >
           <div className="flex flex-col justify-center min-w-0 pr-2">
             <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider truncate block">Despesas</span>
-            <h3 className="text-lg sm:text-xl font-black text-white mt-0.5 truncate">R$ {custosTotais.toFixed(0)}</h3>
+            <h3 className="text-base sm:text-xl font-black text-white mt-0.5 truncate">{formatBRL(custosTotais)}</h3>
           </div>
           <div 
             className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0"
@@ -294,8 +347,8 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
         >
           <div className="flex flex-col justify-center min-w-0 pr-2">
             <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider truncate block">Lucro Líquido</span>
-            <h3 className={`text-lg sm:text-xl font-black mt-0.5 truncate ${lucroLiquidoReal >= 0 ? 'text-sky-400' : 'text-rose-400'}`}>
-              R$ {lucroLiquidoReal.toFixed(0)}
+            <h3 className={`text-base sm:text-xl font-black mt-0.5 truncate ${lucroLiquidoReal >= 0 ? 'text-sky-400' : 'text-rose-400'}`}>
+              {formatBRL(lucroLiquidoReal)}
             </h3>
           </div>
           <div 
@@ -320,7 +373,7 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
         >
           <div className="flex flex-col justify-center min-w-0 pr-2">
             <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider truncate block">Ticket Médio</span>
-            <h3 className="text-lg sm:text-xl font-black text-white mt-0.5 truncate">R$ {ticketMedioCalculado.toFixed(0)}</h3>
+            <h3 className="text-base sm:text-xl font-black text-white mt-0.5 truncate">{formatBRL(ticketMedioCalculado)}</h3>
           </div>
           <div 
             className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0"
@@ -338,47 +391,53 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
 
       {/* BLOCO ÚNICO INTEGRADO */}
       <div 
-        className="relative rounded-3xl p-4 sm:p-6 border border-white/80 overflow-hidden shadow-xs space-y-5"
+        className="relative rounded-3xl p-4 sm:p-6 border border-white/80 overflow-hidden shadow-xs space-y-3"
         style={{
           background: 'linear-gradient(135deg, #f7f9f8 0%, #edf1f0 50%, #e2e8e6 100%)',
           boxShadow: '0 15px 30px rgba(0, 0, 0, 0.05), inset 0 2px 4px rgba(255, 255, 255, 0.9), inset 0 -3px 6px rgba(0, 0, 0, 0.03)'
         }}
       >
         
-        {/* Topo com Título e Filtro de Mês/Ano */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-4 border-b border-stone-300/60 gap-3">
-          <h2 className="text-sm sm:text-base font-extrabold text-stone-900 flex items-center gap-2 tracking-tight">
-            <span className="w-2 h-2 bg-[#111111] rounded-full shadow-[0_0_6px_rgba(17,17,17,0.4)]"></span>
-            Relatório Financeiro
-          </h2>
-          
-          <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
-            <div className="inline-flex items-center gap-2 bg-white px-3.5 py-2 rounded-2xl text-xs font-bold text-stone-700 border border-stone-200 shadow-xs flex-1 sm:flex-initial">
-              <Calendar className="w-3.5 h-3.5 text-stone-500 shrink-0" />
-              <input 
-                type="month"
-                value={filtroMes}
-                onChange={(e) => setFiltroMes(e.target.value)}
-                className="bg-transparent text-xs font-black text-stone-900 focus:outline-none cursor-pointer w-full"
-              />
+        {/* Topo com Título e Seletor de Meses em Pílulas */}
+        <div className="flex flex-col gap-2.5">
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="text-sm sm:text-base font-extrabold text-stone-900 flex items-center gap-2 tracking-tight">
+              <span className="w-2 h-2 bg-[#111111] rounded-full"></span>
+              Relatório Financeiro
+            </h2>
+            <span className="text-[11px] font-bold text-stone-500">
+              {anoSelecionado}
+            </span>
+          </div>
+
+          <div className="bg-white/95 rounded-full border border-stone-200/80 p-1.5 shadow-2xs overflow-x-auto [&::-webkit-scrollbar]:hidden">
+            <div className="flex items-center gap-1.5 min-w-max">
+              {MESES_PILLS.map((m) => {
+                const ativo = m.num === mesSelecionadoNum;
+                return (
+                  <button
+                    key={m.num}
+                    ref={(el) => {
+                      pillRefs.current[m.num] = el;
+                    }}
+                    type="button"
+                    onClick={() => setFiltroMes(`${anoSelecionado}-${m.num}`)}
+                    className={`px-4 py-2 rounded-full text-xs transition-all duration-200 cursor-pointer shrink-0 active:scale-95 ${
+                      ativo
+                        ? 'bg-[#111111] text-white font-black shadow-sm'
+                        : 'bg-stone-100/90 hover:bg-stone-200/80 text-stone-600 font-bold'
+                    }`}
+                  >
+                    {m.label}
+                  </button>
+                );
+              })}
             </div>
-            <button
-              type="button"
-              onClick={() => {
-                const hoje = new Date();
-                const ano = hoje.getFullYear();
-                const mes = String(hoje.getMonth() + 1).padStart(2, '0');
-                setFiltroMes(`${ano}-${mes}`);
-              }}
-              className="px-3.5 py-2 bg-white hover:bg-stone-50 text-stone-700 border border-stone-200 rounded-2xl text-xs font-bold transition-all shadow-xs cursor-pointer shrink-0"
-            >
-              Atual
-            </button>
           </div>
         </div>
 
-        {/* NAVEGAÇÃO DE ABAS MINIMALISTA E SÓBRIA */}
-        <div className="grid grid-cols-4 gap-2 w-full my-1">
+        {/* 4 BOTÕES NO PADRÃO DAS DEMAIS ABAS */}
+        <div className="grid grid-cols-4 gap-2 sm:gap-2.5 w-full">
           {abasNavegacao.map((aba) => {
             const IconComponent = aba.icon;
             const isSelected = secaoAtiva === aba.id;
@@ -388,25 +447,36 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
                 key={aba.id}
                 type="button"
                 onClick={() => setSecaoAtiva(aba.id)}
-                className={`py-2.5 px-1 rounded-2xl transition-all duration-200 cursor-pointer flex flex-col items-center justify-center gap-1.5 text-center active:scale-95 ${
+                style={
                   isSelected
-                    ? 'bg-[#111111] text-white shadow-md border border-stone-800 scale-[1.02]'
-                    : 'bg-white hover:bg-stone-50 text-stone-600 border border-stone-200/80 shadow-2xs'
+                    ? {
+                        background: 'linear-gradient(145deg, #dfe6ee 0%, #cfd8e3 100%)',
+                        boxShadow: 'inset 0 1px 2px rgba(255, 255, 255, 0.85), 0 4px 10px rgba(15, 23, 42, 0.08)'
+                      }
+                    : {
+                        background: 'linear-gradient(145deg, #f8fafc 0%, #eef2f6 100%)',
+                        boxShadow: 'inset 0 1px 2px rgba(255, 255, 255, 0.9), 0 2px 6px rgba(15, 23, 42, 0.04)'
+                      }
+                }
+                className={`py-3 px-1.5 rounded-2xl transition-all duration-200 cursor-pointer flex flex-col items-center justify-center gap-2 text-center active:scale-95 border ${
+                  isSelected
+                    ? 'border-slate-300/90 text-slate-900'
+                    : 'border-white/90 text-slate-600 hover:border-slate-200'
                 }`}
               >
                 <div
-                  className={`w-7 h-7 sm:w-8 sm:h-8 rounded-xl flex items-center justify-center transition-colors ${
+                  className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center transition-all ${
                     isSelected
-                      ? 'bg-white/10 text-white'
-                      : 'bg-stone-100/80 text-stone-600'
+                      ? 'bg-[#111111] text-white shadow-sm'
+                      : 'bg-white/90 text-slate-700 border border-slate-200/70'
                   }`}
                 >
                   <IconComponent className="w-4 h-4 shrink-0" />
                 </div>
 
                 <span
-                  className={`text-[10px] sm:text-xs font-extrabold tracking-tight leading-none ${
-                    isSelected ? 'text-white' : 'text-stone-700'
+                  className={`text-[10px] sm:text-xs tracking-tight leading-none truncate max-w-full ${
+                    isSelected ? 'font-black text-slate-900' : 'font-semibold text-slate-600'
                   }`}
                 >
                   {aba.label}
@@ -438,7 +508,7 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
                             <span className="font-bold text-stone-900 text-xs block">{getNomeCliente(item)}</span>
                             <span className="text-[11px] text-stone-500">{getNomeServico(item)}</span>
                           </div>
-                          <span className="font-black text-emerald-600 text-xs">R$ {getValorServico(item).toFixed(2)}</span>
+                          <span className="font-black text-emerald-600 text-xs">{formatBRL(getValorServico(item))}</span>
                         </div>
                         <div className="flex justify-between items-center pt-2 border-t border-stone-200/60 text-[11px] text-stone-500 font-medium">
                           <span>👤 {getNomeBarbeiro(item)}</span>
@@ -466,7 +536,7 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
                             <td className="p-3.5 text-stone-600">{getNomeServico(item)}</td>
                             <td className="p-3.5 text-stone-600">{getNomeBarbeiro(item)}</td>
                             <td className="p-3.5 text-stone-500">{item.data_hora ? new Date(item.data_hora).toLocaleDateString('pt-BR') : 'N/A'}</td>
-                            <td className="p-3.5 text-right font-extrabold text-emerald-600">R$ {getValorServico(item).toFixed(2)}</td>
+                            <td className="p-3.5 text-right font-extrabold text-emerald-600">{formatBRL(getValorServico(item))}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -497,11 +567,11 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
                       <div className="space-y-2 text-xs pt-1 border-t border-stone-200/60">
                         <div className="flex justify-between text-stone-500">
                           <span>Faturamento gerado:</span>
-                          <span className="font-semibold text-stone-800">R$ {barb.faturamento.toFixed(2)}</span>
+                          <span className="font-semibold text-stone-800">{formatBRL(barb.faturamento)}</span>
                         </div>
                         <div className="flex justify-between text-stone-500">
                           <span>Comissão ({Math.round(barb.taxa * 100)}%):</span>
-                          <span className="font-extrabold text-emerald-600">R$ {barb.comissaoEstimada.toFixed(2)}</span>
+                          <span className="font-extrabold text-emerald-600">{formatBRL(barb.comissaoEstimada)}</span>
                         </div>
                       </div>
                     </div>
@@ -529,7 +599,7 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
                           <span className="font-bold text-stone-900 text-xs block">{item.descricao || item.nome || 'Despesa'}</span>
                           <span className="text-[10px] text-stone-500 font-medium">{item.categoria || 'Geral'} • {item.data ? new Date(item.data).toLocaleDateString('pt-BR') : 'N/A'}</span>
                         </div>
-                        <span className="font-black text-rose-600 text-xs">R$ {Number(item.valor || 0).toFixed(2)}</span>
+                        <span className="font-black text-rose-600 text-xs">{formatBRL(item.valor || 0)}</span>
                       </div>
                     ))}
                   </div>
@@ -550,7 +620,7 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
                             <td className="p-3.5 font-bold text-stone-900">{item.descricao || item.nome || 'Despesa'}</td>
                             <td className="p-3.5 text-stone-600">{item.categoria || 'Geral'}</td>
                             <td className="p-3.5 text-stone-500">{item.data ? new Date(item.data).toLocaleDateString('pt-BR') : 'N/A'}</td>
-                            <td className="p-3.5 text-right font-extrabold text-rose-600">R$ {Number(item.valor || 0).toFixed(2)}</td>
+                            <td className="p-3.5 text-right font-extrabold text-rose-600">{formatBRL(item.valor || 0)}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -580,7 +650,7 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
                             <span className="font-bold text-stone-900 text-xs block">{getNomeCliente(item)}</span>
                             <span className="text-[11px] text-stone-500">{getNomeServico(item)}</span>
                           </div>
-                          <span className="font-bold text-stone-400 text-xs line-through">R$ {getValorServico(item).toFixed(2)}</span>
+                          <span className="font-bold text-stone-400 text-xs line-through">{formatBRL(getValorServico(item))}</span>
                         </div>
                         <div className="flex justify-between items-center pt-2 border-t border-stone-200/60 text-[11px] text-stone-500 font-medium">
                           <span>👤 {getNomeBarbeiro(item)}</span>
@@ -608,7 +678,7 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
                             <td className="p-3.5 text-stone-600">{getNomeServico(item)}</td>
                             <td className="p-3.5 text-stone-600">{getNomeBarbeiro(item)}</td>
                             <td className="p-3.5 text-stone-500">{item.data_hora ? new Date(item.data_hora).toLocaleDateString('pt-BR') : 'N/A'}</td>
-                            <td className="p-3.5 text-right font-bold text-stone-400 line-through">R$ {getValorServico(item).toFixed(2)}</td>
+                            <td className="p-3.5 text-right font-bold text-stone-400 line-through">{formatBRL(getValorServico(item))}</td>
                           </tr>
                         ))}
                       </tbody>

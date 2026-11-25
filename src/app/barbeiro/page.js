@@ -1,13 +1,47 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Calendar, CheckCircle2, Clock, XCircle, RefreshCw, Wallet, TrendingUp, LogOut, Filter, X } from 'lucide-react';
+import {
+  Calendar,
+  CheckCircle2,
+  Clock,
+  XCircle,
+  RefreshCw,
+  Wallet,
+  TrendingUp,
+  LogOut,
+  Filter,
+  X,
+  AlertCircle,
+  CheckCircle
+} from 'lucide-react';
+
+function formatBRL(value) {
+  let num = value;
+
+  if (typeof value === 'string') {
+    const cleaned = value.replace(/[^\d,-]/g, '').replace(',', '.');
+    num = Number(cleaned);
+  } else {
+    num = Number(value);
+  }
+
+  if (!Number.isFinite(num)) {
+    return 'R$ 0,00';
+  }
+
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(num);
+}
 
 export default function PainelBarbeiro() {
-  const router = useRouter();
   const [agendamentos, setAgendamentos] = useState([]);
+  const [fechamentosPagos, setFechamentosPagos] = useState([]);
   const [comissaoPercentual, setComissaoPercentual] = useState(50);
   const [nomeBarbeiro, setNomeBarbeiro] = useState('');
   const [barbeiroId, setBarbeiroId] = useState(null);
@@ -15,9 +49,21 @@ export default function PainelBarbeiro() {
   const [loading, setLoading] = useState(true);
   const [uploadingFoto, setUploadingFoto] = useState(false);
   const [processandoId, setProcessandoId] = useState(null);
+  const [atualizandoDados, setAtualizandoDados] = useState(false);
 
   const [abaAtiva, setAbaAtiva] = useState('dia');
   const [modalLogoutOpen, setModalLogoutOpen] = useState(false);
+
+  const [modalFeedback, setModalFeedback] = useState({
+    isOpen: false,
+    tipo: 'sucesso',
+    titulo: '',
+    mensagem: '',
+  });
+
+  const perfilRef = useRef({ id: null, nome: '' });
+  const sincronizandoRef = useRef(false);
+  const pendenteNovaSincronizacaoRef = useRef(false);
 
   const obterDataLocalIso = (d = new Date()) => {
     const ano = d.getFullYear();
@@ -27,7 +73,7 @@ export default function PainelBarbeiro() {
   };
 
   const [dataSelecionada, setDataSelecionada] = useState(obterDataLocalIso());
-  
+
   const [mesSelecionado, setMesSelecionado] = useState(() => {
     const hoje = new Date();
     return `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}`;
@@ -35,41 +81,119 @@ export default function PainelBarbeiro() {
 
   const [dataEspecificaHistorico, setDataEspecificaHistorico] = useState('');
 
-  const extrairDataIso = (item) => {
-    const dataStr = item.data_hora || item.data || item.created_at || '';
+  const extrairDataIso = useCallback((item) => {
+    const dataStr = item?.data_hora || item?.data || item?.created_at || '';
     if (!dataStr) return '';
     try {
       const d = new Date(dataStr);
+      if (Number.isNaN(d.getTime())) return String(dataStr).substring(0, 10);
       return obterDataLocalIso(d);
     } catch {
       return String(dataStr).substring(0, 10);
     }
-  };
+  }, []);
 
-  async function carregarPainelDoBarbeiro() {
-    setLoading(true);
+  const normalizarComissao = useCallback((perfil) => {
+    const bruta = perfil?.taxa_comissao ?? perfil?.comissao ?? perfil?.comissao_padrao ?? 50;
+    const numero = Number(bruta);
+    if (Number.isNaN(numero)) return 50;
+    return numero > 0 && numero <= 1 ? numero * 100 : numero;
+  }, []);
+
+  const isStatusConcluido = useCallback((statusRaw) => {
+    const s = String(statusRaw || '').trim().toLowerCase();
+    return s.includes('concluid') || s.includes('concluí') || s.includes('realiz') || s.includes('finaliz');
+  }, []);
+
+  const isStatusPendente = useCallback((statusRaw) => {
+    const s = String(statusRaw || 'agendado').trim().toLowerCase();
+    return (
+      !s.includes('concluid') &&
+      !s.includes('concluí') &&
+      !s.includes('realiz') &&
+      !s.includes('finaliz') &&
+      !s.includes('cancel')
+    );
+  }, []);
+
+  const obterValorAtendimento = useCallback((item) => {
+    const bruto =
+      item?.valor_total ??
+      item?.preco ??
+      item?.valor ??
+      item?.total ??
+      item?.servicos?.preco ??
+      item?.servico?.preco ??
+      0;
+
+    if (typeof bruto === 'number') {
+      return Number.isNaN(bruto) ? 0 : bruto;
+    }
+
+    const normalizado = String(bruto)
+      .replace('R$', '')
+      .trim()
+      .replace(/\s+/g, '')
+      .replace(',', '.');
+
+    const num = Number(normalizado);
+    return Number.isNaN(num) ? 0 : num;
+  }, []);
+
+  const obterValorFechamento = useCallback((fechamento) => {
+    const bruto =
+      fechamento?.valor_comissao ??
+      fechamento?.comissao_valor ??
+      fechamento?.valor_total ??
+      fechamento?.valor ??
+      0;
+    const num = Number(bruto);
+    return Number.isNaN(num) ? 0 : num;
+  }, []);
+
+  const carregarPainelDoBarbeiro = useCallback(async ({ silencioso = false } = {}) => {
+    if (sincronizandoRef.current) {
+      pendenteNovaSincronizacaoRef.current = true;
+      return;
+    }
+
+    sincronizandoRef.current = true;
+
+    if (!silencioso) {
+      setLoading(true);
+    } else {
+      setAtualizandoDados(true);
+    }
+
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         setLoading(false);
+        setAtualizandoDados(false);
         return;
       }
 
-      const { data: perfilBarbeiro } = await supabase
+      const { data: perfilBarbeiro, error: perfilError } = await supabase
         .from('barbeiros')
         .select('*')
         .eq('user_id', user.id)
         .single();
 
-      if (!perfilBarbeiro) {
+      if (perfilError || !perfilBarbeiro) {
         setLoading(false);
+        setAtualizandoDados(false);
         return;
       }
 
+      perfilRef.current = {
+        id: perfilBarbeiro.id,
+        nome: (perfilBarbeiro.nome || '').trim(),
+      };
+
       setBarbeiroId(perfilBarbeiro.id);
-      setNomeBarbeiro(perfilBarbeiro.nome);
+      setNomeBarbeiro(perfilBarbeiro.nome || '');
       setFotoBarbeiro(perfilBarbeiro.foto || perfilBarbeiro.avatar || perfilBarbeiro.imagem || '');
-      setComissaoPercentual(perfilBarbeiro.comissao ?? perfilBarbeiro.comissao_padrao ?? 50);
+      setComissaoPercentual(normalizarComissao(perfilBarbeiro));
 
       let resultadosTotais = [];
 
@@ -84,7 +208,9 @@ export default function PainelBarbeiro() {
         `)
         .eq('barbeiro_id', perfilBarbeiro.id);
 
-      if (porId) resultadosTotais = [...porId];
+      if (Array.isArray(porId)) {
+        resultadosTotais = [...porId];
+      }
 
       if (perfilBarbeiro.nome) {
         const { data: porNome } = await supabase
@@ -98,10 +224,12 @@ export default function PainelBarbeiro() {
           `)
           .eq('barbeiro', perfilBarbeiro.nome);
 
-        if (porNome) {
+        if (Array.isArray(porNome)) {
           const mapaIds = new Map();
-          [...resultadosTotais, ...porNome].forEach(item => {
-            if (item && item.id) mapaIds.set(item.id, item);
+          [...resultadosTotais, ...porNome].forEach((item) => {
+            if (item && item.id !== undefined && item.id !== null) {
+              mapaIds.set(String(item.id), item);
+            }
           });
           resultadosTotais = Array.from(mapaIds.values());
         }
@@ -113,59 +241,160 @@ export default function PainelBarbeiro() {
         return dataA - dataB;
       });
 
+      const { data: fechamentosData, error: fechError } = await supabase
+        .from('fechamentos_comissoes')
+        .select('*')
+        .eq('barbeiro_id', perfilBarbeiro.id)
+        .eq('status', 'pago')
+        .order('created_at', { ascending: false });
+
+      if (!fechError && Array.isArray(fechamentosData)) {
+        setFechamentosPagos(fechamentosData);
+      } else {
+        setFechamentosPagos([]);
+      }
+
       setAgendamentos(resultadosTotais);
     } catch (err) {
       console.error('Erro ao carregar painel:', err);
     } finally {
+      sincronizandoRef.current = false;
       setLoading(false);
+      setAtualizandoDados(false);
+
+      if (pendenteNovaSincronizacaoRef.current) {
+        pendenteNovaSincronizacaoRef.current = false;
+        carregarPainelDoBarbeiro({ silencioso: true });
+      }
     }
-  }
+  }, [normalizarComissao]);
 
   useEffect(() => {
-    let subscription = null;
-    carregarPainelDoBarbeiro();
+    let ativo = true;
+    let canalRealtime = null;
 
-    async function setupRealtime() {
+    const iniciar = async () => {
+      await carregarPainelDoBarbeiro();
+      if (!ativo) return;
+
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      const { data: perfilBarbeiro } = await supabase.from('barbeiros').select('id').eq('user_id', user.id).single();
-      if (!perfilBarbeiro) return;
+      if (!user || !ativo) return;
 
-      const nomeCanalUnico = `barbeiro-painel-${perfilBarbeiro.id}-${Date.now()}`;
-      subscription = supabase
+      const { data: perfilBarbeiro } = await supabase
+        .from('barbeiros')
+        .select('id, nome')
+        .eq('user_id', user.id)
+        .single();
+
+      if (!perfilBarbeiro || !ativo) return;
+
+      perfilRef.current = {
+        id: perfilBarbeiro.id,
+        nome: (perfilBarbeiro.nome || '').trim(),
+      };
+
+      const nomeCanalUnico = `realtime-painel-barbeiro-${perfilBarbeiro.id}`;
+
+      canalRealtime = supabase
         .channel(nomeCanalUnico)
         .on(
           'postgres_changes',
           { event: '*', schema: 'public', table: 'agendamentos' },
-          () => {
-            carregarPainelDoBarbeiro();
+          (payload) => {
+            if (!ativo) return;
+            const registro = payload.new || payload.old || {};
+            const meuId = String(perfilRef.current.id || '');
+            const meuNome = (perfilRef.current.nome || '').toLowerCase();
+
+            const idDoRegistro = String(registro.barbeiro_id || registro.profissional_id || '');
+            const nomeDoRegistro = String(
+              registro.barbeiro || registro.barbeiro_nome || registro.profissional_nome || ''
+            )
+              .trim()
+              .toLowerCase();
+
+            const pertenceAoBarbeiro =
+              (meuId && idDoRegistro === meuId) ||
+              (meuNome && nomeDoRegistro === meuNome) ||
+              payload.eventType === 'DELETE';
+
+            if (pertenceAoBarbeiro) {
+              carregarPainelDoBarbeiro({ silencioso: true });
+            }
           }
         )
         .on(
           'postgres_changes',
-          { event: 'UPDATE', schema: 'public', table: 'barbeiros', filter: `id=eq.${perfilBarbeiro.id}` },
+          { event: '*', schema: 'public', table: 'fechamentos_comissoes' },
           (payload) => {
-            if (payload.new) {
-              const novaComissao = payload.new.comissao ?? payload.new.comissao_padrao ?? 50;
-              setComissaoPercentual(novaComissao);
-              if (payload.new.foto) setFotoBarbeiro(payload.new.foto);
+            if (!ativo) return;
+            const registro = payload.new || payload.old || {};
+            const meuId = String(perfilRef.current.id || '');
+            const idDoFechamento = String(registro.barbeiro_id || '');
+
+            if (!idDoFechamento || (meuId && idDoFechamento === meuId) || payload.eventType === 'DELETE') {
+              carregarPainelDoBarbeiro({ silencioso: true });
             }
           }
         )
-        .subscribe();
-    }
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'barbeiros',
+            filter: `id=eq.${perfilBarbeiro.id}`,
+          },
+          (payload) => {
+            if (!ativo || !payload?.new) return;
+            perfilRef.current = {
+              id: payload.new.id,
+              nome: (payload.new.nome || '').trim(),
+            };
+            setComissaoPercentual(normalizarComissao(payload.new));
+            if (payload.new.foto) setFotoBarbeiro(payload.new.foto);
+            if (payload.new.nome) setNomeBarbeiro(payload.new.nome);
+            carregarPainelDoBarbeiro({ silencioso: true });
+          }
+        )
+        .subscribe((status) => {
+          if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            setTimeout(() => {
+              if (ativo) carregarPainelDoBarbeiro({ silencioso: true });
+            }, 1500);
+          }
+        });
+    };
 
-    setupRealtime();
+    iniciar();
 
-    return () => {
-      if (subscription) {
-        supabase.removeChannel(subscription);
+    const handleVisibilidade = () => {
+      if (document.visibilityState === 'visible' && ativo) {
+        carregarPainelDoBarbeiro({ silencioso: true });
       }
     };
-  }, []);
+
+    const handleFoco = () => {
+      if (ativo) {
+        carregarPainelDoBarbeiro({ silencioso: true });
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilidade);
+    window.addEventListener('focus', handleFoco);
+
+    return () => {
+      ativo = false;
+      document.removeEventListener('visibilitychange', handleVisibilidade);
+      window.removeEventListener('focus', handleFoco);
+      if (canalRealtime) {
+        supabase.removeChannel(canalRealtime);
+      }
+    };
+  }, [carregarPainelDoBarbeiro, normalizarComissao]);
 
   const handleAlterarFoto = async (e) => {
-    const arquivo = e.target.files[0];
+    const arquivo = e.target.files?.[0];
     if (!arquivo || !barbeiroId) return;
 
     setUploadingFoto(true);
@@ -194,10 +423,20 @@ export default function PainelBarbeiro() {
       if (updateError) throw updateError;
 
       setFotoBarbeiro(novaFotoUrl);
-      alert('Foto de perfil atualizada!');
+      setModalFeedback({
+        isOpen: true,
+        tipo: 'sucesso',
+        titulo: 'Foto Atualizada',
+        mensagem: 'Sua foto de perfil foi atualizada com sucesso.'
+      });
     } catch (err) {
       console.error('Erro no upload:', err);
-      alert('Erro ao carregar foto.');
+      setModalFeedback({
+        isOpen: true,
+        tipo: 'erro',
+        titulo: 'Erro no Envio',
+        mensagem: 'Não foi possível atualizar a foto de perfil. Tente novamente.'
+      });
     } finally {
       setUploadingFoto(false);
     }
@@ -205,6 +444,11 @@ export default function PainelBarbeiro() {
 
   const alterarStatusAgendamento = async (id, novoStatus) => {
     setProcessandoId(id);
+
+    setAgendamentos((prev) =>
+      prev.map((item) => (String(item.id) === String(id) ? { ...item, status: novoStatus } : item))
+    );
+
     try {
       const { error } = await supabase
         .from('agendamentos')
@@ -212,15 +456,20 @@ export default function PainelBarbeiro() {
         .eq('id', id);
 
       if (error) throw error;
-      await carregarPainelDoBarbeiro();
+      await carregarPainelDoBarbeiro({ silencioso: true });
     } catch (err) {
-      alert('Erro ao atualizar agendamento: ' + err.message);
+      await carregarPainelDoBarbeiro({ silencioso: true });
+      setModalFeedback({
+        isOpen: true,
+        tipo: 'erro',
+        titulo: 'Erro ao Atualizar',
+        mensagem: err.message || 'Não foi possível atualizar o status do agendamento.'
+      });
     } finally {
       setProcessandoId(null);
     }
   };
 
-  // REDIRECIONAMENTO AJUSTADO PARA A ROTA CORRETA DO LOGIN ADMIN
   const handleLogout = async () => {
     try {
       await supabase.auth.signOut();
@@ -248,49 +497,106 @@ export default function PainelBarbeiro() {
 
   const proximaSemanaDias = gerarProximosDias();
 
-  const agendamentosDoDiaPendentes = agendamentos.filter(item => {
+  const atendimentosConcluidosEmAberto = useMemo(() => {
+    const concluidosOrdenados = agendamentos
+      .filter((item) => isStatusConcluido(item.status))
+      .sort(
+        (a, b) =>
+          new Date(a.data_hora || a.data || a.created_at || 0) -
+          new Date(b.data_hora || b.data || b.created_at || 0)
+      );
+
+    const idsQuitados = new Set();
+    const fechamentosSemIds = [];
+
+    (fechamentosPagos || []).forEach((f) => {
+      if (Array.isArray(f.atendimentos_ids) && f.atendimentos_ids.length > 0) {
+        f.atendimentos_ids.forEach((id) => idsQuitados.add(String(id)));
+      } else {
+        fechamentosSemIds.push(f);
+      }
+    });
+
+    let restantes = concluidosOrdenados.filter((ag) => !idsQuitados.has(String(ag.id)));
+
+    fechamentosSemIds.forEach((f) => {
+      const qtd = Number(f.qtd_atendimentos || 0);
+      if (qtd <= 0) return;
+
+      const dataFechamento = new Date(f.created_at || 0);
+      const elegiveisCorte = restantes.filter((ag) => {
+        const dataAg = new Date(ag.data_hora || ag.data || ag.created_at || 0);
+        return !Number.isNaN(dataFechamento.getTime()) ? dataAg <= dataFechamento : true;
+      });
+
+      const idsCortados = new Set(elegiveisCorte.slice(0, qtd).map((ag) => String(ag.id)));
+      restantes = restantes.filter((ag) => !idsCortados.has(String(ag.id)));
+    });
+
+    return restantes;
+  }, [agendamentos, fechamentosPagos, isStatusConcluido]);
+
+  const idsConcluidosEmAberto = useMemo(() => {
+    return new Set(atendimentosConcluidosEmAberto.map((ag) => String(ag.id)));
+  }, [atendimentosConcluidosEmAberto]);
+
+  const totalJaRecebidoMes = useMemo(() => {
+    return (fechamentosPagos || [])
+      .filter((f) => {
+        const dataRef = String(f.data_pagamento || f.periodo_referencia || f.data || f.created_at || '');
+        if (dataEspecificaHistorico) {
+          return extrairDataIso({ ...f, data: dataRef }) === dataEspecificaHistorico;
+        }
+        return dataRef.startsWith(mesSelecionado);
+      })
+      .reduce((acc, f) => acc + obterValorFechamento(f), 0);
+  }, [fechamentosPagos, mesSelecionado, dataEspecificaHistorico, extrairDataIso, obterValorFechamento]);
+
+  const agendamentosDoDiaPendentes = agendamentos.filter((item) => {
     const dataMatch = extrairDataIso(item) === dataSelecionada;
-    const status = (item.status || 'AGENDADO').toLowerCase();
-    const isPendente = status !== 'concluido' && status !== 'concluído' && status !== 'cancelado' && status !== 'finalizado';
-    return dataMatch && isPendente;
+    return dataMatch && isStatusPendente(item.status);
   });
 
-  const totalFaturadoDia = agendamentos
-    .filter(item => {
-      const dataMatch = extrairDataIso(item) === dataSelecionada;
-      const status = (item.status || '').toLowerCase();
-      const isConcluido = status.includes('concluid') || status.includes('realizado');
-      return dataMatch && isConcluido;
-    })
-    .reduce((acc, item) => {
-      const preco = Number(item.valor_total || item.preco || item.servicos?.preco || item.servico?.preco || 0);
-      return acc + preco;
-    }, 0);
-
-  const comissaoDia = totalFaturadoDia * (comissaoPercentual / 100);
-
-  const agendamentosFiltradosHistorico = agendamentos.filter(item => {
-    const isoItem = extrairDataIso(item);
-    if (!isoItem) return false;
-
-    if (dataEspecificaHistorico) {
-      return isoItem === dataEspecificaHistorico;
-    }
-
-    return isoItem.substring(0, 7) === mesSelecionado;
+  const agendamentosConcluidosNoDia = agendamentos.filter((item) => {
+    const dataMatch = extrairDataIso(item) === dataSelecionada;
+    return dataMatch && isStatusConcluido(item.status);
   });
 
-  const totalFaturadoHistorico = agendamentosFiltradosHistorico
-    .filter(item => {
-      const s = (item.status || '').toLowerCase();
-      return s.includes('concluid') || s.includes('realizado');
-    })
-    .reduce((acc, item) => {
-      const preco = Number(item.valor_total || item.preco || item.servicos?.preco || item.servico?.preco || 0);
-      return acc + preco;
-    }, 0);
+  const agendamentosConcluidosDiaEmAberto = agendamentosConcluidosNoDia.filter((item) =>
+    idsConcluidosEmAberto.has(String(item.id))
+  );
 
-  const comissaoHistorico = totalFaturadoHistorico * (comissaoPercentual / 100);
+  const totalFaturadoDiaEmAberto = agendamentosConcluidosDiaEmAberto.reduce(
+    (acc, item) => acc + obterValorAtendimento(item),
+    0
+  );
+
+  const comissaoDia = totalFaturadoDiaEmAberto * (comissaoPercentual / 100);
+
+  const agendamentosFiltradosHistorico = useMemo(() => {
+    return agendamentos
+      .filter((item) => {
+        const isoItem = extrairDataIso(item);
+        if (!isoItem) return false;
+
+        if (dataEspecificaHistorico) {
+          return isoItem === dataEspecificaHistorico;
+        }
+
+        return isoItem.substring(0, 7) === mesSelecionado;
+      })
+      .sort((a, b) => {
+        const dataA = new Date(a.data_hora || a.data || a.created_at || 0).getTime();
+        const dataB = new Date(b.data_hora || b.data || b.created_at || 0).getTime();
+        return dataB - dataA;
+      });
+  }, [agendamentos, dataEspecificaHistorico, extrairDataIso, mesSelecionado]);
+
+  const totalFaturadoHistoricoEmAberto = agendamentosFiltradosHistorico
+    .filter((item) => isStatusConcluido(item.status) && idsConcluidosEmAberto.has(String(item.id)))
+    .reduce((acc, item) => acc + obterValorAtendimento(item), 0);
+
+  const comissaoHistorico = totalFaturadoHistoricoEmAberto * (comissaoPercentual / 100);
 
   if (loading) {
     return (
@@ -303,16 +609,16 @@ export default function PainelBarbeiro() {
 
   return (
     <div className="max-w-xl mx-auto min-h-screen flex flex-col p-3.5 sm:p-5 bg-stone-50 font-sans pb-24 gap-3.5 relative">
-      
+
       {/* 1. CABEÇALHO DO PERFIL */}
       <div className="bg-white p-4 sm:p-5 rounded-3xl border border-stone-200/80 shadow-xs space-y-4 shrink-0">
         <div className="flex justify-between items-center gap-3">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 min-w-0">
             <label className="relative cursor-pointer group shrink-0" title="Clique para alterar foto">
               {fotoBarbeiro ? (
-                <img 
-                  src={fotoBarbeiro} 
-                  alt={nomeBarbeiro} 
+                <img
+                  src={fotoBarbeiro}
+                  alt={nomeBarbeiro}
                   className="w-12 h-12 rounded-2xl object-cover border-2 border-stone-200 shadow-xs group-hover:opacity-75 transition-opacity"
                 />
               ) : (
@@ -323,19 +629,24 @@ export default function PainelBarbeiro() {
               <div className="absolute inset-0 bg-black/40 rounded-2xl opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-white text-[9px] font-bold uppercase tracking-wider">
                 Foto
               </div>
-              <input 
-                type="file" 
-                accept="image/*" 
-                onChange={handleAlterarFoto} 
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleAlterarFoto}
                 disabled={uploadingFoto}
-                className="hidden" 
+                className="hidden"
               />
             </label>
 
-            <div>
+            <div className="min-w-0">
               <span className="text-[9px] font-black text-stone-400 uppercase tracking-wider block">Painel do Profissional</span>
-              <h2 className="text-base sm:text-lg font-black text-stone-900 leading-tight">Olá, {nomeBarbeiro || 'Barbeiro'}</h2>
+              <h2 className="text-base sm:text-lg font-black text-stone-900 leading-tight truncate">
+                Olá, {nomeBarbeiro || 'Barbeiro'}
+              </h2>
               {uploadingFoto && <span className="text-[10px] text-amber-600 font-bold block">Enviando foto...</span>}
+              {atualizandoDados && !uploadingFoto && (
+                <span className="text-[10px] text-emerald-600 font-semibold block">Sincronizando em tempo real...</span>
+              )}
             </div>
           </div>
 
@@ -344,32 +655,52 @@ export default function PainelBarbeiro() {
           </span>
         </div>
 
-        {/* CARDS DE GANHOS DO DIA E DO MÊS/PERÍODO */}
-        <div className="grid grid-cols-2 gap-2 pt-1">
-          <div className={`p-3.5 rounded-2xl border transition-all ${abaAtiva === 'dia' ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-stone-50 border-stone-200/60'}`}>
-            <div className="flex items-center gap-1.5 mb-1">
-              <Wallet className={`w-3.5 h-3.5 ${abaAtiva === 'dia' ? 'text-emerald-700' : 'text-stone-500'}`} />
-              <span className={`text-[10px] font-black uppercase tracking-wider ${abaAtiva === 'dia' ? 'text-emerald-800' : 'text-stone-500'}`}>
-                Comissão Hoje
+        {/* CARDS DE GANHOS: DIA E MÊS */}
+        <div className="grid grid-cols-2 gap-2.5 pt-1">
+          <div className={`p-3.5 rounded-2xl border transition-all flex flex-col justify-between ${abaAtiva === 'dia' ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-stone-50 border-stone-200/60'}`}>
+            <div>
+              <div className="flex items-center gap-1.5 mb-1">
+                <Wallet className={`w-3.5 h-3.5 ${abaAtiva === 'dia' ? 'text-emerald-700' : 'text-stone-500'}`} />
+                <span className={`text-[10px] font-black uppercase tracking-wider ${abaAtiva === 'dia' ? 'text-emerald-800' : 'text-stone-500'}`}>
+                  A Receber (Dia)
+                </span>
+              </div>
+              <span className={`text-base sm:text-lg font-black block ${abaAtiva === 'dia' ? 'text-emerald-700' : 'text-stone-800'}`}>
+                {formatBRL(comissaoDia)}
+              </span>
+              <span className="text-[9px] text-stone-400 font-bold block">Em aberto: {formatBRL(totalFaturadoDiaEmAberto)}</span>
+            </div>
+
+            <div className="mt-2.5 pt-2 border-t border-stone-200/70 flex items-center justify-between gap-2 text-[9px]">
+              <span className="text-stone-400 font-semibold shrink-0">Serviços dia</span>
+              <span className="font-black text-stone-700 whitespace-nowrap">
+                {agendamentosConcluidosNoDia.length} concluído{agendamentosConcluidosNoDia.length === 1 ? '' : 's'}
               </span>
             </div>
-            <span className={`text-base sm:text-lg font-black block ${abaAtiva === 'dia' ? 'text-emerald-700' : 'text-stone-800'}`}>
-              R$ {comissaoDia.toFixed(2)}
-            </span>
-            <span className="text-[9px] text-stone-400 font-bold">Total: R$ {totalFaturadoDia.toFixed(2)}</span>
           </div>
 
-          <div className={`p-3.5 rounded-2xl border transition-all ${abaAtiva === 'mes' ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-stone-50 border-stone-200/60'}`}>
-            <div className="flex items-center gap-1.5 mb-1">
-              <TrendingUp className={`w-3.5 h-3.5 ${abaAtiva === 'mes' ? 'text-emerald-700' : 'text-stone-500'}`} />
-              <span className={`text-[10px] font-black uppercase tracking-wider ${abaAtiva === 'mes' ? 'text-emerald-800' : 'text-stone-500'}`}>
-                {dataEspecificaHistorico ? 'Comissão Data' : 'Comissão Mês'}
+          <div className={`p-3.5 rounded-2xl border transition-all flex flex-col justify-between ${abaAtiva === 'mes' ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-stone-50 border-stone-200/60'}`}>
+            <div>
+              <div className="flex items-center gap-1.5 mb-1">
+                <TrendingUp className={`w-3.5 h-3.5 ${abaAtiva === 'mes' ? 'text-emerald-700' : 'text-stone-500'}`} />
+                <span className={`text-[10px] font-black uppercase tracking-wider ${abaAtiva === 'mes' ? 'text-emerald-800' : 'text-stone-500'}`}>
+                  {dataEspecificaHistorico ? 'A Receber (Data)' : 'A Receber (Mês)'}
+                </span>
+              </div>
+              <span className={`text-base sm:text-lg font-black block ${abaAtiva === 'mes' ? 'text-emerald-700' : 'text-stone-800'}`}>
+                {formatBRL(comissaoHistorico)}
+              </span>
+              <span className="text-[9px] text-stone-400 font-bold block">Em aberto: {formatBRL(totalFaturadoHistoricoEmAberto)}</span>
+            </div>
+
+            <div className="mt-2.5 pt-2 border-t border-stone-200/70 flex items-center justify-between gap-2 text-[9px]">
+              <span className="text-stone-500 font-bold shrink-0">
+                {dataEspecificaHistorico ? 'Recebido (Data)' : 'Recebido (Mês)'}
+              </span>
+              <span className="font-black text-emerald-700 whitespace-nowrap">
+                {formatBRL(totalJaRecebidoMes)}
               </span>
             </div>
-            <span className={`text-base sm:text-lg font-black block ${abaAtiva === 'mes' ? 'text-emerald-700' : 'text-stone-800'}`}>
-              R$ {comissaoHistorico.toFixed(2)}
-            </span>
-            <span className="text-[9px] text-stone-400 font-bold">Total: R$ {totalFaturadoHistorico.toFixed(2)}</span>
           </div>
         </div>
       </div>
@@ -377,34 +708,45 @@ export default function PainelBarbeiro() {
       {/* 2. CONTEÚDO DA ABA 1: AGENDA DO DIA */}
       {abaAtiva === 'dia' && (
         <div className="space-y-3.5">
-          
+
           {/* MINI CALENDÁRIO DIÁRIO */}
           <div className="bg-white rounded-3xl p-3.5 pt-4 border border-stone-200/80 shadow-xs space-y-2">
             <div className="flex items-center justify-between px-1">
               <span className="text-[10px] font-black uppercase tracking-wider text-stone-400">Próximos Dias</span>
-              <span className="text-[11px] font-extrabold text-stone-900 bg-stone-100 px-2.5 py-0.5 rounded-full border border-stone-200">
-                {new Date(dataSelecionada + 'T00:00:00').toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short' })}
-              </span>
+              <button
+                type="button"
+                onClick={async () => {
+                  await carregarPainelDoBarbeiro({ silencioso: true });
+                  if (typeof window !== 'undefined') {
+                    window.location.reload();
+                  }
+                }}
+                disabled={atualizandoDados}
+                className="inline-flex items-center gap-1.5 text-[11px] font-extrabold text-stone-900 bg-stone-100 hover:bg-stone-200 px-3 py-1 rounded-full border border-stone-200 transition-all cursor-pointer active:scale-95 disabled:opacity-60"
+                title="Atualizar página e dados"
+              >
+                <RefreshCw className={`w-3 h-3 ${atualizandoDados ? 'animate-spin' : ''}`} />
+                <span>{atualizandoDados ? 'Atualizando...' : 'Atualizar'}</span>
+              </button>
             </div>
 
             <div className="grid grid-cols-7 gap-1 pt-1 pb-1">
               {proximaSemanaDias.map((dia) => {
                 const selecionado = dataSelecionada === dia.iso;
-                
-                const qtdPendentesNoDia = agendamentos.filter(item => {
+
+                const qtdPendentesNoDia = agendamentos.filter((item) => {
                   const dataItem = extrairDataIso(item);
-                  const status = (item.status || 'AGENDADO').toLowerCase();
-                  const pendente = status !== 'concluido' && status !== 'concluído' && status !== 'cancelado' && status !== 'finalizado';
-                  return dataItem === dia.iso && pendente;
+                  return dataItem === dia.iso && isStatusPendente(item.status);
                 }).length;
 
                 return (
                   <button
                     key={dia.iso}
+                    type="button"
                     onClick={() => setDataSelecionada(dia.iso)}
                     className={`flex flex-col items-center justify-center py-2 px-0.5 rounded-2xl transition-all cursor-pointer relative ${
-                      selecionado 
-                        ? 'bg-stone-900 text-white shadow-md scale-105 border border-stone-900' 
+                      selecionado
+                        ? 'bg-stone-900 text-white shadow-md scale-105 border border-stone-900'
                         : 'bg-stone-50 hover:bg-stone-100 text-stone-700 border border-stone-200/70'
                     }`}
                   >
@@ -445,14 +787,14 @@ export default function PainelBarbeiro() {
 
             {agendamentosDoDiaPendentes.length === 0 ? (
               <div className="py-12 text-center text-stone-400 text-xs font-medium">
-                🎉 Nenhum agendamento pendente para esta data!
+                Nenhum agendamento pendente para esta data.
               </div>
             ) : (
               <div className="space-y-3">
                 {agendamentosDoDiaPendentes.map((item) => {
                   const cliente = item.cliente_nome || item.cliente?.nome || item.clientes?.nome || item.nome_cliente || item.cliente || 'Cliente';
                   const servico = item.servico_nome || item.servico?.nome || item.servicos?.nome || item.nome_servico || item.servico || 'Serviço';
-                  const valor = Number(item.valor_total || item.preco || item.servicos?.preco || item.servico?.preco || 0);
+                  const valor = obterValorAtendimento(item);
 
                   let horaFormatada = '--:--';
                   const rawData = item.data_hora || item.data || item.created_at;
@@ -466,8 +808,8 @@ export default function PainelBarbeiro() {
                   }
 
                   return (
-                    <div 
-                      key={item.id} 
+                    <div
+                      key={item.id}
                       className="p-4 rounded-2xl border border-stone-200/90 bg-white shadow-xs space-y-3"
                     >
                       <div className="flex justify-between items-start gap-2">
@@ -477,9 +819,9 @@ export default function PainelBarbeiro() {
                         </div>
 
                         <div className="text-right shrink-0">
-                          <span className="text-xs font-black text-stone-900 block">R$ {valor.toFixed(2)}</span>
+                          <span className="text-xs font-black text-stone-900 block">{formatBRL(valor)}</span>
                           <span className="text-[11px] font-bold text-stone-500 bg-stone-100 px-2 py-0.5 rounded-lg border border-stone-200 inline-block mt-0.5">
-                            ⏰ {horaFormatada}
+                            {horaFormatada}
                           </span>
                         </div>
                       </div>
@@ -491,6 +833,7 @@ export default function PainelBarbeiro() {
 
                         <div className="flex items-center gap-1.5">
                           <button
+                            type="button"
                             onClick={() => alterarStatusAgendamento(item.id, 'concluido')}
                             disabled={processandoId === item.id}
                             className="py-1.5 px-3 bg-stone-900 hover:bg-stone-800 text-white rounded-xl text-[10px] font-bold transition-all flex items-center gap-1 cursor-pointer shadow-xs active:scale-95 disabled:opacity-50"
@@ -500,6 +843,7 @@ export default function PainelBarbeiro() {
                           </button>
 
                           <button
+                            type="button"
                             onClick={() => alterarStatusAgendamento(item.id, 'cancelado')}
                             disabled={processandoId === item.id}
                             className="py-1.5 px-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-xl text-[10px] font-bold transition-all flex items-center gap-1 cursor-pointer border border-stone-200 active:scale-95 disabled:opacity-50"
@@ -509,7 +853,6 @@ export default function PainelBarbeiro() {
                           </button>
                         </div>
                       </div>
-
                     </div>
                   );
                 })}
@@ -523,7 +866,7 @@ export default function PainelBarbeiro() {
       {/* 3. CONTEÚDO DA ABA 2: HISTÓRICO */}
       {abaAtiva === 'mes' && (
         <div className="space-y-3.5">
-          
+
           <div className="bg-white p-4 sm:p-5 rounded-3xl border border-stone-200/80 shadow-xs space-y-3">
             <div className="flex items-center justify-between border-b border-stone-100 pb-2">
               <div className="flex items-center gap-2">
@@ -532,19 +875,20 @@ export default function PainelBarbeiro() {
               </div>
 
               <button
-                onClick={carregarPainelDoBarbeiro}
+                type="button"
+                onClick={() => carregarPainelDoBarbeiro({ silencioso: true })}
                 className="p-1.5 bg-stone-50 hover:bg-stone-100 border border-stone-200 text-stone-700 rounded-xl transition-colors active:scale-95 cursor-pointer shadow-xs"
                 title="Atualizar dados"
               >
-                <RefreshCw className="w-3.5 h-3.5" />
+                <RefreshCw className={`w-3.5 h-3.5 ${atualizandoDados ? 'animate-spin' : ''}`} />
               </button>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
               <div className="space-y-1">
                 <label className="text-[10px] font-extrabold uppercase text-stone-400 block">Mês Completo</label>
-                <input 
-                  type="month" 
+                <input
+                  type="month"
                   value={mesSelecionado}
                   onChange={(e) => {
                     setMesSelecionado(e.target.value);
@@ -558,7 +902,8 @@ export default function PainelBarbeiro() {
                 <div className="flex justify-between items-center">
                   <label className="text-[10px] font-extrabold uppercase text-stone-400 block">Dia Específico</label>
                   {dataEspecificaHistorico && (
-                    <button 
+                    <button
+                      type="button"
                       onClick={() => setDataEspecificaHistorico('')}
                       className="text-[9px] font-bold text-rose-500 hover:text-rose-700 flex items-center gap-0.5 cursor-pointer"
                     >
@@ -566,13 +911,13 @@ export default function PainelBarbeiro() {
                     </button>
                   )}
                 </div>
-                <input 
-                  type="date" 
+                <input
+                  type="date"
                   value={dataEspecificaHistorico}
                   onChange={(e) => setDataEspecificaHistorico(e.target.value)}
                   className={`w-full border text-xs font-bold px-3 py-2 rounded-2xl focus:outline-none cursor-pointer transition-colors ${
-                    dataEspecificaHistorico 
-                      ? 'bg-emerald-50 border-emerald-300 text-emerald-900' 
+                    dataEspecificaHistorico
+                      ? 'bg-emerald-50 border-emerald-300 text-emerald-900'
                       : 'bg-stone-50 border-stone-200 text-stone-900'
                   }`}
                 />
@@ -583,8 +928,8 @@ export default function PainelBarbeiro() {
           <div className="bg-white rounded-3xl border border-stone-200/80 shadow-xs p-4 sm:p-5 space-y-3">
             <div className="flex justify-between items-center pb-2 border-b border-stone-100">
               <h3 className="text-xs font-black text-stone-900 uppercase tracking-wide">
-                {dataEspecificaHistorico 
-                  ? `Registros do dia ${dataEspecificaHistorico.split('-').reverse().join('/')}` 
+                {dataEspecificaHistorico
+                  ? `Registros do dia ${dataEspecificaHistorico.split('-').reverse().join('/')}`
                   : 'Todos os Registros do Mês'}
               </h3>
               <span className="text-xs text-stone-400 font-bold">{agendamentosFiltradosHistorico.length} encontrados</span>
@@ -599,21 +944,25 @@ export default function PainelBarbeiro() {
                 {agendamentosFiltradosHistorico.map((item) => {
                   const cliente = item.cliente_nome || item.cliente?.nome || item.clientes?.nome || item.nome_cliente || item.cliente || 'Cliente';
                   const servico = item.servico_nome || item.servico?.nome || item.servicos?.nome || item.nome_servico || item.servico || 'Serviço';
-                  const valor = Number(item.valor_total || item.preco || item.servicos?.preco || item.servico?.preco || 0);
+                  const valor = obterValorAtendimento(item);
                   const status = (item.status || 'AGENDADO').toUpperCase();
-                  
+
                   let dataFmt = '';
                   const rawData = item.data_hora || item.data || item.created_at;
                   if (rawData) {
                     try {
                       const dataObj = new Date(rawData);
-                      dataFmt = dataObj.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) + ' às ' + dataObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                      dataFmt =
+                        dataObj.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) +
+                        ' às ' +
+                        dataObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
                     } catch {
                       dataFmt = rawData;
                     }
                   }
 
-                  const isConcluido = status.includes('CONCLU') || status.includes('REALIZADO');
+                  const concluido = isStatusConcluido(item.status);
+                  const jaPagoNoFechamento = concluido && !idsConcluidosEmAberto.has(String(item.id));
 
                   return (
                     <div key={item.id} className="p-3.5 rounded-2xl border border-stone-100 bg-stone-50/50 flex justify-between items-center text-xs gap-3">
@@ -624,11 +973,17 @@ export default function PainelBarbeiro() {
                       </div>
 
                       <div className="text-right shrink-0">
-                        <span className="font-bold text-stone-900 block">R$ {valor.toFixed(2)}</span>
-                        <span className={`px-2 py-0.5 text-[9px] font-black rounded-md inline-block mt-1 tracking-wider ${
-                          isConcluido ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
-                        }`}>
-                          {status}
+                        <span className="font-bold text-stone-900 block">{formatBRL(valor)}</span>
+                        <span
+                          className={`px-2 py-0.5 text-[9px] font-black rounded-md inline-block mt-1 tracking-wider ${
+                            jaPagoNoFechamento
+                              ? 'bg-sky-100 text-sky-800'
+                              : concluido
+                              ? 'bg-emerald-100 text-emerald-800'
+                              : 'bg-amber-100 text-amber-800'
+                          }`}
+                        >
+                          {jaPagoNoFechamento ? 'COMISSÃO PAGA' : status}
                         </span>
                       </div>
                     </div>
@@ -698,7 +1053,7 @@ export default function PainelBarbeiro() {
       {modalLogoutOpen && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-fade-in">
           <div className="bg-white border border-slate-200 rounded-3xl shadow-2xl w-full max-w-sm p-6 space-y-5 text-center relative text-slate-900">
-            
+
             <div className="w-12 h-12 rounded-2xl bg-rose-100 text-rose-600 border border-rose-200 flex items-center justify-center mx-auto shadow-sm">
               <LogOut className="w-6 h-6" />
             </div>
@@ -731,6 +1086,42 @@ export default function PainelBarbeiro() {
               </button>
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {/* 6. MODAL DE FEEDBACK */}
+      {modalFeedback.isOpen && (
+        <div className="fixed inset-0 bg-stone-950/70 backdrop-blur-xs z-[70] flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-[2rem] max-w-sm w-full p-6 shadow-2xl border border-stone-200 space-y-5 text-center">
+            <div
+              className={`w-12 h-12 rounded-2xl flex items-center justify-center mx-auto shadow-inner ${
+                modalFeedback.tipo === 'sucesso'
+                  ? 'bg-emerald-50 text-emerald-600'
+                  : 'bg-rose-50 text-rose-600'
+              }`}
+            >
+              {modalFeedback.tipo === 'sucesso' ? (
+                <CheckCircle className="w-6 h-6" />
+              ) : (
+                <AlertCircle className="w-6 h-6" />
+              )}
+            </div>
+
+            <div className="space-y-1.5">
+              <h3 className="text-base font-black text-stone-900">{modalFeedback.titulo}</h3>
+              <p className="text-xs text-stone-500 leading-relaxed px-2">
+                {modalFeedback.mensagem}
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setModalFeedback({ isOpen: false, tipo: 'sucesso', titulo: '', mensagem: '' })}
+              className="w-full py-3 bg-stone-900 hover:bg-black text-white font-bold text-xs rounded-xl cursor-pointer transition-all shadow-md"
+            >
+              Entendido
+            </button>
           </div>
         </div>
       )}

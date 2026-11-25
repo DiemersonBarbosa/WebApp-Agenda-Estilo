@@ -11,6 +11,32 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
+function parseNumeroBR(value) {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : 0;
+  }
+  if (typeof value === 'string') {
+    const trimmed = value.trim().replace(/\s+/g, '').replace('R$', '');
+    const normalizado = trimmed.includes(',')
+      ? trimmed.replace(/\./g, '').replace(',', '.')
+      : trimmed;
+    const num = Number(normalizado);
+    return Number.isFinite(num) ? num : 0;
+  }
+  const num = Number(value);
+  return Number.isFinite(num) ? num : 0;
+}
+
+function formatBRL(value) {
+  const num = parseNumeroBR(value);
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(num);
+}
+
 export default function PainelAgendaDia({ profissionalId, barbeariaId, barbeariaProp, taxaComissao = 50 }) {
   const [todosAgendamentos, setTodosAgendamentos] = useState([]);
   const [barbeiros, setBarbeiros] = useState([]);
@@ -320,7 +346,7 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, barbearia
       }
 
       const servicoObj = servicos.find(s => String(s.id) === String(servicoIdManual));
-      const valorServico = servicoObj ? (servicoObj.preco || 0) : 0;
+      const valorServico = servicoObj ? parseNumeroBR(servicoObj.preco || 0) : 0;
       
       const dataHoraCompleta = `${dataSelecionada}T${horarioSelecionadoSlot}:00-03:00`;
 
@@ -368,8 +394,10 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, barbearia
 
   const totalAtendimentosDia = agendamentosAtivosDia.length;
   const concluidosDia = agendamentosAtivosDia.filter(i => (i.status || '').toLowerCase() === 'concluido').length;
-  const valorTotalDia = agendamentosAtivosDia
-    .reduce((acc, item) => acc + Number(item.valor_total || item.servicos?.preco || 0), 0);
+  const valorTotalDia = agendamentosAtivosDia.reduce(
+    (acc, item) => acc + parseNumeroBR(item.valor_total ?? item.servicos?.preco ?? 0),
+    0
+  );
 
   const isDiaBloqueadoParaProfissional = (dataIso, barbId) => {
     return datasBloqueadas.some(b => {
@@ -571,7 +599,9 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, barbearia
         >
           <div className="flex flex-col justify-center min-w-0 pr-2">
             <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider truncate block">Projeção</span>
-            <h3 className="text-lg sm:text-xl font-black text-white mt-0.5 truncate">R$ {valorTotalDia.toFixed(0)}</h3>
+            <h3 className="text-lg sm:text-xl font-black text-white mt-0.5 truncate">
+              {formatBRL(valorTotalDia)}
+            </h3>
           </div>
           <div 
             className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0"
@@ -771,7 +801,7 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, barbearia
               if (slot.tipo === 'ocupado') {
                 const item = slot.dados;
                 const fotoBarb = item.barbeiros?.foto;
-                const preco = Number(item.valor_total || item.servicos?.preco || 0).toFixed(2);
+                const preco = parseNumeroBR(item.valor_total ?? item.servicos?.preco ?? 0);
                 const emAndamento = isHorarioEmAndamento(item.data_hora);
                 const isConcluido = (item.status || '').toLowerCase() === 'concluido';
 
@@ -811,7 +841,7 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, barbearia
                           </div>
 
                           <span className="text-stone-900 font-black text-xs sm:text-sm bg-stone-50 px-2.5 py-1 rounded-lg border border-stone-200/70 shrink-0">
-                            R$ {preco}
+                            {formatBRL(preco)}
                           </span>
                         </div>
 
@@ -984,7 +1014,7 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, barbearia
                       </p>
                       {servicoSelecionadoObj && (
                         <p className="text-[10px] font-medium text-emerald-600">
-                          R$ {Number(servicoSelecionadoObj.preco || 0).toFixed(2)} • {servicoSelecionadoObj.duracao_minutos || 30} min
+                          {formatBRL(servicoSelecionadoObj.preco || 0)} • {servicoSelecionadoObj.duracao_minutos || 30} min
                         </p>
                       )}
                     </div>
@@ -1078,7 +1108,7 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, barbearia
                       </p>
                     </div>
                   </div>
-                  <span className="text-xs font-black">R$ {Number(serv.preco || 0).toFixed(2)}</span>
+                  <span className="text-xs font-black">{formatBRL(serv.preco || 0)}</span>
                 </div>
               ))}
             </div>
@@ -1239,7 +1269,7 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, barbearia
 
                         <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-3 pt-3 sm:pt-0 border-t sm:border-t-0 border-stone-100">
                           <span className="text-sm sm:text-base font-extrabold text-stone-900 mr-auto sm:mr-1">
-                            R$ {Number(item.valor_total || item.servicos?.preco || 0).toFixed(2)}
+                            {formatBRL(item.valor_total ?? item.servicos?.preco ?? 0)}
                           </span>
 
                           {podeConcluir && (

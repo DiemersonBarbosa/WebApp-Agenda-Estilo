@@ -68,6 +68,29 @@ import FidelizacaoAdmin from '@/components/FidelizacaoAdmin';
 // URL base fixa para chamadas de API no app nativo Capacitor/Android
 const API_BASE_URL = 'https://agendaestilo.com.br';
 
+// Formatação padrão em Real brasileiro (sempre com milhar e 2 casas decimais: R$ 1.000,00)
+function formatBRL(value) {
+  let num = value;
+
+  if (typeof value === 'string') {
+    const cleaned = value.replace(/[^\d,-]/g, '').replace(',', '.');
+    num = Number(cleaned);
+  } else {
+    num = Number(value);
+  }
+
+  if (!Number.isFinite(num)) {
+    return 'R$ 0,00';
+  }
+
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(num);
+}
+
 /* HOOK PARA NOTIFICAÇÕES NATIVAS DO ANDROID (SUPABASE REALTIME) */
 function usePushNotifications(barbeariaId) {
   useEffect(() => {
@@ -444,6 +467,12 @@ export default function AdminDashboard() {
       setMobileMenuOpen(false);
     }
   }, [esconderMenuMobilePorTeclado]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [activeTab, subTabEquipe]);
 
   useEffect(() => {
     if (activeTab === 'despesas' && scrollRef.current) {
@@ -969,11 +998,21 @@ export default function AdminDashboard() {
         });
       }
 
-      alert('Acesso do barbeiro criado com sucesso!');
+      setModalFeedback({
+        isOpen: true,
+        tipo: 'sucesso',
+        titulo: 'Acesso Criado',
+        mensagem: `As credenciais de acesso para ${emailBarbeiro} foram criadas e vinculadas com sucesso.`
+      });
       setOpenAcessoId(null);
       loadDashboardData(barbearia.id);
     } catch (error) {
-      alert('Erro: ' + error.message);
+      setModalFeedback({
+        isOpen: true,
+        tipo: 'erro',
+        titulo: 'Erro ao Criar Acesso',
+        mensagem: error.message || 'Não foi possível criar as credenciais do profissional.'
+      });
     }
   };
 
@@ -1091,7 +1130,12 @@ export default function AdminDashboard() {
         prev.map((item) => (item.id === id ? { ...item, status: newStatus } : item))
       );
     } catch (err) {
-      alert('Erro ao atualizar status: ' + err.message);
+      setModalFeedback({
+        isOpen: true,
+        tipo: 'erro',
+        titulo: 'Erro ao Atualizar Status',
+        mensagem: err.message || 'Não foi possível atualizar o status do agendamento.'
+      });
     }
   };
 
@@ -1099,7 +1143,12 @@ export default function AdminDashboard() {
     const codigoParaCopiar = pixDataMP?.copiaECola;
 
     if (!codigoParaCopiar) {
-      alert('O código Pix ainda não está disponível.');
+      setModalFeedback({
+        isOpen: true,
+        tipo: 'erro',
+        titulo: 'Código Indisponível',
+        mensagem: 'O código Pix ainda não está disponível no momento. Aguarde ou tente gerar novamente.'
+      });
       return;
     }
 
@@ -1128,7 +1177,12 @@ export default function AdminDashboard() {
         inputElement.focus();
         inputElement.select();
       }
-      alert('Não foi possível copiar automaticamente. Por favor, selecione e copie o código manualmente no campo.');
+      setModalFeedback({
+        isOpen: true,
+        tipo: 'erro',
+        titulo: 'Cópia Manual Necessária',
+        mensagem: 'Não foi possível copiar automaticamente. Por favor, selecione e copie o código manualmente no campo.'
+      });
     }
   };
 
@@ -1225,7 +1279,12 @@ export default function AdminDashboard() {
       setFotoUrl(publicURLData.publicUrl);
     } catch (err) {
       console.error('Erro no upload:', err);
-      alert('Erro ao enviar a imagem. Tente novamente.');
+      setModalFeedback({
+        isOpen: true,
+        tipo: 'erro',
+        titulo: 'Falha no Envio da Foto',
+        mensagem: 'Não foi possível enviar a imagem selecionada. Tente novamente.'
+      });
     } finally {
       setUploading(false);
     }
@@ -1250,21 +1309,66 @@ export default function AdminDashboard() {
 
   const handleSaveServico = async (e) => {
     e.preventDefault();
+    const estaEditando = Boolean(editingServico);
     try {
-      if (editingServico) {
-        await supabase.from('servicos').update({ nome: formServico.nome, preco: Number(formServico.preco), duracao_minutos: Number(formServico.duracao_minutos) }).eq('id', editingServico.id);
+      if (estaEditando) {
+        const { error } = await supabase
+          .from('servicos')
+          .update({ nome: formServico.nome, preco: Number(formServico.preco), duracao_minutos: Number(formServico.duracao_minutos) })
+          .eq('id', editingServico.id);
+        if (error) throw error;
       } else {
-        await supabase.from('servicos').insert([{ barbearia_id: barbearia.id, nome: formServico.nome, preco: Number(formServico.preco), duracao_minutos: Number(formServico.duracao_minutos) }]);
+        const { error } = await supabase
+          .from('servicos')
+          .insert([{ barbearia_id: barbearia.id, nome: formServico.nome, preco: Number(formServico.preco), duracao_minutos: Number(formServico.duracao_minutos) }]);
+        if (error) throw error;
       }
       setModalServicoOpen(false);
-      loadDashboardData(barbearia.id);
-    } catch (err) { alert('Erro ao salvar serviço: ' + err.message); }
+      await loadDashboardData(barbearia.id);
+      setModalFeedback({
+        isOpen: true,
+        tipo: 'sucesso',
+        titulo: estaEditando ? 'Serviço Atualizado' : 'Serviço Cadastrado',
+        mensagem: estaEditando
+          ? `As informações de "${formServico.nome}" foram atualizadas com sucesso.`
+          : `O serviço "${formServico.nome}" foi adicionado ao catálogo.`
+      });
+    } catch (err) {
+      setModalFeedback({
+        isOpen: true,
+        tipo: 'erro',
+        titulo: 'Erro ao Salvar Serviço',
+        mensagem: err.message || 'Não foi possível salvar os dados do serviço.'
+      });
+    }
   };
 
   const handleDeleteServico = async (id) => {
-    if (!confirm('Deseja realmente excluir este serviço?')) return;
-    await supabase.from('servicos').delete().eq('id', id);
-    loadDashboardData(barbearia.id);
+    setModalConfirmacao({
+      isOpen: true,
+      titulo: 'Excluir Serviço',
+      descricao: 'Deseja realmente excluir este serviço? Esta ação não poderá ser desfeita.',
+      onConfirm: async () => {
+        try {
+          const { error } = await supabase.from('servicos').delete().eq('id', id);
+          if (error) throw error;
+          await loadDashboardData(barbearia.id);
+          setModalFeedback({
+            isOpen: true,
+            tipo: 'sucesso',
+            titulo: 'Serviço Excluído',
+            mensagem: 'O serviço foi removido com sucesso.'
+          });
+        } catch (err) {
+          setModalFeedback({
+            isOpen: true,
+            tipo: 'erro',
+            titulo: 'Erro ao Excluir',
+            mensagem: err.message || 'Não foi possível excluir o serviço.'
+          });
+        }
+      }
+    });
   };
 
   const handleOpenBarbeiroModal = (barbeiro = null) => {
@@ -1350,9 +1454,31 @@ export default function AdminDashboard() {
   };
 
   const handleDeleteBarbeiro = async (id) => {
-    if (!confirm('Deseja realmente excluir este funcionário?')) return;
-    await supabase.from('barbeiros').delete().eq('id', id);
-    loadDashboardData(barbearia.id);
+    setModalConfirmacao({
+      isOpen: true,
+      titulo: 'Excluir Profissional',
+      descricao: 'Deseja realmente excluir este funcionário da equipe? Esta ação não poderá ser desfeita.',
+      onConfirm: async () => {
+        try {
+          const { error } = await supabase.from('barbeiros').delete().eq('id', id);
+          if (error) throw error;
+          await loadDashboardData(barbearia.id);
+          setModalFeedback({
+            isOpen: true,
+            tipo: 'sucesso',
+            titulo: 'Profissional Excluído',
+            mensagem: 'O profissional foi removido da equipe com sucesso.'
+          });
+        } catch (err) {
+          setModalFeedback({
+            isOpen: true,
+            tipo: 'erro',
+            titulo: 'Erro ao Excluir',
+            mensagem: err.message || 'Não foi possível excluir o profissional.'
+          });
+        }
+      }
+    });
   };
 
   const handleOpenDespesaModal = (despesa = null) => {
@@ -1368,21 +1494,66 @@ export default function AdminDashboard() {
 
   const handleSaveDespesa = async (e) => {
     e.preventDefault();
+    const estaEditando = Boolean(editingDespesa);
     try {
-      if (editingDespesa) {
-        await supabase.from('despesas').update({ descricao: formDespesa.descricao, valor: Number(formDespesa.valor), data: formDespesa.data }).eq('id', editingDespesa.id);
+      if (estaEditando) {
+        const { error } = await supabase
+          .from('despesas')
+          .update({ descricao: formDespesa.descricao, valor: Number(formDespesa.valor), data: formDespesa.data })
+          .eq('id', editingDespesa.id);
+        if (error) throw error;
       } else {
-        await supabase.from('despesas').insert([{ barbearia_id: barbearia.id, descricao: formDespesa.descricao, valor: Number(formDespesa.valor), data: formDespesa.data }]);
+        const { error } = await supabase
+          .from('despesas')
+          .insert([{ barbearia_id: barbearia.id, descricao: formDespesa.descricao, valor: Number(formDespesa.valor), data: formDespesa.data }]);
+        if (error) throw error;
       }
       setModalDespesaOpen(false);
-      loadDashboardData(barbearia.id);
-    } catch (err) { alert('Erro ao salvar despesa: ' + err.message); }
+      await loadDashboardData(barbearia.id);
+      setModalFeedback({
+        isOpen: true,
+        tipo: 'sucesso',
+        titulo: estaEditando ? 'Despesa Atualizada' : 'Despesa Registrada',
+        mensagem: estaEditando
+          ? `A despesa "${formDespesa.descricao}" foi atualizada com sucesso.`
+          : `A despesa "${formDespesa.descricao}" foi registrada com sucesso.`
+      });
+    } catch (err) {
+      setModalFeedback({
+        isOpen: true,
+        tipo: 'erro',
+        titulo: 'Erro ao Salvar Despesa',
+        mensagem: err.message || 'Não foi possível salvar os dados da despesa.'
+      });
+    }
   };
 
   const handleDeleteDespesa = async (id) => {
-    if (!confirm('Deseja realmente excluir esta despesa?')) return;
-    await supabase.from('despesas').delete().eq('id', id);
-    loadDashboardData(barbearia.id);
+    setModalConfirmacao({
+      isOpen: true,
+      titulo: 'Excluir Despesa',
+      descricao: 'Deseja realmente excluir esta despesa? Esta ação não poderá ser desfeita.',
+      onConfirm: async () => {
+        try {
+          const { error } = await supabase.from('despesas').delete().eq('id', id);
+          if (error) throw error;
+          await loadDashboardData(barbearia.id);
+          setModalFeedback({
+            isOpen: true,
+            tipo: 'sucesso',
+            titulo: 'Despesa Excluída',
+            mensagem: 'A despesa foi removida com sucesso.'
+          });
+        } catch (err) {
+          setModalFeedback({
+            isOpen: true,
+            tipo: 'erro',
+            titulo: 'Erro ao Excluir',
+            mensagem: err.message || 'Não foi possível excluir a despesa.'
+          });
+        }
+      }
+    });
   };
 
   const clientesFiltrados = clientes.filter((c) => c.nome?.toLowerCase().includes(searchTerm.toLowerCase()) || c.telefone?.includes(searchTerm));
@@ -1405,6 +1576,19 @@ export default function AdminDashboard() {
       <style dangerouslySetInnerHTML={{ __html: `
         .produtos-container *, .produtos-container div, .produtos-container button, .produtos-container section {
           box-shadow: none !important;
+        }
+        @keyframes tabFadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(6px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        .tab-transition {
+          animation: tabFadeIn 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
         }
       ` }} />
 
@@ -1668,7 +1852,7 @@ export default function AdminDashboard() {
                     <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider block">Plano Mensal Gestor</span>
                     <div className="flex justify-between items-center px-1">
                       <span className="text-stone-700 text-xs font-medium">Acesso Completo</span>
-                      <span className="text-sm sm:text-base font-extrabold text-stone-900">R$ {valorAssinatura?.toFixed(2).replace('.', ',')} / mês</span>
+                      <span className="text-sm sm:text-base font-extrabold text-stone-900">{formatBRL(valorAssinatura)} / mês</span>
                     </div>
                   </div>
 
@@ -1858,463 +2042,627 @@ export default function AdminDashboard() {
             </div>
           )}
 
-          {activeTab === 'pdv' && (
-            <PdvScreen 
-              servicosIniciais={servicos} 
-              produtosIniciais={produtos} 
-              barbeariaId={barbearia?.id}
-              supabase={supabase}
-              onVendaConcluida={() => {
-                carregarProdutos(barbearia?.id);
-              }}
-            />
-          )}
-
-          {activeTab === 'produtos' && (
-            <div className="produtos-container">
-              <ProdutosScreen
-                produtos={produtos}
+          <div key={`${activeTab}-${subTabEquipe}`} className="tab-transition">
+            {activeTab === 'pdv' && (
+              <PdvScreen 
+                servicosIniciais={servicos} 
+                produtosIniciais={produtos} 
                 barbeariaId={barbearia?.id}
                 supabase={supabase}
-                onReload={() => carregarProdutos(barbearia?.id)}
+                onVendaConcluida={() => {
+                  carregarProdutos(barbearia?.id);
+                }}
               />
-            </div>
-          )}
+            )}
 
-          {activeTab === 'agendamentos' && (
-            <div className="space-y-4 pb-24">
-              <PainelAgendaDia 
-                profissionalId={agendamentos[0]?.barbeiro_id || agendamentos[0]?.profissional_id} 
-                taxaComissao={50}
-                handleUpdateStatus={handleUpdateStatus}
-              />
-            </div>
-          )}
-
-          {activeTab === 'configuracoes' && (
-            <ConfiguracoesBarbearia 
-              barbearia={barbearia} 
-              onUpdate={() => loadDashboardData(barbearia.id)} 
-            />
-          )}
-
-          {activeTab === 'clientes' && (
-            <div className="bg-white rounded-3xl border border-stone-200/80 shadow-sm overflow-hidden p-6">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-stone-100 mb-6">
-                <div>
-                  <h3 className="text-base font-bold text-stone-900">Clientes Cadastrados</h3>
-                  <p className="text-xs text-stone-400">Histórico de pessoas que já agendaram na barbearia.</p>
-                </div>
-                <div className="relative">
-                  <Search className="w-4 h-4 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    placeholder="Pesquisar por nome ou tel..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-9 pr-4 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 focus:outline-none focus:ring-2 focus:ring-stone-900 w-full sm:w-64"
-                  />
-                </div>
+            {activeTab === 'produtos' && (
+              <div className="produtos-container">
+                <ProdutosScreen
+                  produtos={produtos}
+                  barbeariaId={barbearia?.id}
+                  supabase={supabase}
+                  onReload={() => carregarProdutos(barbearia?.id)}
+                />
               </div>
+            )}
 
-              {clientesFiltrados.length === 0 ? (
-                <div className="p-8 text-center text-stone-400 text-xs">Nenhum cliente encontrado.</div>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {clientesFiltrados.map((cli) => (
-                    <div key={cli.id} className="bg-stone-50/70 p-4 rounded-2xl border border-stone-200/70 space-y-2">
-                      <div className="font-bold text-stone-900 text-sm">{cli.nome}</div>
-                      <div className="text-xs text-stone-500 flex items-center gap-1.5">
-                        <span className="font-semibold text-stone-700">Tel:</span> {cli.telefone || 'Não informado'}
+            {activeTab === 'agendamentos' && (
+              <div className="space-y-4 pb-24">
+                <PainelAgendaDia 
+                  profissionalId={agendamentos[0]?.barbeiro_id || agendamentos[0]?.profissional_id} 
+                  taxaComissao={50}
+                  handleUpdateStatus={handleUpdateStatus}
+                />
+              </div>
+            )}
+
+            {activeTab === 'configuracoes' && (
+              <ConfiguracoesBarbearia 
+                barbearia={barbearia} 
+                onUpdate={() => loadDashboardData(barbearia.id)} 
+              />
+            )}
+
+            {activeTab === 'clientes' && (
+              <div className="bg-white rounded-3xl border border-stone-200/80 shadow-sm overflow-hidden p-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-stone-100 mb-6">
+                  <div>
+                    <h3 className="text-base font-bold text-stone-900">Clientes Cadastrados</h3>
+                    <p className="text-xs text-stone-400">Histórico de pessoas que já agendaram na barbearia.</p>
+                  </div>
+                  <div className="relative">
+                    <Search className="w-4 h-4 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      placeholder="Pesquisar por nome ou tel..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-9 pr-4 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 focus:outline-none focus:ring-2 focus:ring-stone-900 w-full sm:w-64"
+                    />
+                  </div>
+                </div>
+
+                {clientesFiltrados.length === 0 ? (
+                  <div className="p-8 text-center text-stone-400 text-xs">Nenhum cliente encontrado.</div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {clientesFiltrados.map((cli) => (
+                      <div key={cli.id} className="bg-stone-50/70 p-4 rounded-2xl border border-stone-200/70 space-y-2">
+                        <div className="font-bold text-stone-900 text-sm">{cli.nome}</div>
+                        <div className="text-xs text-stone-500 flex items-center gap-1.5">
+                          <span className="font-semibold text-stone-700">Tel:</span> {cli.telefone || 'Não informado'}
+                        </div>
+                        <div className="text-[11px] text-stone-400">Cadastrado em: {formatarData(cli)}</div>
                       </div>
-                      <div className="text-[11px] text-stone-400">Cadastrado em: {formatarData(cli)}</div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
-          {activeTab === 'fidelidade' && (
-            <FidelizacaoAdmin
-              barbeariaId={barbearia?.id}
-              supabase={supabase}
-            />
-          )}
+            {activeTab === 'fidelidade' && (
+              <FidelizacaoAdmin
+                barbeariaId={barbearia?.id}
+                supabase={supabase}
+              />
+            )}
 
-          {activeTab === 'financeiro' && (
-            <RelatoriosPage 
-              agendamentos={agendamentos} 
-              despesas={despesas} 
-              barbeiros={barbeiros} 
-            />
-          )}
+            {activeTab === 'financeiro' && (
+              <RelatoriosPage 
+                agendamentos={agendamentos} 
+                despesas={despesas} 
+                barbeiros={barbeiros} 
+              />
+            )}
 
-          {activeTab === 'comissoes' && (() => {
-            const listaAgendamentos = Array.isArray(agendamentos) ? agendamentos : [];
-            const agendamentosValidosComissao = listaAgendamentos.filter(item => {
-              const status = (item.status || '').toLowerCase();
-              const ehConcluido = status === 'concluido' || status === 'concluida' || status === 'realizado' || status === 'finalizado';
-              return ehConcluido;
-            }).sort((a, b) => {
-              const dataA = new Date(a.data_hora || a.created_at || 0);
-              const dataB = new Date(b.data_hora || b.created_at || 0);
-              return dataA - dataB;
-            });
-
-            const dadosComissaoProfissionais = barbeiros.map((b) => {
-              const atendimentosBarb = agendamentosValidosComissao.filter((ag) => {
-                const idMatch = String(ag.barbeiro_id || ag.profissional_id) === String(b.id);
-                const nomeAg = (ag.barbeiro_nome || ag.profissional_nome || ag.barbeiros?.nome || '').trim().toLowerCase();
-                const nomeBarb = (b.nome || '').trim().toLowerCase();
-                const nomeMatch = nomeAg && nomeBarb && nomeAg === nomeBarb;
-                return idMatch || nomeMatch;
+            {activeTab === 'comissoes' && (() => {
+              const listaAgendamentos = Array.isArray(agendamentos) ? agendamentos : [];
+              const agendamentosValidosComissao = listaAgendamentos.filter(item => {
+                const status = (item.status || '').toLowerCase();
+                const ehConcluido = status === 'concluido' || status === 'concluida' || status === 'realizado' || status === 'finalizado';
+                return ehConcluido;
+              }).sort((a, b) => {
+                const dataA = new Date(a.data_hora || a.created_at || 0);
+                const dataB = new Date(b.data_hora || b.created_at || 0);
+                return dataA - dataB;
               });
 
-              const fechamentosAnteriores = fechamentosComissoes.filter(
-                (f) => String(f.barbeiro_id) === String(b.id) && f.status === 'pago'
-              );
+              const dadosComissaoProfissionais = barbeiros.map((b) => {
+                const atendimentosBarb = agendamentosValidosComissao.filter((ag) => {
+                  const idMatch = String(ag.barbeiro_id || ag.profissional_id) === String(b.id);
+                  const nomeAg = (ag.barbeiro_nome || ag.profissional_nome || ag.barbeiros?.nome || '').trim().toLowerCase();
+                  const nomeBarb = (b.nome || '').trim().toLowerCase();
+                  const nomeMatch = nomeAg && nomeBarb && nomeAg === nomeBarb;
+                  return idMatch || nomeMatch;
+                });
 
-              const idsQuitados = new Set();
-              fechamentosAnteriores.forEach(f => {
-                if (Array.isArray(f.atendimentos_ids)) {
-                  f.atendimentos_ids.forEach(id => idsQuitados.add(String(id)));
-                }
+                const fechamentosAnteriores = fechamentosComissoes.filter(
+                  (f) => String(f.barbeiro_id) === String(b.id) && f.status === 'pago'
+                );
+
+                const idsQuitados = new Set();
+                fechamentosAnteriores.forEach(f => {
+                  if (Array.isArray(f.atendimentos_ids)) {
+                    f.atendimentos_ids.forEach(id => idsQuitados.add(String(id)));
+                  }
+                });
+
+                const atendimentosPendentes = atendimentosBarb.filter(ag => !idsQuitados.has(String(ag.id)));
+                const totalAtendQuitado = fechamentosAnteriores.reduce((acc, f) => acc + Number(f.qtd_atendimentos || 0), 0);
+                const listaFinalPendentes = atendimentosPendentes.length > 0 || idsQuitados.size > 0
+                  ? atendimentosPendentes 
+                  : atendimentosBarb.slice(totalAtendQuitado);
+
+                const faturamentoBruto = listaFinalPendentes.reduce(
+                  (acc, ag) => {
+                    const val = ag.valor_total || ag.servicos?.preco || ag.valor || ag.preco || ag.total || 0;
+                    return acc + Number(val);
+                  },
+                  0
+                );
+
+                const qtdAtendimentos = listaFinalPendentes.length;
+                const taxaCrua = b.taxa_comissao ?? b.comissao_padrao ?? b.comissao ?? 50;
+                const porcentagem = Number(taxaCrua) <= 1 ? Number(taxaCrua) * 100 : Number(taxaCrua);
+                
+                const valorComissao = (faturamentoBruto * porcentagem) / 100;
+                const jaQuitado = qtdAtendimentos === 0;
+
+                return {
+                  ...b,
+                  atendimentosLista: listaFinalPendentes,
+                  qtdAtendimentos,
+                  faturamentoBruto,
+                  porcentagem,
+                  valorComissao,
+                  valorComissaoCalculado: valorComissao,
+                  jaQuitado
+                };
               });
 
-              const atendimentosPendentes = atendimentosBarb.filter(ag => !idsQuitados.has(String(ag.id)));
-              const totalAtendQuitado = fechamentosAnteriores.reduce((acc, f) => acc + Number(f.qtd_atendimentos || 0), 0);
-              const listaFinalPendentes = atendimentosPendentes.length > 0 || idsQuitados.size > 0
-                ? atendimentosPendentes 
-                : atendimentosBarb.slice(totalAtendQuitado);
-
-              const faturamentoBruto = listaFinalPendentes.reduce(
-                (acc, ag) => {
-                  const val = ag.valor_total || ag.servicos?.preco || ag.valor || ag.preco || ag.total || 0;
-                  return acc + Number(val);
-                },
-                0
-              );
-
-              const qtdAtendimentos = listaFinalPendentes.length;
-              const taxaCrua = b.taxa_comissao ?? b.comissao_padrao ?? b.comissao ?? 50;
-              const porcentagem = Number(taxaCrua) <= 1 ? Number(taxaCrua) * 100 : Number(taxaCrua);
+              const totalGeralFat = dadosComissaoProfissionais.reduce((acc, b) => acc + b.faturamentoBruto, 0);
+              const totalPendente = dadosComissaoProfissionais.filter(b => !b.jaQuitado).reduce((acc, b) => acc + b.valorComissao, 0);
               
-              const valorComissao = (faturamentoBruto * porcentagem) / 100;
-              const jaQuitado = qtdAtendimentos === 0;
+              const mesAtualStr = new Date().toISOString().split('T')[0].substring(0, 7);
+              const totalComissoesPagas = fechamentosComissoes
+                .filter(f => {
+                  const dataRef = f.created_at || f.data || '';
+                  return dataRef.startsWith(mesAtualStr) && f.status === 'pago';
+                })
+                .reduce((acc, f) => acc + Number(f.valor_comissao || 0), 0);
 
-              return {
-                ...b,
-                atendimentosLista: listaFinalPendentes,
-                qtdAtendimentos,
-                faturamentoBruto,
-                porcentagem,
-                valorComissao,
-                valorComissaoCalculado: valorComissao,
-                jaQuitado
-              };
-            });
-
-            const totalGeralFat = dadosComissaoProfissionais.reduce((acc, b) => acc + b.faturamentoBruto, 0);
-            const totalPendente = dadosComissaoProfissionais.filter(b => !b.jaQuitado).reduce((acc, b) => acc + b.valorComissao, 0);
-            
-            const mesAtualStr = new Date().toISOString().split('T')[0].substring(0, 7);
-            const totalComissoesPagas = fechamentosComissoes
-              .filter(f => {
-                const dataRef = f.created_at || f.data || '';
-                return dataRef.startsWith(mesAtualStr) && f.status === 'pago';
-              })
-              .reduce((acc, f) => acc + Number(f.valor_comissao || 0), 0);
-
-            return (
-              <div className="max-w-7xl mx-auto px-2 sm:px-0 space-y-4 pb-24 font-sans select-none animate-in fade-in duration-200">
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-                  <div 
-                    className="relative rounded-3xl p-4 sm:p-5 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden"
-                    style={{
-                      background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
-                      boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
-                    }}
-                  >
-                    <div className="flex flex-col justify-center min-w-0 pr-2">
-                      <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider truncate block">Comissão Pendente</span>
-                      <h1 className="text-lg sm:text-xl font-black text-white mt-0.5 truncate">R$ {totalPendente.toFixed(0)}</h1>
-                    </div>
+              return (
+                <div className="max-w-7xl mx-auto px-2 sm:px-0 space-y-4 pb-24 font-sans select-none">
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
                     <div 
-                      className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0"
+                      className="relative rounded-3xl p-4 sm:p-5 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden"
                       style={{
-                        background: 'radial-gradient(circle at 30% 30%, #ffffff 0%, #d8e2ec 60%, #9fb3c8 100%)',
-                        boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 1), inset 0 -4px 6px rgba(0, 0, 0, 0.25)',
-                        border: '1px solid rgba(255, 255, 255, 0.9)'
+                        background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
+                        boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
                       }}
                     >
-                      <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-stone-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]" />
+                      <div className="flex flex-col justify-center min-w-0 pr-2">
+                        <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider truncate block">Comissão Pendente</span>
+                        <h1 className="text-base sm:text-xl font-black text-white mt-0.5 truncate">{formatBRL(totalPendente)}</h1>
+                      </div>
+                      <div 
+                        className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0"
+                        style={{
+                          background: 'radial-gradient(circle at 30% 30%, #ffffff 0%, #d8e2ec 60%, #9fb3c8 100%)',
+                          boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 1), inset 0 -4px 6px rgba(0, 0, 0, 0.25)',
+                          border: '1px solid rgba(255, 255, 255, 0.9)'
+                        }}
+                      >
+                        <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-stone-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]" />
+                      </div>
                     </div>
-                  </div>
 
-                  <div 
-                    className="relative rounded-3xl p-4 sm:p-5 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden"
-                    style={{
-                      background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
-                      boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
-                    }}
-                  >
-                    <div className="flex flex-col justify-center min-w-0 pr-2">
-                      <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider truncate block">Fat. Pendente Equipe</span>
-                      <h3 className="text-lg sm:text-xl font-black text-white mt-0.5 truncate">R$ {totalGeralFat.toFixed(0)}</h3>
-                    </div>
                     <div 
-                      className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0"
+                      className="relative rounded-3xl p-4 sm:p-5 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden"
                       style={{
-                        background: 'radial-gradient(circle at 30% 30%, #ffffff 0%, #d8e2ec 60%, #9fb3c8 100%)',
-                        boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 1), inset 0 -4px 6px rgba(0, 0, 0, 0.25)',
-                        border: '1px solid rgba(255, 255, 255, 0.9)'
+                        background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
+                        boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
                       }}
                     >
-                      <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-stone-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]" />
+                      <div className="flex flex-col justify-center min-w-0 pr-2">
+                        <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider truncate block">Fat. Pendente Equipe</span>
+                        <h3 className="text-base sm:text-xl font-black text-white mt-0.5 truncate">{formatBRL(totalGeralFat)}</h3>
+                      </div>
+                      <div 
+                        className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0"
+                        style={{
+                          background: 'radial-gradient(circle at 30% 30%, #ffffff 0%, #d8e2ec 60%, #9fb3c8 100%)',
+                          boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 1), inset 0 -4px 6px rgba(0, 0, 0, 0.25)',
+                          border: '1px solid rgba(255, 255, 255, 0.9)'
+                        }}
+                      >
+                        <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-stone-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]" />
+                      </div>
                     </div>
-                  </div>
 
-                  <div 
-                    className="relative rounded-3xl p-4 sm:p-5 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden"
-                    style={{
-                      background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
-                      boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
-                    }}
-                  >
-                    <div className="flex flex-col justify-center min-w-0 pr-2">
-                      <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider truncate block">Comissões Pagas</span>
-                      <h3 className="text-lg sm:text-xl font-black text-emerald-400 mt-0.5 truncate">R$ {totalComissoesPagas.toFixed(0)}</h3>
-                    </div>
                     <div 
-                      className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0"
+                      className="relative rounded-3xl p-4 sm:p-5 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden"
                       style={{
-                        background: 'radial-gradient(circle at 30% 30%, #ffffff 0%, #d8e2ec 60%, #9fb3c8 100%)',
-                        boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 1), inset 0 -4px 6px rgba(0, 0, 0, 0.25)',
-                        border: '1px solid rgba(255, 255, 255, 0.9)'
+                        background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
+                        boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
                       }}
                     >
-                      <CheckCheck className="w-4 h-4 sm:w-5 sm:h-5 text-stone-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]" />
+                      <div className="flex flex-col justify-center min-w-0 pr-2">
+                        <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider truncate block">Comissões Pagas</span>
+                        <h3 className="text-base sm:text-xl font-black text-emerald-400 mt-0.5 truncate">{formatBRL(totalComissoesPagas)}</h3>
+                      </div>
+                      <div 
+                        className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0"
+                        style={{
+                          background: 'radial-gradient(circle at 30% 30%, #ffffff 0%, #d8e2ec 60%, #9fb3c8 100%)',
+                          boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 1), inset 0 -4px 6px rgba(0, 0, 0, 0.25)',
+                          border: '1px solid rgba(255, 255, 255, 0.9)'
+                        }}
+                      >
+                        <CheckCheck className="w-4 h-4 sm:w-5 sm:h-5 text-stone-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]" />
+                      </div>
+                    </div>
+
+                    <button
+                      type='button'
+                      onClick={() => setModalHistoricoFechamentos(true)}
+                      className="relative rounded-3xl p-4 sm:p-5 flex items-center justify-between border border-stone-200/80 bg-white transition-all cursor-pointer group min-w-0 overflow-hidden shadow-xs hover:shadow-sm text-left"
+                    >
+                      <div className="flex flex-col justify-center min-w-0 pr-2">
+                        <span className="text-[9px] font-extrabold text-stone-400 uppercase tracking-wider truncate block">Registros</span>
+                        <span className="text-[12px] sm:text-xl font-black text-stone-900 mt-0.5 truncate block">Ver Histórico</span>
+                      </div>
+                      <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#222222] text-white flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                        <History className="w-4 h-4 sm:w-5 sm:h-5" />
+                      </div>
+                    </button>
+                  </div>
+
+                  <div className="bg-white rounded-3xl p-4 sm:p-5 border border-stone-200 shadow-xs space-y-3">
+                    <div className="flex flex-col sm:flex-row items-center gap-2">
+                      <div className="relative w-full">
+                        <Search className="w-4 h-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                        <input
+                          type="text"
+                          placeholder="Filtrar por nome do barbeiro..."
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                          className="w-full pl-10 pr-4 py-2.5 bg-stone-50 border border-stone-200 rounded-2xl text-xs text-stone-900 focus:outline-none font-medium"
+                        />
+                      </div>
                     </div>
                   </div>
 
-                  <button
-                    type='button'
-                    onClick={() => setModalHistoricoFechamentos(true)}
-                    className="relative rounded-3xl p-4 sm:p-5 flex items-center justify-between border border-stone-200/80 bg-white transition-all cursor-pointer group min-w-0 overflow-hidden shadow-xs hover:shadow-sm text-left"
-                  >
-                    <div className="flex flex-col justify-center min-w-0 pr-2">
-                      <span className="text-[9px] font-extrabold text-stone-400 uppercase tracking-wider truncate block">Registros</span>
-                      <span className="text-lg sm:text-xl font-black text-stone-900 mt-0.5 truncate block">Ver Histórico</span>
-                    </div>
-                    <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#222222] text-white flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                      <History className="w-4 h-4 sm:w-5 sm:h-5" />
-                    </div>
-                  </button>
-                </div>
-
-                <div className="bg-white rounded-3xl p-4 sm:p-5 border border-stone-200 shadow-xs space-y-3">
-                  <div className="flex flex-col sm:flex-row items-center gap-2">
-                    <div className="relative w-full">
-                      <Search className="w-4 h-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                      <input
-                        type="text"
-                        placeholder="Filtrar por nome do barbeiro..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2.5 bg-stone-50 border border-stone-200 rounded-2xl text-xs text-stone-900 focus:outline-none font-medium"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-stone-100 rounded-3xl p-4 sm:p-6 border border-stone-300 shadow-inner space-y-3.5">
-                  {dadosComissaoProfissionais.length === 0 ? (
-                    <div className="text-center py-10 text-stone-500 text-xs font-bold">Nenhum profissional encontrado.</div>
-                  ) : (
-                    dadosComissaoProfissionais
-                      .filter((b) => b.nome.toLowerCase().includes(searchTerm.toLowerCase()))
-                      .map((barbeiro) => (
-                        <div key={barbeiro.id} className="bg-white rounded-2xl border border-stone-200 p-4 sm:p-5 shadow-xs space-y-3">
-                          <div className="flex items-center justify-between gap-3 pb-3 border-b border-stone-100">
-                            <div className="flex items-center gap-3">
-                              {barbeiro.foto ? (
-                                <img src={barbeiro.foto} alt={barbeiro.nome} className="w-10 h-10 rounded-xl object-cover border" />
-                              ) : (
-                                <div className="w-10 h-10 rounded-xl bg-stone-900 text-white font-black flex items-center justify-center text-xs">
-                                  {barbeiro.nome.charAt(0)}
+                  <div className="bg-stone-100 rounded-3xl p-4 sm:p-6 border border-stone-300 shadow-inner space-y-3.5">
+                    {dadosComissaoProfissionais.length === 0 ? (
+                      <div className="text-center py-10 text-stone-500 text-xs font-bold">Nenhum profissional encontrado.</div>
+                    ) : (
+                      dadosComissaoProfissionais
+                        .filter((b) => b.nome.toLowerCase().includes(searchTerm.toLowerCase()))
+                        .map((barbeiro) => (
+                          <div key={barbeiro.id} className="bg-white rounded-2xl border border-stone-200 p-4 sm:p-5 shadow-xs space-y-3">
+                            <div className="flex items-center justify-between gap-3 pb-3 border-b border-stone-100">
+                              <div className="flex items-center gap-3">
+                                {barbeiro.foto ? (
+                                  <img src={barbeiro.foto} alt={barbeiro.nome} className="w-10 h-10 rounded-xl object-cover border" />
+                                ) : (
+                                  <div className="w-10 h-10 rounded-xl bg-stone-900 text-white font-black flex items-center justify-center text-xs">
+                                    {barbeiro.nome.charAt(0)}
+                                  </div>
+                                )}
+                                <div>
+                                  <h4 className="text-xs sm:text-sm font-black text-stone-900">{barbeiro.nome}</h4>
+                                  <span className="text-[10px] text-stone-500">{barbeiro.especialidade || 'Profissional'}</span>
                                 </div>
-                              )}
-                              <div>
-                                <h4 className="text-xs sm:text-sm font-black text-stone-900">{barbeiro.nome}</h4>
-                                <span className="text-[10px] text-stone-500">{barbeiro.especialidade || 'Profissional'}</span>
-                              </div>
-                            </div>
-
-                            <div className="flex items-center gap-1.5">
-                              <div className="relative flex items-center">
-                                <input
-                                  type="number"
-                                  defaultValue={barbeiro.porcentagem}
-                                  id={`comissao-input-${barbeiro.id}`}
-                                  className="w-14 px-2 py-1.5 bg-stone-50 border border-stone-200 rounded-xl text-xs font-black text-center"
-                                />
-                                <span className="absolute right-2 text-[10px] font-bold text-stone-400 pointer-events-none">%</span>
                               </div>
 
-                              <button
-                                onClick={async () => {
-                                  const val = Number(document.getElementById(`comissao-input-${barbeiro.id}`).value);
-                                  const { error } = await supabase
-                                    .from('barbeiros')
-                                    .update({ taxa_comissao: val, comissao_padrao: val })
-                                    .eq('id', barbeiro.id);
+                              <div className="flex items-center gap-1.5">
+                                <div className="relative flex items-center">
+                                  <input
+                                    type="number"
+                                    defaultValue={barbeiro.porcentagem}
+                                    id={`comissao-input-${barbeiro.id}`}
+                                    className="w-14 px-2 py-1.5 bg-stone-50 border border-stone-200 rounded-xl text-xs font-black text-center"
+                                  />
+                                  <span className="absolute right-2 text-[10px] font-bold text-stone-400 pointer-events-none">%</span>
+                                </div>
 
-                                  if (!error) {
-                                    alert('Comissão atualizada com sucesso!');
-                                    loadDashboardData(barbearia.id);
-                                  } else {
-                                    alert('Erro ao atualizar: ' + error.message);
-                                  }
-                                }}
-                                className="px-3 py-1.5 bg-stone-900 text-white text-[10px] font-black uppercase rounded-xl cursor-pointer"
-                              >
-                                Salvar
-                              </button>
-                            </div>
-                          </div>
+                                <button
+                                  onClick={async () => {
+                                    const val = Number(document.getElementById(`comissao-input-${barbeiro.id}`).value);
+                                    const { error } = await supabase
+                                      .from('barbeiros')
+                                      .update({ taxa_comissao: val, comissao_padrao: val })
+                                      .eq('id', barbeiro.id);
 
-                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-stone-50 p-3 rounded-xl border border-stone-200 text-xs">
-                            <div>
-                              <span className="text-[9px] font-black text-stone-400 uppercase block">Atendimentos</span>
-                              <span className="font-black text-stone-900">{barbeiro.qtdAtendimentos} serviços</span>
-                            </div>
-                            <div>
-                              <span className="text-[9px] font-black text-stone-400 uppercase block">Fat. Bruto Pendente</span>
-                              <span className="font-black text-stone-900">R$ {barbeiro.faturamentoBruto.toFixed(2)}</span>
-                            </div>
-                            <div>
-                              <span className="text-[9px] font-black text-stone-400 uppercase block">Comissão ({barbeiro.porcentagem}%)</span>
-                              <span className="font-black text-emerald-600">R$ {barbeiro.valorComissao.toFixed(2)}</span>
-                            </div>
-                            <div>
-                              <span className="text-[9px] font-black text-stone-400 uppercase block">Status</span>
-                              {barbeiro.jaQuitado ? (
-                                <span className="text-emerald-700 font-bold text-[10px]">Pagamento Efetuado</span>
-                              ) : (
-                                <span className="text-amber-600 font-bold text-[10px]">Pagamento Pendente</span>
-                              )}
-                            </div>
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-2 pt-1">
-                            <button
-                              onClick={() => setModalExtratoBarbeiro(barbeiro)}
-                              className="py-2 bg-stone-200 hover:bg-stone-300 text-stone-800 text-xs font-bold rounded-xl cursor-pointer"
-                            >
-                              Ver Extrato
-                            </button>
-                            <button
-                              onClick={() => {
-                                const valorParaQuitar = (barbeiro.faturamentoBruto * barbeiro.porcentagem) / 100;
-                                if (valorParaQuitar <= 0) {
-                                  setModalFeedback({
-                                    isOpen: true,
-                                    tipo: 'erro',
-                                    titulo: 'Atenção',
-                                    mensagem: 'Não há comissões pendentes para este profissional no momento.'
-                                  });
-                                  return;
-                                }
-
-                                setModalConfirmacao({
-                                  isOpen: true,
-                                  titulo: 'Confirmar Pagamento de Comissão',
-                                  descricao: `Deseja prosseguir com o pagamento de R$ ${valorParaQuitar.toFixed(2)} referente a ${barbeiro.qtdAtendimentos} atendimento(s) concluído(s) para ${barbeiro.nome}?`,
-                                  onConfirm: async () => {
-                                    const periodoAtualStr = new Date().toISOString().split('T')[0].substring(0, 7);
-                                    const idsAtendimentosAtuais = (barbeiro.atendimentosLista || []).map(ag => ag.id);
-
-                                    const novoFechamento = {
-                                      barbearia_id: barbearia.id,
-                                      barbeiro_id: barbeiro.id,
-                                      periodo_referencia: periodoAtualStr,
-                                      valor_bruto: barbeiro.faturamentoBruto,
-                                      porcentagem_aplicada: barbeiro.porcentagem,
-                                      valor_comissao: valorParaQuitar,
-                                      qtd_atendimentos: barbeiro.qtdAtendimentos,
-                                      atendimentos_ids: idsAtendimentosAtuais,
-                                      status: 'pago'
-                                    };
-
-                                    const { data, error } = await supabase.from('fechamentos_comissoes').insert([novoFechamento]).select();
-
-                                    if (error) {
-                                      setModalFeedback({
-                                        isOpen: true,
-                                        tipo: 'erro',
-                                        titulo: 'Erro na Operação',
-                                        mensagem: 'Não foi possível registrar o acerto: ' + error.message
-                                      });
-                                    } else {
-                                      setFechamentosComissoes(prev => [
-                                        { ...novoFechamento, id: data?.[0]?.id || Date.now(), created_at: new Date().toISOString(), barbeiros: { nome: barbeiro.nome, foto: barbeiro.foto } },
-                                        ...prev
-                                      ]);
-                                      
+                                    if (!error) {
                                       setModalFeedback({
                                         isOpen: true,
                                         tipo: 'sucesso',
-                                        titulo: 'Pagamento Concluído',
-                                        mensagem: 'O pagamento de comissão foi registrado e salvo no histórico com êxito.'
+                                        titulo: 'Comissão Atualizada',
+                                        mensagem: `A taxa de comissão de ${barbeiro.nome} foi definida para ${val}%.`
                                       });
-                                      
                                       loadDashboardData(barbearia.id);
+                                    } else {
+                                      setModalFeedback({
+                                        isOpen: true,
+                                        tipo: 'erro',
+                                        titulo: 'Erro ao Atualizar Comissão',
+                                        mensagem: error.message || 'Não foi possível atualizar a comissão.'
+                                      });
                                     }
+                                  }}
+                                  className="px-3 py-1.5 bg-stone-900 text-white text-[10px] font-black uppercase rounded-xl cursor-pointer"
+                                >
+                                  Salvar
+                                </button>
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-stone-50 p-3 rounded-xl border border-stone-200 text-xs">
+                              <div>
+                                <span className="text-[9px] font-black text-stone-400 uppercase block">Atendimentos</span>
+                                <span className="font-black text-stone-900">{barbeiro.qtdAtendimentos} serviços</span>
+                              </div>
+                              <div>
+                                <span className="text-[9px] font-black text-stone-400 uppercase block">Fat. Bruto Pendente</span>
+                                <span className="font-black text-stone-900">{formatBRL(barbeiro.faturamentoBruto)}</span>
+                              </div>
+                              <div>
+                                <span className="text-[9px] font-black text-stone-400 uppercase block">Comissão ({barbeiro.porcentagem}%)</span>
+                                <span className="font-black text-emerald-600">{formatBRL(barbeiro.valorComissao)}</span>
+                              </div>
+                              <div>
+                                <span className="text-[9px] font-black text-stone-400 uppercase block">Status</span>
+                                {barbeiro.jaQuitado ? (
+                                  <span className="text-emerald-700 font-bold text-[10px]">Pagamento Efetuado</span>
+                                ) : (
+                                  <span className="text-amber-600 font-bold text-[10px]">Pagamento Pendente</span>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-2 pt-1">
+                              <button
+                                onClick={() => setModalExtratoBarbeiro(barbeiro)}
+                                className="py-2 bg-stone-200 hover:bg-stone-300 text-stone-800 text-xs font-bold rounded-xl cursor-pointer"
+                              >
+                                Ver Extrato
+                              </button>
+                              <button
+                                onClick={() => {
+                                  const valorParaQuitar = (barbeiro.faturamentoBruto * barbeiro.porcentagem) / 100;
+                                  if (valorParaQuitar <= 0) {
+                                    setModalFeedback({
+                                      isOpen: true,
+                                      tipo: 'erro',
+                                      titulo: 'Atenção',
+                                      mensagem: 'Não há comissões pendentes para este profissional no momento.'
+                                    });
+                                    return;
                                   }
-                                });
-                              }}
-                              disabled={barbeiro.faturamentoBruto <= 0 || barbeiro.jaQuitado}
-                              className="py-2 bg-stone-900 hover:bg-black text-white text-xs font-bold rounded-xl cursor-pointer disabled:opacity-40"
-                            >
-                              {barbeiro.jaQuitado ? 'Quitado' : 'Pagar'}
-                            </button>
+
+                                  setModalConfirmacao({
+                                    isOpen: true,
+                                    titulo: 'Confirmar Pagamento de Comissão',
+                                    descricao: `Deseja prosseguir com o pagamento de ${formatBRL(valorParaQuitar)} referente a ${barbeiro.qtdAtendimentos} atendimento(s) concluído(s) para ${barbeiro.nome}?`,
+                                    onConfirm: async () => {
+                                      const periodoAtualStr = new Date().toISOString().split('T')[0].substring(0, 7);
+                                      const idsAtendimentosAtuais = (barbeiro.atendimentosLista || []).map(ag => ag.id);
+
+                                      const novoFechamento = {
+                                        barbearia_id: barbearia.id,
+                                        barbeiro_id: barbeiro.id,
+                                        periodo_referencia: periodoAtualStr,
+                                        valor_bruto: barbeiro.faturamentoBruto,
+                                        porcentagem_aplicada: barbeiro.porcentagem,
+                                        valor_comissao: valorParaQuitar,
+                                        qtd_atendimentos: barbeiro.qtdAtendimentos,
+                                        atendimentos_ids: idsAtendimentosAtuais,
+                                        status: 'pago'
+                                      };
+
+                                      const { data, error } = await supabase.from('fechamentos_comissoes').insert([novoFechamento]).select();
+
+                                      if (error) {
+                                        setModalFeedback({
+                                          isOpen: true,
+                                          tipo: 'erro',
+                                          titulo: 'Erro na Operação',
+                                          mensagem: 'Não foi possível registrar o acerto: ' + error.message
+                                        });
+                                      } else {
+                                        setFechamentosComissoes(prev => [
+                                          { ...novoFechamento, id: data?.[0]?.id || Date.now(), created_at: new Date().toISOString(), barbeiros: { nome: barbeiro.nome, foto: barbeiro.foto } },
+                                          ...prev
+                                        ]);
+                                        
+                                        setModalFeedback({
+                                          isOpen: true,
+                                          tipo: 'sucesso',
+                                          titulo: 'Pagamento Concluído',
+                                          mensagem: 'O pagamento de comissão foi registrado e salvo no histórico com êxito.'
+                                        });
+                                        
+                                        loadDashboardData(barbearia.id);
+                                      }
+                                    }
+                                  });
+                                }}
+                                disabled={barbeiro.faturamentoBruto <= 0 || barbeiro.jaQuitado}
+                                className="py-2 bg-stone-900 hover:bg-black text-white text-xs font-bold rounded-xl cursor-pointer disabled:opacity-40"
+                              >
+                                {barbeiro.jaQuitado ? 'Quitado' : 'Pagar'}
+                              </button>
+                            </div>
                           </div>
-                        </div>
-                      ))
-                  )}
+                        ))
+                    )}
+                  </div>
                 </div>
-              </div>
-            );
-          })()}
+              );
+            })()}
 
-          {activeTab === 'despesas' && (() => {
-            const despesasFiltradas = despesas.filter(d => {
-              if (!filtroMesDespesas) return true;
-              const dataDespesa = d.data || d.created_at || '';
-              return dataDespesa.startsWith(filtroMesDespesas);
-            });
+            {activeTab === 'despesas' && (() => {
+              const despesasFiltradas = despesas.filter(d => {
+                if (!filtroMesDespesas) return true;
+                const dataDespesa = d.data || d.created_at || '';
+                return dataDespesa.startsWith(filtroMesDespesas);
+              });
 
-            const totalDespesasFiltradas = despesasFiltradas.reduce((acc, d) => acc + Number(d.valor || 0), 0);
+              const totalDespesasFiltradas = despesasFiltradas.reduce((acc, d) => acc + Number(d.valor || 0), 0);
 
-            const listaMeses = [
-              { id: '', label: 'Todos' },
-              { id: '2026-01', label: 'Jan' },
-              { id: '2026-02', label: 'Fev' },
-              { id: '2026-03', label: 'Mar' },
-              { id: '2026-04', label: 'Abr' },
-              { id: '2026-05', label: 'Mai' },
-              { id: '2026-06', label: 'Jun' },
-              { id: '2026-07', label: 'Jul' },
-              { id: '2026-08', label: 'Ago' },
-              { id: '2026-09', label: 'Set' },
-              { id: '2026-10', label: 'Out' },
-              { id: '2026-11', label: 'Nov' },
-              { id: '2026-12', label: 'Dez' },
-            ];
+              const listaMeses = [
+                { id: '', label: 'Todos' },
+                { id: '2026-01', label: 'Jan' },
+                { id: '2026-02', label: 'Fev' },
+                { id: '2026-03', label: 'Mar' },
+                { id: '2026-04', label: 'Abr' },
+                { id: '2026-05', label: 'Mai' },
+                { id: '2026-06', label: 'Jun' },
+                { id: '2026-07', label: 'Jul' },
+                { id: '2026-08', label: 'Ago' },
+                { id: '2026-09', label: 'Set' },
+                { id: '2026-10', label: 'Out' },
+                { id: '2026-11', label: 'Nov' },
+                { id: '2026-12', label: 'Dez' },
+              ];
 
-            return (
-              <div className="max-w-7xl mx-auto px-2 sm:px-0 space-y-4 animate-in fade-in duration-200">
+              return (
+                <div className="max-w-7xl mx-auto px-2 sm:px-0 space-y-4">
+                  <div className="grid grid-cols-2 gap-3 md:gap-4">
+                    <div 
+                      className="relative rounded-3xl p-4 sm:p-5 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden"
+                      style={{
+                        background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
+                        boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
+                      }}
+                    >
+                      <div className="flex flex-col justify-center min-w-0 pr-2">
+                        <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider truncate block">Total em Despesas</span>
+                        <h3 className="text-base sm:text-xl font-black text-white mt-0.5 truncate">
+                          {formatBRL(totalDespesasFiltradas)}
+                        </h3>
+                      </div>
+                      <div 
+                        className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0"
+                        style={{
+                          background: 'radial-gradient(circle at 30% 30%, #ffffff 0%, #d8e2ec 60%, #9fb3c8 100%)',
+                          boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 1), inset 0 -4px 6px rgba(0, 0, 0, 0.25)',
+                          border: '1px solid rgba(255, 255, 255, 0.9)'
+                        }}
+                      >
+                        <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-stone-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]" />
+                      </div>
+                    </div>
+
+                    <div 
+                      className="relative rounded-3xl p-4 sm:p-5 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden"
+                      style={{
+                        background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
+                        boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
+                      }}
+                    >
+                      <div className="flex flex-col justify-center min-w-0 pr-2">
+                        <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider truncate block">Registros</span>
+                        <h3 className="text-lg sm:text-xl font-black text-white mt-0.5 truncate">{despesasFiltradas.length}</h3>
+                      </div>
+                      <div 
+                        className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0"
+                        style={{
+                          background: 'radial-gradient(circle at 30% 30%, #ffffff 0%, #d8e2ec 60%, #9fb3c8 100%)',
+                          boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 1), inset 0 -4px 6px rgba(0, 0, 0, 0.25)',
+                          border: '1px solid rgba(255, 255, 255, 0.9)'
+                        }}
+                      >
+                        <History className="w-4 h-4 sm:w-5 sm:h-5 text-stone-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div 
+                    className="relative rounded-3xl p-4 sm:p-5 border border-white/80 overflow-hidden shadow-xs flex items-center justify-between gap-4"
+                    style={{
+                      background: 'linear-gradient(135deg, #f7f9f8 0%, #edf1f0 50%, #e2e8e6 100%)',
+                      boxShadow: '0 15px 30px rgba(0, 0, 0, 0.05), inset 0 2px 4px rgba(255, 255, 255, 0.9), inset 0 -3px 6px rgba(0, 0, 0, 0.03)'
+                    }}
+                  >
+                    <div>
+                      <h3 className="text-xs sm:text-sm font-black text-stone-900">Controle Operacional</h3>
+                      <p className="text-[10px] sm:text-xs text-stone-500 font-medium">Filtre por mês ou adicione novos gastos.</p>
+                    </div>
+                    <button
+                      onClick={() => handleOpenDespesaModal()}
+                      className="px-5 py-3 bg-stone-900 hover:bg-black text-white font-black text-xs rounded-2xl shadow-xs transition-all cursor-pointer flex items-center gap-2 active:scale-95 shrink-0"
+                    >
+                      <Plus className="w-4 h-4 text-amber-400" />
+                      <span>Nova Despesa</span>
+                    </button>
+                  </div>
+
+                  <div ref={scrollRef} className="bg-white rounded-3xl p-3 border border-stone-200/90 shadow-xs">
+                    <div className="flex items-center gap-2 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                      {listaMeses.map((m) => {
+                        const selecionado = filtroMesDespesas === m.id;
+                        return (
+                          <button
+                            key={m.id}
+                            type="button"
+                            data-selecionado={selecionado}
+                            onClick={() => setFiltroMesDespesas(m.id)}
+                            className={`px-4 py-2 rounded-2xl text-xs font-black whitespace-nowrap transition-all cursor-pointer ${
+                              selecionado
+                                ? 'bg-stone-900 text-white shadow-md scale-105'
+                                : 'bg-stone-100 text-stone-600 hover:bg-stone-200 hover:text-stone-900'
+                            }`}
+                          >
+                            {m.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="bg-white rounded-3xl p-4 sm:p-6 border border-stone-200/90 shadow-xs space-y-4">
+                    <div className="flex items-center justify-between pb-3 border-b border-stone-100 px-1">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-stone-900" />
+                        <h3 className="text-xs font-black uppercase tracking-wider text-stone-900">Histórico de Gastos</h3>
+                      </div>
+                      <span className="text-[11px] font-bold text-stone-700 bg-stone-50 px-2.5 py-1 rounded-xl border border-stone-200 shadow-2xs">
+                        {despesasFiltradas.length} {despesasFiltradas.length === 1 ? 'item' : 'itens'}
+                      </span>
+                    </div>
+
+                    {despesasFiltradas.length === 0 ? (
+                      <div className="text-center py-10 text-stone-400 text-[11px] font-bold uppercase tracking-wider">
+                        Nenhuma despesa encontrada para este período.
+                      </div>
+                    ) : (
+                      <div className="space-y-2.5">
+                        {despesasFiltradas.map((d) => (
+                          <div 
+                            key={d.id} 
+                            className="p-3.5 bg-stone-50/80 hover:bg-stone-50 rounded-2xl border border-stone-200/70 flex items-center justify-between gap-3 transition-all"
+                          >
+                            <div className="min-w-0 space-y-0.5">
+                              <h4 className="text-xs sm:text-sm font-black text-stone-900 truncate">{d.descricao}</h4>
+                              <span className="text-[10px] text-stone-500 font-semibold block">{formatarData(d)}</span>
+                            </div>
+
+                            <div className="flex items-center gap-3 shrink-0">
+                              <span className="text-xs sm:text-sm font-black text-rose-600">
+                                -{formatBRL(d.valor)}
+                              </span>
+                              
+                              <div className="flex items-center gap-1 border-l border-stone-200 pl-2.5">
+                                <button 
+                                  onClick={() => handleOpenDespesaModal(d)} 
+                                  className="w-7 h-7 rounded-lg bg-white hover:bg-stone-100 text-stone-700 flex items-center justify-center border border-stone-200 transition-all cursor-pointer shadow-2xs"
+                                  title="Editar"
+                                >
+                                  <Edit className="w-3.5 h-3.5" />
+                                </button>
+                                <button 
+                                  onClick={() => handleDeleteDespesa(d.id)} 
+                                  className="w-7 h-7 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 flex items-center justify-center border border-rose-200 transition-all cursor-pointer shadow-2xs"
+                                  title="Excluir"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
+
+            {activeTab === 'servicos' && (
+              <div className="max-w-7xl mx-auto px-2 sm:px-0 space-y-4">
                 <div className="grid grid-cols-2 gap-3 md:gap-4">
                   <div 
                     className="relative rounded-3xl p-4 sm:p-5 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden"
@@ -2324,10 +2672,8 @@ export default function AdminDashboard() {
                     }}
                   >
                     <div className="flex flex-col justify-center min-w-0 pr-2">
-                      <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider truncate block">Total em Despesas</span>
-                      <h3 className="text-lg sm:text-xl font-black text-white mt-0.5 truncate">
-                        R$ {totalDespesasFiltradas.toFixed(0)}
-                      </h3>
+                      <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider truncate block">Total Serviços</span>
+                      <h3 className="text-lg sm:text-xl font-black text-white mt-0.5 truncate">{servicos.length}</h3>
                     </div>
                     <div 
                       className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0"
@@ -2337,7 +2683,7 @@ export default function AdminDashboard() {
                         border: '1px solid rgba(255, 255, 255, 0.9)'
                       }}
                     >
-                      <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-stone-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]" />
+                      <Scissors className="w-4 h-4 sm:w-5 sm:h-5 text-stone-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]" />
                     </div>
                   </div>
 
@@ -2349,8 +2695,8 @@ export default function AdminDashboard() {
                     }}
                   >
                     <div className="flex flex-col justify-center min-w-0 pr-2">
-                      <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider truncate block">Registros</span>
-                      <h3 className="text-lg sm:text-xl font-black text-white mt-0.5 truncate">{despesasFiltradas.length}</h3>
+                      <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider truncate block">Total Equipe</span>
+                      <h3 className="text-lg sm:text-xl font-black text-white mt-0.5 truncate">{barbeiros.length}</h3>
                     </div>
                     <div 
                       className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0"
@@ -2360,333 +2706,106 @@ export default function AdminDashboard() {
                         border: '1px solid rgba(255, 255, 255, 0.9)'
                       }}
                     >
-                      <History className="w-4 h-4 sm:w-5 sm:h-5 text-stone-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]" />
+                      <Users className="w-4 h-4 sm:w-5 sm:h-5 text-stone-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]" />
                     </div>
                   </div>
                 </div>
 
-                <div 
-                  className="relative rounded-3xl p-4 sm:p-5 border border-white/80 overflow-hidden shadow-xs flex items-center justify-between gap-4"
-                  style={{
-                    background: 'linear-gradient(135deg, #f7f9f8 0%, #edf1f0 50%, #e2e8e6 100%)',
-                    boxShadow: '0 15px 30px rgba(0, 0, 0, 0.05), inset 0 2px 4px rgba(255, 255, 255, 0.9), inset 0 -3px 6px rgba(0, 0, 0, 0.03)'
-                  }}
-                >
-                  <div>
-                    <h3 className="text-xs sm:text-sm font-black text-stone-900">Controle Operacional</h3>
-                    <p className="text-[10px] sm:text-xs text-stone-500 font-medium">Filtre por mês ou adicione novos gastos.</p>
-                  </div>
+                <div className="bg-white rounded-3xl p-2 border border-stone-200/90 shadow-xs flex items-center gap-2">
                   <button
-                    onClick={() => handleOpenDespesaModal()}
-                    className="px-5 py-3 bg-stone-900 hover:bg-black text-white font-black text-xs rounded-2xl shadow-xs transition-all cursor-pointer flex items-center gap-2 active:scale-95 shrink-0"
+                    type="button"
+                    onClick={() => setSubTabEquipe('servicos')}
+                    className={`flex-1 py-3 rounded-2xl text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-2 ${
+                      subTabEquipe === 'servicos'
+                        ? 'bg-stone-900 text-white shadow-md scale-[1.01]'
+                        : 'bg-stone-100 text-stone-600 hover:bg-stone-200 hover:text-stone-900'
+                    }`}
                   >
-                    <Plus className="w-4 h-4 text-amber-400" />
-                    <span>Nova Despesa</span>
+                    <Scissors className="w-4 h-4" />
+                    <span>Serviços </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setSubTabEquipe('barbeiros')}
+                    className={`flex-1 py-3 rounded-2xl text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-2 ${
+                      subTabEquipe === 'barbeiros'
+                        ? 'bg-stone-900 text-white shadow-md scale-[1.01]'
+                        : 'bg-stone-100 text-stone-600 hover:bg-stone-200 hover:text-stone-900'
+                    }`}
+                  >
+                    <Users className="w-4 h-4" />
+                    <span>Equipe</span>
                   </button>
                 </div>
 
-                <div ref={scrollRef} className="bg-white rounded-3xl p-3 border border-stone-200/90 shadow-xs">
-                  <div className="flex items-center gap-2 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-                    {listaMeses.map((m) => {
-                      const selecionado = filtroMesDespesas === m.id;
-                      return (
-                        <button
-                          key={m.id}
-                          type="button"
-                          data-selecionado={selecionado}
-                          onClick={() => setFiltroMesDespesas(m.id)}
-                          className={`px-4 py-2 rounded-2xl text-xs font-black whitespace-nowrap transition-all cursor-pointer ${
-                            selecionado
-                              ? 'bg-stone-900 text-white shadow-md scale-105'
-                              : 'bg-stone-100 text-stone-600 hover:bg-stone-200 hover:text-stone-900'
-                          }`}
-                        >
-                          {m.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div className="bg-white rounded-3xl p-4 sm:p-6 border border-stone-200/90 shadow-xs space-y-4">
-                  <div className="flex items-center justify-between pb-3 border-b border-stone-100 px-1">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-stone-900" />
-                      <h3 className="text-xs font-black uppercase tracking-wider text-stone-900">Histórico de Gastos</h3>
-                    </div>
-                    <span className="text-[11px] font-bold text-stone-700 bg-stone-50 px-2.5 py-1 rounded-xl border border-stone-200 shadow-2xs">
-                      {despesasFiltradas.length} {despesasFiltradas.length === 1 ? 'item' : 'itens'}
-                    </span>
+                <div className="flex items-center gap-2">
+                  <div className="relative flex-1">
+                    <Search className="w-4 h-4 text-stone-400 absolute left-4 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      placeholder="Pesquisar..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full pl-10 pr-4 py-3 bg-white border border-stone-200/90 rounded-2xl text-xs text-stone-900 focus:outline-none font-medium shadow-2xs"
+                    />
                   </div>
 
-                  {despesasFiltradas.length === 0 ? (
-                    <div className="text-center py-10 text-stone-400 text-[11px] font-bold uppercase tracking-wider">
-                      Nenhuma despesa encontrada para este período.
-                    </div>
-                  ) : (
-                    <div className="space-y-2.5">
-                      {despesasFiltradas.map((d) => (
-                        <div 
-                          key={d.id} 
-                          className="p-3.5 bg-stone-50/80 hover:bg-stone-50 rounded-2xl border border-stone-200/70 flex items-center justify-between gap-3 transition-all"
-                        >
-                          <div className="min-w-0 space-y-0.5">
-                            <h4 className="text-xs sm:text-sm font-black text-stone-900 truncate">{d.descricao}</h4>
-                            <span className="text-[10px] text-stone-500 font-semibold block">{formatarData(d)}</span>
-                          </div>
-
-                          <div className="flex items-center gap-3 shrink-0">
-                            <span className="text-xs sm:text-sm font-black text-rose-600">
-                              - R$ {Number(d.valor).toFixed(2)}
-                            </span>
-                            
-                            <div className="flex items-center gap-1 border-l border-stone-200 pl-2.5">
-                              <button 
-                                onClick={() => handleOpenDespesaModal(d)} 
-                                className="w-7 h-7 rounded-lg bg-white hover:bg-stone-100 text-stone-700 flex items-center justify-center border border-stone-200 transition-all cursor-pointer shadow-2xs"
-                                title="Editar"
-                              >
-                                <Edit className="w-3.5 h-3.5" />
-                              </button>
-                              <button 
-                                onClick={() => handleDeleteDespesa(d.id)} 
-                                className="w-7 h-7 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 flex items-center justify-center border border-rose-200 transition-all cursor-pointer shadow-2xs"
-                                title="Excluir"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })()}
-
-          {activeTab === 'servicos' && (
-            <div className="max-w-7xl mx-auto px-2 sm:px-0 space-y-4 animate-in fade-in duration-200">
-              <div className="grid grid-cols-2 gap-3 md:gap-4">
-                <div 
-                  className="relative rounded-3xl p-4 sm:p-5 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden"
-                  style={{
-                    background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
-                    boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
-                  }}
-                >
-                  <div className="flex flex-col justify-center min-w-0 pr-2">
-                    <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider truncate block">Total Serviços</span>
-                    <h3 className="text-lg sm:text-xl font-black text-white mt-0.5 truncate">{servicos.length}</h3>
-                  </div>
-                  <div 
-                    className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0"
-                    style={{
-                      background: 'radial-gradient(circle at 30% 30%, #ffffff 0%, #d8e2ec 60%, #9fb3c8 100%)',
-                      boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 1), inset 0 -4px 6px rgba(0, 0, 0, 0.25)',
-                      border: '1px solid rgba(255, 255, 255, 0.9)'
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (subTabEquipe === 'servicos') {
+                        handleOpenServicoModal();
+                      } else {
+                        handleOpenBarbeiroModal();
+                      }
                     }}
+                    className="px-5 py-3 bg-stone-900 hover:bg-black text-white font-black text-xs rounded-2xl shadow-md transition-all cursor-pointer flex items-center justify-center gap-2 active:scale-98 border border-stone-800 shrink-0"
                   >
-                    <Scissors className="w-4 h-4 sm:w-5 sm:h-5 text-stone-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]" />
-                  </div>
+                    <Plus className="w-4 h-4 text-stone-300" />
+                    <span>{subTabEquipe === 'servicos' ? 'Adicionar' : 'Adicionar'}</span>
+                  </button>
                 </div>
 
-                <div 
-                  className="relative rounded-3xl p-4 sm:p-5 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden"
-                  style={{
-                    background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
-                    boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
-                  }}
-                >
-                  <div className="flex flex-col justify-center min-w-0 pr-2">
-                    <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider truncate block">Total Equipe</span>
-                    <h3 className="text-lg sm:text-xl font-black text-white mt-0.5 truncate">{barbeiros.length}</h3>
-                  </div>
-                  <div 
-                    className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0"
-                    style={{
-                      background: 'radial-gradient(circle at 30% 30%, #ffffff 0%, #d8e2ec 60%, #9fb3c8 100%)',
-                      boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 1), inset 0 -4px 6px rgba(0, 0, 0, 0.25)',
-                      border: '1px solid rgba(255, 255, 255, 0.9)'
-                    }}
-                  >
-                    <Users className="w-4 h-4 sm:w-5 sm:h-5 text-stone-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.9)]" />
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-3xl p-2 border border-stone-200/90 shadow-xs flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setSubTabEquipe('servicos')}
-                  className={`flex-1 py-3 rounded-2xl text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-2 ${
-                    subTabEquipe === 'servicos'
-                      ? 'bg-stone-900 text-white shadow-md scale-[1.01]'
-                      : 'bg-stone-100 text-stone-600 hover:bg-stone-200 hover:text-stone-900'
-                  }`}
-                >
-                  <Scissors className="w-4 h-4" />
-                  <span>Serviços </span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setSubTabEquipe('barbeiros')}
-                  className={`flex-1 py-3 rounded-2xl text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-2 ${
-                    subTabEquipe === 'barbeiros'
-                      ? 'bg-stone-900 text-white shadow-md scale-[1.01]'
-                      : 'bg-stone-100 text-stone-600 hover:bg-stone-200 hover:text-stone-900'
-                  }`}
-                >
-                  <Users className="w-4 h-4" />
-                  <span>Equipe</span>
-                </button>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <div className="relative flex-1">
-                  <Search className="w-4 h-4 text-stone-400 absolute left-4 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    placeholder="Pesquisar..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 bg-white border border-stone-200/90 rounded-2xl text-xs text-stone-900 focus:outline-none font-medium shadow-2xs"
-                  />
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (subTabEquipe === 'servicos') {
-                      handleOpenServicoModal();
-                    } else {
-                      handleOpenBarbeiroModal();
-                    }
-                  }}
-                  className="px-5 py-3 bg-stone-900 hover:bg-black text-white font-black text-xs rounded-2xl shadow-md transition-all cursor-pointer flex items-center justify-center gap-2 active:scale-98 border border-stone-800 shrink-0"
-                >
-                  <Plus className="w-4 h-4 text-stone-300" />
-                  <span>{subTabEquipe === 'servicos' ? 'Adicionar' : 'Adicionar'}</span>
-                </button>
-              </div>
-
-              {subTabEquipe === 'servicos' && (
-                <div className="space-y-3">
-                  {servicos.length === 0 ? (
-                    <div className="bg-white rounded-3xl p-10 text-center text-stone-400 border border-stone-200 text-xs font-bold uppercase tracking-wider">
-                      Nenhum serviço cadastrado.
-                    </div>
-                  ) : (
-                    servicos.map((s) => (
-                      <div 
-                        key={s.id} 
-                        className="bg-white rounded-3xl p-5 border border-stone-200/90 shadow-xs hover:shadow-sm transition-all flex flex-col space-y-4"
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex items-center gap-3.5 min-w-0">
-                            <div className="w-12 h-12 rounded-full bg-stone-50 border border-stone-200 text-stone-800 flex items-center justify-center shrink-0 shadow-2xs">
-                              <Scissors className="w-5 h-5" />
-                            </div>
-                            <div className="min-w-0 space-y-0.5">
-                              <h4 className="text-xs sm:text-sm font-black text-stone-900 truncate tracking-tight">{s.nome}</h4>
-                              <div className="flex items-center gap-1.5 text-[11px] text-stone-500 font-medium">
-                                <Clock className="w-3.5 h-3.5 text-stone-400" />
-                                <span>{s.duracao_minutos || 60} minutos</span>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-1.5 shrink-0">
-                            <button 
-                              type="button"
-                              onClick={() => handleOpenServicoModal(s)} 
-                              className="w-8 h-8 rounded-xl bg-stone-50 hover:bg-stone-100 text-stone-700 flex items-center justify-center border border-stone-200/80 transition-all cursor-pointer shadow-2xs"
-                              title="Editar"
-                            >
-                              <Edit className="w-3.5 h-3.5" />
-                            </button>
-                            <button 
-                              type="button"
-                              onClick={() => handleDeleteServico(s.id)} 
-                              className="w-8 h-8 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 flex items-center justify-center border border-rose-200/80 transition-all cursor-pointer shadow-2xs"
-                              title="Excluir"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        </div>
-
-                        <div className="pt-3.5 border-t border-stone-100 flex items-center justify-between">
-                          <span className="text-[10px] font-black text-stone-400 uppercase tracking-wider">Valor do Atendimento</span>
-                          <span className="text-sm sm:text-base font-black text-stone-900 tracking-tight">
-                            R$ {Number(s.preco).toFixed(2)}
-                          </span>
-                        </div>
+                {subTabEquipe === 'servicos' && (
+                  <div className="space-y-3">
+                    {servicos.length === 0 ? (
+                      <div className="bg-white rounded-3xl p-10 text-center text-stone-400 border border-stone-200 text-xs font-bold uppercase tracking-wider">
+                        Nenhum serviço cadastrado.
                       </div>
-                    ))
-                  )}
-                </div>
-              )}
-
-              {subTabEquipe === 'barbeiros' && (
-                <div className="space-y-3">
-                  {barbeiros.length === 0 ? (
-                    <div className="bg-white rounded-3xl p-10 text-center text-stone-400 border border-stone-200 text-xs font-bold uppercase tracking-wider">
-                      Nenhum profissional cadastrado.
-                    </div>
-                  ) : (
-                    barbeiros.map((b) => {
-                      const isMenuAcessoAberto = openAcessoId === b.id;
-                      const fazTodos = b.faz_todos_servicos !== false || !Array.isArray(b.servicos_ids) || b.servicos_ids.length === 0;
-                      const nomesServicosVinculados = fazTodos
-                        ? ['Todos os serviços']
-                        : servicos
-                            .filter((srv) => b.servicos_ids.map(String).includes(String(srv.id)))
-                            .map((srv) => srv.nome);
-
-                      return (
+                    ) : (
+                      servicos.map((s) => (
                         <div 
-                          key={b.id} 
-                          className="bg-white rounded-3xl p-5 border border-stone-200/90 shadow-xs hover:shadow-sm transition-all space-y-4"
+                          key={s.id} 
+                          className="bg-white rounded-3xl p-5 border border-stone-200/90 shadow-xs hover:shadow-sm transition-all flex flex-col space-y-4"
                         >
-                          <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-start justify-between gap-3">
                             <div className="flex items-center gap-3.5 min-w-0">
-                              <div className="relative shrink-0">
-                                {b.foto ? (
-                                  <img 
-                                    src={b.foto} 
-                                    alt={b.nome} 
-                                    className="w-12 h-12 rounded-full object-cover border border-stone-200 shadow-2xs" 
-                                  />
-                                ) : (
-                                  <div className="w-12 h-12 rounded-full bg-stone-900 text-white font-black flex items-center justify-center text-xs shadow-2xs">
-                                    {(b.nome || 'P').charAt(0).toUpperCase()}
-                                  </div>
-                                )}
-                                <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full" />
+                              <div className="w-12 h-12 rounded-full bg-stone-50 border border-stone-200 text-stone-800 flex items-center justify-center shrink-0 shadow-2xs">
+                                <Scissors className="w-5 h-5" />
                               </div>
-
                               <div className="min-w-0 space-y-0.5">
-                                <h4 className="font-black text-stone-900 text-xs sm:text-sm tracking-tight truncate">{b.nome}</h4>
-                                <span className="text-[11px] text-stone-500 font-semibold block truncate">{b.especialidade || 'Profissional'}</span>
+                                <h4 className="text-xs sm:text-sm font-black text-stone-900 truncate tracking-tight">{s.nome}</h4>
+                                <div className="flex items-center gap-1.5 text-[11px] text-stone-500 font-medium">
+                                  <Clock className="w-3.5 h-3.5 text-stone-400" />
+                                  <span>{s.duracao_minutos || 60} minutos</span>
+                                </div>
                               </div>
                             </div>
 
                             <div className="flex items-center gap-1.5 shrink-0">
                               <button 
                                 type="button"
-                                onClick={() => handleOpenBarbeiroModal(b)} 
-                                className="w-8 h-8 rounded-xl bg-stone-50 hover:bg-stone-100 text-stone-700 flex items-center justify-center border border-stone-200/85 transition-all cursor-pointer shadow-2xs"
+                                onClick={() => handleOpenServicoModal(s)} 
+                                className="w-8 h-8 rounded-xl bg-stone-50 hover:bg-stone-100 text-stone-700 flex items-center justify-center border border-stone-200/80 transition-all cursor-pointer shadow-2xs"
                                 title="Editar"
                               >
                                 <Edit className="w-3.5 h-3.5" />
                               </button>
                               <button 
                                 type="button"
-                                onClick={() => handleDeleteBarbeiro(b.id)} 
-                                className="w-8 h-8 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 flex items-center justify-center border border-rose-200/85 transition-all cursor-pointer shadow-2xs"
+                                onClick={() => handleDeleteServico(s.id)} 
+                                className="w-8 h-8 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 flex items-center justify-center border border-rose-200/80 transition-all cursor-pointer shadow-2xs"
                                 title="Excluir"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
@@ -2694,90 +2813,172 @@ export default function AdminDashboard() {
                             </div>
                           </div>
 
-                          <div className="pt-3 border-t border-stone-100 flex items-center justify-between">
-                            <span className="text-[10px] font-black text-stone-400 uppercase tracking-wider">Taxa de Comissão</span>
-                            <span className="text-xs sm:text-sm font-black text-stone-900">
-                              {b.taxa_comissao || 50}%
+                          <div className="pt-3.5 border-t border-stone-100 flex items-center justify-between">
+                            <span className="text-[10px] font-black text-stone-400 uppercase tracking-wider">Valor do Atendimento</span>
+                            <span className="text-sm sm:text-base font-black text-stone-900 tracking-tight">
+                              {formatBRL(s.preco)}
                             </span>
                           </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
 
-                          <div className="pt-2 border-t border-stone-100 space-y-1.5">
-                            <span className="text-[10px] font-black text-stone-400 uppercase tracking-wider block">Serviços Habilitados</span>
-                            <div className="flex flex-wrap gap-1.5">
-                              {nomesServicosVinculados.map((nomeSrv, idx) => (
-                                <span
-                                  key={idx}
-                                  className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-stone-100 text-stone-700 border border-stone-200/80"
-                                >
-                                  {nomeSrv}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
+                {subTabEquipe === 'barbeiros' && (
+                  <div className="space-y-3">
+                    {barbeiros.length === 0 ? (
+                      <div className="bg-white rounded-3xl p-10 text-center text-stone-400 border border-stone-200 text-xs font-bold uppercase tracking-wider">
+                        Nenhum profissional cadastrado.
+                      </div>
+                    ) : (
+                      barbeiros.map((b) => {
+                        const isMenuAcessoAberto = openAcessoId === b.id;
+                        const fazTodos = b.faz_todos_servicos !== false || !Array.isArray(b.servicos_ids) || b.servicos_ids.length === 0;
+                        const nomesServicosVinculados = fazTodos
+                          ? ['Todos os serviços']
+                          : servicos
+                              .filter((srv) => b.servicos_ids.map(String).includes(String(srv.id)))
+                              .map((srv) => srv.nome);
 
-                          <div className="pt-2">
-                            <button
-                              type="button"
-                              onClick={() => setOpenAcessoId(isMenuAcessoAberto ? null : b.id)}
-                              className="w-full px-3.5 py-2.5 bg-stone-50 hover:bg-stone-100 rounded-2xl flex items-center justify-between text-xs font-bold text-stone-700 cursor-pointer transition-colors"
-                            >
-                              <span className="flex items-center gap-2">
-                                <KeyRound className="w-3.5 h-3.5 text-stone-500" />
-                                <span>Gerar Acesso ao Painel</span>
-                              </span>
-                              <ChevronDown className={`w-4 h-4 transition-transform ${isMenuAcessoAberto ? 'rotate-180' : ''}`} />
-                            </button>
-
-                            {isMenuAcessoAberto && (
-                              <div className="p-3.5 mt-2 space-y-2.5 bg-stone-50/85 rounded-2xl border border-stone-200/80">
-                                <div className="space-y-1">
-                                  <label className="text-[10px] font-bold text-stone-500">E-mail do Barbeiro</label>
-                                  <input 
-                                    type="email" 
-                                    placeholder="barbeiro@exemplo.com" 
-                                    id={`email-${b.id}`}
-                                    className="w-full px-3 py-2 bg-white border border-stone-200 rounded-xl text-xs text-stone-900 focus:outline-none font-medium"
-                                  />
+                        return (
+                          <div 
+                            key={b.id} 
+                            className="bg-white rounded-3xl p-5 border border-stone-200/90 shadow-xs hover:shadow-sm transition-all space-y-4"
+                          >
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="flex items-center gap-3.5 min-w-0">
+                                <div className="relative shrink-0">
+                                  {b.foto ? (
+                                    <img 
+                                      src={b.foto} 
+                                      alt={b.nome} 
+                                      className="w-12 h-12 rounded-full object-cover border border-stone-200 shadow-2xs" 
+                                    />
+                                  ) : (
+                                    <div className="w-12 h-12 rounded-full bg-stone-900 text-white font-black flex items-center justify-center text-xs shadow-2xs">
+                                      {(b.nome || 'P').charAt(0).toUpperCase()}
+                                    </div>
+                                  )}
+                                  <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full" />
                                 </div>
 
-                                <div className="space-y-1">
-                                  <label className="text-[10px] font-bold text-stone-500">Senha Temporária</label>
-                                  <input 
-                                    type="password" 
-                                    placeholder="••••••••" 
-                                    id={`senha-${b.id}`}
-                                    className="w-full px-3 py-2 bg-white border border-stone-200 rounded-xl text-xs text-stone-900 focus:outline-none font-medium"
-                                  />
+                                <div className="min-w-0 space-y-0.5">
+                                  <h4 className="font-black text-stone-900 text-xs sm:text-sm tracking-tight truncate">{b.nome}</h4>
+                                  <span className="text-[11px] text-stone-500 font-semibold block truncate">{b.especialidade || 'Profissional'}</span>
                                 </div>
+                              </div>
 
-                                <button
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                <button 
                                   type="button"
-                                  onClick={() => {
-                                    const emailInput = document.getElementById(`email-${b.id}`).value;
-                                    const senhaInput = document.getElementById(`senha-${b.id}`).value;
-
-                                    if (!emailInput || !senhaInput) {
-                                      alert('Preencha o e-mail e a senha.');
-                                      return;
-                                    }
-
-                                    criarAcessoBarbeiro(b.id, emailInput, senhaInput);
-                                  }}
-                                  className="w-full py-2.5 bg-stone-900 hover:bg-stone-800 text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs mt-1"
+                                  onClick={() => handleOpenBarbeiroModal(b)} 
+                                  className="w-8 h-8 rounded-xl bg-stone-50 hover:bg-stone-100 text-stone-700 flex items-center justify-center border border-stone-200/85 transition-all cursor-pointer shadow-2xs"
+                                  title="Editar"
                                 >
-                                  Criar Credenciais
+                                  <Edit className="w-3.5 h-3.5" />
+                                </button>
+                                <button 
+                                  type="button"
+                                  onClick={() => handleDeleteBarbeiro(b.id)} 
+                                  className="w-8 h-8 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 flex items-center justify-center border border-rose-200/85 transition-all cursor-pointer shadow-2xs"
+                                  title="Excluir"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
                                 </button>
                               </div>
-                            )}
+                            </div>
+
+                            <div className="pt-3 border-t border-stone-100 flex items-center justify-between">
+                              <span className="text-[10px] font-black text-stone-400 uppercase tracking-wider">Taxa de Comissão</span>
+                              <span className="text-xs sm:text-sm font-black text-stone-900">
+                                {b.taxa_comissao || 50}%
+                              </span>
+                            </div>
+
+                            <div className="pt-2 border-t border-stone-100 space-y-1.5">
+                              <span className="text-[10px] font-black text-stone-400 uppercase tracking-wider block">Serviços Habilitados</span>
+                              <div className="flex flex-wrap gap-1.5">
+                                {nomesServicosVinculados.map((nomeSrv, idx) => (
+                                  <span
+                                    key={idx}
+                                    className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-stone-100 text-stone-700 border border-stone-200/80"
+                                  >
+                                    {nomeSrv}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+
+                            <div className="pt-2">
+                              <button
+                                type="button"
+                                onClick={() => setOpenAcessoId(isMenuAcessoAberto ? null : b.id)}
+                                className="w-full px-3.5 py-2.5 bg-stone-50 hover:bg-stone-100 rounded-2xl flex items-center justify-between text-xs font-bold text-stone-700 cursor-pointer transition-colors"
+                              >
+                                <span className="flex items-center gap-2">
+                                  <KeyRound className="w-3.5 h-3.5 text-stone-500" />
+                                  <span>Gerar Acesso ao Painel</span>
+                                </span>
+                                <ChevronDown className={`w-4 h-4 transition-transform ${isMenuAcessoAberto ? 'rotate-180' : ''}`} />
+                              </button>
+
+                              {isMenuAcessoAberto && (
+                                <div className="p-3.5 mt-2 space-y-2.5 bg-stone-50/85 rounded-2xl border border-stone-200/80">
+                                  <div className="space-y-1">
+                                    <label className="text-[10px] font-bold text-stone-500">E-mail do Barbeiro</label>
+                                    <input 
+                                      type="email" 
+                                      placeholder="barbeiro@exemplo.com" 
+                                      id={`email-${b.id}`}
+                                      className="w-full px-3 py-2 bg-white border border-stone-200 rounded-xl text-xs text-stone-900 focus:outline-none font-medium"
+                                    />
+                                  </div>
+
+                                  <div className="space-y-1">
+                                    <label className="text-[10px] font-bold text-stone-500">Senha Temporária</label>
+                                    <input 
+                                      type="password" 
+                                      placeholder="••••••••" 
+                                      id={`senha-${b.id}`}
+                                      className="w-full px-3 py-2 bg-white border border-stone-200 rounded-xl text-xs text-stone-900 focus:outline-none font-medium"
+                                    />
+                                  </div>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const emailInput = document.getElementById(`email-${b.id}`).value;
+                                      const senhaInput = document.getElementById(`senha-${b.id}`).value;
+
+                                      if (!emailInput || !senhaInput) {
+                                        setModalFeedback({
+                                          isOpen: true,
+                                          tipo: 'erro',
+                                          titulo: 'Campos Obrigatórios',
+                                          mensagem: 'Preencha o e-mail e a senha temporária para gerar o acesso.'
+                                        });
+                                        return;
+                                      }
+
+                                      criarAcessoBarbeiro(b.id, emailInput, senhaInput);
+                                    }}
+                                    className="w-full py-2.5 bg-stone-900 hover:bg-stone-800 text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs mt-1"
+                                  >
+                                    Criar Credenciais
+                                  </button>
+                                </div>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-              )}
-            </div>
-          )}
+                        );
+                      })
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
           
         </main>
       </div>
@@ -2813,8 +3014,8 @@ export default function AdminDashboard() {
 
                   const nomeProf = barbRel?.nome || barbLista?.nome || item.barbeiro_nome || 'Profissional';
                   const fotoProf = barbRel?.foto || barbLista?.foto || null;
-                  const valorPago = Number(item.valor_comissao || 0).toFixed(2);
-                  const valorBruto = Number(item.valor_bruto || 0).toFixed(2);
+                  const valorPago = formatBRL(item.valor_comissao || 0);
+                  const valorBruto = formatBRL(item.valor_bruto || 0);
                   const qtd = Number(item.qtd_atendimentos || 0);
                   const pct = Number(item.porcentagem_aplicada || 0);
 
@@ -2850,8 +3051,8 @@ export default function AdminDashboard() {
                       </div>
 
                       <div className="text-right shrink-0">
-                        <span className="text-xs font-black text-emerald-600 block">R$ {valorPago}</span>
-                        <span className="text-[9px] text-stone-400">Bruto: R$ {valorBruto}</span>
+                        <span className="text-xs font-black text-emerald-600 block">{valorPago}</span>
+                        <span className="text-[9px] text-stone-400">Bruto: {valorBruto}</span>
                       </div>
                     </div>
                   );
@@ -2909,7 +3110,7 @@ export default function AdminDashboard() {
       )}
 
       {modalFeedback.isOpen && (
-        <div className="fixed inset-0 bg-stone-950/70 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-in fade-in duration-200 select-none">
+        <div className="fixed inset-0 bg-stone-950/70 backdrop-blur-xs z-[70] flex items-center justify-center p-4 animate-in fade-in duration-200 select-none">
           <div className="bg-white rounded-[2rem] max-w-md w-full p-6 shadow-2xl border border-stone-200 space-y-5 text-center">
             <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mx-auto shadow-inner ${
               modalFeedback.tipo === 'sucesso' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'
@@ -2978,7 +3179,7 @@ export default function AdminDashboard() {
                     </div>
                     <div>
                       <span className="text-[10px] font-bold text-stone-400 uppercase block">Faturamento Bruto</span>
-                      <span className="font-black text-stone-900">R$ {fatBrutoPendente.toFixed(2)}</span>
+                      <span className="font-black text-stone-900">{formatBRL(fatBrutoPendente)}</span>
                     </div>
                   </div>
 
@@ -2996,7 +3197,7 @@ export default function AdminDashboard() {
                             <span className="text-[10px] text-stone-400 block">{formatarData(ag)} às {formatarHora(ag)}</span>
                           </div>
                           <div className="text-right">
-                            <span className="text-xs font-black text-emerald-600 block">R$ {valServico.toFixed(2)}</span>
+                            <span className="text-xs font-black text-emerald-600 block">{formatBRL(valServico)}</span>
                             <span className="text-[9px] font-bold bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full inline-block mt-1">
                               Em aberto
                             </span>
@@ -3050,7 +3251,7 @@ export default function AdminDashboard() {
               <div className="flex justify-between items-center pb-2 border-b border-slate-200/60 dark:border-slate-700/60">
                 <span className="text-slate-500 dark:text-slate-400">Valor:</span>
                 <span className="font-semibold text-slate-700 dark:text-slate-200">
-                  R$ {valorAssinatura.toFixed(2).replace('.', ',')} / mês
+                  {formatBRL(valorAssinatura)} / mês
                 </span>
               </div>
 
@@ -3131,7 +3332,7 @@ export default function AdminDashboard() {
                     <span className="text-[11px] font-semibold text-stone-400 uppercase block">Plano Mensal Gestor</span>
                     <span className="text-base font-bold text-stone-900">Acesso Completo</span>
                   </div>
-                  <span className="text-xl font-extrabold text-stone-900">R$ {valorAssinatura?.toFixed(2).replace('.', ',')}</span>
+                  <span className="text-xl font-extrabold text-stone-900">{formatBRL(valorAssinatura)}</span>
                 </div>
 
                 <div className="grid grid-cols-3 gap-2 bg-stone-100 p-1.5 rounded-2xl">
@@ -3200,7 +3401,12 @@ export default function AdminDashboard() {
                               setCopiado(true);
                               setTimeout(() => setCopiado(false), 3000);
                             } catch (err) {
-                              alert('Erro ao copiar.');
+                              setModalFeedback({
+                                isOpen: true,
+                                tipo: 'erro',
+                                titulo: 'Erro ao Copiar',
+                                mensagem: 'Não foi possível copiar o código automaticamente. Selecione e copie manualmente.'
+                              });
                             }
                           }}
                           className="p-3 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-600 break-all text-center select-all font-mono cursor-pointer hover:bg-stone-100 transition-colors shadow-inner"
@@ -3233,7 +3439,12 @@ export default function AdminDashboard() {
                                 setCopiado(true);
                                 setTimeout(() => setCopiado(false), 3000);
                               } catch (err) {
-                                alert('Copie manualmente o código selecionado.');
+                                setModalFeedback({
+                                  isOpen: true,
+                                  tipo: 'erro',
+                                  titulo: 'Cópia Manual Necessária',
+                                  mensagem: 'Copie manualmente o código selecionado no campo.'
+                                });
                               }
                             }}
                             className="w-full bg-stone-900 hover:bg-stone-800 text-white py-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-lg relative z-50"
@@ -3317,7 +3528,7 @@ export default function AdminDashboard() {
                       disabled={processandoPagamento}
                       className="w-full bg-stone-900 hover:bg-stone-800 text-white font-bold py-3 rounded-xl transition duration-200 text-xs shadow-md cursor-pointer disabled:opacity-50 mt-2"
                     >
-                      {processandoPagamento ? 'A processar Pagamento...' : `Pagar R$ ${valorAssinatura.toFixed(2).replace('.', ',')}`}
+                      {processandoPagamento ? 'A processar Pagamento...' : `Pagar ${formatBRL(valorAssinatura)}`}
                     </button>
                   </form>
                 )}
@@ -3431,7 +3642,7 @@ export default function AdminDashboard() {
                                 <span className="font-bold text-stone-800 truncate">{srv.nome}</span>
                               </div>
                               <span className="text-[10px] font-bold text-stone-500 shrink-0 ml-2">
-                                R$ {Number(srv.preco).toFixed(2)}
+                                {formatBRL(srv.preco)}
                               </span>
                             </label>
                           );
