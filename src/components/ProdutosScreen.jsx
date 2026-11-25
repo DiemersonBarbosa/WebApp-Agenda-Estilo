@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   Package,
   Plus,
@@ -16,8 +16,64 @@ import {
   Settings,
   Eye,
   Layers,
-  Receipt
+  Receipt,
+  Search,
+  Calendar,
+  Filter
 } from 'lucide-react';
+
+function formatBRL(value) {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return 'R$ 0,00';
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(num);
+}
+
+function obterDataLocalIso(d = new Date()) {
+  const ano = d.getFullYear();
+  const mes = String(d.getMonth() + 1).padStart(2, '0');
+  const dia = String(d.getDate()).padStart(2, '0');
+  return `${ano}-${mes}-${dia}`;
+}
+
+function obterMesAtualIso() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function parseDataSegura(dataStr) {
+  if (!dataStr) return null;
+  if (dataStr instanceof Date) {
+    return Number.isNaN(dataStr.getTime()) ? null : dataStr;
+  }
+  const str = String(dataStr).trim();
+  if (!str) return null;
+
+  // Se vier no formato "YYYY-MM-DD HH:mm:ss" sem timezone, trata como local
+  const normalizada = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/.test(str)
+    ? str.replace(' ', 'T')
+    : str;
+
+  const d = new Date(normalizada);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+function extrairDataIso(item) {
+  const rawData = item?.criado_em ?? item?.created_at ?? item?.data ?? '';
+  const d = parseDataSegura(rawData);
+  if (d) return obterDataLocalIso(d);
+  const str = String(rawData);
+  return str.length >= 10 ? str.substring(0, 10) : '';
+}
+
+function obterQuantidadeItem(item) {
+  const q = Number(item?.quantidade ?? item?.qtd ?? 1);
+  return Number.isFinite(q) ? q : 0;
+}
 
 export default function ProdutosScreen({ produtos = [], barbeariaId, supabase, onReload }) {
   const [abaAtiva, setAbaAtiva] = useState('catalogo'); // 'catalogo' | 'categorias' | 'vendas'
@@ -26,6 +82,10 @@ export default function ProdutosScreen({ produtos = [], barbeariaId, supabase, o
   const [modalGerenciarCatAberto, setModalGerenciarCatAberto] = useState(false);
   const [salvando, setSalvando] = useState(false);
   const [produtoEmEdicao, setProdutoEmEdicao] = useState(null);
+
+  // Busca e filtro rápido da aba Catálogo
+  const [buscaCatalogo, setBuscaCatalogo] = useState('');
+  const [filtroCategoriaCatalogo, setFiltroCategoriaCatalogo] = useState('todas');
 
   // Estado de Categorias vindas do Banco de Dados
   const [categorias, setCategorias] = useState([]);
@@ -39,21 +99,11 @@ export default function ProdutosScreen({ produtos = [], barbeariaId, supabase, o
   // Estados de Faturamento de Produtos
   const [vendasPdV, setVendasPdV] = useState([]);
 
-  function obterDataLocalIso(d = new Date()) {
-    const ano = d.getFullYear();
-    const mes = String(d.getMonth() + 1).padStart(2, '0');
-    const dia = String(d.getDate()).padStart(2, '0');
-    return `${ano}-${mes}-${dia}`;
-  }
-
-  const obterMesAtualIso = () => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-  };
-
-  const [tipoFiltro, setTipoFiltro] = useState('mes'); // 'hoje' | 'dia' | 'mes'
+  const [tipoFiltro, setTipoFiltro] = useState('mes'); // 'hoje' | 'dia' | 'mes' | 'todos'
   const [dataFiltro, setDataFiltro] = useState(obterDataLocalIso());
   const [mesFiltro, setMesFiltro] = useState(obterMesAtualIso());
+  const [buscaVendas, setBuscaVendas] = useState('');
+  const [filtroPagamentoVendas, setFiltroPagamentoVendas] = useState('todos');
 
   // Estado do Modal de Detalhes da Venda
   const [vendaSelecionada, setVendaSelecionada] = useState(null);
@@ -70,7 +120,7 @@ export default function ProdutosScreen({ produtos = [], barbeariaId, supabase, o
       carregarCategorias();
       if (onReload) onReload();
     }
-  }, [barbeariaId]);
+  }, [barbeariaId, supabase]);
 
   const carregarCategorias = async () => {
     if (!supabase || !barbeariaId) return;
@@ -172,48 +222,108 @@ export default function ProdutosScreen({ produtos = [], barbeariaId, supabase, o
     }
   };
 
-  const extrairDataIso = (item) => {
-    const dataStr = item.criado_em || '';
-    if (!dataStr) return '';
-    try {
-      const d = new Date(dataStr);
-      return obterDataLocalIso(d);
-    } catch {
-      return String(dataStr).substring(0, 10);
-    }
-  };
-
   const hojeStr = obterDataLocalIso();
   const mesAtual = new Date().getMonth();
   const anoAtual = new Date().getFullYear();
 
-  const vendasHoje = vendasPdV.filter((v) => extrairDataIso(v) === hojeStr);
-  const faturamentoDiario = vendasHoje.reduce((acc, v) => acc + Number(v.total), 0);
-
-  const vendasMes = vendasPdV.filter((v) => {
-    const d = new Date(v.criado_em);
-    return d.getMonth() === mesAtual && d.getFullYear() === anoAtual;
-  });
-  const faturamentoMensal = vendasMes.reduce((acc, v) => acc + Number(v.total), 0);
-
-  const totalItensVendidosMes = vendasMes.reduce((acc, v) => {
-    return acc + (v.itens || []).reduce((subAcc, item) => subAcc + item.quantidade, 0);
-  }, 0);
-
-  const valorTotalEstoque = produtos.reduce(
-    (acc, p) => acc + Number(p.preco) * Number(p.estoque || 0),
-    0
+  const vendasHoje = useMemo(
+    () => vendasPdV.filter((v) => extrairDataIso(v) === hojeStr),
+    [vendasPdV, hojeStr]
   );
 
-  const vendasFiltradas = vendasPdV.filter((v) => {
-    const dataIso = extrairDataIso(v);
-    if (tipoFiltro === 'hoje') return dataIso === hojeStr;
-    if (tipoFiltro === 'dia') return dataIso === dataFiltro;
-    if (tipoFiltro === 'mes') return dataIso.startsWith(mesFiltro);
-    return true;
-  });
+  const faturamentoDiario = useMemo(
+    () => vendasHoje.reduce((acc, v) => acc + Number(v.total || 0), 0),
+    [vendasHoje]
+  );
 
-  const totalVendasFiltradas = vendasFiltradas.reduce((acc, v) => acc + Number(v.total), 0);
+  const vendasMes = useMemo(
+    () =>
+      vendasPdV.filter((v) => {
+        const d = parseDataSegura(v?.criado_em ?? v?.created_at ?? v?.data);
+        return d && d.getMonth() === mesAtual && d.getFullYear() === anoAtual;
+      }),
+    [vendasPdV, mesAtual, anoAtual]
+  );
+
+  const faturamentoMensal = useMemo(
+    () => vendasMes.reduce((acc, v) => acc + Number(v.total || 0), 0),
+    [vendasMes]
+  );
+
+  const totalItensVendidosMes = useMemo(
+    () =>
+      vendasMes.reduce((acc, v) => {
+        const itens = Array.isArray(v?.itens) ? v.itens : [];
+        return acc + itens.reduce((subAcc, item) => subAcc + obterQuantidadeItem(item), 0);
+      }, 0),
+    [vendasMes]
+  );
+
+  const valorTotalEstoque = useMemo(
+    () =>
+      produtos.reduce(
+        (acc, p) => acc + Number(p?.preco || 0) * Number(p?.estoque || 0),
+        0
+      ),
+    [produtos]
+  );
+
+  // Produtos filtrados para a aba Catálogo
+  const produtosFiltradosCatalogo = useMemo(() => {
+    const termo = buscaCatalogo.trim().toLowerCase();
+    return produtos.filter((p) => {
+      const catProd = p.categoria || categorias[0]?.nome || 'Geral';
+      const bateCategoria = filtroCategoriaCatalogo === 'todas' || catProd === filtroCategoriaCatalogo;
+      const bateBusca =
+        !termo ||
+        (p.nome || '').toLowerCase().includes(termo) ||
+        catProd.toLowerCase().includes(termo);
+      return bateCategoria && bateBusca;
+    });
+  }, [produtos, buscaCatalogo, filtroCategoriaCatalogo, categorias]);
+
+  // Formas de pagamento únicas para filtro na aba Vendas
+  const formasPagamentoDisponiveis = useMemo(() => {
+    const setFormas = new Set();
+    vendasPdV.forEach((v) => {
+      if (v.forma_pagamento) setFormas.add(String(v.forma_pagamento).toLowerCase());
+    });
+    return Array.from(setFormas);
+  }, [vendasPdV]);
+
+  // Vendas filtradas para a aba Vendas
+  const vendasFiltradas = useMemo(() => {
+    const termo = buscaVendas.trim().toLowerCase();
+    return vendasPdV.filter((v) => {
+      const dataIso = extrairDataIso(v);
+      let bateData = true;
+      if (tipoFiltro === 'hoje') bateData = dataIso === hojeStr;
+      else if (tipoFiltro === 'dia') bateData = dataIso === dataFiltro;
+      else if (tipoFiltro === 'mes') bateData = dataIso.startsWith(mesFiltro);
+
+      const forma = String(v.forma_pagamento || '').toLowerCase();
+      const batePagamento = filtroPagamentoVendas === 'todos' || forma === filtroPagamentoVendas;
+
+      const textoItens = (Array.isArray(v.itens) ? v.itens : [])
+        .map((i) => i.nome || '')
+        .join(' ')
+        .toLowerCase();
+      const bateBusca =
+        !termo ||
+        (v.cliente_nome || 'cliente balcão').toLowerCase().includes(termo) ||
+        textoItens.includes(termo);
+
+      return bateData && batePagamento && bateBusca;
+    });
+  }, [vendasPdV, tipoFiltro, hojeStr, dataFiltro, mesFiltro, filtroPagamentoVendas, buscaVendas]);
+
+  const totalVendasFiltradas = useMemo(
+    () => vendasFiltradas.reduce((acc, v) => acc + Number(v.total || 0), 0),
+    [vendasFiltradas]
+  );
+
+  const ticketMedioFiltrado =
+    vendasFiltradas.length > 0 ? totalVendasFiltradas / vendasFiltradas.length : 0;
 
   const handleNovoProduto = () => {
     setProdutoEmEdicao(null);
@@ -296,18 +406,18 @@ export default function ProdutosScreen({ produtos = [], barbeariaId, supabase, o
 
   return (
     <div className="max-w-7xl mx-auto px-2 sm:px-0 space-y-4 pb-28 font-sans">
-      {/* 1. 4 CARDS DE MÉTRICAS (APENAS DUAS LINHAS PARA MANTER ALTURA) */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+      {/* 1. 4 CARDS DE MÉTRICAS PADRONIZADOS */}
+      <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:grid-cols-4 gap-3 md:gap-4">
         <div
-          className="relative rounded-3xl p-4 sm:p-5 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden"
+          className="relative rounded-3xl p-4 sm:p-5 flex items-center justify-between gap-2.5 border border-stone-700/50 min-w-0 w-full overflow-hidden"
           style={cardEscuroStyle}
         >
-          <div className="flex flex-col justify-center min-w-0 pr-2">
+          <div className="flex flex-col justify-center min-w-0 flex-1">
             <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider truncate block">
               Fat. Hoje
             </span>
-            <h3 className="text-lg sm:text-xl font-black text-white mt-0.5 truncate">
-              R$ {faturamentoDiario.toFixed(2)}
+            <h3 className="text-[15px] sm:text-xl font-black text-white mt-0.5 tabular-nums leading-tight truncate">
+              {formatBRL(faturamentoDiario)}
             </h3>
           </div>
           <div
@@ -319,15 +429,15 @@ export default function ProdutosScreen({ produtos = [], barbeariaId, supabase, o
         </div>
 
         <div
-          className="relative rounded-3xl p-4 sm:p-5 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden"
+          className="relative rounded-3xl p-4 sm:p-5 flex items-center justify-between gap-2.5 border border-stone-700/50 min-w-0 w-full overflow-hidden"
           style={cardEscuroStyle}
         >
-          <div className="flex flex-col justify-center min-w-0 pr-2">
+          <div className="flex flex-col justify-center min-w-0 flex-1">
             <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider truncate block">
               Fat. do Mês
             </span>
-            <h3 className="text-lg sm:text-xl font-black text-white mt-0.5 truncate">
-              R$ {faturamentoMensal.toFixed(2)}
+            <h3 className="text-[15px] sm:text-xl font-black text-white mt-0.5 tabular-nums leading-tight truncate">
+              {formatBRL(faturamentoMensal)}
             </h3>
           </div>
           <div
@@ -339,14 +449,14 @@ export default function ProdutosScreen({ produtos = [], barbeariaId, supabase, o
         </div>
 
         <div
-          className="relative rounded-3xl p-4 sm:p-5 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden"
+          className="relative rounded-3xl p-4 sm:p-5 flex items-center justify-between gap-2.5 border border-stone-700/50 min-w-0 w-full overflow-hidden"
           style={cardEscuroStyle}
         >
-          <div className="flex flex-col justify-center min-w-0 pr-2">
+          <div className="flex flex-col justify-center min-w-0 flex-1">
             <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider truncate block">
               Itens Vendidos
             </span>
-            <h3 className="text-lg sm:text-xl font-black text-white mt-0.5 truncate">
+            <h3 className="text-[15px] sm:text-xl font-black text-white mt-0.5 tabular-nums leading-tight truncate">
               {totalItensVendidosMes} un.
             </h3>
           </div>
@@ -359,15 +469,15 @@ export default function ProdutosScreen({ produtos = [], barbeariaId, supabase, o
         </div>
 
         <div
-          className="relative rounded-3xl p-4 sm:p-5 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden"
+          className="relative rounded-3xl p-4 sm:p-5 flex items-center justify-between gap-2.5 border border-stone-700/50 min-w-0 w-full overflow-hidden"
           style={cardEscuroStyle}
         >
-          <div className="flex flex-col justify-center min-w-0 pr-2">
+          <div className="flex flex-col justify-center min-w-0 flex-1">
             <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider truncate block">
               Vlr. em Estoque
             </span>
-            <h3 className="text-lg sm:text-xl font-black text-white mt-0.5 truncate">
-              R$ {valorTotalEstoque.toFixed(2)}
+            <h3 className="text-[15px] sm:text-xl font-black text-white mt-0.5 tabular-nums leading-tight truncate">
+              {formatBRL(valorTotalEstoque)}
             </h3>
           </div>
           <div
@@ -379,7 +489,7 @@ export default function ProdutosScreen({ produtos = [], barbeariaId, supabase, o
         </div>
       </div>
 
-      {/* 2. 4 BOTÕES NO ESTILO DA ABA FIDELIDADE */}
+      {/* 2. 4 BOTÕES DE NAVEGAÇÃO */}
       <div className="grid grid-cols-4 gap-2 sm:gap-3">
         <button
           type="button"
@@ -534,11 +644,12 @@ export default function ProdutosScreen({ produtos = [], barbeariaId, supabase, o
                       </span>
                       <h4 className="font-black text-stone-900 text-sm truncate mt-0.5">{catObj.nome}</h4>
                       <span className="text-xs text-stone-600 font-semibold block mt-0.5">
-                        {produtosDaCat.length} itens • <strong className="text-emerald-600">{estoqueCat} un.</strong>
+                        {produtosDaCat.length} {produtosDaCat.length === 1 ? 'item' : 'itens'} •{' '}
+                        <strong className="text-emerald-600">{estoqueCat} un.</strong>
                       </span>
                     </div>
                     <span className="text-xs font-bold text-stone-800 bg-stone-50 border border-stone-200 px-2.5 py-1 rounded-xl shrink-0">
-                      Ver itens 
+                      Ver itens
                     </span>
                   </div>
                 );
@@ -547,119 +658,204 @@ export default function ProdutosScreen({ produtos = [], barbeariaId, supabase, o
           </div>
         ) : abaAtiva === 'vendas' ? (
           <div className="bg-white rounded-3xl border border-stone-200/90 shadow-xs p-4 sm:p-6 space-y-4">
-            <div className="flex flex-col md:flex-row md:items-center justify-between pb-3 border-b border-stone-100 gap-3">
+            {/* Cabeçalho e Resumo do Período */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-stone-100 gap-2">
               <div className="min-w-0">
                 <h3 className="text-xs sm:text-sm font-black text-stone-900 tracking-wider uppercase flex items-center gap-2">
                   <Clock className="w-4 h-4 text-emerald-600 shrink-0" />
                   <span>Histórico de Vendas de Balcão</span>
                 </h3>
                 <p className="text-[11px] text-stone-500 mt-0.5">
-                  Total no período: <strong className="text-stone-900 font-black">R$ {totalVendasFiltradas.toFixed(2)}</strong> ({vendasFiltradas.length} vendas)
+                  Acompanhe o desempenho detalhado de vendas por período e pagamento.
                 </p>
               </div>
 
-              <div className="flex flex-wrap items-center gap-1.5 bg-stone-50 p-1 rounded-2xl border border-stone-200/80">
-                <button
-                  type="button"
-                  onClick={() => setTipoFiltro('hoje')}
-                  className={`px-3 py-1.5 text-[11px] font-bold rounded-xl transition-all cursor-pointer ${
-                    tipoFiltro === 'hoje' ? 'bg-stone-900 text-white shadow-2xs' : 'text-stone-600 hover:text-stone-900'
-                  }`}
-                >
-                  Hoje
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setTipoFiltro('dia')}
-                  className={`px-3 py-1.5 text-[11px] font-bold rounded-xl transition-all cursor-pointer ${
-                    tipoFiltro === 'dia' ? 'bg-stone-900 text-white shadow-2xs' : 'text-stone-600 hover:text-stone-900'
-                  }`}
-                >
-                  Por Dia
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setTipoFiltro('mes')}
-                  className={`px-3 py-1.5 text-[11px] font-bold rounded-xl transition-all cursor-pointer ${
-                    tipoFiltro === 'mes' ? 'bg-stone-900 text-white shadow-2xs' : 'text-stone-600 hover:text-stone-900'
-                  }`}
-                >
-                  Por Mês
-                </button>
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="text-[11px] font-bold text-stone-700 bg-stone-50 px-3 py-1.5 rounded-xl border border-stone-200">
+                  {vendasFiltradas.length} {vendasFiltradas.length === 1 ? 'venda' : 'vendas'}
+                </span>
+                <span className="text-[11px] font-black text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200 tabular-nums">
+                  {formatBRL(totalVendasFiltradas)}
+                </span>
+              </div>
+            </div>
 
-                {tipoFiltro === 'dia' && (
+            {/* Painel de Filtros Profissional */}
+            <div className="bg-stone-50/90 p-3.5 rounded-2xl border border-stone-200/80 space-y-3">
+              {/* Linha 1: Busca + Seletor Segmentado de Período */}
+              <div className="flex flex-col lg:flex-row gap-2.5">
+                <div className="relative flex-1">
+                  <Search className="w-4 h-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
-                    type="date"
-                    value={dataFiltro}
-                    onChange={(e) => setDataFiltro(e.target.value)}
-                    className="px-2.5 py-1 bg-white border border-stone-200 rounded-xl text-[11px] font-bold text-stone-800 focus:outline-none cursor-pointer"
+                    type="text"
+                    placeholder="Buscar por cliente ou produto vendido..."
+                    value={buscaVendas}
+                    onChange={(e) => setBuscaVendas(e.target.value)}
+                    className="w-full pl-10 pr-8 py-2.5 bg-white border border-stone-200 rounded-xl text-xs font-medium text-stone-900 focus:outline-none focus:border-stone-900"
                   />
-                )}
+                  {buscaVendas && (
+                    <button
+                      type="button"
+                      onClick={() => setBuscaVendas('')}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700 cursor-pointer"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
 
-                {tipoFiltro === 'mes' && (
-                  <input
-                    type="month"
-                    value={mesFiltro}
-                    onChange={(e) => setMesFiltro(e.target.value)}
-                    className="px-2.5 py-1 bg-white border border-stone-200 rounded-xl text-[11px] font-bold text-stone-800 focus:outline-none cursor-pointer"
-                  />
-                )}
+                <div className="grid grid-cols-4 bg-stone-200/70 p-1 rounded-xl border border-stone-200/80 shrink-0">
+                  {[
+                    { id: 'hoje', label: 'Hoje' },
+                    { id: 'dia', label: 'Por Dia' },
+                    { id: 'mes', label: 'Por Mês' },
+                    { id: 'todos', label: 'Todas' },
+                  ].map((tab) => (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => setTipoFiltro(tab.id)}
+                      className={`px-3 py-1.5 text-[11px] font-black rounded-lg transition-all cursor-pointer ${
+                        tipoFiltro === tab.id
+                          ? 'bg-stone-900 text-white shadow-xs'
+                          : 'text-stone-600 hover:text-stone-900'
+                      }`}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Linha 2: Seletor de Data/Mês + Filtro por Forma de Pagamento + Ticket Médio */}
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-stone-200/70">
+                <div className="flex flex-wrap items-center gap-2">
+                  {tipoFiltro === 'dia' && (
+                    <div className="flex items-center gap-1.5 bg-white border border-stone-200 rounded-xl px-3 py-1.5">
+                      <Calendar className="w-3.5 h-3.5 text-stone-500" />
+                      <input
+                        type="date"
+                        value={dataFiltro}
+                        onChange={(e) => setDataFiltro(e.target.value)}
+                        className="text-[11px] font-bold text-stone-800 focus:outline-none cursor-pointer bg-transparent"
+                      />
+                    </div>
+                  )}
+
+                  {tipoFiltro === 'mes' && (
+                    <div className="flex items-center gap-1.5 bg-white border border-stone-200 rounded-xl px-3 py-1.5">
+                      <Calendar className="w-3.5 h-3.5 text-stone-500" />
+                      <input
+                        type="month"
+                        value={mesFiltro}
+                        onChange={(e) => setMesFiltro(e.target.value)}
+                        className="text-[11px] font-bold text-stone-800 focus:outline-none cursor-pointer bg-transparent"
+                      />
+                    </div>
+                  )}
+
+                  <div className="flex items-center gap-1.5 bg-white border border-stone-200 rounded-xl px-3 py-1.5">
+                    <Filter className="w-3.5 h-3.5 text-stone-500" />
+                    <select
+                      value={filtroPagamentoVendas}
+                      onChange={(e) => setFiltroPagamentoVendas(e.target.value)}
+                      className="text-[11px] font-bold text-stone-800 focus:outline-none cursor-pointer bg-transparent uppercase"
+                    >
+                      <option value="todos">Todos os Pagamentos</option>
+                      {formasPagamentoDisponiveis.map((forma) => (
+                        <option key={forma} value={forma}>
+                          {forma}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {(buscaVendas || filtroPagamentoVendas !== 'todos') && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setBuscaVendas('');
+                        setFiltroPagamentoVendas('todos');
+                      }}
+                      className="text-[11px] font-bold text-rose-600 hover:text-rose-700 px-2.5 py-1.5 rounded-xl bg-rose-50 border border-rose-200/80 cursor-pointer"
+                    >
+                      Limpar filtros
+                    </button>
+                  )}
+                </div>
+
+                <div className="text-[11px] text-stone-500 font-semibold">
+                  Ticket Médio:{' '}
+                  <strong className="text-stone-900 font-black tabular-nums">
+                    {formatBRL(ticketMedioFiltrado)}
+                  </strong>
+                </div>
               </div>
             </div>
 
             {vendasFiltradas.length === 0 ? (
               <div className="p-10 text-center text-stone-400 text-xs border border-dashed border-stone-200 rounded-2xl">
-                Nenhuma venda encontrada para o período selecionado.
+                Nenhuma venda encontrada para os filtros selecionados.
               </div>
             ) : (
               <div className="space-y-2.5">
-                {vendasFiltradas.map((venda) => (
-                  <div
-                    key={venda.id}
-                    className="p-3.5 rounded-2xl bg-stone-50 border border-stone-200/80 space-y-2"
-                  >
-                    <div className="flex justify-between items-start gap-2">
-                      <div className="min-w-0">
-                        <span className="font-bold text-stone-900 text-xs block truncate">
-                          {venda.cliente_nome || 'Cliente Balcão'}
-                        </span>
-                        <span className="text-[11px] text-stone-500 block truncate">
-                          {(venda.itens || []).map((i) => `${i.quantidade}x ${i.nome}`).join(', ')}
-                        </span>
-                      </div>
-                      <div className="text-right shrink-0">
-                        <span className="font-black text-emerald-600 text-xs block">
-                          R$ {Number(venda.total).toFixed(2)}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => setVendaSelecionada(venda)}
-                          className="mt-1 text-[10px] font-bold text-stone-700 hover:text-stone-950 bg-white border border-stone-200 px-2 py-0.5 rounded-lg inline-flex items-center gap-1 cursor-pointer"
-                        >
-                          <Eye className="w-3 h-3 text-stone-500" /> Detalhes
-                        </button>
-                      </div>
-                    </div>
+                {vendasFiltradas.map((venda) => {
+                  const dataVenda = parseDataSegura(
+                    venda?.criado_em ?? venda?.created_at ?? venda?.data
+                  );
+                  const itensVenda = Array.isArray(venda?.itens) ? venda.itens : [];
 
-                    <div className="flex justify-between items-center pt-2 border-t border-stone-200/60 text-[11px] text-stone-500 font-medium">
-                      <span className="bg-stone-200/80 text-stone-700 px-2 py-0.5 rounded-lg uppercase text-[10px] font-bold">
-                        {venda.forma_pagamento}
-                      </span>
-                      <span>
-                        {new Date(venda.criado_em).toLocaleDateString('pt-BR')} às{' '}
-                        {new Date(venda.criado_em).toLocaleTimeString('pt-BR', {
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
-                      </span>
+                  return (
+                    <div
+                      key={venda.id}
+                      className="p-3.5 rounded-2xl bg-stone-50 border border-stone-200/80 space-y-2"
+                    >
+                      <div className="flex justify-between items-start gap-2">
+                        <div className="min-w-0">
+                          <span className="font-bold text-stone-900 text-xs block truncate">
+                            {venda.cliente_nome || 'Cliente Balcão'}
+                          </span>
+                          <span className="text-[11px] text-stone-500 block truncate">
+                            {itensVenda
+                              .map((i) => `${obterQuantidadeItem(i)}x ${i.nome}`)
+                              .join(', ')}
+                          </span>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <span className="font-black text-emerald-600 text-xs block tabular-nums">
+                            {formatBRL(venda.total)}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setVendaSelecionada(venda)}
+                            className="mt-1 text-[10px] font-bold text-stone-700 hover:text-stone-950 bg-white border border-stone-200 px-2 py-0.5 rounded-lg inline-flex items-center gap-1 cursor-pointer"
+                          >
+                            <Eye className="w-3 h-3 text-stone-500" /> Detalhes
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="flex justify-between items-center pt-2 border-t border-stone-200/60 text-[11px] text-stone-500 font-medium">
+                        <span className="bg-stone-200/80 text-stone-700 px-2 py-0.5 rounded-lg uppercase text-[10px] font-bold">
+                          {venda.forma_pagamento}
+                        </span>
+                        <span>
+                          {dataVenda
+                            ? `${dataVenda.toLocaleDateString('pt-BR')} às ${dataVenda.toLocaleTimeString('pt-BR', {
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}`
+                            : String(venda?.criado_em || '')}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
         ) : (
-          /* ABA CATÁLOGO (PADRÃO) */
+          /* ABA CATÁLOGO: LISTA COMPLETA DE PRODUTOS COM BUSCA, EDITAR E EXCLUIR */
           <div
             className="relative rounded-3xl p-4 sm:p-6 border border-white/80 overflow-hidden shadow-xs space-y-4"
             style={{
@@ -667,48 +863,155 @@ export default function ProdutosScreen({ produtos = [], barbeariaId, supabase, o
               boxShadow: '0 15px 30px rgba(0, 0, 0, 0.05), inset 0 2px 4px rgba(255, 255, 255, 0.9), inset 0 -3px 6px rgba(0, 0, 0, 0.03)'
             }}
           >
-            <div className="flex items-center justify-between pb-3 border-b border-stone-300/50">
+            <div className="flex items-center justify-between pb-3 border-b border-stone-300/50 gap-2">
               <h2 className="text-sm font-extrabold text-stone-900 flex items-center gap-2">
                 <span className="w-2 h-2 bg-[#111111] rounded-full" />
-                <span>Categorias e Estoque</span>
+                <span>Catálogo de Produtos</span>
               </h2>
-              <span className="text-[11px] font-bold text-stone-700 bg-white px-2.5 py-0.5 rounded-full border border-stone-200 shadow-2xs">
-                {produtos.length} itens
+              <span className="text-[11px] font-bold text-stone-700 bg-white px-2.5 py-1 rounded-full border border-stone-200 shadow-2xs shrink-0">
+                {produtosFiltradosCatalogo.length}{' '}
+                {produtosFiltradosCatalogo.length === 1 ? 'produto' : 'produtos'}
               </span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
-              {categorias.map((catObj) => {
-                const produtosDaCat = produtos.filter(
-                  (p) => (p.categoria || categorias[0]?.nome) === catObj.nome
-                );
-                const estoqueCat = produtosDaCat.reduce((acc, p) => acc + Number(p.estoque || 0), 0);
-
-                return (
-                  <div
-                    key={catObj.id}
-                    onClick={() => setCategoriaModal(catObj.nome)}
-                    className="bg-white rounded-2xl border border-stone-200/90 p-4 shadow-2xs flex items-center justify-between cursor-pointer hover:border-stone-400 transition-all"
+            {/* Barra de Pesquisa + Filtro Rápido de Categorias */}
+            <div className="space-y-2.5">
+              <div className="relative">
+                <Search className="w-4 h-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="Pesquisar produto por nome ou categoria..."
+                  value={buscaCatalogo}
+                  onChange={(e) => setBuscaCatalogo(e.target.value)}
+                  className="w-full pl-10 pr-9 py-2.5 bg-white border border-stone-200/90 rounded-2xl text-xs font-medium text-stone-900 focus:outline-none focus:border-stone-900 shadow-2xs"
+                />
+                {buscaCatalogo && (
+                  <button
+                    type="button"
+                    onClick={() => setBuscaCatalogo('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700 cursor-pointer"
                   >
-                    <div className="space-y-0.5 min-w-0 pr-2">
-                      <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider block">
-                        Categoria
-                      </span>
-                      <h4 className="font-black text-stone-900 text-sm truncate">{catObj.nome}</h4>
-                      <p className="text-xs text-stone-600 font-semibold pt-0.5">
-                        Estoque: <span className="text-emerald-600 font-bold">{estoqueCat} un.</span>
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <div className="w-9 h-9 rounded-xl bg-stone-100 border border-stone-200 flex items-center justify-center text-base">
-                        📦
-                      </div>
-                      <span className="text-xs font-bold text-stone-900">Ver itens </span>
-                    </div>
-                  </div>
-                );
-              })}
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                <button
+                  type="button"
+                  onClick={() => setFiltroCategoriaCatalogo('todas')}
+                  className={`px-3 py-1.5 rounded-xl text-[11px] font-black whitespace-nowrap transition-all cursor-pointer ${
+                    filtroCategoriaCatalogo === 'todas'
+                      ? 'bg-stone-900 text-white shadow-2xs'
+                      : 'bg-white text-stone-600 border border-stone-200/80 hover:text-stone-900'
+                  }`}
+                >
+                  Todos ({produtos.length})
+                </button>
+                {categorias.map((catObj) => {
+                  const ativo = filtroCategoriaCatalogo === catObj.nome;
+                  return (
+                    <button
+                      key={catObj.id}
+                      type="button"
+                      onClick={() => setFiltroCategoriaCatalogo(catObj.nome)}
+                      className={`px-3 py-1.5 rounded-xl text-[11px] font-black whitespace-nowrap transition-all cursor-pointer ${
+                        ativo
+                          ? 'bg-stone-900 text-white shadow-2xs'
+                          : 'bg-white text-stone-600 border border-stone-200/80 hover:text-stone-900'
+                      }`}
+                    >
+                      {catObj.nome}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
+
+            {/* Lista de Todos os Produtos */}
+            {produtosFiltradosCatalogo.length === 0 ? (
+              <div className="bg-white rounded-2xl p-10 text-center text-stone-400 border border-dashed border-stone-200 text-xs font-semibold space-y-2">
+                <p>Nenhum produto encontrado.</p>
+                {produtos.length === 0 && (
+                  <button
+                    type="button"
+                    onClick={handleNovoProduto}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-stone-900 text-white rounded-xl text-xs font-bold cursor-pointer mt-1"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> Cadastrar primeiro produto
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {produtosFiltradosCatalogo.map((prod) => {
+                  const qtdEstoque = Number(prod.estoque || 0);
+                  const isZerado = qtdEstoque <= 0;
+                  const isBaixo = qtdEstoque > 0 && qtdEstoque <= 3;
+
+                  return (
+                    <div
+                      key={prod.id}
+                      className="bg-white rounded-2xl border border-stone-200/90 p-4 shadow-2xs flex flex-col justify-between space-y-3 hover:border-stone-300 transition-all"
+                    >
+                      <div className="flex items-start justify-between gap-2.5">
+                        <div className="min-w-0 space-y-1">
+                          <span className="inline-block text-[9px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-md bg-stone-100 text-stone-600 border border-stone-200/70 truncate max-w-full">
+                            {prod.categoria || categorias[0]?.nome || 'Geral'}
+                          </span>
+                          <h4 className="font-black text-stone-900 text-sm leading-snug line-clamp-2">
+                            {prod.nome}
+                          </h4>
+                        </div>
+
+                        <span
+                          className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full shrink-0 ${
+                            isZerado
+                              ? 'bg-rose-100 text-rose-700'
+                              : isBaixo
+                                ? 'bg-amber-100 text-amber-800'
+                                : 'bg-emerald-50 text-emerald-700'
+                          }`}
+                        >
+                          {qtdEstoque > 0 ? `${qtdEstoque} un.` : 'Esgotado'}
+                        </span>
+                      </div>
+
+                      <div className="pt-2.5 border-t border-stone-100 flex items-center justify-between gap-2">
+                        <div>
+                          <span className="text-[9px] font-bold text-stone-400 uppercase block">
+                            Preço Unitário
+                          </span>
+                          <span className="text-sm sm:text-base font-black text-stone-900 tabular-nums">
+                            {formatBRL(prod.preco)}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => handleEditarProduto(prod)}
+                            className="px-2.5 py-1.5 bg-stone-50 hover:bg-stone-100 text-stone-800 text-[11px] font-bold rounded-xl border border-stone-200 cursor-pointer flex items-center gap-1 transition-colors"
+                            title="Editar produto"
+                          >
+                            <Edit className="w-3.5 h-3.5 text-stone-600" />
+                            <span>Editar</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleExcluir(prod.id, prod.nome)}
+                            className="w-8 h-8 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl border border-rose-200/80 cursor-pointer flex items-center justify-center transition-colors"
+                            title="Excluir produto"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -740,25 +1043,28 @@ export default function ProdutosScreen({ produtos = [], barbeariaId, supabase, o
                 Itens Comprados
               </span>
               <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-                {(vendaSelecionada.itens || []).map((item, idx) => (
-                  <div
-                    key={idx}
-                    className="flex justify-between items-center p-3 rounded-2xl bg-stone-50 border border-stone-200/70 text-xs"
-                  >
-                    <div>
-                      <span className="font-bold text-stone-900 block">{item.nome}</span>
-                      <span className="text-[10px] text-stone-500">
-                        {item.quantidade}x R$ {Number(item.preco_unitario || item.preco || 0).toFixed(2)}
-                      </span>
-                    </div>
-                    <span className="font-extrabold text-stone-900">
-                      R${' '}
-                      {(
-                        Number(item.quantidade) * Number(item.preco_unitario || item.preco || 0)
-                      ).toFixed(2)}
-                    </span>
-                  </div>
-                ))}
+                {(Array.isArray(vendaSelecionada.itens) ? vendaSelecionada.itens : []).map(
+                  (item, idx) => {
+                    const qtd = obterQuantidadeItem(item);
+                    const unit = Number(item.preco_unitario ?? item.preco ?? 0);
+                    return (
+                      <div
+                        key={idx}
+                        className="flex justify-between items-center p-3 rounded-2xl bg-stone-50 border border-stone-200/70 text-xs"
+                      >
+                        <div>
+                          <span className="font-bold text-stone-900 block">{item.nome}</span>
+                          <span className="text-[10px] text-stone-500">
+                            {qtd}x {formatBRL(unit)}
+                          </span>
+                        </div>
+                        <span className="font-extrabold text-stone-900 tabular-nums">
+                          {formatBRL(qtd * unit)}
+                        </span>
+                      </div>
+                    );
+                  }
+                )}
               </div>
 
               <div className="pt-3 border-t border-stone-100 space-y-2 text-xs">
@@ -772,18 +1078,26 @@ export default function ProdutosScreen({ produtos = [], barbeariaId, supabase, o
                 <div className="flex justify-between items-center">
                   <span className="text-stone-500 font-semibold">Data e Hora:</span>
                   <span className="font-bold text-stone-800">
-                    {new Date(vendaSelecionada.criado_em).toLocaleDateString('pt-BR')} às{' '}
-                    {new Date(vendaSelecionada.criado_em).toLocaleTimeString('pt-BR', {
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    })}
+                    {(() => {
+                      const d = parseDataSegura(
+                        vendaSelecionada?.criado_em ??
+                          vendaSelecionada?.created_at ??
+                          vendaSelecionada?.data
+                      );
+                      return d
+                        ? `${d.toLocaleDateString('pt-BR')} às ${d.toLocaleTimeString('pt-BR', {
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}`
+                        : String(vendaSelecionada?.criado_em || '');
+                    })()}
                   </span>
                 </div>
 
                 <div className="flex justify-between items-center pt-2 border-t border-stone-200">
                   <span className="text-sm font-black text-stone-900">Total da Venda:</span>
-                  <span className="text-base font-black text-emerald-600">
-                    R$ {Number(vendaSelecionada.total).toFixed(2)}
+                  <span className="text-base font-black text-emerald-600 tabular-nums">
+                    {formatBRL(vendaSelecionada.total)}
                   </span>
                 </div>
               </div>
@@ -987,8 +1301,8 @@ export default function ProdutosScreen({ produtos = [], barbeariaId, supabase, o
                         <div className="flex justify-between items-start gap-2">
                           <div>
                             <h5 className="font-extrabold text-stone-900 text-xs">{prod.nome}</h5>
-                            <span className="text-sm font-black text-stone-900">
-                              R$ {Number(prod.preco).toFixed(2)}
+                            <span className="text-sm font-black text-stone-900 tabular-nums">
+                              {formatBRL(prod.preco)}
                             </span>
                           </div>
                           <span
