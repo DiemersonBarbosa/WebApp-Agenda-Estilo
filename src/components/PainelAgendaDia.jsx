@@ -543,17 +543,17 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, barbearia
       )}
 
       {/* CARDS DO TOPO */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+      <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:grid-cols-4 gap-3 md:gap-4">
         <div 
-          className="relative rounded-3xl p-4 sm:p-5 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden"
+          className="relative rounded-3xl p-4 sm:p-5 flex items-center justify-between gap-2 border border-stone-700/50 min-w-0 w-full overflow-hidden"
           style={{
             background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
             boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
           }}
         >
-          <div className="flex flex-col justify-center min-w-0 pr-2">
+          <div className="flex flex-col justify-center min-w-0 flex-1">
             <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider truncate block">Agendamentos</span>
-            <h3 className="text-lg sm:text-xl font-black text-white mt-0.5 truncate">{totalAtendimentosDia}</h3>
+            <h3 className="text-[15px] sm:text-xl font-black text-white mt-0.5 tabular-nums leading-tight truncate">{totalAtendimentosDia}</h3>
           </div>
           <div 
             className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0"
@@ -568,15 +568,15 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, barbearia
         </div>
 
         <div 
-          className="relative rounded-3xl p-4 sm:p-5 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden"
+          className="relative rounded-3xl p-4 sm:p-5 flex items-center justify-between gap-2 border border-stone-700/50 min-w-0 w-full overflow-hidden"
           style={{
             background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
             boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
           }}
         >
-          <div className="flex flex-col justify-center min-w-0 pr-2">
+          <div className="flex flex-col justify-center min-w-0 flex-1">
             <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider truncate block">Concluídos</span>
-            <h3 className="text-lg sm:text-xl font-black text-white mt-0.5 truncate">{concluidosDia}/{totalAtendimentosDia}</h3>
+            <h3 className="text-[15px] sm:text-xl font-black text-white mt-0.5 tabular-nums leading-tight truncate">{concluidosDia}/{totalAtendimentosDia}</h3>
           </div>
           <div 
             className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0"
@@ -591,15 +591,15 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, barbearia
         </div>
 
         <div 
-          className="relative rounded-3xl p-4 sm:p-5 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden"
+          className="relative rounded-3xl p-4 sm:p-5 flex items-center justify-between gap-2 border border-stone-700/50 min-w-0 w-full overflow-hidden"
           style={{
             background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
             boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
           }}
         >
-          <div className="flex flex-col justify-center min-w-0 pr-2">
+          <div className="flex flex-col justify-center min-w-0 flex-1">
             <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider truncate block">Projeção</span>
-            <h3 className="text-lg sm:text-xl font-black text-white mt-0.5 truncate">
+            <h3 className="text-[15px] sm:text-xl font-black text-white mt-0.5 tabular-nums leading-tight truncate">
               {formatBRL(valorTotalDia)}
             </h3>
           </div>
@@ -618,11 +618,11 @@ export default function PainelAgendaDia({ profissionalId, barbeariaId, barbearia
         <button
           type="button"
           onClick={() => setModalHistoricoOpen(true)}
-          className="relative rounded-3xl p-4 sm:p-5 flex items-center justify-between border border-stone-200/80 bg-white transition-all cursor-pointer group min-w-0 overflow-hidden shadow-xs hover:shadow-sm"
+          className="relative rounded-3xl p-4 sm:p-5 flex items-center justify-between gap-2 border border-stone-200/80 bg-white transition-all cursor-pointer group min-w-0 w-full overflow-hidden shadow-xs hover:shadow-sm"
         >
-          <div className="flex flex-col justify-center min-w-0 pr-2 text-left">
+          <div className="flex flex-col justify-center min-w-0 flex-1 text-left">
             <span className="text-[9px] font-extrabold text-stone-400 uppercase tracking-wider truncate block">Registros</span>
-            <span className="text-xs sm:text-sm font-black text-stone-900 mt-0.5 truncate">Ver Histórico</span>
+            <span className="text-[15px] sm:text-xl font-black text-stone-900 mt-0.5 leading-tight truncate">Ver Histórico</span>
           </div>
           <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#222222] text-white flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
             <History className="w-4 h-4 sm:w-5 sm:h-5" />

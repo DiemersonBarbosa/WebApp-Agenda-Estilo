@@ -287,19 +287,19 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
       )}
 
       {/* Cards de Indicadores (KPIs) */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+      <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:grid-cols-4 gap-3 md:gap-4">
         
         {/* 1. Faturamento */}
         <div 
-          className="relative rounded-3xl p-4 sm:p-5 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden"
+          className="relative rounded-3xl p-4 sm:p-5 flex items-center justify-between gap-2 border border-stone-700/50 min-w-0 w-full overflow-hidden"
           style={{
             background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
             boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
           }}
         >
-          <div className="flex flex-col justify-center min-w-0 pr-2">
+          <div className="flex flex-col justify-center min-w-0 flex-1">
             <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider truncate block">Faturamento</span>
-            <h3 className="text-base sm:text-xl font-black text-white mt-0.5 truncate">{formatBRL(faturamentoTotal)}</h3>
+            <h3 className="text-[15px] sm:text-xl font-black text-white mt-0.5 tabular-nums leading-tight truncate">{formatBRL(faturamentoTotal)}</h3>
           </div>
           <div 
             className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0"
@@ -315,15 +315,15 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
 
         {/* 2. Despesas */}
         <div 
-          className="relative rounded-3xl p-4 sm:p-5 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden"
+          className="relative rounded-3xl p-4 sm:p-5 flex items-center justify-between gap-2 border border-stone-700/50 min-w-0 w-full overflow-hidden"
           style={{
             background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
             boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
           }}
         >
-          <div className="flex flex-col justify-center min-w-0 pr-2">
+          <div className="flex flex-col justify-center min-w-0 flex-1">
             <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider truncate block">Despesas</span>
-            <h3 className="text-base sm:text-xl font-black text-white mt-0.5 truncate">{formatBRL(custosTotais)}</h3>
+            <h3 className="text-[15px] sm:text-xl font-black text-white mt-0.5 tabular-nums leading-tight truncate">{formatBRL(custosTotais)}</h3>
           </div>
           <div 
             className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0"
@@ -339,15 +339,15 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
 
         {/* 3. Lucro Líquido */}
         <div 
-          className="relative rounded-3xl p-4 sm:p-5 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden"
+          className="relative rounded-3xl p-4 sm:p-5 flex items-center justify-between gap-2 border border-stone-700/50 min-w-0 w-full overflow-hidden"
           style={{
             background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
             boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
           }}
         >
-          <div className="flex flex-col justify-center min-w-0 pr-2">
+          <div className="flex flex-col justify-center min-w-0 flex-1">
             <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider truncate block">Lucro Líquido</span>
-            <h3 className={`text-base sm:text-xl font-black mt-0.5 truncate ${lucroLiquidoReal >= 0 ? 'text-sky-400' : 'text-rose-400'}`}>
+            <h3 className={`text-[15px] sm:text-xl font-black mt-0.5 tabular-nums leading-tight truncate ${lucroLiquidoReal >= 0 ? 'text-sky-400' : 'text-rose-400'}`}>
               {formatBRL(lucroLiquidoReal)}
             </h3>
           </div>
@@ -365,15 +365,15 @@ export default function RelatoriosPage({ agendamentos = [], despesas = [], barbe
 
         {/* 4. Ticket Médio */}
         <div 
-          className="relative rounded-3xl p-4 sm:p-5 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden"
+          className="relative rounded-3xl p-4 sm:p-5 flex items-center justify-between gap-2 border border-stone-700/50 min-w-0 w-full overflow-hidden"
           style={{
             background: 'linear-gradient(135deg, #222222 0%, #111111 50%, #050505 100%)',
             boxShadow: 'inset 0 2px 3px rgba(255, 255, 255, 0.25), inset 0 -3px 6px rgba(0, 0, 0, 0.8)'
           }}
         >
-          <div className="flex flex-col justify-center min-w-0 pr-2">
+          <div className="flex flex-col justify-center min-w-0 flex-1">
             <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider truncate block">Ticket Médio</span>
-            <h3 className="text-base sm:text-xl font-black text-white mt-0.5 truncate">{formatBRL(ticketMedioCalculado)}</h3>
+            <h3 className="text-[15px] sm:text-xl font-black text-white mt-0.5 tabular-nums leading-tight truncate">{formatBRL(ticketMedioCalculado)}</h3>
           </div>
           <div 
             className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0"

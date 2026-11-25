@@ -402,18 +402,18 @@ export default function FidelizacaoAdmin({ barbeariaId }) {
   return (
     <div className="max-w-7xl mx-auto px-2 sm:px-0 space-y-4 pb-24">
       {/* CARDS DO TOPO */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+      <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:grid-cols-4 gap-3 md:gap-4">
         {cardsResumo.map(({ label, valor, Icon }) => (
           <div
             key={label}
-            className="relative rounded-3xl p-4 sm:p-5 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden"
+            className="relative rounded-3xl p-4 sm:p-5 flex items-center justify-between gap-2 border border-stone-700/50 min-w-0 w-full overflow-hidden"
             style={cardEscuroStyle}
           >
-            <div className="flex flex-col justify-center min-w-0 pr-2">
+            <div className="flex flex-col justify-center min-w-0 flex-1">
               <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider truncate block">
                 {label}
               </span>
-              <h3 className="text-lg sm:text-xl font-black text-white mt-0.5 truncate">
+              <h3 className="text-[15px] sm:text-xl font-black text-white mt-0.5 tabular-nums leading-tight truncate">
                 {valor}
               </h3>
             </div>
@@ -427,15 +427,15 @@ export default function FidelizacaoAdmin({ barbeariaId }) {
         ))}
 
         <div
-          className="relative rounded-3xl p-4 sm:p-5 flex items-center justify-between border border-stone-700/50 min-w-0 overflow-hidden"
+          className="relative rounded-3xl p-4 sm:p-5 flex items-center justify-between gap-2 border border-stone-700/50 min-w-0 w-full overflow-hidden"
           style={cardEscuroStyle}
         >
-          <div className="flex flex-col justify-center min-w-0 pr-2">
+          <div className="flex flex-col justify-center min-w-0 flex-1">
             <span className="text-[9px] font-bold text-stone-400 uppercase tracking-wider truncate block">
               Fidelização
             </span>
             <h3
-              className={`text-lg sm:text-xl font-black mt-0.5 truncate ${
+              className={`text-[15px] sm:text-xl font-black mt-0.5 leading-tight truncate ${
                 fidelidadeAtiva ? 'text-emerald-400' : 'text-rose-400'
               }`}
             >
