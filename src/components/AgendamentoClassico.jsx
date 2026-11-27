@@ -14,12 +14,17 @@ function barbeiroExecutaServico(barbeiro, servicoId) {
   return barbeiro.servicos_ids.map(String).includes(String(servicoId));
 }
 
+function normalizarDataIso(valor) {
+  if (!valor) return '';
+  return String(valor).split('T')[0];
+}
+
 export default function AgendamentoClassico({ barbeariaId }) {
   const [barbearia, setBarbearia] = useState(null);
   const [servicos, setServicos] = useState([]);
   const [barbeiros, setBarbeiros] = useState([]);
   const [horariosOcupados, setHorariosOcupados] = useState([]);
-  const [datasBloqueadas, setDatasBloqueadas] = useState([]);
+  const [bloqueiosAgenda, setBloqueiosAgenda] = useState([]);
 
   const [telefone, setTelefone] = useState('');
   const [nome, setNome] = useState('');
@@ -57,6 +62,23 @@ export default function AgendamentoClassico({ barbeariaId }) {
     ? barbeiros.filter((b) => barbeiroExecutaServico(b, servicoEscolhido.id))
     : barbeiros;
 
+  const getBarbeiroAtivoId = () => {
+    return barbeiroEscolhido?.id || agendamentoEmEdicao?.barbeiro_id || null;
+  };
+
+  const isDataBloqueadaParaProfissional = (dataIso, barbId) => {
+    const dataFmt = normalizarDataIso(dataIso);
+    if (!dataFmt) return false;
+
+    return bloqueiosAgenda.some((b) => {
+      const dataBloq = normalizarDataIso(b.data_bloqueio);
+      if (dataBloq !== dataFmt) return false;
+      if (!b.barbeiro_id) return true;
+      if (barbId && String(b.barbeiro_id) === String(barbId)) return true;
+      return false;
+    });
+  };
+
   const getEstiloBotao3D = (ativo = false) => ({
     background: ativo ? tema.botao_ativo_estilo : tema.botao_estilo,
     color: tema.cor_texto_usuario,
@@ -78,13 +100,7 @@ export default function AgendamentoClassico({ barbeariaId }) {
 
         setServicos(resServicos.data || []);
         setBarbeiros(resBarbeiros.data || []);
-
-        const bloqueiosFormatados = (resBloqueios.data || []).map(b => {
-          if (!b.data_bloqueio) return '';
-          return String(b.data_bloqueio).split('T')[0];
-        }).filter(Boolean);
-
-        setDatasBloqueadas(bloqueiosFormatados);
+        setBloqueiosAgenda(resBloqueios.data || []);
       } catch (err) {
         console.error('Erro ao carregar dados:', err);
       }
@@ -94,11 +110,11 @@ export default function AgendamentoClassico({ barbeariaId }) {
 
   useEffect(() => {
     async function buscarOcupados() {
-      const bId = barbeiroEscolhido?.id || agendamentoEmEdicao?.barbeiro_id;
+      const bId = getBarbeiroAtivoId();
       if (!bId || !dataEscolhida) return;
 
       try {
-        const dataFmt = dataEscolhida.split('T')[0];
+        const dataFmt = normalizarDataIso(dataEscolhida);
         const inicio = `${dataFmt}T00:00:00`;
         const fim = `${dataFmt}T23:59:59`;
 
@@ -174,7 +190,8 @@ export default function AgendamentoClassico({ barbeariaId }) {
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
 
-    const barbeiroAtivo = barbeiroEscolhido || barbeiros.find(b => b.id === agendamentoEmEdicao?.barbeiro_id);
+    const barbIdAtivo = getBarbeiroAtivoId();
+    const barbeiroAtivo = barbeiros.find((b) => String(b.id) === String(barbIdAtivo));
 
     for (let i = 0; i < 30; i++) {
       const d = new Date();
@@ -199,7 +216,7 @@ export default function AgendamentoClassico({ barbeariaId }) {
         }
       }
 
-      const estaBloqueadoNoBanco = datasBloqueadas.some(b => b.startsWith(dataIso));
+      const estaBloqueadoNoBanco = isDataBloqueadaParaProfissional(dataIso, barbIdAtivo);
       const bloqueado = estaBloqueadoNoBanco || !diaAtivo;
 
       dias.push({
@@ -216,12 +233,14 @@ export default function AgendamentoClassico({ barbeariaId }) {
   const gerarHorariosDisponiveisDinamico = () => {
     if (!dataEscolhida) return [];
 
-    const dataFmt = dataEscolhida.split('T')[0];
-    if (datasBloqueadas.some(b => b.startsWith(dataFmt))) {
+    const dataFmt = normalizarDataIso(dataEscolhida);
+    const barbIdAtivo = getBarbeiroAtivoId();
+
+    if (isDataBloqueadaParaProfissional(dataFmt, barbIdAtivo)) {
       return [];
     }
 
-    const barbeiroAtivo = barbeiroEscolhido || barbeiros.find(b => b.id === agendamentoEmEdicao?.barbeiro_id);
+    const barbeiroAtivo = barbeiros.find((b) => String(b.id) === String(barbIdAtivo));
     const [ano, mes, dia] = dataFmt.split('-').map(Number);
     const dateObj = new Date(ano, mes - 1, dia);
 
@@ -387,9 +406,15 @@ export default function AgendamentoClassico({ barbeariaId }) {
   };
 
   const confirmarEdicaoHorario = async (hora) => {
+    const dataFmt = normalizarDataIso(dataEscolhida);
+    const barbIdAtivo = getBarbeiroAtivoId();
+    if (isDataBloqueadaParaProfissional(dataFmt, barbIdAtivo)) {
+      setErro('Esta data está bloqueada para este profissional.');
+      return;
+    }
+
     setLoading(true);
     try {
-      const dataFmt = dataEscolhida.split('T')[0];
       const dataHoraIso = new Date(`${dataFmt}T${hora}:00`).toISOString();
       const { error } = await supabase
         .from('agendamentos')
@@ -413,9 +438,14 @@ export default function AgendamentoClassico({ barbeariaId }) {
       return;
     }
 
+    const dataFmt = normalizarDataIso(dataEscolhida);
+    if (isDataBloqueadaParaProfissional(dataFmt, barbeiroEscolhido.id)) {
+      setErro('Esta data está bloqueada para o profissional selecionado.');
+      return;
+    }
+
     setLoading(true);
     try {
-      const dataFmt = dataEscolhida.split('T')[0];
       const dataHoraIso = new Date(`${dataFmt}T${horaEscolhida}:00`).toISOString();
       const { error } = await supabase.from('agendamentos').insert([{
         barbearia_id: barbeariaId,
