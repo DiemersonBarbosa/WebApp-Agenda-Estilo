@@ -18,12 +18,17 @@ function barbeiroExecutaServico(barbeiro, servicoId) {
   return barbeiro.servicos_ids.map(String).includes(String(servicoId));
 }
 
+function normalizarDataIso(valor) {
+  if (!valor) return '';
+  return String(valor).split('T')[0];
+}
+
 export default function AgendamentoChat({ barbeariaId }) {
   const [barbearia, setBarbearia] = useState(null);
   const [servicos, setServicos] = useState([]);
   const [barbeiros, setBarbeiros] = useState([]);
   const [horariosOcupados, setHorariosOcupados] = useState([]);
-  const [datasBloqueadas, setDatasBloqueadas] = useState([]);
+  const [bloqueiosAgenda, setBloqueiosAgenda] = useState([]);
 
   const [dataAtualNavegacao, setDataAtualNavegacao] = useState(new Date());
 
@@ -64,6 +69,26 @@ export default function AgendamentoChat({ barbeariaId }) {
     ? barbeiros.filter((b) => barbeiroExecutaServico(b, servicoEscolhido.id))
     : barbeiros;
 
+  const getBarbeiroAtivoId = () => {
+    if (etapa.startsWith('editar')) {
+      return agendamentoEmEdicao?.barbeiro_id || barbeiroEscolhido?.id || null;
+    }
+    return barbeiroEscolhido?.id || null;
+  };
+
+  const isDataBloqueadaParaProfissional = (dataIso, barbId) => {
+    const dataFmt = normalizarDataIso(dataIso);
+    if (!dataFmt) return false;
+
+    return bloqueiosAgenda.some((b) => {
+      const dataBloq = normalizarDataIso(b.data_bloqueio);
+      if (dataBloq !== dataFmt) return false;
+      if (!b.barbeiro_id) return true;
+      if (barbId && String(b.barbeiro_id) === String(barbId)) return true;
+      return false;
+    });
+  };
+
   const getEstiloBotao3D = (ativo = false) => ({
     background: ativo ? tema.botao_ativo_estilo : tema.botao_estilo,
     color: tema.cor_texto_usuario,
@@ -91,6 +116,9 @@ export default function AgendamentoChat({ barbeariaId }) {
     const isMesAtual = hoje.getFullYear() === ano && hoje.getMonth() === mes;
     const diaInicio = isMesAtual ? hoje.getDate() : 1;
 
+    const barbIdAtivo = getBarbeiroAtivoId();
+    const barbeiroAtivo = barbeiros.find((b) => String(b.id) === String(barbIdAtivo));
+
     for (let i = diaInicio; i <= totalDias; i++) {
       const d = new Date(ano, mes, i);
 
@@ -104,10 +132,6 @@ export default function AgendamentoChat({ barbeariaId }) {
 
       const diasSemanaComAcento = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
       const nomeDiaComAcento = diasSemanaComAcento[d.getDay()];
-
-      const barbeiroAtivo = etapa.startsWith('editar')
-        ? barbeiros.find(b => b.id === agendamentoEmEdicao?.barbeiro_id)
-        : barbeiroEscolhido;
 
       const checarDiaAtivo = (configObj) => {
         if (!configObj) return undefined;
@@ -136,7 +160,7 @@ export default function AgendamentoChat({ barbeariaId }) {
         }
       }
 
-      const estaBloqueadoNoBanco = datasBloqueadas.some(b => b.startsWith(dataIso));
+      const estaBloqueadoNoBanco = isDataBloqueadaParaProfissional(dataIso, barbIdAtivo);
       const bloqueado = estaBloqueadoNoBanco || !diaAtivo;
 
       dias.push({
@@ -165,14 +189,14 @@ export default function AgendamentoChat({ barbeariaId }) {
   const getHorariosDisponiveisParaData = (dataStr) => {
     if (!dataStr) return [];
 
-    const dataFmt = dataStr.split('T')[0];
-    if (datasBloqueadas.some(b => b.startsWith(dataFmt))) {
+    const dataFmt = normalizarDataIso(dataStr);
+    const barbIdAtivo = getBarbeiroAtivoId();
+
+    if (isDataBloqueadaParaProfissional(dataFmt, barbIdAtivo)) {
       return [];
     }
 
-    const barbeiroAtivo = etapa.startsWith('editar')
-      ? barbeiros.find(b => b.id === agendamentoEmEdicao?.barbeiro_id)
-      : barbeiroEscolhido;
+    const barbeiroAtivo = barbeiros.find((b) => String(b.id) === String(barbIdAtivo));
 
     const [ano, mes, dia] = dataFmt.split('-').map(Number);
     const dateObj = new Date(ano, mes - 1, dia);
@@ -280,13 +304,7 @@ export default function AgendamentoChat({ barbeariaId }) {
 
         setServicos(resServicos.data || []);
         setBarbeiros(resBarbeiros.data || []);
-
-        const bloqueiosFormatados = (resBloqueios.data || []).map(b => {
-          if (!b.data_bloqueio) return '';
-          return String(b.data_bloqueio).split('T')[0];
-        }).filter(Boolean);
-
-        setDatasBloqueadas(bloqueiosFormatados);
+        setBloqueiosAgenda(resBloqueios.data || []);
 
         adicionarMensagemBotComDelay('Olá! Seja muito bem-vindo. Para começarmos, por favor, informe o seu celular/WhatsApp:');
       } catch (err) {
@@ -299,11 +317,11 @@ export default function AgendamentoChat({ barbeariaId }) {
 
   useEffect(() => {
     async function buscarOcupados() {
-      const barbIdParaConsulta = etapa.startsWith('editar') ? agendamentoEmEdicao?.barbeiro_id : barbeiroEscolhido?.id;
+      const barbIdParaConsulta = getBarbeiroAtivoId();
       if (!barbIdParaConsulta || !dataEscolhida) return;
 
       try {
-        const dataFmt = dataEscolhida.split('T')[0];
+        const dataFmt = normalizarDataIso(dataEscolhida);
         const inicio = `${dataFmt}T00:00:00`;
         const fim = `${dataFmt}T23:59:59`;
 
@@ -488,9 +506,10 @@ export default function AgendamentoChat({ barbeariaId }) {
   };
 
   const confirmarDataModerna = (dataSelecionada, bloqueado) => {
-    const dataFmt = dataSelecionada.split('T')[0];
-    if (bloqueado || datasBloqueadas.some(b => b.startsWith(dataFmt))) {
-      setErro('⚠️ Esta data está bloqueada ou o estabelecimento está fechado.');
+    const dataFmt = normalizarDataIso(dataSelecionada);
+    const barbIdAtivo = getBarbeiroAtivoId();
+    if (bloqueado || isDataBloqueadaParaProfissional(dataFmt, barbIdAtivo)) {
+      setErro('⚠️ Esta data está bloqueada para este profissional ou o estabelecimento está fechado.');
       return;
     }
     setErro(null);
@@ -506,9 +525,15 @@ export default function AgendamentoChat({ barbeariaId }) {
   };
 
   const salvarEdicaoHorario = async (hora) => {
+    const dataFmt = normalizarDataIso(dataEscolhida);
+    const barbIdAtivo = getBarbeiroAtivoId();
+    if (isDataBloqueadaParaProfissional(dataFmt, barbIdAtivo)) {
+      setErro('Esta data está bloqueada para este profissional.');
+      return;
+    }
+
     setLoading(true);
     try {
-      const dataFmt = dataEscolhida.split('T')[0];
       const dataHoraIso = new Date(`${dataFmt}T${hora}:00`).toISOString();
       await supabase.from('agendamentos').update({ data_hora: dataHoraIso }).eq('id', agendamentoEmEdicao.id);
       await carregarDadosCliente(clienteId);
@@ -532,6 +557,8 @@ export default function AgendamentoChat({ barbeariaId }) {
 
   const selecionarBarbeiro = (barbeiro) => {
     setBarbeiroEscolhido(barbeiro);
+    setDataEscolhida('');
+    setHoraEscolhida('');
     setMensagens((prev) => [...prev, { remetente: 'usuario', texto: barbeiro.nome }]);
     adicionarMensagemBotComDelay(`Ótima escolha! O atendimento será com ${barbeiro.nome}. Para qual data deseja agendar?`, 'data');
   };
@@ -543,9 +570,10 @@ export default function AgendamentoChat({ barbeariaId }) {
   };
 
   const confirmarAgendamentoFinal = async () => {
-    const dataFmt = dataEscolhida.split('T')[0];
-    if (barbearia?.permite_agendamentos === false || datasBloqueadas.some(b => b.startsWith(dataFmt))) {
-      setErro('Os agendamentos online estão pausados ou esta data está bloqueada.');
+    const dataFmt = normalizarDataIso(dataEscolhida);
+    const barbIdAtivo = getBarbeiroAtivoId();
+    if (barbearia?.permite_agendamentos === false || isDataBloqueadaParaProfissional(dataFmt, barbIdAtivo)) {
+      setErro('Os agendamentos online estão pausados ou esta data está bloqueada para o profissional selecionado.');
       return;
     }
 
